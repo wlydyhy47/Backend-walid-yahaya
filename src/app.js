@@ -1,4 +1,5 @@
 const express = require("express");
+const cors = require("cors");
 // done
 const userRoutes = require("./routes/user.routes");
 
@@ -46,5 +47,10 @@ app.use("/uploads", express.static("uploads"));
 
 app.use("/api/auth", authRoutes); 
 
+// في server.js أو app.js
+
+app.use(cors({
+  origin: "http://localhost:3000" // السماح لمشروع React فقط
+}));
 
 module.exports = app;
