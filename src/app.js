@@ -19,6 +19,12 @@ const restaurantAddressRoutes = require("./routes/restaurantAddress.routes");
 
 const app = express();
 
+app.use(cors({
+  origin: 'http://localhost:3000', // اسمح فقط لهذا النطاق
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 // middleware
 app.use(express.json()); 
 
@@ -49,8 +55,6 @@ app.use("/api/auth", authRoutes);
 
 // في server.js أو app.js
 
-app.use(cors({
-  origin: "http://localhost:3000" // السماح لمشروع React فقط
-}));
+
 
 module.exports = app;
