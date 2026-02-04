@@ -16,6 +16,8 @@ const addressRoutes = require("./routes/address.routes");
 
 const restaurantAddressRoutes = require("./routes/restaurantAddress.routes");
 
+// استيراد route التجميع الجديد
+const aggregateRoutes = require("./routes/aggregate.routes");
 
 const app = express();
 
@@ -52,6 +54,8 @@ app.use("/api/restaurant-addresses", restaurantAddressRoutes);
 app.use("/uploads", express.static("uploads"));
 
 app.use("/api/auth", authRoutes); 
+
+app.use("/api/aggregate", aggregateRoutes);
 
 // في server.js أو app.js
 
