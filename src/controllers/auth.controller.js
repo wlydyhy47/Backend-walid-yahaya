@@ -103,11 +103,11 @@ exports.registerComplete = async (req, res) => {
     if (additionalData.dateOfBirth) {
       userData.dateOfBirth = new Date(additionalData.dateOfBirth);
     }
-    
+
     if (additionalData.gender) {
       userData.gender = additionalData.gender;
     }
-    
+
     if (additionalData.city) {
       userData.city = additionalData.city;
     }
@@ -125,8 +125,8 @@ exports.registerComplete = async (req, res) => {
     await user.logActivity("registered", {
       method: "email",
       ip: req.ip,
-    }, req);
-
+      userAgent: req.headers["user-agent"]
+    });
     // إنشاء token
     const token = jwt.sign(
       { id: user._id, role: user.role },
@@ -154,18 +154,39 @@ exports.registerComplete = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("❌ Registration error:", error.message);
-    
-    if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: "Phone or email already exists",
-      });
+    console.error("❌ Registration error:", {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code,
+      body: req.body
+    });
+
+    let statusCode = 500;
+    let message = "Registration failed";
+
+    if (error.name === 'ValidationError') {
+      statusCode = 400;
+      const errors = Object.values(error.errors).map(err => err.message);
+      message = `Validation failed: ${errors.join(', ')}`;
+    } else if (error.code === 11000) {
+      statusCode = 400;
+      const field = error.message.includes('email') ? 'Email' : 'Phone';
+      message = `${field} already exists`;
+    } else if (error.message.includes('next is not a function')) {
+      message = "Server configuration error - please contact support";
     }
-    
-    res.status(500).json({
+
+    res.status(statusCode).json({
       success: false,
-      message: "Registration failed",
+      message: message,
+      metadata: {
+        timestamp: new Date().toISOString(),
+        ...(process.env.NODE_ENV === 'development' && {
+          error: error.message,
+          errorType: error.name
+        })
+      }
     });
   }
 };
@@ -178,7 +199,7 @@ exports.verifyAccount = async (req, res) => {
   try {
     const { phone, verificationCode } = req.body;
 
-    const user = await User.findOne({ 
+    const user = await User.findOne({
       phone,
       verificationCode,
       verificationCodeExpires: { $gt: Date.now() }
@@ -241,7 +262,7 @@ exports.resendVerification = async (req, res) => {
     const { phone } = req.body;
 
     const user = await User.findOne({ phone, isVerified: false });
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -284,7 +305,7 @@ exports.forgotPassword = async (req, res) => {
     const { phone } = req.body;
 
     const user = await User.findOne({ phone });
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -298,7 +319,7 @@ exports.forgotPassword = async (req, res) => {
       .createHash("sha256")
       .update(resetToken)
       .digest("hex");
-    
+
     user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 دقائق
     await user.save();
 
@@ -383,7 +404,7 @@ exports.loginComplete = async (req, res) => {
     const { phone, password } = req.body;
 
     const user = await User.findOne({ phone }).select("+password");
-    
+
     if (!user) {
       return res.status(400).json({
         success: false,
@@ -466,7 +487,7 @@ exports.loginComplete = async (req, res) => {
 exports.logout = async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId);
     if (user) {
       user.isOnline = false;
@@ -505,7 +526,7 @@ exports.logout = async (req, res) => {
 exports.validateToken = async (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
-    
+
     if (!token) {
       return res.status(401).json({
         success: false,
@@ -524,11 +545,11 @@ exports.validateToken = async (req, res) => {
 
     // التحقق من صلاحية Token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // جلب بيانات المستخدم
     const user = await User.findById(decoded.id)
       .select("-password -verificationCode -resetPasswordToken");
-    
+
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -558,21 +579,21 @@ exports.validateToken = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Token validation error:", error.message);
-    
+
     if (error.name === "JsonWebTokenError") {
       return res.status(401).json({
         success: false,
         message: "Invalid token",
       });
     }
-    
+
     if (error.name === "TokenExpiredError") {
       return res.status(401).json({
         success: false,
         message: "Token expired",
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: "Token validation failed",
@@ -591,22 +612,22 @@ exports.loginComplete = async (req, res) => {
     const { phone, password, email } = req.body;
 
     let user;
-    
+
     // محاولة الدخول بالهاتف أولاً
     if (phone) {
       user = await User.findOne({ phone }).select("+password");
-    } 
+    }
     // ثم محاولة الدخول بالبريد الإلكتروني
     else if (email) {
       user = await User.findOne({ email }).select("+password");
-    } 
+    }
     else {
       return res.status(400).json({
         success: false,
         message: "الهاتف أو البريد الإلكتروني مطلوب"
       });
     }
-    
+
     if (!user) {
       return res.status(400).json({
         success: false,
@@ -655,11 +676,11 @@ exports.loginComplete = async (req, res) => {
 
     // إنشاء token
     const token = jwt.sign(
-      { 
-        id: user._id, 
+      {
+        id: user._id,
         role: user.role,
         name: user.name,
-        phone: user.phone 
+        phone: user.phone
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRES_IN || "30d" }

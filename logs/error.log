@@ -26,3 +26,23 @@ Error: Can't find /favicon.ico on this server!
   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
   "userId": "guest"
 }
+2026-02-07 01:07:30 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/complete/auth/register/complete",
+  "status": 500,
+  "duration": "10008ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.51.1",
+  "userId": "guest"
+}
+2026-02-07 01:28:55 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/complete/auth/register/complete",
+  "status": 500,
+  "duration": "10177ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.51.1",
+  "userId": "guest"
+}

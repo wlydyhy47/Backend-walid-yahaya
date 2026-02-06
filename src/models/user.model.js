@@ -249,23 +249,31 @@ userSchema.pre("save", function(next) {
 });
 
 // Methods
-userSchema.methods.logActivity = function(action, details = {}, req) {
-  this.activityLog.push({
-    action,
-    details,
-    ipAddress: req?.ip || req?.connection?.remoteAddress,
-    userAgent: req?.headers["user-agent"],
-  });
-  
-  // حفظ فقط آخر 100 نشاط
-  if (this.activityLog.length > 100) {
-    this.activityLog = this.activityLog.slice(-100);
+// في user.model.js، استبدل دالة logActivity:
+userSchema.methods.logActivity = async function(action, details = {}) {
+  try {
+    this.activityLog.push({
+      action,
+      details,
+      ipAddress: details.ip || '',
+      userAgent: details.userAgent || '',
+      timestamp: new Date()
+    });
+    
+    // حفظ فقط آخر 100 نشاط
+    if (this.activityLog.length > 100) {
+      this.activityLog = this.activityLog.slice(-100);
+    }
+    
+    this.lastActivity = new Date();
+    await this.save();
+    
+    return this;
+  } catch (error) {
+    console.error('❌ Error logging activity:', error.message);
+    return this; // نعيد المستخدم حتى لا نوقف العملية
   }
-  
-  this.lastActivity = Date.now();
-  return this.save();
 };
-
 // في user.model.js - تحديث دالة updateStats
 userSchema.methods.updateStats = async function() {
   try {
