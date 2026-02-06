@@ -5,138 +5,25 @@ const crypto = require("crypto");
 const cache = require("../utils/cache.util");
 
 // Register
-exports.registerComplete = async (req, res) => {
-  try {
-    console.log("📝 Registration attempt:", req.body);
-    
-    const { name, phone, password, email, role = "client", ...additionalData } = req.body;
+exports.register = async (req, res) => {
+  const { name, phone, password } = req.body;
 
-    // التحقق من البيانات
-    if (!name || !phone || !password) {
-      console.log("❌ Missing required fields");
-      return res.status(400).json({
-        success: false,
-        message: "Name, phone, and password are required",
-        requiredFields: ["name", "phone", "password"]
-      });
-    }
-
-    // التحقق من وجود المستخدم
-    console.log("🔍 Checking if user exists:", phone);
-    const exists = await User.findOne({ phone });
-    if (exists) {
-      console.log("❌ User already exists");
-      return res.status(400).json({
-        success: false,
-        message: "User already exists",
-        phone: phone
-      });
-    }
-
-    console.log("🔐 Hashing password...");
-    // تجهيز بيانات المستخدم
-    const userData = {
-      name,
-      phone,
-      password: await bcrypt.hash(password, 10),
-      email,
-      role,
-      isVerified: false,
-      stats: {
-        joinedDate: new Date(),
-      },
-      preferences: {
-        notifications: {
-          email: true,
-          sms: true,
-          push: true,
-          orderUpdates: true,
-          promotions: true,
-        },
-        language: "ar",
-        currency: "XOF",
-        theme: "light",
-      },
-    };
-
-    // إضافة البيانات الإضافية إذا كانت موجودة
-    if (additionalData.dateOfBirth) {
-      userData.dateOfBirth = new Date(additionalData.dateOfBirth);
-    }
-    
-    if (additionalData.gender) {
-      userData.gender = additionalData.gender;
-    }
-    
-    if (additionalData.city) {
-      userData.city = additionalData.city;
-    }
-
-    console.log("💾 Creating user in database...");
-    // إنشاء المستخدم
-    const user = await User.create(userData);
-
-    console.log("✅ User created:", user._id);
-
-    // إنشاء verification code
-    const verificationCode = crypto.randomBytes(3).toString("hex").toUpperCase();
-    user.verificationCode = verificationCode;
-    user.verificationCodeExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 ساعة
-    await user.save();
-
-    console.log("🔐 Creating JWT token...");
-    // التحقق من وجود JWT_SECRET
-    if (!process.env.JWT_SECRET) {
-      console.error("❌ JWT_SECRET is not set!");
-      throw new Error("JWT_SECRET is not configured");
-    }
-
-    // إنشاء token
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    // تسجيل النشاط
-    await user.logActivity("registered", {
-      method: "email",
-      ip: req.ip,
-    }, req);
-
-    console.log("🎉 Registration successful for user:", user._id);
-
-    res.status(201).json({
-      success: true,
-      message: "Registration successful. Please verify your account.",
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          phone: user.phone,
-          email: user.email,
-          role: user.role,
-          isVerified: user.isVerified,
-        },
-        token,
-        verificationCode: process.env.NODE_ENV === "development" ? verificationCode : undefined,
-        nextStep: "verify_account",
-      },
-    });
-  } catch (error) {
-    console.error("❌ Registration error details:", error);
-    
-    // إرجاع تفاصيل الخطأ
-    res.status(500).json({
-      success: false,
-      message: "Registration failed",
-      error: error.message,
-      errorType: error.name,
-      errorCode: error.code,
-      stack: process.env.NODE_ENV === "development" ? error.stack : undefined
-    });
+  const exists = await User.findOne({ phone });
+  if (exists) {
+    return res.status(400).json({ message: "User already exists" });
   }
+
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  const user = await User.create({
+    name,
+    phone,
+    password: hashedPassword,
+  });
+
+  res.status(201).json({ message: "User registered" });
 };
+
 // Login
 exports.login = async (req, res) => {
   const { phone, password } = req.body;
