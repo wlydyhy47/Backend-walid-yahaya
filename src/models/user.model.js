@@ -241,20 +241,19 @@ userSchema.virtual("fullProfile").get(function() {
 });
 
 // Middleware
-userSchema.pre("save", function(next) {
+// Middleware - الحل الآمن
+userSchema.pre("save", async function() {
   if (this.isModified("password")) {
     this.passwordChangedAt = Date.now();
   }
-  next();
+  // لا تستخدم next() - دع async يتولى الأمر
 });
-
 // Methods
 // في user.model.js، استبدل دالة logActivity:
 userSchema.methods.logActivity = async function(action, details = {}) {
   try {
-    // حل نهائي: استخدم Model.findByIdAndUpdate مباشرة
-    const updatedUser = await mongoose.model('User').findByIdAndUpdate(
-      this._id,
+    await this.model('User').updateOne(
+      { _id: this._id },
       {
         $push: {
           activityLog: {
@@ -265,32 +264,22 @@ userSchema.methods.logActivity = async function(action, details = {}) {
               userAgent: details.userAgent || '',
               timestamp: new Date()
             }],
-            $position: 0,
-            $slice: 100
+            $slice: -100
           }
         },
         $set: { lastActivity: new Date() }
-      },
-      { 
-        new: true,
-        runValidators: false // لتجنب أي validation conflicts
       }
     );
     
-    // تحديث الـ object الحالي ليبقى متزامناً
-    if (updatedUser) {
-      this.activityLog = updatedUser.activityLog;
-      this.lastActivity = updatedUser.lastActivity;
-      this.markModified('activityLog');
-    }
-    
+    // تحديث محلي فقط
+    this.lastActivity = new Date();
     return this;
   } catch (error) {
-    console.error('❌ Error logging activity (safe method):', error.message);
-    // لا نرمي error حتى لا نوقف العملية
+    console.error('❌ Error logging activity:', error.message);
     return this;
   }
 };
+
 // في user.model.js - تحديث دالة updateStats
 userSchema.methods.updateStats = async function() {
   try {
