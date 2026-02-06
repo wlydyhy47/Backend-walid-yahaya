@@ -93,7 +93,7 @@ app.use(cacheMiddleware);
 
 // ========== Rate Limiting ==========
 // تطبيق rate limiting على مسارات محددة
-app.use("/api/auth", /*authLimiter*/); // للتسجيل والدخول
+app.use("/api/auth", authLimiter); // للتسجيل والدخول
 app.use("/api/notifications/send", notificationLimiter); // لإرسال الإشعارات فقط
 app.use("/api/uploads", uploadLimiter); // للرفع
 app.use("/api", apiLimiter); // للعامة (يجب أن يكون آخر rate limiter)

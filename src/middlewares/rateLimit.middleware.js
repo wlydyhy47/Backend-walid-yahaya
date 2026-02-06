@@ -15,7 +15,7 @@ exports.apiLimiter = rateLimit({
 // Rate limiter أكثر تشدداً للـ authentication
 exports.authLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // ساعة واحدة
-  max: 5, // 5 محاولات تسجيل دخول فقط
+  max: 50, // 5 محاولات تسجيل دخول فقط
   message: {
     success: false,
     message: "Too many login attempts, please try again after an hour"
