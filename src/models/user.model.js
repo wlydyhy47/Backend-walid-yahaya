@@ -252,6 +252,27 @@ userSchema.pre("save", function(next) {
 // في user.model.js، استبدل دالة logActivity:
 userSchema.methods.logActivity = async function(action, details = {}) {
   try {
+    // تحديث المستخدم مباشرة بدون trigger لـ pre("save")
+    await this.model('User').updateOne(
+      { _id: this._id },
+      {
+        $push: {
+          activityLog: {
+            $each: [{
+              action,
+              details,
+              ipAddress: details.ip || '',
+              userAgent: details.userAgent || '',
+              timestamp: new Date()
+            }],
+            $slice: -100 // حفظ فقط آخر 100 نشاط
+          }
+        },
+        $set: { lastActivity: new Date() }
+      }
+    );
+    
+    // تحديث object المستخدم محليًا
     this.activityLog.push({
       action,
       details,
@@ -260,20 +281,19 @@ userSchema.methods.logActivity = async function(action, details = {}) {
       timestamp: new Date()
     });
     
-    // حفظ فقط آخر 100 نشاط
     if (this.activityLog.length > 100) {
       this.activityLog = this.activityLog.slice(-100);
     }
     
     this.lastActivity = new Date();
-    await this.save();
     
     return this;
   } catch (error) {
     console.error('❌ Error logging activity:', error.message);
-    return this; // نعيد المستخدم حتى لا نوقف العملية
+    return this;
   }
 };
+
 // في user.model.js - تحديث دالة updateStats
 userSchema.methods.updateStats = async function() {
   try {
