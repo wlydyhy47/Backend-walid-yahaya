@@ -4,6 +4,10 @@ const itemController = require("../controllers/item.controller");
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const upload = require("../middlewares/upload");
+const PaginationUtils = require('../utils/pagination.util');
+
+// GET all items with pagination
+router.get('/', PaginationUtils.validatePaginationParams, itemController.getItemsPaginated);
 
 router.post(
   "/",
@@ -12,6 +16,7 @@ router.post(
   upload("items").single("image"),
   itemController.createItem
 );
+
 // PUT image
 router.put(
   "/:id/image",
@@ -24,10 +29,8 @@ router.put(
 router.delete(
   "/:id",
   auth,
-  role("admin"), 
-  upload("items").single("image"),
+  role("admin"),
   itemController.deleteItem
 );
-
 
 module.exports = router;

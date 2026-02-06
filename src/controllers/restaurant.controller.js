@@ -1,5 +1,6 @@
 const Restaurant = require("../models/restaurant.model");
 const RestaurantAddress = require("../models/restaurantAddress.model");
+const PaginationUtils = require('../utils/pagination.util');
 
 /**
  * GET all restaurants
@@ -132,5 +133,127 @@ exports.deleteRestaurant = async (req, res) => {
     res.json({ message: "Restaurant deleted" });
   } catch {
     res.status(500).json({ message: "Failed to delete restaurant" });
+  }
+};
+
+/**
+ * 📋 الحصول على المطاعم مع Pagination
+ * GET /api/restaurants
+ */
+exports.getRestaurantsPaginated = async (req, res) => {
+  try {
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    const { skip, limit, sort, search, filters } = paginationOptions;
+    
+    let query = { isOpen: true };
+    
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+    
+    if (filters.type) {
+      query.type = filters.type;
+    }
+    
+    const [restaurants, total] = await Promise.all([
+      Restaurant.find(query)
+        .populate('createdBy', 'name phone email')
+        .populate('items')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      
+      Restaurant.countDocuments(query),
+    ]);
+
+    const response = PaginationUtils.createPaginationResponse(
+      restaurants,
+      total,
+      paginationOptions
+    );
+    
+    res.json(response);
+  } catch (error) {
+    console.error('Pagination error:', error);
+    res.status(500).json({ message: 'Failed to fetch restaurants' });
+  }
+};
+
+/**
+ * 🔍 بحث متقدم مع Pagination
+ * GET /api/restaurants/search/advanced
+ */
+exports.advancedSearch = async (req, res) => {
+  try {
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    const { skip, limit, sort, filters } = paginationOptions;
+    
+    // بناء استعلام متقدم
+    let query = { isOpen: true };
+    
+    if (filters.name) {
+      query.name = { $regex: filters.name, $options: 'i' };
+    }
+    
+    if (filters.type) {
+      query.type = filters.type;
+    }
+    
+    if (filters.minRating) {
+      query.averageRating = { $gte: Number(filters.minRating) };
+    }
+    
+    if (filters.tags) {
+      query.tags = { $in: filters.tags.split(',') };
+    }
+    
+    if (filters.hasDelivery !== undefined) {
+      query.deliveryFee = filters.hasDelivery === 'true' 
+        ? { $gt: 0 } 
+        : { $eq: 0 };
+    }
+
+    const [restaurants, total] = await Promise.all([
+      Restaurant.find(query)
+        .populate('createdBy', 'name phone')
+        .populate({
+          path: 'items',
+          match: { isAvailable: true },
+          options: { limit: 5 },
+        })
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      
+      Restaurant.countDocuments(query),
+    ]);
+
+    // جلب إحصائيات البحث
+    const stats = {
+      types: await Restaurant.distinct('type', query),
+      averageRating: await Restaurant.aggregate([
+        { $match: query },
+        { $group: { _id: null, avg: { $avg: '$averageRating' } } },
+      ]),
+      countByType: await Restaurant.aggregate([
+        { $match: query },
+        { $group: { _id: '$type', count: { $sum: 1 } } },
+      ]),
+    };
+
+    const response = PaginationUtils.createPaginationResponse(
+      restaurants,
+      total,
+      paginationOptions,
+      { stats }
+    );
+    
+    res.json(response);
+  } catch (error) {
+    console.error('Advanced search error:', error);
+    res.status(500).json({ message: 'Search failed' });
   }
 };

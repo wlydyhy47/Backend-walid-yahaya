@@ -6,6 +6,9 @@ const role = require("../middlewares/role.middleware");
 const upload = require("../middlewares/upload");
 const reviewRoutes = require("./review.routes");
 
+// استيراد PaginationUtils
+const PaginationUtils = require('../utils/pagination.util');
+
 // Middleware لتحميل الصور للمطاعم (image + coverImage)
 const restaurantUpload = upload("restaurants").fields([
   { name: "image", maxCount: 1 },
@@ -14,8 +17,11 @@ const restaurantUpload = upload("restaurants").fields([
 
 // ======== ROUTES ========
 
-// GET all restaurants
-router.get("/", restaurantController.getRestaurants);
+// GET all restaurants with pagination
+router.get('/', PaginationUtils.validatePaginationParams, restaurantController.getRestaurantsPaginated);
+
+// Advanced search with pagination
+router.get('/search/advanced', PaginationUtils.validatePaginationParams, restaurantController.advancedSearch);
 
 // ✅ البحث بالاسم والنوع
 router.get("/search", restaurantController.searchRestaurants);

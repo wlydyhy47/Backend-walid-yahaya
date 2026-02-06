@@ -1,0 +1,58 @@
+2026-02-06 14:16:38 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/",
+  "status": 200,
+  "duration": "22ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-02-06 14:16:38 [error]: Unhandled Error Can't find /favicon.ico on this server!
+Error: Can't find /favicon.ico on this server!
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:50:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\project\Backend-walid-yahaya\src\middlewares\cache.middleware.js:59:3)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+{
+  "url": "/favicon.ico",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-02-06 14:16:38 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/favicon.ico",
+  "status": 404,
+  "duration": "11ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-02-06 14:17:56 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/",
+  "status": 200,
+  "duration": "2ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-02-06 14:17:58 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/",
+  "status": 200,
+  "duration": "1ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+  "userId": "guest"
+}

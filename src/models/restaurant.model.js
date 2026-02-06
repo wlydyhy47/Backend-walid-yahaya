@@ -1,5 +1,4 @@
 const mongoose = require("mongoose");
-const { populate } = require("./order.model");
 
 const restaurantSchema = new mongoose.Schema(
   {
@@ -12,6 +11,7 @@ const restaurantSchema = new mongoose.Schema(
     name: {
       type: String,
       required: true,
+      trim: true,
     },
     description: String,
     isOpen: {
@@ -30,11 +30,41 @@ const restaurantSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    type: {     // ✅ النوع العام للمطعم
-      type: String, 
-      default: "restaurant" // يمكن أن يكون: restaurant, bakery, cafe, fast-food, grocery, pharmacy ...
+    type: {
+      type: String,
+      default: "restaurant",
+      enum: ["restaurant", "cafe", "bakery", "fast-food", "grocery", "pharmacy", "other"],
     },
-
+    phone: {
+      type: String,
+      trim: true,
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+    openingHours: {
+      type: Map,
+      of: String, // يوم: ساعات مثل "09:00-22:00"
+      default: {},
+    },
+    deliveryFee: {
+      type: Number,
+      default: 0,
+    },
+    minOrderAmount: {
+      type: Number,
+      default: 0,
+    },
+    estimatedDeliveryTime: {
+      type: Number, // بالدقائق
+      default: 30,
+    },
+    tags: [{
+      type: String,
+      trim: true,
+    }],
   },
   { timestamps: true }
 );
@@ -42,10 +72,22 @@ const restaurantSchema = new mongoose.Schema(
 restaurantSchema.virtual("items", {
   ref: "Item",
   localField: "_id",
-  foreignField: "restaurant"
+  foreignField: "restaurant",
 });
+
+restaurantSchema.virtual("addresses", {
+  ref: "RestaurantAddress",
+  localField: "_id",
+  foreignField: "restaurant",
+});
+
+restaurantSchema.virtual("reviews", {
+  ref: "Review",
+  localField: "_id",
+  foreignField: "restaurant",
+});
+
 restaurantSchema.set("toObject", { virtuals: true });
 restaurantSchema.set("toJSON", { virtuals: true });
-
 
 module.exports = mongoose.model("Restaurant", restaurantSchema);

@@ -1,4 +1,5 @@
 const Item = require("../models/item.model");
+const PaginationUtils = require('../utils/pagination.util');
 
 /**
  * POST /api/items
@@ -70,5 +71,54 @@ exports.deleteItem = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Failed to delete item" });
+  }
+};
+
+
+/**
+ * 📋 الحصول على العناصر مع Pagination
+ * GET /api/items
+ */
+exports.getItemsPaginated = async (req, res) => {
+  try {
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    const { skip, limit, sort, filters } = paginationOptions;
+    
+    let query = { isAvailable: true };
+    
+    if (filters.restaurant) {
+      query.restaurant = filters.restaurant;
+    }
+    
+    if (filters.category) {
+      query.category = filters.category;
+    }
+    
+    if (filters.minPrice || filters.maxPrice) {
+      query.price = {};
+      if (filters.minPrice) query.price.$gte = Number(filters.minPrice);
+      if (filters.maxPrice) query.price.$lte = Number(filters.maxPrice);
+    }
+
+    const [items, total] = await Promise.all([
+      Item.find(query)
+        .populate('restaurant', 'name image')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      
+      Item.countDocuments(query),
+    ]);
+
+    const response = PaginationUtils.createPaginationResponse(
+      items,
+      total,
+      paginationOptions
+    );
+    
+    res.json(response);
+  } catch (error) {
+    console.error('Pagination error:', error);
+    res.status(500).json({ message: 'Failed to fetch items' });
   }
 };

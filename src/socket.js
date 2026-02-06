@@ -1,76 +1,21 @@
-// src/socket.js
-const { Server } = require("socket.io");
-const DriverLocation = require("./models/driverLocation.model");
+const socketService = require("./services/socket.service");
 
 const initSocket = (server) => {
-  const io = new Server(server, {
-    cors: { origin: "*" },
-  });
-
-  io.on("connection", (socket) => {
-    console.log("🟢 Socket connected:", socket.id);
-
-    /**
-     * ADMIN joins
-     */
-    socket.on("joinAdmin", () => {
-      socket.join("admin-room");
-      console.log("👑 Admin joined admin-room");
-    });
-
-    /**
-     * CLIENT joins order room
-     */
-    socket.on("joinOrder", ({ orderId }) => {
-      socket.join(`order-${orderId}`);
-      console.log(`📦 Client joined order-${orderId}`);
-    });
-
-    /**
-     * DRIVER sends location
-     */
-    socket.on("driverLocationUpdate", async (data) => {
-      try {
-        const { driverId, orderId, latitude, longitude } = data;
-
-        if (!driverId || !latitude || !longitude) return;
-
-        const location = await DriverLocation.create({
-          driver: driverId,
-          order: orderId || null,
-          location: {
-            type: "Point",
-            coordinates: [longitude, latitude],
-          },
-        });
-
-        const payload = {
-          driverId,
-          orderId,
-          latitude,
-          longitude,
-          timestamp: location.timestamp,
-        };
-
-        // 👑 Admin sees all drivers
-        io.to("admin-room").emit("driverLocationUpdated", payload);
-
-        // 📦 Client sees only his driver
-        if (orderId) {
-          io.to(`order-${orderId}`).emit(
-            "driverLocationUpdated",
-            payload
-          );
-        }
-      } catch (err) {
-        console.error("❌ Location update error:", err.message);
-      }
-    });
-
-    socket.on("disconnect", () => {
-      console.log("🔴 Socket disconnected:", socket.id);
-    });
-  });
+  try {
+    const io = socketService.initialize(server);
+    
+    if (server && server.app) {
+      server.app.set('io', io);
+      server.app.set('socketService', socketService);
+    }
+    
+    console.log("✅ Socket.io initialized successfully");
+    return io;
+  } catch (error) {
+    console.error("❌ Socket.io initialization failed:", error.message);
+    // لا نوقف الخادم إذا فشلت الـ sockets
+    return null;
+  }
 };
 
 module.exports = initSocket;
