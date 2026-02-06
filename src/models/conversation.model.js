@@ -178,7 +178,6 @@ const conversationSchema = new mongoose.Schema(
     // تاريخ الانتهاء (للمحادثات المؤقتة)
     expiresAt: {
       type: Date,
-      index: true,
     },
     
     // الإحصائيات
