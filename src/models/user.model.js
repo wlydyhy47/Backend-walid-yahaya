@@ -252,9 +252,9 @@ userSchema.pre("save", function(next) {
 // في user.model.js، استبدل دالة logActivity:
 userSchema.methods.logActivity = async function(action, details = {}) {
   try {
-    // تحديث المستخدم مباشرة بدون trigger لـ pre("save")
-    await this.model('User').updateOne(
-      { _id: this._id },
+    // حل نهائي: استخدم Model.findByIdAndUpdate مباشرة
+    const updatedUser = await mongoose.model('User').findByIdAndUpdate(
+      this._id,
       {
         $push: {
           activityLog: {
@@ -265,85 +265,106 @@ userSchema.methods.logActivity = async function(action, details = {}) {
               userAgent: details.userAgent || '',
               timestamp: new Date()
             }],
-            $slice: -100 // حفظ فقط آخر 100 نشاط
+            $position: 0,
+            $slice: 100
           }
         },
         $set: { lastActivity: new Date() }
+      },
+      { 
+        new: true,
+        runValidators: false // لتجنب أي validation conflicts
       }
     );
     
-    // تحديث object المستخدم محليًا
-    this.activityLog.push({
-      action,
-      details,
-      ipAddress: details.ip || '',
-      userAgent: details.userAgent || '',
-      timestamp: new Date()
-    });
-    
-    if (this.activityLog.length > 100) {
-      this.activityLog = this.activityLog.slice(-100);
+    // تحديث الـ object الحالي ليبقى متزامناً
+    if (updatedUser) {
+      this.activityLog = updatedUser.activityLog;
+      this.lastActivity = updatedUser.lastActivity;
+      this.markModified('activityLog');
     }
-    
-    this.lastActivity = new Date();
     
     return this;
   } catch (error) {
-    console.error('❌ Error logging activity:', error.message);
+    console.error('❌ Error logging activity (safe method):', error.message);
+    // لا نرمي error حتى لا نوقف العملية
     return this;
   }
 };
-
 // في user.model.js - تحديث دالة updateStats
 userSchema.methods.updateStats = async function() {
   try {
     const Order = require("./order.model");
+    const Review = require("./review.model");
     
-    const stats = await Order.aggregate([
-      { $match: { user: this._id } },
-      {
-        $group: {
-          _id: null,
-          totalOrders: { $sum: 1 },
-          completedOrders: { 
-            $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } 
+    // استخدم aggregate مباشرة
+    const [orderStats, reviewStats] = await Promise.all([
+      Order.aggregate([
+        { $match: { user: this._id } },
+        {
+          $group: {
+            _id: null,
+            totalOrders: { $sum: 1 },
+            completedOrders: { 
+              $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } 
+            },
+            cancelledOrders: { 
+              $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } 
+            },
+            totalSpent: { $sum: "$totalPrice" },
+            lastOrderDate: { $max: "$createdAt" },
           },
-          cancelledOrders: { 
-            $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } 
-          },
-          totalSpent: { $sum: "$totalPrice" },
-          lastOrderDate: { $max: "$createdAt" },
         },
-      },
+      ]),
+      Review.aggregate([
+        { $match: { user: this._id } },
+        {
+          $group: {
+            _id: null,
+            averageRating: { $avg: "$rating" },
+            ratingCount: { $sum: 1 }
+          }
+        }
+      ])
     ]);
     
-    if (stats.length > 0) {
-      this.stats.totalOrders = stats[0].totalOrders || 0;
-      this.stats.completedOrders = stats[0].completedOrders || 0;
-      this.stats.cancelledOrders = stats[0].cancelledOrders || 0;
-      this.stats.totalSpent = stats[0].totalSpent || 0;
-      this.stats.lastOrderDate = stats[0].lastOrderDate || null;
+    // تحديث مباشر بدون save()
+    const updateData = {
+      'stats.lastOrderDate': orderStats[0]?.lastOrderDate || null
+    };
+    
+    if (orderStats.length > 0) {
+      updateData['stats.totalOrders'] = orderStats[0].totalOrders || 0;
+      updateData['stats.completedOrders'] = orderStats[0].completedOrders || 0;
+      updateData['stats.cancelledOrders'] = orderStats[0].cancelledOrders || 0;
+      updateData['stats.totalSpent'] = orderStats[0].totalSpent || 0;
     }
     
-    // تحديث متوسط التقييم
-    const Review = require("./review.model");
-    const reviewStats = await Review.aggregate([
-      { $match: { user: this._id } },
-      {
-        $group: {
-          _id: null,
-          averageRating: { $avg: "$rating" },
-          ratingCount: { $sum: 1 }
-        }
-      }
-    ]);
+    if (reviewStats.length > 0) {
+      updateData['stats.averageRating'] = reviewStats[0].averageRating || 0;
+      updateData['stats.ratingCount'] = reviewStats[0].ratingCount || 0;
+    }
+    
+    await mongoose.model('User').findByIdAndUpdate(
+      this._id,
+      { $set: updateData },
+      { runValidators: false }
+    );
+    
+    // تحديث object محلياً
+    if (orderStats.length > 0) {
+      this.stats.totalOrders = orderStats[0].totalOrders || 0;
+      this.stats.completedOrders = orderStats[0].completedOrders || 0;
+      this.stats.cancelledOrders = orderStats[0].cancelledOrders || 0;
+      this.stats.totalSpent = orderStats[0].totalSpent || 0;
+      this.stats.lastOrderDate = orderStats[0].lastOrderDate || null;
+    }
     
     if (reviewStats.length > 0) {
       this.stats.averageRating = reviewStats[0].averageRating || 0;
       this.stats.ratingCount = reviewStats[0].ratingCount || 0;
     }
     
-    await this.save();
     return this;
   } catch (error) {
     console.error("Error updating user stats:", error.message);

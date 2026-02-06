@@ -36,6 +36,8 @@ const swaggerSpecs = require('./config/swagger');
 const cache = require('./utils/cache.util');
 const app = express();
 
+
+app.set('trust proxy', 1);
 // ========== MIDDLEWARES الأساسية ==========
 app.use(cors({
   origin: process.env.CLIENT_URL || 'http://localhost:3001',
