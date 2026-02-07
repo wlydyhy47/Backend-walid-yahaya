@@ -37,14 +37,18 @@ const cache = require('./utils/cache.util');
 const app = express();
 
 
-app.set('trust proxy', 1);
+
 // ========== MIDDLEWARES الأساسية ==========
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3001',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin: "*", // مؤقتاً للتجربة فقط
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+app.set('trust proxy', 1);
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
