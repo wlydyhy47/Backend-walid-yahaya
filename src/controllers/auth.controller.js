@@ -26,27 +26,78 @@ exports.register = async (req, res) => {
 
 // Login
 exports.login = async (req, res) => {
-  const { phone, password } = req.body;
+  try {
+    const { phone, password } = req.body;
 
-  const user = await User.findOne({ phone });
-  if (!user) {
-    return res.status(400).json({ message: "Invalid credentials" });
+    // 1. ابحث عن المستخدم مع كلمة المرور (مهم: select('+password'))
+    const user = await User.findOne({ phone }).select('+password +isActive +isVerified');
+    
+    if (!user) {
+      return res.status(400).json({ 
+        success: false,
+        message: "رقم الهاتف أو كلمة المرور غير صحيحة" 
+      });
+    }
+
+    // 2. تحقق من حالة الحساب
+    if (!user.isActive) {
+      return res.status(403).json({ 
+        success: false,
+        message: "الحساب معطل، الرجاء التواصل مع الدعم" 
+      });
+    }
+
+    // 3. تحقق من كلمة المرور
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({ 
+        success: false,
+        message: "رقم الهاتف أو كلمة المرور غير صحيحة" 
+      });
+    }
+
+    // 4. أنشئ التوكن
+    const token = jwt.sign(
+      { 
+        id: user._id, 
+        role: user.role,
+        phone: user.phone 
+      },
+      process.env.JWT_SECRET || 'fallback-secret-key-change-in-production',
+      { expiresIn: "7d" }
+    );
+
+    // 5. سجل نشاط الدخول
+    await user.logActivity('login', {
+      ip: req.ip,
+      userAgent: req.get('user-agent')
+    });
+
+    // 6. تحديث آخر دخول
+    user.lastLogin = new Date();
+    await user.save({ validateBeforeSave: false });
+
+    // 7. أعد الرد (بدون كلمة المرور)
+    const userResponse = user.toObject();
+    delete userResponse.password;
+
+    res.json({ 
+      success: true,
+      token,
+      user: userResponse,
+      message: "تم تسجيل الدخول بنجاح"
+    });
+
+  } catch (error) {
+    console.error('Login error:', error);
+    
+    res.status(500).json({ 
+      success: false,
+      message: "حدث خطأ أثناء تسجيل الدخول",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
-
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    return res.status(400).json({ message: "Invalid credentials" });
-  }
-
-  const token = jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "7d" }
-  );
-
-  res.json({ token });
 };
-
 
 
 /**
