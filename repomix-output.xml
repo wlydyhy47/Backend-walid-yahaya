@@ -59,6 +59,7 @@ src/controllers/order.controller.js
 src/controllers/restaurant.controller.js
 src/controllers/restaurantAddress.controller.js
 src/controllers/restaurantComplete.controller.js
+src/controllers/restaurantOwner.controller.js
 src/controllers/review.controller.js
 src/controllers/user.controller.js
 src/controllers/userComplete.controller.js
@@ -96,6 +97,7 @@ src/routes/order.routes.js
 src/routes/restaurant.routes.js
 src/routes/restaurantAddress.routes.js
 src/routes/restaurantComplete.routes.js
+src/routes/restaurantOwner.routes.js
 src/routes/review.routes.js
 src/routes/user.routes.js
 src/routes/userComplete.routes.js
@@ -117,102 +119,6 @@ tests/setup.js
 
 <files>
 This section contains the contents of the repository's files.
-
-<file path=".env.example">
-# # ============================================
-# # FOOD DELIVERY BACKEND - ENVIRONMENT VARIABLES
-# # ============================================
-
-# # 🚀 SERVER CONFIGURATION
-# NODE_ENV=development
-# PORT=3000
-# API_URL=http://localhost:3000
-# CLIENT_URL=http://localhost:3001
-# APP_NAME="Food Delivery"
-
-# # 📦 DATABASE CONFIGURATION
-# MONGO_URI=mongodb://localhost:27017/food_delivery
-# MONGO_URI_TEST=mongodb://localhost:27017/food_delivery_test
-
-# # 🔐 JWT AUTHENTICATION
-# JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
-# JWT_EXPIRES_IN=7d
-# REQUIRE_VERIFICATION=true
-
-# # ☁️ CLOUDINARY FILE UPLOAD
-# CLOUDINARY_CLOUD_NAME=your-cloud-name
-# CLOUDINARY_API_KEY=your-api-key
-# CLOUDINARY_API_SECRET=your-api-secret
-
-# # ⚡ CACHE CONFIGURATION
-# CACHE_TTL=300
-# REDIS_URL=redis://localhost:6379
-
-# # 📝 LOGGING
-# LOG_LEVEL=info
-# LOG_TO_FILE=true
-
-# # 🛡️ RATE LIMITING
-# RATE_LIMIT_WINDOW_MS=900000
-# RATE_LIMIT_MAX_REQUESTS=100
-
-# # 🛡️ SECURITY
-# CORS_ORIGIN=http://localhost:3001
-# HELMET_ENABLED=true
-# XSS_PROTECTION=true
-# NOSQL_INJECTION_PROTECTION=true
-
-# # 📧 EMAIL SERVICE (Optional)
-# EMAIL_ENABLED=false
-# EMAIL_SERVICE=gmail
-# EMAIL_USER=your-email@gmail.com
-# EMAIL_PASS=your-app-password
-# EMAIL_FROM=noreply@fooddelivery.com
-
-# # 📱 SMS SERVICE (Optional)
-# SMS_ENABLED=false
-# SMS_PROVIDER=twilio
-# TWILIO_ACCOUNT_SID=your-account-sid
-# TWILIO_AUTH_TOKEN=your-auth-token
-# TWILIO_PHONE_NUMBER=+1234567890
-
-# # 🔔 PUSH NOTIFICATIONS (Optional)
-# FCM_SERVER_KEY=your-fcm-server-key
-# APN_KEY_ID=your-apn-key-id
-# APN_TEAM_ID=your-apn-team-id
-# APN_KEY_PATH=path/to/apn/key.p8
-
-# # 💰 PAYMENT GATEWAY (Optional)
-# STRIPE_SECRET_KEY=your-stripe-secret-key
-# STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
-
-# # 📊 ANALYTICS (Optional)
-# GOOGLE_ANALYTICS_ID=your-ga-id
-# MIXPANEL_TOKEN=your-mixpanel-token
-
-# # ⚙️ PERFORMANCE
-# REQUEST_SIZE_LIMIT=10mb
-# COMPRESSION_ENABLED=true
-# CACHE_ENABLED=true
-
-# # 🧪 TESTING
-# TEST_TIMEOUT=30000
-
-# # ============================================
-# # DEVELOPMENT SPECIFIC
-# # ============================================
-# # NODE_ENV=development
-# DEBUG=true
-# LOG_LEVEL=debug
-
-# # ============================================
-# # PRODUCTION SPECIFIC
-# # ============================================
-# # NODE_ENV=production
-# # DEBUG=false
-# # LOG_LEVEL=warn
-# # CACHE_TTL=600
-</file>
 
 <file path=".gitignore">
 .env 
@@ -2941,6 +2847,409 @@ exports.updateCompleteRestaurant = async (req, res) => {
 };
 </file>
 
+<file path="src/controllers/restaurantOwner.controller.js">
+const Order = require("../models/order.model");
+const Restaurant = require("../models/restaurant.model");
+const Item = require("../models/item.model");
+const User = require("../models/user.model");
+const cache = require("../utils/cache.util");
+const PaginationUtils = require("../utils/pagination.util");
+
+/**
+ * 📊 لوحة تحكم صاحب المطعم
+ * GET /api/restaurant-owner/dashboard
+ */
+exports.getDashboard = async (req, res) => {
+  try {
+    const restaurantId = req.restaurantId;
+    const cacheKey = `restaurant_owner:dashboard:${restaurantId}`;
+
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return res.json({ ...cachedData, cached: true });
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const [
+      // إحصائيات اليوم
+      todayStats,
+      // الطلبات المعلقة
+      pendingOrders,
+      // آخر الطلبات
+      recentOrders,
+      // الأصناف الأكثر مبيعاً
+      topItems,
+      // التقييمات
+      reviews,
+    ] = await Promise.all([
+      // إحصائيات اليوم
+      Order.aggregate([
+        {
+          $match: {
+            restaurant: restaurantId,
+            createdAt: { $gte: today },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalOrders: { $sum: 1 },
+            totalRevenue: { $sum: "$totalPrice" },
+            avgOrderValue: { $avg: "$totalPrice" },
+          },
+        },
+      ]),
+
+      // الطلبات المعلقة
+      Order.countDocuments({
+        restaurant: restaurantId,
+        status: { $in: ["pending", "accepted", "preparing"] },
+      }),
+
+      // آخر 10 طلبات
+      Order.find({ restaurant: restaurantId })
+        .populate("user", "name phone")
+        .populate("driver", "name phone")
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean(),
+
+      // الأصناف الأكثر مبيعاً
+      Order.aggregate([
+        { $match: { restaurant: restaurantId, status: { $ne: "cancelled" } } },
+        { $unwind: "$items" },
+        {
+          $group: {
+            _id: "$items.name",
+            totalSold: { $sum: "$items.qty" },
+            totalRevenue: { $sum: { $multiply: ["$items.price", "$items.qty"] } },
+          },
+        },
+        { $sort: { totalSold: -1 } },
+        { $limit: 5 },
+      ]),
+
+      // التقييمات
+      Review.find({ restaurant: restaurantId })
+        .populate("user", "name")
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .lean(),
+    ]);
+
+    const responseData = {
+      success: true,
+      data: {
+        today: todayStats[0] || { totalOrders: 0, totalRevenue: 0, avgOrderValue: 0 },
+        pendingOrders,
+        recentOrders,
+        topItems,
+        reviews,
+        quickActions: {
+          canAcceptOrders: true,
+          hasPendingOrders: pendingOrders > 0,
+        },
+      },
+      timestamp: new Date(),
+    };
+
+    cache.set(cacheKey, responseData, 60); // كاش دقيقة واحدة فقط (بيانات حية)
+
+    res.json(responseData);
+  } catch (error) {
+    console.error("❌ Restaurant owner dashboard error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحميل لوحة التحكم",
+    });
+  }
+};
+
+/**
+ * 📋 عرض طلبات المطعم مع Pagination
+ * GET /api/restaurant-owner/orders
+ */
+exports.getOrders = async (req, res) => {
+  try {
+    const restaurantId = req.restaurantId;
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    const { skip, limit, sort, filters } = paginationOptions;
+
+    let query = { restaurant: restaurantId };
+
+    // فلترة حسب الحالة
+    if (filters.status) {
+      query.status = filters.status;
+    }
+
+    // فلترة حسب التاريخ
+    if (filters.dateFrom || filters.dateTo) {
+      query.createdAt = {};
+      if (filters.dateFrom) query.createdAt.$gte = new Date(filters.dateFrom);
+      if (filters.dateTo) query.createdAt.$lte = new Date(filters.dateTo);
+    }
+
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .populate("user", "name phone image")
+        .populate("driver", "name phone")
+        .populate("pickupAddress", "label addressLine city")
+        .populate("deliveryAddress", "label addressLine city")
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      Order.countDocuments(query),
+    ]);
+
+    // إحصائيات سريعة
+    const stats = await Order.aggregate([
+      { $match: { restaurant: restaurantId } },
+      {
+        $group: {
+          _id: "$status",
+          count: { $sum: 1 },
+          revenue: { $sum: "$totalPrice" },
+        },
+      },
+    ]);
+
+    const response = PaginationUtils.createPaginationResponse(
+      orders,
+      total,
+      paginationOptions,
+      {
+        stats: stats.reduce((acc, curr) => {
+          acc[curr._id] = { count: curr.count, revenue: curr.revenue };
+          return acc;
+        }, {}),
+      }
+    );
+
+    res.json(response);
+  } catch (error) {
+    console.error("❌ Get restaurant orders error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب الطلبات",
+    });
+  }
+};
+
+/**
+ * ✅ قبول/رفض طلب (من قبل صاحب المطعم)
+ * PUT /api/restaurant-owner/orders/:orderId/status
+ */
+exports.updateOrderStatus = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { status, estimatedTime, rejectionReason } = req.body;
+    const restaurantId = req.restaurantId;
+
+    const validStatuses = ["accepted", "rejected", "preparing", "ready"];
+    
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: "حالة غير صالحة",
+        validStatuses,
+      });
+    }
+
+    const order = await Order.findOne({
+      _id: orderId,
+      restaurant: restaurantId,
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "الطلب غير موجود",
+      });
+    }
+
+    // التحقق من تسلسل الحالات
+    if (order.status === "cancelled" || order.status === "delivered") {
+      return res.status(400).json({
+        success: false,
+        message: "لا يمكن تغيير حالة هذا الطلب",
+      });
+    }
+
+    // تحديث الحالة
+    order.status = status;
+    
+    if (estimatedTime) {
+      order.estimatedPreparationTime = estimatedTime;
+    }
+    
+    if (status === "rejected" && rejectionReason) {
+      order.rejectionReason = rejectionReason;
+    }
+
+    await order.save();
+
+    // إشعار العميل بالتحديث
+    const notificationService = require("../services/notification.service");
+    await notificationService.sendNotification({
+      user: order.user,
+      type: `order_${status}`,
+      title: status === "accepted" ? "✅ تم قبول طلبك" : "❌ تم رفض طلبك",
+      content: status === "accepted" 
+        ? `تم قبول طلبك من المطعم، الوقت المتوقع: ${estimatedTime} دقيقة`
+        : `تم رفض طلبك: ${rejectionReason}`,
+      data: { orderId: order._id, status },
+      priority: "high",
+      link: `/orders/${order._id}`,
+    });
+
+    res.json({
+      success: true,
+      message: "تم تحديث حالة الطلب",
+      data: {
+        orderId: order._id,
+        status: order.status,
+        updatedAt: new Date(),
+      },
+    });
+  } catch (error) {
+    console.error("❌ Update order status error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث حالة الطلب",
+    });
+  }
+};
+
+/**
+ * 🔔 تبديل حالة المطعم (مفتوح/مغلق)
+ * PUT /api/restaurant-owner/toggle-status
+ */
+exports.toggleRestaurantStatus = async (req, res) => {
+  try {
+    const restaurantId = req.restaurantId;
+    
+    const restaurant = await Restaurant.findById(restaurantId);
+    
+    if (!restaurant) {
+      return res.status(404).json({
+        success: false,
+        message: "المطعم غير موجود",
+      });
+    }
+
+    // تبديل الحالة
+    restaurant.isOpen = !restaurant.isOpen;
+    await restaurant.save();
+
+    // تحديث حالة المستخدم أيضاً
+    await User.findByIdAndUpdate(req.user.id, {
+      "restaurantOwnerInfo.isRestaurantOpen": restaurant.isOpen,
+    });
+
+    res.json({
+      success: true,
+      message: restaurant.isOpen ? "المطعم الآن مفتوح" : "المطعم الآن مغلق",
+      data: {
+        isOpen: restaurant.isOpen,
+        updatedAt: new Date(),
+      },
+    });
+  } catch (error) {
+    console.error("❌ Toggle status error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل تغيير حالة المطعم",
+    });
+  }
+};
+
+/**
+ * 📊 تقرير مالي مفصل
+ * GET /api/restaurant-owner/reports/financial
+ */
+exports.getFinancialReport = async (req, res) => {
+  try {
+    const restaurantId = req.restaurantId;
+    const { period = "month" } = req.query; // day, week, month, year
+
+    let startDate = new Date();
+    
+    switch (period) {
+      case "day":
+        startDate.setDate(startDate.getDate() - 1);
+        break;
+      case "week":
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case "month":
+        startDate.setMonth(startDate.getMonth() - 1);
+        break;
+      case "year":
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+    }
+
+    const report = await Order.aggregate([
+      {
+        $match: {
+          restaurant: restaurantId,
+          createdAt: { $gte: startDate },
+          status: { $in: ["delivered", "accepted"] },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
+          },
+          orders: { $sum: 1 },
+          revenue: { $sum: "$totalPrice" },
+          avgOrderValue: { $avg: "$totalPrice" },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]);
+
+    const summary = await Order.aggregate([
+      {
+        $match: {
+          restaurant: restaurantId,
+          createdAt: { $gte: startDate },
+          status: { $in: ["delivered", "accepted"] },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalRevenue: { $sum: "$totalPrice" },
+          avgOrderValue: { $avg: "$totalPrice" },
+        },
+      },
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        period,
+        summary: summary[0] || { totalOrders: 0, totalRevenue: 0, avgOrderValue: 0 },
+        dailyBreakdown: report,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Financial report error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل إنشاء التقرير",
+    });
+  }
+};
+</file>
+
 <file path="src/controllers/review.controller.js">
 const Review = require("../models/review.model");
 const Restaurant = require("../models/restaurant.model");
@@ -4620,19 +4929,6 @@ module.exports = {
   errorHandler,
   notFoundHandler,
   catchAsync
-};
-</file>
-
-<file path="src/middlewares/role.middleware.js">
-module.exports = (...allowedRoles) => {
-  return (req, res, next) => {
-    if (!allowedRoles.includes(req.user.role)) {
-      return res.status(403).json({
-        message: "Access denied role not permitted",
-      });
-    }
-    next();
-  };
 };
 </file>
 
@@ -7252,6 +7548,83 @@ router.put(
 module.exports = router;
 </file>
 
+<file path="src/routes/restaurantOwner.routes.js">
+const express = require("express");
+const router = express.Router();
+const auth = require("../middlewares/auth.middleware");
+const { restaurantOwnerMiddleware } = require("../middlewares/role.middleware");
+const restaurantOwnerController = require("../controllers/restaurantOwner.controller");
+const PaginationUtils = require("../utils/pagination.util");
+
+// ✅ جميع المسارات تتطلب: تسجيل دخول + صلاحية صاحب مطعم
+router.use(auth, restaurantOwnerMiddleware);
+
+/**
+ * 📊 لوحة التحكم الرئيسية
+ */
+router.get("/dashboard", restaurantOwnerController.getDashboard);
+
+/**
+ * 📋 إدارة الطلبات
+ */
+router.get(
+  "/orders",
+  PaginationUtils.validatePaginationParams,
+  restaurantOwnerController.getOrders
+);
+
+router.put("/orders/:orderId/status", restaurantOwnerController.updateOrderStatus);
+
+/**
+ * 🏪 إدارة المطعم
+ */
+router.put("/toggle-status", restaurantOwnerController.toggleRestaurantStatus);
+
+/**
+ * 📊 التقارير
+ */
+router.get("/reports/financial", restaurantOwnerController.getFinancialReport);
+
+/**
+ * 🔔 الإعدادات
+ */
+router.get("/settings", async (req, res) => {
+  try {
+    const User = require("../models/user.model");
+    const user = await User.findById(req.user.id)
+      .select("restaurantOwnerInfo.notificationSettings restaurantOwnerInfo.workingHours")
+      .lean();
+    
+    res.json({
+      success: true,
+      data: user.restaurantOwnerInfo,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "فشل جلب الإعدادات" });
+  }
+});
+
+router.put("/settings/notifications", async (req, res) => {
+  try {
+    const User = require("../models/user.model");
+    const { notificationSettings } = req.body;
+    
+    await User.findByIdAndUpdate(req.user.id, {
+      "restaurantOwnerInfo.notificationSettings": notificationSettings,
+    });
+    
+    res.json({
+      success: true,
+      message: "تم تحديث إعدادات الإشعارات",
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "فشل تحديث الإعدادات" });
+  }
+});
+
+module.exports = router;
+</file>
+
 <file path="src/routes/review.routes.js">
 const express = require("express");
 const router = express.Router({ mergeParams: true });
@@ -8682,851 +9055,6 @@ class HealthCheckService {
 module.exports = new HealthCheckService();
 </file>
 
-<file path="src/services/notification.service.js">
-const Notification = require("../models/notification.model");
-const User = require("../models/user.model");
-const socketService = require("./socket.service");
-const emailService = require("./email.service");
-const smsService = require("./sms.service");
-const cache = require("../utils/cache.util");
-
-class NotificationService {
-  /**
-   * إرسال إشعار واحد
-   */
-  async sendNotification(notificationData) {
-    try {
-      console.log(`📨 Sending notification to user ${notificationData.user}`);
-      
-      // إنشاء الإشعار في قاعدة البيانات
-      const notification = await Notification.create(notificationData);
-      
-      // جلب تفضيلات المستخدم
-      const user = await User.findById(notificationData.user).select("preferences");
-      
-      if (!user) {
-        console.error(`User ${notificationData.user} not found`);
-        return notification;
-      }
-      
-      // إرسال الإشعارات حسب التفضيلات
-      const deliveryPromises = [];
-      
-      // إشعارات داخل التطبيق
-      if (notification.settings.inApp) {
-        deliveryPromises.push(
-          this.sendInAppNotification(notification, user)
-        );
-      }
-      
-      // إشعارات Push (إذا كان المستخدم مسموحاً)
-      if (notification.settings.push && user.preferences?.notifications?.push) {
-        deliveryPromises.push(
-          this.sendPushNotification(notification, user)
-        );
-      }
-      
-      // إرسال Email (إذا كان مسموحاً)
-      if (notification.settings.email && user.preferences?.notifications?.email) {
-        deliveryPromises.push(
-          this.sendEmailNotification(notification, user)
-        );
-      }
-      
-      // إرسال SMS (إذا كان مسموحاً)
-      if (notification.settings.sms && user.preferences?.notifications?.sms) {
-        deliveryPromises.push(
-          this.sendSmsNotification(notification, user)
-        );
-      }
-      
-      // تنفيذ جميع عمليات الإرسال بالتوازي
-      await Promise.allSettled(deliveryPromises);
-      
-      // إبطال الكاش
-      this.invalidateCache(notification.user);
-      
-      console.log(`✅ Notification sent: ${notification._id}`);
-      return notification;
-      
-    } catch (error) {
-      console.error("❌ Notification sending error:", error.message);
-      throw error;
-    }
-  }
-
-  /**
-   * إرسال إشعارات مجمعة
-   */
-  async sendBulkNotifications(notificationsData) {
-    try {
-      console.log(`📨 Sending ${notificationsData.length} notifications in bulk`);
-      
-      const results = await Promise.allSettled(
-        notificationsData.map(data => this.sendNotification(data))
-      );
-      
-      const successful = results.filter(r => r.status === "fulfilled").length;
-      const failed = results.filter(r => r.status === "rejected").length;
-      
-      console.log(`📊 Bulk sending results: ${successful} successful, ${failed} failed`);
-      
-      return {
-        total: notificationsData.length,
-        successful,
-        failed,
-        results: results.map((r, i) => ({
-          data: notificationsData[i],
-          status: r.status,
-          error: r.status === "rejected" ? r.reason.message : null,
-        })),
-      };
-      
-    } catch (error) {
-      console.error("❌ Bulk notification error:", error);
-      throw error;
-    }
-  }
-
-  /**
-   * إشعارات داخل التطبيق (Real-time via Socket.io)
-   */
-  async sendInAppNotification(notification, user) {
-    try {
-      // إرسال عبر Socket.io
-      socketService.sendToUser(notification.user.toString(), {
-        type: "notification:new",
-        data: {
-          id: notification._id,
-          type: notification.type,
-          title: notification.title,
-          content: notification.content,
-          icon: notification.icon,
-          link: notification.link,
-          priority: notification.priority,
-          timeAgo: notification.timeAgo,
-          createdAt: notification.createdAt,
-        },
-      });
-      
-      notification.delivery.pushSent = true;
-      await notification.save();
-      
-      return { success: true, channel: "inApp" };
-      
-    } catch (error) {
-      console.error("❌ In-app notification error:", error.message);
-      notification.delivery.pushError = error.message;
-      await notification.save();
-      
-      return { success: false, channel: "inApp", error: error.message };
-    }
-  }
-
-  /**
-   * إشعارات Push (FCM/APN)
-   */
-  async sendPushNotification(notification, user) {
-    try {
-      // TODO: تنفيذ إرسال Push notifications باستخدام FCM أو APN
-      console.log(`📱 Would send push notification to ${user._id}`);
-      
-      // محاكاة إرسال ناجح للتطوير
-      notification.delivery.pushSent = true;
-      await notification.save();
-      
-      return { success: true, channel: "push" };
-      
-    } catch (error) {
-      console.error("❌ Push notification error:", error.message);
-      notification.delivery.pushError = error.message;
-      await notification.save();
-      
-      return { success: false, channel: "push", error: error.message };
-    }
-  }
-
-  /**
-   * إرسال إشعارات عبر البريد الإلكتروني
-   */
-  async sendEmailNotification(notification, user) {
-    try {
-      const emailService = require('./email.service');
-      const userDetails = await User.findById(user._id).select("email name");
-      
-      if (!userDetails) {
-        return { success: false, channel: "email", error: "User not found" };
-      }
-      
-      if (!userDetails.email) {
-        return { success: false, channel: "email", error: "No email address" };
-      }
-      
-      // إرسال البريد الفعلي
-      const result = await emailService.sendNotificationEmail({
-        user: userDetails,
-        notification: notification
-      });
-      
-      notification.delivery.emailSent = result.success;
-      await notification.save();
-      
-      return { 
-        success: result.success, 
-        channel: "email",
-        messageId: result.messageId 
-      };
-      
-    } catch (error) {
-      console.error("❌ Email notification error:", error.message);
-      notification.delivery.emailError = error.message;
-      await notification.save();
-      
-      return { success: false, channel: "email", error: error.message };
-    }
-  }
-
-  /**
-   * إرسال إشعارات عبر SMS
-   */
-  async sendSmsNotification(notification, user) {
-    try {
-      // جلب رقم الهاتف للمستخدم
-      const userDetails = await User.findById(user._id).select("phone name");
-      
-      if (!userDetails || !userDetails.phone) {
-        return { success: false, channel: "sms", error: "No phone number" };
-      }
-      
-      // TODO: تنفيذ إرسال SMS فعلي
-      console.log(`📱 Would send SMS to ${userDetails.phone}`);
-      
-      // محاكاة إرسال ناجح للتطوير
-      notification.delivery.smsSent = true;
-      await notification.save();
-      
-      return { success: true, channel: "sms" };
-      
-    } catch (error) {
-      console.error("❌ SMS notification error:", error.message);
-      notification.delivery.smsError = error.message;
-      await notification.save();
-      
-      return { success: false, channel: "sms", error: error.message };
-    }
-  }
-
-  /**
-   * إنشاء إشعارات تلقائية للطلبات
-   */
-  async createOrderNotifications(order) {
-    try {
-      const notifications = [];
-      
-      // إشعار إنشاء الطلب للعميل
-      notifications.push({
-        user: order.user,
-        type: "order_created",
-        title: "تم إنشاء طلب جديد",
-        content: `تم إنشاء طلبك #${order._id.toString().slice(-6)} بنجاح.`,
-        data: {
-          orderId: order._id,
-          orderNumber: order._id.toString().slice(-6),
-          totalPrice: order.totalPrice,
-          restaurant: order.restaurant,
-        },
-        priority: "high",
-        link: `/orders/${order._id}`,
-        icon: "🛒",
-        tags: ["order", "order_created", `order_${order._id}`],
-      });
-      
-      // إشعار للمطعم (إذا كان لديه حساب أدمن)
-      // TODO: جلب أدمن المطعم
-      
-      // إذا كان هناك مندوب معين
-      if (order.driver) {
-        notifications.push({
-          user: order.driver,
-          type: "order_assigned",
-          title: "طلب جديد معين لك",
-          content: `تم تعيين طلب #${order._id.toString().slice(-6)} لك للتوصيل.`,
-          data: {
-            orderId: order._id,
-            orderNumber: order._id.toString().slice(-6),
-            totalPrice: order.totalPrice,
-            restaurant: order.restaurant,
-            customer: order.user,
-          },
-          priority: "high",
-          link: `/driver/orders/${order._id}`,
-          icon: "🚗",
-          tags: ["order", "driver", `order_${order._id}`],
-        });
-      }
-      
-      // إرسال جميع الإشعارات
-      const result = await this.sendBulkNotifications(notifications);
-      
-      return {
-        success: true,
-        notificationsCount: notifications.length,
-        details: result,
-      };
-      
-    } catch (error) {
-      console.error("❌ Order notifications error:", error.message);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  /**
-   * تحديث إشعارات حالة الطلب
-   */
-  async updateOrderStatusNotifications(order, oldStatus, newStatus) {
-    try {
-      const notificationType = `order_${newStatus}`;
-      
-      // إشعار للعميل
-      await this.sendNotification({
-        user: order.user,
-        type: notificationType,
-        title: this.getOrderStatusTitle(newStatus),
-        content: this.getOrderStatusContent(order, newStatus),
-        data: {
-          orderId: order._id,
-          orderNumber: order._id.toString().slice(-6),
-          oldStatus,
-          newStatus,
-          totalPrice: order.totalPrice,
-        },
-        priority: this.getOrderStatusPriority(newStatus),
-        link: `/orders/${order._id}`,
-        icon: this.getOrderStatusIcon(newStatus),
-        tags: ["order", notificationType, `order_${order._id}`],
-      });
-      
-      // إذا كان هناك مندوب، أرسل له إشعاراً أيضاً
-      if (order.driver && ["picked", "delivered"].includes(newStatus)) {
-        await this.sendNotification({
-          user: order.driver,
-          type: notificationType,
-          title: this.getDriverOrderStatusTitle(newStatus),
-          content: this.getDriverOrderStatusContent(order, newStatus),
-          data: {
-            orderId: order._id,
-            orderNumber: order._id.toString().slice(-6),
-            oldStatus,
-            newStatus,
-            customer: order.user,
-          },
-          priority: "medium",
-          link: `/driver/orders/${order._id}`,
-          icon: this.getOrderStatusIcon(newStatus),
-          tags: ["order", "driver", notificationType, `order_${order._id}`],
-        });
-      }
-      
-      return { success: true };
-      
-    } catch (error) {
-      console.error("❌ Order status notification error:", error.message);
-      return { success: false, error: error.message };
-    }
-  }
-
-  /**
-   * الحصول على إشعارات المستخدم
-   */
-  async getUserNotifications(userId, options = {}) {
-    try {
-      const {
-        page = 1,
-        limit = 20,
-        status,
-        type,
-        priority,
-        unreadOnly = false,
-        includeExpired = false,
-      } = options;
-      
-      const skip = (page - 1) * limit;
-      
-      // بناء الاستعلام
-      const query = { user: userId };
-      
-      if (status) query.status = status;
-      if (type) query.type = type;
-      if (priority) query.priority = priority;
-      
-      if (unreadOnly) {
-        query.status = "unread";
-      }
-      
-      if (!includeExpired) {
-        query.expiresAt = { $gt: new Date() };
-      }
-      
-      // جلب الإشعارات مع pagination
-      const [notifications, total] = await Promise.all([
-        Notification.find(query)
-          .sort({ sentAt: -1, priority: -1 })
-          .skip(skip)
-          .limit(limit)
-          .lean(),
-        
-        Notification.countDocuments(query),
-      ]);
-      
-      // جلب عدد الإشعارات غير المقروءة
-      const unreadCount = unreadOnly 
-        ? total 
-        : await Notification.countDocuments({
-            user: userId,
-            status: "unread",
-            expiresAt: { $gt: new Date() },
-          });
-      
-      // إضافة الوقت النسبي
-      const notificationsWithTime = notifications.map(notification => ({
-        ...notification,
-        timeAgo: this.getRelativeTime(notification.sentAt),
-        isExpired: notification.expiresAt && new Date(notification.expiresAt) < new Date(),
-      }));
-      
-      return {
-        success: true,
-        data: {
-          notifications: notificationsWithTime,
-          pagination: {
-            page,
-            limit,
-            total,
-            totalPages: Math.ceil(total / limit),
-            hasNextPage: page * limit < total,
-            hasPrevPage: page > 1,
-          },
-          stats: {
-            total,
-            unreadCount,
-            readCount: total - unreadCount,
-          },
-        },
-      };
-      
-    } catch (error) {
-      console.error("❌ Get user notifications error:", error.message);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  /**
-   * تحديث حالة الإشعار
-   */
-  async updateNotificationStatus(userId, notificationId, status) {
-    try {
-      const notification = await Notification.findOne({
-        _id: notificationId,
-        user: userId,
-      });
-      
-      if (!notification) {
-        return {
-          success: false,
-          error: "Notification not found",
-        };
-      }
-      
-      const oldStatus = notification.status;
-      
-      switch (status) {
-        case "read":
-          await notification.markAsRead();
-          break;
-        case "unread":
-          await notification.markAsUnread();
-          break;
-        case "archived":
-          await notification.archive();
-          break;
-        default:
-          return {
-            success: false,
-            error: "Invalid status",
-          };
-      }
-      
-      // إبطال الكاش
-      this.invalidateCache(userId);
-      
-      return {
-        success: true,
-        data: {
-          id: notification._id,
-          oldStatus,
-          newStatus: status,
-        },
-      };
-      
-    } catch (error) {
-      console.error("❌ Update notification status error:", error.message);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  /**
-   * تحديث جميع الإشعارات كـ مقروءة
-   */
-  async markAllAsRead(userId) {
-    try {
-      const result = await Notification.markAllAsRead(userId);
-      
-      // إبطال الكاش
-      this.invalidateCache(userId);
-      
-      return {
-        success: true,
-        data: {
-          modifiedCount: result.modifiedCount,
-        },
-      };
-      
-    } catch (error) {
-      console.error("❌ Mark all as read error:", error.message);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  /**
-   * حذف الإشعار
-   */
-  async deleteNotification(userId, notificationId) {
-    try {
-      const result = await Notification.findOneAndDelete({
-        _id: notificationId,
-        user: userId,
-      });
-      
-      if (!result) {
-        return {
-          success: false,
-          error: "Notification not found",
-        };
-      }
-      
-      // إبطال الكاش
-      this.invalidateCache(userId);
-      
-      return {
-        success: true,
-        data: {
-          id: notificationId,
-          deleted: true,
-        },
-      };
-      
-    } catch (error) {
-      console.error("❌ Delete notification error:", error.message);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  /**
-   * تنظيف الإشعارات المنتهية
-   */
-  async cleanupExpiredNotifications() {
-    try {
-      const result = await Notification.cleanupExpired();
-      
-      console.log(`🧹 Cleaned up ${result.deletedCount} expired notifications`);
-      
-      return {
-        success: true,
-        deletedCount: result.deletedCount,
-      };
-      
-    } catch (error) {
-      console.error("❌ Cleanup notifications error:", error.message);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  /**
-   * إحصائيات الإشعارات
-   */
-  async getNotificationStats(userId) {
-    try {
-      const cacheKey = `notifications:stats:${userId}`;
-      const cachedStats = cache.get(cacheKey);
-      
-      if (cachedStats) {
-        return cachedStats;
-      }
-      
-      const [
-        totalCount,
-        unreadCount,
-        byType,
-        byPriority,
-        dailyStats,
-        weeklyStats,
-      ] = await Promise.all([
-        // العدد الكلي
-        Notification.countDocuments({ user: userId, expiresAt: { $gt: new Date() } }),
-        
-        // العدد غير المقروء
-        Notification.countDocuments({ 
-          user: userId, 
-          status: "unread",
-          expiresAt: { $gt: new Date() },
-        }),
-        
-        // حسب النوع
-        Notification.aggregate([
-          { 
-            $match: { 
-              user: userId,
-              expiresAt: { $gt: new Date() },
-            } 
-          },
-          {
-            $group: {
-              _id: "$type",
-              count: { $sum: 1 },
-              unread: {
-                $sum: { $cond: [{ $eq: ["$status", "unread"] }, 1, 0] },
-              },
-            },
-          },
-          { $sort: { count: -1 } },
-        ]),
-        
-        // حسب الأولوية
-        Notification.aggregate([
-          { 
-            $match: { 
-              user: userId,
-              expiresAt: { $gt: new Date() },
-            } 
-          },
-          {
-            $group: {
-              _id: "$priority",
-              count: { $sum: 1 },
-            },
-          },
-        ]),
-        
-        // إحصائيات يومية (آخر 7 أيام)
-        Notification.aggregate([
-          {
-            $match: {
-              user: userId,
-              sentAt: { 
-                $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
-              },
-            },
-          },
-          {
-            $group: {
-              _id: {
-                $dateToString: { format: "%Y-%m-%d", date: "$sentAt" },
-              },
-              count: { $sum: 1 },
-              readCount: {
-                $sum: { $cond: [{ $eq: ["$status", "read"] }, 1, 0] },
-              },
-            },
-          },
-          { $sort: { _id: -1 } },
-        ]),
-        
-        // إحصائيات أسبوعية (آخر 4 أسابيع)
-        Notification.aggregate([
-          {
-            $match: {
-              user: userId,
-              sentAt: { 
-                $gte: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000),
-              },
-            },
-          },
-          {
-            $group: {
-              _id: {
-                $dateToString: { format: "%Y-%W", date: "$sentAt" },
-              },
-              count: { $sum: 1 },
-            },
-          },
-          { $sort: { _id: -1 } },
-          { $limit: 4 },
-        ]),
-      ]);
-      
-      const stats = {
-        success: true,
-        data: {
-          total: totalCount,
-          unread: unreadCount,
-          read: totalCount - unreadCount,
-          byType: byType.reduce((acc, item) => {
-            acc[item._id] = item;
-            return acc;
-          }, {}),
-          byPriority: byPriority.reduce((acc, item) => {
-            acc[item._id] = item.count;
-            return acc;
-          }, {}),
-          dailyStats: dailyStats,
-          weeklyStats: weeklyStats,
-          deliveryRate: this.calculateDeliveryRate(byType),
-          engagementRate: totalCount > 0 
-            ? ((totalCount - unreadCount) / totalCount) * 100 
-            : 0,
-        },
-      };
-      
-      // حفظ في الكاش لمدة 5 دقائق
-      cache.set(cacheKey, stats, 300);
-      
-      return stats;
-      
-    } catch (error) {
-      console.error("❌ Get notification stats error:", error.message);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  // ====== دوال مساعدة ======
-
-  getOrderStatusTitle(status) {
-    const titles = {
-      pending: "طلب قيد الانتظار",
-      accepted: "تم قبول الطلب",
-      picked: "تم استلام الطلب",
-      delivered: "تم التوصيل",
-      cancelled: "تم إلغاء الطلب",
-    };
-    
-    return titles[status] || "تحديث على طلبك";
-  }
-
-  getOrderStatusContent(order, status) {
-    const contents = {
-      pending: `طلبك #${order._id.toString().slice(-6)} قيد الانتظار.`,
-      accepted: `تم قبول طلبك #${order._id.toString().slice(-6)} وجاري تجهيزه.`,
-      picked: `تم استلام طلبك #${order._id.toString().slice(-6)} من المطعم.`,
-      delivered: `تم توصيل طلبك #${order._id.toString().slice(-6)} بنجاح.`,
-      cancelled: `تم إلغاء طلبك #${order._id.toString().slice(-6)}.`,
-    };
-    
-    return contents[status] || `هناك تحديث على طلبك #${order._id.toString().slice(-6)}.`;
-  }
-
-  getDriverOrderStatusTitle(status) {
-    const titles = {
-      picked: "تم استلام الطلب من المطعم",
-      delivered: "تم تسليم الطلب للعميل",
-    };
-    
-    return titles[status] || "تحديث على الطلب";
-  }
-
-  getDriverOrderStatusContent(order, status) {
-    const contents = {
-      picked: `تم استلام طلب #${order._id.toString().slice(-6)} من المطعم.`,
-      delivered: `تم تسليم طلب #${order._id.toString().slice(-6)} للعميل.`,
-    };
-    
-    return contents[status] || `تحديث على طلب #${order._id.toString().slice(-6)}.`;
-  }
-
-  getOrderStatusPriority(status) {
-    const priorities = {
-      cancelled: "urgent",
-      delivered: "high",
-      accepted: "high",
-      picked: "medium",
-      pending: "low",
-    };
-    
-    return priorities[status] || "medium";
-  }
-
-  getOrderStatusIcon(status) {
-    const icons = {
-      pending: "⏳",
-      accepted: "✅",
-      picked: "📦",
-      delivered: "🚚",
-      cancelled: "❌",
-    };
-    
-    return icons[status] || "🔔";
-  }
-
-  getRelativeTime(date) {
-    const now = new Date();
-    const past = new Date(date);
-    const diffMs = now - past;
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-    
-    if (diffMins < 1) return "الآن";
-    if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
-    if (diffHours < 24) return `منذ ${diffHours} ساعة`;
-    if (diffDays < 7) return `منذ ${diffDays} يوم`;
-    if (diffDays < 30) return `منذ ${Math.floor(diffDays / 7)} أسبوع`;
-    if (diffDays < 365) return `منذ ${Math.floor(diffDays / 30)} شهر`;
-    return `منذ ${Math.floor(diffDays / 365)} سنة`;
-  }
-
-  calculateDeliveryRate(byType) {
-    const total = byType.reduce((sum, item) => sum + item.count, 0);
-    
-    if (total === 0) return 0;
-    
-    const orderNotifications = byType.filter(item => 
-      item._id.startsWith("order_")
-    ).reduce((sum, item) => sum + item.count, 0);
-    
-    return (orderNotifications / total) * 100;
-  }
-
-  invalidateCache(userId) {
-    cache.del(`notifications:user:${userId}`);
-    cache.del(`notifications:stats:${userId}`);
-    cache.del(`notifications:unread:${userId}`);
-    cache.invalidatePattern(`notifications:*:${userId}`);
-  }
-}
-
-module.exports = new NotificationService();
-</file>
-
 <file path="src/services/sms.service.js">
 const crypto = require('crypto');
 
@@ -9728,457 +9256,6 @@ class SmsService {
 }
 
 module.exports = new SmsService();
-</file>
-
-<file path="src/services/socket.service.js">
-const socketIo = require("socket.io");
-
-class SocketService {
-  constructor() {
-    this.io = null;
-    this.userSockets = new Map();
-    this.userRooms = new Map();
-    this.chatSocketService = null;
-  }
-
-  initialize(server) {
-    try {
-      this.io = socketIo(server, {
-        cors: {
-          origin: process.env.CLIENT_URL || "http://localhost:3001",
-          methods: ["GET", "POST"],
-          credentials: true,
-        },
-        pingTimeout: 60000,
-        pingInterval: 25000,
-      });
-
-      this.setupEventHandlers();
-      console.log("✅ Socket.io initialized");
-      
-      // تهيئة خدمات الدردشة
-      this.initializeChatServices();
-      
-      return this.io;
-    } catch (error) {
-      console.error("❌ Failed to initialize Socket.io:", error.message);
-      throw error;
-    }
-  }
-
-  setupEventHandlers() {
-    if (!this.io) {
-      console.error("❌ Cannot setup event handlers: Socket.io not initialized");
-      return;
-    }
-
-    this.io.on("connection", (socket) => {
-      console.log(`🟢 New socket connection: ${socket.id}`);
-
-      // تعيين معرف المستخدم للـ socket
-      socket.userId = null;
-
-      socket.on("authenticate", async (userId) => {
-        try {
-          if (!userId) {
-            socket.emit("error", { message: "User ID is required" });
-            return;
-          }
-
-          socket.userId = userId.toString();
-          
-          socket.join(`user:${userId}`);
-          this.userSockets.set(userId.toString(), socket.id);
-          
-          // تخزين الغرف التي انضم إليها المستخدم
-          if (!this.userRooms.has(userId.toString())) {
-            this.userRooms.set(userId.toString(), new Set());
-          }
-          this.userRooms.get(userId.toString()).add(`user:${userId}`);
-          
-          console.log(`👤 User ${userId} authenticated and joined their room`);
-          
-          socket.emit("authenticated", {
-            message: "Successfully authenticated",
-            userId: userId,
-            timestamp: new Date(),
-          });
-
-          // إعلام الآخرين باتصال المستخدم
-          socket.broadcast.emit("user:connected", {
-            userId: userId,
-            socketId: socket.id,
-            timestamp: new Date(),
-          });
-        } catch (error) {
-          console.error("Authentication error:", error.message);
-          socket.emit("error", { message: "Failed to authenticate" });
-        }
-      });
-
-      socket.on("join", async (userId) => {
-        try {
-          if (!userId) {
-            socket.emit("error", { message: "User ID is required" });
-            return;
-          }
-
-          socket.userId = userId.toString();
-          
-          socket.join(`user:${userId}`);
-          this.userSockets.set(userId.toString(), socket.id);
-          
-          // تخزين الغرف التي انضم إليها المستخدم
-          if (!this.userRooms.has(userId.toString())) {
-            this.userRooms.set(userId.toString(), new Set());
-          }
-          this.userRooms.get(userId.toString()).add(`user:${userId}`);
-          
-          console.log(`👤 User ${userId} joined their room`);
-          
-          socket.emit("welcome", {
-            message: "Connected to notification server",
-            userId: userId,
-            timestamp: new Date(),
-          });
-
-          // إعلام الآخرين باتصال المستخدم
-          socket.broadcast.emit("user:connected", {
-            userId: userId,
-            socketId: socket.id,
-            timestamp: new Date(),
-          });
-        } catch (error) {
-          console.error("Join error:", error.message);
-          socket.emit("error", { message: "Failed to join room" });
-        }
-      });
-
-      socket.on("order:subscribe", (orderId) => {
-        try {
-          if (!orderId) {
-            socket.emit("error", { message: "Order ID is required" });
-            return;
-          }
-
-          socket.join(`order:${orderId}`);
-          
-          // تخزين الغرفة للمستخدم
-          const userId = this.getUserIdBySocket(socket.id);
-          if (userId && this.userRooms.has(userId)) {
-            this.userRooms.get(userId).add(`order:${orderId}`);
-          }
-          
-          console.log(`📦 Socket ${socket.id} subscribed to order ${orderId}`);
-        } catch (error) {
-          console.error("Order subscribe error:", error.message);
-        }
-      });
-
-      socket.on("restaurant:subscribe", (restaurantId) => {
-        try {
-          if (!restaurantId) {
-            socket.emit("error", { message: "Restaurant ID is required" });
-            return;
-          }
-
-          socket.join(`restaurant:${restaurantId}`);
-          
-          const userId = this.getUserIdBySocket(socket.id);
-          if (userId && this.userRooms.has(userId)) {
-            this.userRooms.get(userId).add(`restaurant:${restaurantId}`);
-          }
-          
-          console.log(`🏪 Socket ${socket.id} subscribed to restaurant ${restaurantId}`);
-        } catch (error) {
-          console.error("Restaurant subscribe error:", error.message);
-        }
-      });
-
-      socket.on("presence:update", (data) => {
-        try {
-          const { userId, isOnline } = data;
-          
-          if (!userId) {
-            socket.emit("error", { message: "User ID is required" });
-            return;
-          }
-
-          socket.broadcast.emit("presence:changed", {
-            userId,
-            isOnline: Boolean(isOnline),
-            timestamp: new Date(),
-          });
-        } catch (error) {
-          console.error("Presence update error:", error.message);
-        }
-      });
-
-      socket.on("message:send", async (data) => {
-        try {
-          const { to, message, type = "chat" } = data;
-          
-          if (!to || !message) {
-            socket.emit("error", { message: "To and message are required" });
-            return;
-          }
-
-          const from = this.getUserIdBySocket(socket.id);
-          if (!from) {
-            socket.emit("error", { message: "User not authenticated" });
-            return;
-          }
-
-          this.sendToUser(to, {
-            type: "message:new",
-            data: {
-              from,
-              message,
-              type,
-              timestamp: new Date(),
-            },
-          });
-          
-          socket.emit("message:sent", {
-            to,
-            message,
-            timestamp: new Date(),
-          });
-        } catch (error) {
-          console.error("Message send error:", error.message);
-          socket.emit("error", { message: "Failed to send message" });
-        }
-      });
-
-      socket.on("driver:location:update", (data) => {
-        try {
-          const { driverId, orderId, location } = data;
-          
-          if (!driverId || !location) {
-            socket.emit("error", { message: "Driver ID and location are required" });
-            return;
-          }
-
-          if (orderId) {
-            this.io.to(`order:${orderId}`).emit("driver:location:updated", {
-              driverId,
-              location,
-              timestamp: new Date(),
-            });
-          }
-          
-          this.io.to("admin:room").emit("driver:location:updated", {
-            driverId,
-            location,
-            timestamp: new Date(),
-          });
-        } catch (error) {
-          console.error("Driver location update error:", error.message);
-          socket.emit("error", { message: "Failed to update location" });
-        }
-      });
-
-      socket.on("disconnect", (reason) => {
-        console.log(`🔴 Socket disconnected: ${socket.id}, reason: ${reason}`);
-        
-        const userId = this.getUserIdBySocket(socket.id);
-        if (userId) {
-          this.userSockets.delete(userId.toString());
-          
-          // تنظيف الغرف
-          if (this.userRooms.has(userId.toString())) {
-            const rooms = this.userRooms.get(userId.toString());
-            rooms.forEach(room => {
-              if (this.io) {
-                socket.leave(room);
-              }
-            });
-            this.userRooms.delete(userId.toString());
-          }
-          
-          if (this.io) {
-            socket.broadcast.emit("user:disconnected", {
-              userId,
-              socketId: socket.id,
-              reason,
-              timestamp: new Date(),
-            });
-          }
-        }
-      });
-
-      socket.on("error", (error) => {
-        console.error(`Socket error ${socket.id}:`, error);
-      });
-    });
-  }
-
-  getUserIdBySocket(socketId) {
-    // البحث في userSockets
-    for (const [userId, sid] of this.userSockets.entries()) {
-      if (sid === socketId) {
-        return userId;
-      }
-    }
-    return null;
-  }
-
-  sendToUser(userId, data) {
-    try {
-      if (!this.io) {
-        console.error("❌ Socket.io not initialized");
-        return { success: false, error: "Socket.io not initialized" };
-      }
-
-      const socketId = this.userSockets.get(userId.toString());
-      
-      if (socketId) {
-        this.io.to(socketId).emit(data.type, data.data || data);
-        console.log(`📨 Sent ${data.type} to user ${userId}`);
-        return { success: true, delivered: true };
-      }
-      
-      console.log(`📭 User ${userId} is not connected, notification queued`);
-      return { success: true, delivered: false, queued: true };
-    } catch (error) {
-      console.error("Send to user error:", error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  sendToUsers(userIds, data) {
-    const results = {
-      total: userIds.length,
-      delivered: 0,
-      queued: 0,
-      failed: 0,
-      errors: []
-    };
-    
-    userIds.forEach(userId => {
-      const result = this.sendToUser(userId, data);
-      if (result.success) {
-        if (result.delivered) {
-          results.delivered++;
-        } else {
-          results.queued++;
-        }
-      } else {
-        results.failed++;
-        results.errors.push({ userId, error: result.error });
-      }
-    });
-    
-    return results;
-  }
-
-  sendToRoom(room, data) {
-    try {
-      if (!this.io) {
-        console.error("❌ Socket.io not initialized");
-        return { success: false, error: "Socket.io not initialized" };
-      }
-
-      this.io.to(room).emit(data.type, data.data || data);
-      console.log(`📨 Sent ${data.type} to room ${room}`);
-      return { success: true };
-    } catch (error) {
-      console.error("Send to room error:", error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  broadcast(data, excludeSocketId = null) {
-    try {
-      if (!this.io) {
-        console.error("❌ Socket.io not initialized");
-        return { success: false, error: "Socket.io not initialized" };
-      }
-
-      if (excludeSocketId) {
-        this.io.except(excludeSocketId).emit(data.type, data.data || data);
-      } else {
-        this.io.emit(data.type, data.data || data);
-      }
-      
-      console.log(`📢 Broadcast ${data.type} to all connected clients`);
-      return { success: true };
-    } catch (error) {
-      console.error("Broadcast error:", error);
-      return { success: false, error: error.message };
-    }
-  }
-
-  getConnectedUsersCount() {
-    return this.userSockets.size;
-  }
-
-  isUserConnected(userId) {
-    return this.userSockets.has(userId.toString());
-  }
-
-  getConnectedUsers() {
-    return Array.from(this.userSockets.keys());
-  }
-
-  initializeChatServices() {
-    try {
-      if (!this.io) {
-        console.warn("⚠️ Socket.io not initialized yet, chat service will be delayed");
-        return null;
-      }
-
-      const ChatSocketService = require("./chat.socket.service");
-      
-      // إنشاء نسخة جديدة من ChatSocketService
-      const chatSocketService = ChatSocketService;
-      
-      // تمرير instance الـ Socket.io لخدمة الدردشة
-      if (chatSocketService.initializeWithIO) {
-        chatSocketService.initializeWithIO(this.io);
-      }
-      
-      // تخزين المرجع للاستخدام لاحقاً
-      this.chatSocketService = chatSocketService;
-      
-      console.log("✅ Chat socket service initialized");
-      return chatSocketService;
-    } catch (error) {
-      console.error("❌ Chat service initialization failed:", error.message);
-      return null;
-    }
-  }
-
-  // دالة للحصول على instance الـ Socket.io للاستخدام الخارجي
-  getIO() {
-    if (!this.io) {
-      console.warn("⚠️ Socket.io not initialized yet");
-    }
-    return this.io;
-  }
-
-  // دالة للتحقق من تهيئة الخدمة
-  isInitialized() {
-    return !!this.io;
-  }
-}
-
-const socketServiceInstance = new SocketService();
-
-module.exports = {
-  initialize: (server) => socketServiceInstance.initialize(server),
-  sendToUser: (userId, data) => socketServiceInstance.sendToUser(userId, data),
-  sendToUsers: (userIds, data) => socketServiceInstance.sendToUsers(userIds, data),
-  sendToRoom: (room, data) => socketServiceInstance.sendToRoom(room, data),
-  broadcast: (data, excludeSocketId) => socketServiceInstance.broadcast(data, excludeSocketId),
-  isUserConnected: (userId) => socketServiceInstance.isUserConnected(userId),
-  getConnectedUsers: () => socketServiceInstance.getConnectedUsers(),
-  getConnectedUsersCount: () => socketServiceInstance.getConnectedUsersCount(),
-  initializeChatServices: () => socketServiceInstance.initializeChatServices(),
-  getIO: () => socketServiceInstance.getIO(),
-  isInitialized: () => socketServiceInstance.isInitialized(),
-  instance: socketServiceInstance
-};
 </file>
 
 <file path="src/utils/cache.util.js">
@@ -11016,6 +10093,102 @@ afterEach(async () => {
     await collection.deleteMany();
   }
 });
+</file>
+
+<file path=".env.example">
+# ============================================
+# FOOD DELIVERY BACKEND - ENVIRONMENT VARIABLES
+# ============================================
+
+# 🚀 SERVER CONFIGURATION
+NODE_ENV=development
+PORT=3000
+API_URL=http://localhost:3000
+CLIENT_URL=http://localhost:3001
+APP_NAME="Food Delivery"
+
+# 📦 DATABASE CONFIGURATION
+MONGO_URI=mongodb://localhost:27017/food_delivery
+MONGO_URI_TEST=mongodb://localhost:27017/food_delivery_test
+
+# 🔐 JWT AUTHENTICATION
+JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
+JWT_EXPIRES_IN=7d
+REQUIRE_VERIFICATION=true
+
+# ☁️ CLOUDINARY FILE UPLOAD
+CLOUDINARY_CLOUD_NAME=your-cloud-name
+CLOUDINARY_API_KEY=your-api-key
+CLOUDINARY_API_SECRET=your-api-secret
+
+# ⚡ CACHE CONFIGURATION
+CACHE_TTL=300
+REDIS_URL=redis://localhost:6379
+
+# 📝 LOGGING
+LOG_LEVEL=info
+LOG_TO_FILE=true
+
+# 🛡️ RATE LIMITING
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX_REQUESTS=100
+
+# 🛡️ SECURITY
+CORS_ORIGIN=http://localhost:3001
+HELMET_ENABLED=true
+XSS_PROTECTION=true
+NOSQL_INJECTION_PROTECTION=true
+
+# 📧 EMAIL SERVICE (Optional)
+EMAIL_ENABLED=false
+EMAIL_SERVICE=gmail
+EMAIL_USER=your-email@gmail.com
+EMAIL_PASS=your-app-password
+EMAIL_FROM=noreply@fooddelivery.com
+
+# 📱 SMS SERVICE (Optional)
+SMS_ENABLED=false
+SMS_PROVIDER=twilio
+TWILIO_ACCOUNT_SID=your-account-sid
+TWILIO_AUTH_TOKEN=your-auth-token
+TWILIO_PHONE_NUMBER=+1234567890
+
+# 🔔 PUSH NOTIFICATIONS (Optional)
+FCM_SERVER_KEY=your-fcm-server-key
+APN_KEY_ID=your-apn-key-id
+APN_TEAM_ID=your-apn-team-id
+APN_KEY_PATH=path/to/apn/key.p8
+
+# 💰 PAYMENT GATEWAY (Optional)
+STRIPE_SECRET_KEY=your-stripe-secret-key
+STRIPE_PUBLISHABLE_KEY=your-stripe-publishable-key
+
+# 📊 ANALYTICS (Optional)
+GOOGLE_ANALYTICS_ID=your-ga-id
+MIXPANEL_TOKEN=your-mixpanel-token
+
+# ⚙️ PERFORMANCE
+REQUEST_SIZE_LIMIT=10mb
+COMPRESSION_ENABLED=true
+CACHE_ENABLED=true
+
+# 🧪 TESTING
+TEST_TIMEOUT=30000
+
+# ============================================
+# DEVELOPMENT SPECIFIC
+# ============================================
+# NODE_ENV=development
+DEBUG=true
+LOG_LEVEL=debug
+
+# ============================================
+# PRODUCTION SPECIFIC
+# ============================================
+# NODE_ENV=production
+# DEBUG=false
+# LOG_LEVEL=warn
+# CACHE_TTL=600
 </file>
 
 <file path="src/controllers/aggregate.controller.js">
@@ -13757,6 +12930,88 @@ exports.uploadLimiter = rateLimit({
 });
 </file>
 
+<file path="src/middlewares/role.middleware.js">
+// middlewares/role.middleware.js
+
+const roleMiddleware = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user || !req.user.role) {
+      return res.status(401).json({
+        success: false,
+        message: "غير مصرح لك - لم يتم التعرف على المستخدم",
+      });
+    }
+
+    // ✅ التحقق من الصلاحيات المتعددة
+    if (!allowedRoles.includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "غير مصرح لك - ليس لديك الصلاحيات المطلوبة",
+        requiredRoles: allowedRoles,
+        yourRole: req.user.role,
+      });
+    }
+
+    next();
+  };
+};
+
+// ✅ middleware خاص لصاحب المطعم - يتحقق من ملكية المطعم
+const restaurantOwnerMiddleware = async (req, res, next) => {
+  try {
+    const Restaurant = require("../models/restaurant.model");
+    
+    if (req.user.role !== "restaurant_owner" && req.user.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "هذا المسار مخصص لأصحاب المطاعم فقط",
+      });
+    }
+
+    // الأدمن يتجاوز التحقق من الملكية
+    if (req.user.role === "admin") {
+      return next();
+    }
+
+    // التحقق من أن المستخدم يملك مطعماً
+    if (!req.user.restaurantOwnerInfo?.restaurant) {
+      return res.status(400).json({
+        success: false,
+        message: "لم يتم ربطك بأي مطعم بعد",
+      });
+    }
+
+    // إذا كان هناك restaurantId في params، تحقق من الملكية
+    const requestedRestaurantId = req.params.restaurantId || req.body.restaurantId;
+    
+    if (requestedRestaurantId) {
+      const ownsRestaurant = req.user.restaurantOwnerInfo.restaurant.toString() === requestedRestaurantId;
+      
+      if (!ownsRestaurant) {
+        return res.status(403).json({
+          success: false,
+          message: "هذا المطعم لا ينتمي إليك",
+        });
+      }
+    }
+
+    // إضافة معلومات المطعم للـ req
+    req.restaurantId = req.user.restaurantOwnerInfo.restaurant;
+    
+    next();
+  } catch (error) {
+    console.error("Restaurant owner middleware error:", error);
+    res.status(500).json({
+      success: false,
+      message: "خطأ في التحقق من الصلاحيات",
+    });
+  }
+};
+
+module.exports = roleMiddleware;
+module.exports.restaurantOwnerMiddleware = restaurantOwnerMiddleware;
+</file>
+
 <file path="src/middlewares/upload.js">
 const multer = require("multer");
 const { CloudinaryStorage } = require("multer-storage-cloudinary");
@@ -15079,6 +14334,1578 @@ process.on("SIGTERM", () => {
 });
 </file>
 
+<file path="src/services/notification.service.js">
+const Notification = require("../models/notification.model");
+const User = require("../models/user.model");
+const socketService = require("./socket.service");
+const emailService = require("./email.service");
+const smsService = require("./sms.service");
+const cache = require("../utils/cache.util");
+
+class NotificationService {
+  // ====== دوال أساسية ======
+  
+  /**
+   * إرسال إشعار واحد
+   */
+  async sendNotification(notificationData) {
+    try {
+      console.log(`📨 Sending notification to user ${notificationData.user}`);
+      
+      const notification = await Notification.create(notificationData);
+      const user = await User.findById(notificationData.user).select("preferences");
+      
+      if (!user) {
+        console.error(`User ${notificationData.user} not found`);
+        return notification;
+      }
+      
+      const deliveryPromises = [];
+      
+      if (notification.settings.inApp) {
+        deliveryPromises.push(this.sendInAppNotification(notification, user));
+      }
+      
+      if (notification.settings.push && user.preferences?.notifications?.push) {
+        deliveryPromises.push(this.sendPushNotification(notification, user));
+      }
+      
+      if (notification.settings.email && user.preferences?.notifications?.email) {
+        deliveryPromises.push(this.sendEmailNotification(notification, user));
+      }
+      
+      if (notification.settings.sms && user.preferences?.notifications?.sms) {
+        deliveryPromises.push(this.sendSmsNotification(notification, user));
+      }
+      
+      await Promise.allSettled(deliveryPromises);
+      this.invalidateCache(notification.user);
+      
+      console.log(`✅ Notification sent: ${notification._id}`);
+      return notification;
+      
+    } catch (error) {
+      console.error("❌ Notification sending error:", error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * إرسال إشعارات مجمعة
+   */
+  async sendBulkNotifications(notificationsData) {
+    try {
+      console.log(`📨 Sending ${notificationsData.length} notifications in bulk`);
+      
+      const results = await Promise.allSettled(
+        notificationsData.map(data => this.sendNotification(data))
+      );
+      
+      const successful = results.filter(r => r.status === "fulfilled").length;
+      const failed = results.filter(r => r.status === "rejected").length;
+      
+      console.log(`📊 Bulk sending results: ${successful} successful, ${failed} failed`);
+      
+      return {
+        total: notificationsData.length,
+        successful,
+        failed,
+        results: results.map((r, i) => ({
+          data: notificationsData[i],
+          status: r.status,
+          error: r.status === "rejected" ? r.reason.message : null,
+        })),
+      };
+      
+    } catch (error) {
+      console.error("❌ Bulk notification error:", error);
+      throw error;
+    }
+  }
+
+  // ====== إشعارات خاصة بالطلبات ======
+  
+  /**
+   * إنشاء إشعارات تلقائية للطلبات
+   */
+  async createOrderNotifications(order) {
+    try {
+      const notifications = [];
+      
+      // إشعار العميل
+      notifications.push({
+        user: order.user,
+        type: "order_created",
+        title: "تم إنشاء طلبك بنجاح",
+        content: `طلبك #${order._id.toString().slice(-6)} قيد الانتظار`,
+        data: {
+          orderId: order._id,
+          orderNumber: order._id.toString().slice(-6),
+          totalPrice: order.totalPrice,
+          restaurant: order.restaurant,
+        },
+        priority: "high",
+        link: `/orders/${order._id}`,
+        icon: "🛒",
+        tags: ["order", "order_created", `order_${order._id}`],
+      });
+      
+      // إشعار المندوب
+      if (order.driver) {
+        notifications.push({
+          user: order.driver,
+          type: "order_assigned",
+          title: "طلب جديد معين لك",
+          content: `تم تعيين طلب #${order._id.toString().slice(-6)} لك للتوصيل`,
+          data: {
+            orderId: order._id,
+            orderNumber: order._id.toString().slice(-6),
+            totalPrice: order.totalPrice,
+            restaurant: order.restaurant,
+            customer: order.user,
+          },
+          priority: "high",
+          link: `/driver/orders/${order._id}`,
+          icon: "🚗",
+          tags: ["order", "driver", `order_${order._id}`],
+        });
+      }
+      
+      // إشعار صاحب المطعم
+      await this.notifyRestaurantOwner(order, "new_order");
+      
+      const result = await this.sendBulkNotifications(notifications);
+      
+      return {
+        success: true,
+        notificationsCount: notifications.length,
+        details: result,
+      };
+      
+    } catch (error) {
+      console.error("❌ Order notifications error:", error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * إشعار جديد لصاحب المطعم
+   */
+  async notifyRestaurantOwner(order, type = "new_order") {
+    try {
+      // البحث عن صاحب المطعم
+      const owner = await User.findOne({
+        "restaurantOwnerInfo.restaurant": order.restaurant,
+        role: "restaurant_owner",
+        isActive: true,
+      });
+
+      if (!owner) {
+        console.log(`⚠️ No owner found for restaurant ${order.restaurant}`);
+        return null;
+      }
+
+      // التحقق من إعدادات الإشعارات
+      if (!owner.restaurantOwnerInfo?.notificationSettings?.newOrders) {
+        console.log(`🔕 Owner ${owner._id} has disabled new order notifications`);
+        return null;
+      }
+
+      let title, content, priority = "high";
+
+      switch (type) {
+        case "new_order":
+          title = "🛒 طلب جديد!";
+          content = `طلب جديد بقيمة ${order.totalPrice} درهم - ${order.items.length} عناصر`;
+          priority = "high";
+          break;
+          
+        case "order_cancelled":
+          title = "❌ تم إلغاء طلب";
+          content = `تم إلغاء الطلب #${order._id.toString().slice(-6)}`;
+          priority = "urgent";
+          break;
+          
+        case "order_status_update":
+          title = "🔄 تحديث على الطلب";
+          content = `الطلب #${order._id.toString().slice(-6)} - الحالة: ${order.status}`;
+          priority = "medium";
+          break;
+      }
+
+      const notification = await this.sendNotification({
+        user: owner._id,
+        type: `restaurant_${type}`,
+        title,
+        content,
+        data: {
+          orderId: order._id,
+          orderNumber: order._id.toString().slice(-6),
+          totalPrice: order.totalPrice,
+          items: order.items,
+          customerName: order.user?.name,
+          status: order.status,
+          estimatedTime: order.estimatedDeliveryTime,
+        },
+        priority,
+        link: `/restaurant/orders/${order._id}`,
+        icon: type === "new_order" ? "🛒" : type === "order_cancelled" ? "❌" : "🔄",
+        tags: ["restaurant", "order", `restaurant_${order.restaurant}`, `order_${order._id}`],
+      });
+
+      // إرسال إشعار فوري عبر Socket.io
+      socketService.sendToUser(owner._id.toString(), {
+        type: "restaurant:new_order",
+        data: {
+          orderId: order._id,
+          totalPrice: order.totalPrice,
+          itemsCount: order.items.length,
+          timestamp: new Date(),
+        },
+      });
+
+      console.log(`📨 Notified restaurant owner ${owner._id} about order ${order._id}`);
+      return notification;
+
+    } catch (error) {
+      console.error("❌ Notify restaurant owner error:", error.message);
+      return null;
+    }
+  }
+
+  /**
+   * تحديث إشعارات حالة الطلب
+   */
+  async updateOrderStatusNotifications(order, oldStatus, newStatus) {
+    try {
+      const notificationType = `order_${newStatus}`;
+      
+      // إشعار للعميل
+      await this.sendNotification({
+        user: order.user,
+        type: notificationType,
+        title: this.getOrderStatusTitle(newStatus),
+        content: this.getOrderStatusContent(order, newStatus),
+        data: {
+          orderId: order._id,
+          orderNumber: order._id.toString().slice(-6),
+          oldStatus,
+          newStatus,
+          totalPrice: order.totalPrice,
+        },
+        priority: this.getOrderStatusPriority(newStatus),
+        link: `/orders/${order._id}`,
+        icon: this.getOrderStatusIcon(newStatus),
+        tags: ["order", notificationType, `order_${order._id}`],
+      });
+      
+      // إشعار للمندوب
+      if (order.driver && ["picked", "delivered"].includes(newStatus)) {
+        await this.sendNotification({
+          user: order.driver,
+          type: notificationType,
+          title: this.getDriverOrderStatusTitle(newStatus),
+          content: this.getDriverOrderStatusContent(order, newStatus),
+          data: {
+            orderId: order._id,
+            orderNumber: order._id.toString().slice(-6),
+            oldStatus,
+            newStatus,
+            customer: order.user,
+          },
+          priority: "medium",
+          link: `/driver/orders/${order._id}`,
+          icon: this.getOrderStatusIcon(newStatus),
+          tags: ["order", "driver", notificationType, `order_${order._id}`],
+        });
+      }
+      
+      // إشعار لصاحب المطعم لحالات معينة
+      if (["cancelled", "accepted", "delivered"].includes(newStatus)) {
+        await this.notifyRestaurantOwner(order, 
+          newStatus === "cancelled" ? "order_cancelled" : "order_status_update"
+        );
+      }
+      
+      return { success: true };
+      
+    } catch (error) {
+      console.error("❌ Order status notification error:", error.message);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // ====== قنوات الإرسال ======
+  
+  /**
+   * إشعارات داخل التطبيق (Real-time via Socket.io)
+   */
+  async sendInAppNotification(notification, user) {
+    try {
+      socketService.sendToUser(notification.user.toString(), {
+        type: "notification:new",
+        data: {
+          id: notification._id,
+          type: notification.type,
+          title: notification.title,
+          content: notification.content,
+          icon: notification.icon,
+          link: notification.link,
+          priority: notification.priority,
+          timeAgo: this.getRelativeTime(notification.createdAt),
+          createdAt: notification.createdAt,
+        },
+      });
+      
+      notification.delivery.pushSent = true;
+      await notification.save();
+      
+      return { success: true, channel: "inApp" };
+      
+    } catch (error) {
+      console.error("❌ In-app notification error:", error.message);
+      notification.delivery.pushError = error.message;
+      await notification.save();
+      
+      return { success: false, channel: "inApp", error: error.message };
+    }
+  }
+
+  /**
+   * إشعارات Push (FCM/APN)
+   */
+  async sendPushNotification(notification, user) {
+    try {
+      console.log(`📱 Would send push notification to ${user._id}`);
+      notification.delivery.pushSent = true;
+      await notification.save();
+      
+      return { success: true, channel: "push" };
+      
+    } catch (error) {
+      console.error("❌ Push notification error:", error.message);
+      notification.delivery.pushError = error.message;
+      await notification.save();
+      
+      return { success: false, channel: "push", error: error.message };
+    }
+  }
+
+  /**
+   * إرسال إشعارات عبر البريد الإلكتروني
+   */
+  async sendEmailNotification(notification, user) {
+    try {
+      const userDetails = await User.findById(user._id).select("email name");
+      
+      if (!userDetails || !userDetails.email) {
+        return { 
+          success: false, 
+          channel: "email", 
+          error: userDetails ? "No email address" : "User not found" 
+        };
+      }
+      
+      const result = await emailService.sendNotificationEmail({
+        user: userDetails,
+        notification: notification
+      });
+      
+      notification.delivery.emailSent = result.success;
+      await notification.save();
+      
+      return { 
+        success: result.success, 
+        channel: "email",
+        messageId: result.messageId 
+      };
+      
+    } catch (error) {
+      console.error("❌ Email notification error:", error.message);
+      notification.delivery.emailError = error.message;
+      await notification.save();
+      
+      return { success: false, channel: "email", error: error.message };
+    }
+  }
+
+  /**
+   * إرسال إشعارات عبر SMS
+   */
+  async sendSmsNotification(notification, user) {
+    try {
+      const userDetails = await User.findById(user._id).select("phone name");
+      
+      if (!userDetails || !userDetails.phone) {
+        return { 
+          success: false, 
+          channel: "sms", 
+          error: userDetails ? "No phone number" : "User not found" 
+        };
+      }
+      
+      console.log(`📱 Would send SMS to ${userDetails.phone}`);
+      notification.delivery.smsSent = true;
+      await notification.save();
+      
+      return { success: true, channel: "sms" };
+      
+    } catch (error) {
+      console.error("❌ SMS notification error:", error.message);
+      notification.delivery.smsError = error.message;
+      await notification.save();
+      
+      return { success: false, channel: "sms", error: error.message };
+    }
+  }
+
+  // ====== إدارة الإشعارات ======
+  
+  /**
+   * الحصول على إشعارات المستخدم
+   */
+  async getUserNotifications(userId, options = {}) {
+    try {
+      const {
+        page = 1,
+        limit = 20,
+        status,
+        type,
+        priority,
+        unreadOnly = false,
+        includeExpired = false,
+      } = options;
+      
+      const skip = (page - 1) * limit;
+      
+      const query = { user: userId };
+      if (status) query.status = status;
+      if (type) query.type = type;
+      if (priority) query.priority = priority;
+      
+      if (unreadOnly) {
+        query.status = "unread";
+      }
+      
+      if (!includeExpired) {
+        query.expiresAt = { $gt: new Date() };
+      }
+      
+      const [notifications, total] = await Promise.all([
+        Notification.find(query)
+          .sort({ sentAt: -1, priority: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        Notification.countDocuments(query),
+      ]);
+      
+      const unreadCount = unreadOnly 
+        ? total 
+        : await Notification.countDocuments({
+            user: userId,
+            status: "unread",
+            expiresAt: { $gt: new Date() },
+          });
+      
+      const notificationsWithTime = notifications.map(notification => ({
+        ...notification,
+        timeAgo: this.getRelativeTime(notification.sentAt),
+        isExpired: notification.expiresAt && new Date(notification.expiresAt) < new Date(),
+      }));
+      
+      return {
+        success: true,
+        data: {
+          notifications: notificationsWithTime,
+          pagination: {
+            page,
+            limit,
+            total,
+            totalPages: Math.ceil(total / limit),
+            hasNextPage: page * limit < total,
+            hasPrevPage: page > 1,
+          },
+          stats: {
+            total,
+            unreadCount,
+            readCount: total - unreadCount,
+          },
+        },
+      };
+      
+    } catch (error) {
+      console.error("❌ Get user notifications error:", error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * تحديث حالة الإشعار
+   */
+  async updateNotificationStatus(userId, notificationId, status) {
+    try {
+      const notification = await Notification.findOne({
+        _id: notificationId,
+        user: userId,
+      });
+      
+      if (!notification) {
+        return {
+          success: false,
+          error: "Notification not found",
+        };
+      }
+      
+      const oldStatus = notification.status;
+      
+      switch (status) {
+        case "read":
+          await notification.markAsRead();
+          break;
+        case "unread":
+          await notification.markAsUnread();
+          break;
+        case "archived":
+          await notification.archive();
+          break;
+        default:
+          return {
+            success: false,
+            error: "Invalid status",
+          };
+      }
+      
+      this.invalidateCache(userId);
+      
+      return {
+        success: true,
+        data: {
+          id: notification._id,
+          oldStatus,
+          newStatus: status,
+        },
+      };
+      
+    } catch (error) {
+      console.error("❌ Update notification status error:", error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * تحديث جميع الإشعارات كـ مقروءة
+   */
+  async markAllAsRead(userId) {
+    try {
+      const result = await Notification.markAllAsRead(userId);
+      this.invalidateCache(userId);
+      
+      return {
+        success: true,
+        data: {
+          modifiedCount: result.modifiedCount,
+        },
+      };
+      
+    } catch (error) {
+      console.error("❌ Mark all as read error:", error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * حذف الإشعار
+   */
+  async deleteNotification(userId, notificationId) {
+    try {
+      const result = await Notification.findOneAndDelete({
+        _id: notificationId,
+        user: userId,
+      });
+      
+      if (!result) {
+        return {
+          success: false,
+          error: "Notification not found",
+        };
+      }
+      
+      this.invalidateCache(userId);
+      
+      return {
+        success: true,
+        data: {
+          id: notificationId,
+          deleted: true,
+        },
+      };
+      
+    } catch (error) {
+      console.error("❌ Delete notification error:", error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // ====== أدوات مساعدة ======
+  
+  /**
+   * تنظيف الإشعارات المنتهية
+   */
+  async cleanupExpiredNotifications() {
+    try {
+      const result = await Notification.cleanupExpired();
+      console.log(`🧹 Cleaned up ${result.deletedCount} expired notifications`);
+      
+      return {
+        success: true,
+        deletedCount: result.deletedCount,
+      };
+      
+    } catch (error) {
+      console.error("❌ Cleanup notifications error:", error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * إحصائيات الإشعارات
+   */
+  async getNotificationStats(userId) {
+    try {
+      const cacheKey = `notifications:stats:${userId}`;
+      const cachedStats = cache.get(cacheKey);
+      
+      if (cachedStats) {
+        return cachedStats;
+      }
+      
+      const [
+        totalCount,
+        unreadCount,
+        byType,
+        byPriority,
+        dailyStats,
+        weeklyStats,
+      ] = await Promise.all([
+        Notification.countDocuments({ user: userId, expiresAt: { $gt: new Date() } }),
+        
+        Notification.countDocuments({ 
+          user: userId, 
+          status: "unread",
+          expiresAt: { $gt: new Date() },
+        }),
+        
+        Notification.aggregate([
+          { 
+            $match: { 
+              user: userId,
+              expiresAt: { $gt: new Date() },
+            } 
+          },
+          {
+            $group: {
+              _id: "$type",
+              count: { $sum: 1 },
+              unread: {
+                $sum: { $cond: [{ $eq: ["$status", "unread"] }, 1, 0] },
+              },
+            },
+          },
+          { $sort: { count: -1 } },
+        ]),
+        
+        Notification.aggregate([
+          { 
+            $match: { 
+              user: userId,
+              expiresAt: { $gt: new Date() },
+            } 
+          },
+          {
+            $group: {
+              _id: "$priority",
+              count: { $sum: 1 },
+            },
+          },
+        ]),
+        
+        Notification.aggregate([
+          {
+            $match: {
+              user: userId,
+              sentAt: { 
+                $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+              },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: { format: "%Y-%m-%d", date: "$sentAt" },
+              },
+              count: { $sum: 1 },
+              readCount: {
+                $sum: { $cond: [{ $eq: ["$status", "read"] }, 1, 0] },
+              },
+            },
+          },
+          { $sort: { _id: -1 } },
+        ]),
+        
+        Notification.aggregate([
+          {
+            $match: {
+              user: userId,
+              sentAt: { 
+                $gte: new Date(Date.now() - 28 * 24 * 60 * 60 * 1000),
+              },
+            },
+          },
+          {
+            $group: {
+              _id: {
+                $dateToString: { format: "%Y-%W", date: "$sentAt" },
+              },
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: -1 } },
+          { $limit: 4 },
+        ]),
+      ]);
+      
+      const stats = {
+        success: true,
+        data: {
+          total: totalCount,
+          unread: unreadCount,
+          read: totalCount - unreadCount,
+          byType: byType.reduce((acc, item) => {
+            acc[item._id] = item;
+            return acc;
+          }, {}),
+          byPriority: byPriority.reduce((acc, item) => {
+            acc[item._id] = item.count;
+            return acc;
+          }, {}),
+          dailyStats: dailyStats,
+          weeklyStats: weeklyStats,
+          deliveryRate: this.calculateDeliveryRate(byType),
+          engagementRate: totalCount > 0 
+            ? ((totalCount - unreadCount) / totalCount) * 100 
+            : 0,
+        },
+      };
+      
+      cache.set(cacheKey, stats, 300);
+      return stats;
+      
+    } catch (error) {
+      console.error("❌ Get notification stats error:", error.message);
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  // ====== دوال مساعدة (Helpers) ======
+  
+  getOrderStatusTitle(status) {
+    const titles = {
+      pending: "طلب قيد الانتظار",
+      accepted: "تم قبول الطلب",
+      picked: "تم استلام الطلب",
+      delivered: "تم التوصيل",
+      cancelled: "تم إلغاء الطلب",
+    };
+    
+    return titles[status] || "تحديث على طلبك";
+  }
+
+  getOrderStatusContent(order, status) {
+    const contents = {
+      pending: `طلبك #${order._id.toString().slice(-6)} قيد الانتظار.`,
+      accepted: `تم قبول طلبك #${order._id.toString().slice(-6)} وجاري تجهيزه.`,
+      picked: `تم استلام طلبك #${order._id.toString().slice(-6)} من المطعم.`,
+      delivered: `تم توصيل طلبك #${order._id.toString().slice(-6)} بنجاح.`,
+      cancelled: `تم إلغاء طلبك #${order._id.toString().slice(-6)}.`,
+    };
+    
+    return contents[status] || `هناك تحديث على طلبك #${order._id.toString().slice(-6)}.`;
+  }
+
+  getDriverOrderStatusTitle(status) {
+    const titles = {
+      picked: "تم استلام الطلب من المطعم",
+      delivered: "تم تسليم الطلب للعميل",
+    };
+    
+    return titles[status] || "تحديث على الطلب";
+  }
+
+  getDriverOrderStatusContent(order, status) {
+    const contents = {
+      picked: `تم استلام طلب #${order._id.toString().slice(-6)} من المطعم.`,
+      delivered: `تم تسليم طلب #${order._id.toString().slice(-6)} للعميل.`,
+    };
+    
+    return contents[status] || `تحديث على طلب #${order._id.toString().slice(-6)}.`;
+  }
+
+  getOrderStatusPriority(status) {
+    const priorities = {
+      cancelled: "urgent",
+      delivered: "high",
+      accepted: "high",
+      picked: "medium",
+      pending: "low",
+    };
+    
+    return priorities[status] || "medium";
+  }
+
+  getOrderStatusIcon(status) {
+    const icons = {
+      pending: "⏳",
+      accepted: "✅",
+      picked: "📦",
+      delivered: "🚚",
+      cancelled: "❌",
+    };
+    
+    return icons[status] || "🔔";
+  }
+
+  getRelativeTime(date) {
+    const now = new Date();
+    const past = new Date(date);
+    const diffMs = now - past;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+    
+    if (diffMins < 1) return "الآن";
+    if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
+    if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+    if (diffDays < 7) return `منذ ${diffDays} يوم`;
+    if (diffDays < 30) return `منذ ${Math.floor(diffDays / 7)} أسبوع`;
+    if (diffDays < 365) return `منذ ${Math.floor(diffDays / 30)} شهر`;
+    return `منذ ${Math.floor(diffDays / 365)} سنة`;
+  }
+
+  calculateDeliveryRate(byType) {
+    const total = byType.reduce((sum, item) => sum + item.count, 0);
+    
+    if (total === 0) return 0;
+    
+    const orderNotifications = byType.filter(item => 
+      item._id.startsWith("order_")
+    ).reduce((sum, item) => sum + item.count, 0);
+    
+    return (orderNotifications / total) * 100;
+  }
+
+  invalidateCache(userId) {
+    cache.del(`notifications:user:${userId}`);
+    cache.del(`notifications:stats:${userId}`);
+    cache.del(`notifications:unread:${userId}`);
+    cache.invalidatePattern(`notifications:*:${userId}`);
+  }
+}
+
+module.exports = new NotificationService();
+</file>
+
+<file path="src/services/socket.service.js">
+const socketIo = require("socket.io");
+
+class SocketService {
+  constructor() {
+    this.io = null;
+    this.userSockets = new Map(); // تخزين userId -> socketId
+    this.userRooms = new Map(); // تخزين userId -> Set<rooms>
+    this.chatSocketService = null;
+    this.User = null; // سيتم استيراده عند الحاجة
+  }
+
+  /**
+   * تهيئة Socket.io
+   */
+  initialize(server) {
+    try {
+      this.io = socketIo(server, {
+        cors: {
+          origin: process.env.CLIENT_URL || "http://localhost:3001",
+          methods: ["GET", "POST"],
+          credentials: true,
+        },
+        pingTimeout: 60000,
+        pingInterval: 25000,
+      });
+
+      this.setupEventHandlers();
+      console.log("✅ Socket.io initialized");
+      
+      this.initializeChatServices();
+      
+      return this.io;
+    } catch (error) {
+      console.error("❌ Failed to initialize Socket.io:", error.message);
+      throw error;
+    }
+  }
+
+  /**
+   * إعداد معالجي الأحداث
+   */
+  setupEventHandlers() {
+    if (!this.io) {
+      console.error("❌ Cannot setup event handlers: Socket.io not initialized");
+      return;
+    }
+
+    this.io.on("connection", (socket) => {
+      console.log(`🟢 New socket connection: ${socket.id}`);
+      socket.userId = null;
+
+      // ====== Authentication & Connection ======
+      socket.on("authenticate", async (userId) => {
+        await this.handleAuthentication(socket, userId);
+      });
+
+      socket.on("join", async (userId) => {
+        await this.handleJoin(socket, userId);
+      });
+
+      // ====== Room Subscriptions ======
+      socket.on("order:subscribe", (orderId) => {
+        this.handleOrderSubscription(socket, orderId);
+      });
+
+      socket.on("restaurant:subscribe", async (restaurantId) => {
+        await this.handleRestaurantSubscription(socket, restaurantId);
+      });
+
+      // ====== Presence & Status ======
+      socket.on("presence:update", (data) => {
+        this.handlePresenceUpdate(socket, data);
+      });
+
+      // ====== Messaging ======
+      socket.on("message:send", async (data) => {
+        await this.handleMessageSend(socket, data);
+      });
+
+      // ====== Driver Tracking ======
+      socket.on("driver:location:update", (data) => {
+        this.handleDriverLocationUpdate(socket, data);
+      });
+
+      // ====== Admin Features ======
+      socket.on("admin:join", () => {
+        this.handleAdminJoin(socket);
+      });
+
+      socket.on("dashboard:subscribe", () => {
+        this.handleDashboardSubscription(socket);
+      });
+
+      // ====== Disconnection ======
+      socket.on("disconnect", (reason) => {
+        this.handleDisconnect(socket, reason);
+      });
+
+      socket.on("error", (error) => {
+        console.error(`Socket error ${socket.id}:`, error);
+      });
+    });
+  }
+
+  // ====== Authentication Handlers ======
+  
+  async handleAuthentication(socket, userId) {
+    try {
+      if (!userId) {
+        socket.emit("error", { message: "يجب إدخال معرف المستخدم" });
+        return;
+      }
+
+      socket.userId = userId.toString();
+      
+      // الانضمام إلى غرفة المستخدم الخاصة
+      socket.join(`user:${userId}`);
+      this.userSockets.set(userId.toString(), socket.id);
+      
+      // تخزين الغرف
+      if (!this.userRooms.has(userId.toString())) {
+        this.userRooms.set(userId.toString(), new Set());
+      }
+      this.userRooms.get(userId.toString()).add(`user:${userId}`);
+      
+      console.log(`👤 User ${userId} authenticated and joined their room`);
+      
+      socket.emit("authenticated", {
+        message: "تم المصادقة بنجاح",
+        userId: userId,
+        timestamp: new Date(),
+      });
+
+      // إشعار الآخرين باتصال المستخدم
+      socket.broadcast.emit("user:connected", {
+        userId: userId,
+        socketId: socket.id,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Authentication error:", error.message);
+      socket.emit("error", { message: "فشلت المصادقة" });
+    }
+  }
+
+  async handleJoin(socket, userId) {
+    try {
+      if (!userId) {
+        socket.emit("error", { message: "يجب إدخال معرف المستخدم" });
+        return;
+      }
+
+      socket.userId = userId.toString();
+      socket.join(`user:${userId}`);
+      this.userSockets.set(userId.toString(), socket.id);
+      
+      if (!this.userRooms.has(userId.toString())) {
+        this.userRooms.set(userId.toString(), new Set());
+      }
+      this.userRooms.get(userId.toString()).add(`user:${userId}`);
+      
+      console.log(`👤 User ${userId} joined their room`);
+      
+      socket.emit("welcome", {
+        message: "تم الاتصال بخادم الإشعارات",
+        userId: userId,
+        timestamp: new Date(),
+      });
+
+      socket.broadcast.emit("user:connected", {
+        userId: userId,
+        socketId: socket.id,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Join error:", error.message);
+      socket.emit("error", { message: "فشل الانضمام" });
+    }
+  }
+
+  // ====== Subscription Handlers ======
+  
+  handleOrderSubscription(socket, orderId) {
+    try {
+      if (!orderId) {
+        socket.emit("error", { message: "يجب إدخال معرف الطلب" });
+        return;
+      }
+
+      const room = `order:${orderId}`;
+      socket.join(room);
+      
+      // تخزين الغرفة للمستخدم
+      const userId = this.getUserIdBySocket(socket.id);
+      if (userId && this.userRooms.has(userId)) {
+        this.userRooms.get(userId).add(room);
+      }
+      
+      console.log(`📦 Socket ${socket.id} subscribed to order ${orderId}`);
+      
+      socket.emit("order:subscribed", {
+        orderId,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Order subscribe error:", error.message);
+      socket.emit("error", { message: "فشل الاشتراك في الطلب" });
+    }
+  }
+
+  async handleRestaurantSubscription(socket, restaurantId) {
+    try {
+      if (!restaurantId) {
+        socket.emit("error", { message: "يجب إدخال معرف المطعم" });
+        return;
+      }
+
+      const userId = this.getUserIdBySocket(socket.id);
+      if (!userId) {
+        socket.emit("error", { message: "يجب تسجيل الدخول أولاً" });
+        return;
+      }
+
+      // تأخير استيراد الموديل حتى الحاجة الفعلية
+      if (!this.User) {
+        this.User = require("../models/user.model");
+      }
+
+      // التحقق من صلاحيات المستخدم
+      const user = await this.User.findById(userId);
+      if (!user) {
+        socket.emit("error", { message: "المستخدم غير موجود" });
+        return;
+      }
+
+      const isAuthorized = this.checkRestaurantAccess(user, restaurantId);
+      if (!isAuthorized) {
+        socket.emit("error", { message: "غير مصرح لك بالوصول لهذا المطعم" });
+        return;
+      }
+
+      const room = `restaurant:${restaurantId}`;
+      socket.join(room);
+      
+      // تخزين الغرفة
+      if (this.userRooms.has(userId)) {
+        this.userRooms.get(userId).add(room);
+      }
+      
+      console.log(`🏪 User ${userId} subscribed to restaurant ${restaurantId}`);
+      
+      socket.emit("restaurant:subscribed", {
+        restaurantId,
+        userId,
+        role: user.role,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Restaurant subscribe error:", error);
+      socket.emit("error", { message: "فشل الاشتراك في المطعم" });
+    }
+  }
+
+  // ====== Presence & Messaging Handlers ======
+  
+  handlePresenceUpdate(socket, data) {
+    try {
+      const { userId, isOnline } = data;
+      
+      if (!userId) {
+        socket.emit("error", { message: "يجب إدخال معرف المستخدم" });
+        return;
+      }
+
+      socket.broadcast.emit("presence:changed", {
+        userId,
+        isOnline: Boolean(isOnline),
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Presence update error:", error.message);
+      socket.emit("error", { message: "فشل تحديث الحالة" });
+    }
+  }
+
+  async handleMessageSend(socket, data) {
+    try {
+      const { to, message, type = "chat" } = data;
+      
+      if (!to || !message) {
+        socket.emit("error", { message: "يجب إدخال المستلم والرسالة" });
+        return;
+      }
+
+      const from = this.getUserIdBySocket(socket.id);
+      if (!from) {
+        socket.emit("error", { message: "المستخدم غير مصرح به" });
+        return;
+      }
+
+      // إرسال الرسالة
+      this.sendToUser(to, {
+        type: "message:new",
+        data: {
+          from,
+          message,
+          type,
+          timestamp: new Date(),
+        },
+      });
+      
+      socket.emit("message:sent", {
+        to,
+        message,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Message send error:", error.message);
+      socket.emit("error", { message: "فشل إرسال الرسالة" });
+    }
+  }
+
+  // ====== Driver Tracking Handlers ======
+  
+  handleDriverLocationUpdate(socket, data) {
+    try {
+      const { driverId, orderId, location } = data;
+      
+      if (!driverId || !location) {
+        socket.emit("error", { message: "يجب إدخال معرف السائق والموقع" });
+        return;
+      }
+
+      // تحديث الموقع لمتابعي الطلب
+      if (orderId) {
+        this.io.to(`order:${orderId}`).emit("driver:location:updated", {
+          driverId,
+          orderId,
+          location,
+          timestamp: new Date(),
+        });
+      }
+      
+      // تحديث الموقع للمشرفين
+      this.io.to("admin:room").emit("driver:location:updated", {
+        driverId,
+        location,
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Driver location update error:", error.message);
+      socket.emit("error", { message: "فشل تحديث الموقع" });
+    }
+  }
+
+  // ====== Admin Handlers ======
+  
+  handleAdminJoin(socket) {
+    try {
+      const userId = this.getUserIdBySocket(socket.id);
+      if (!userId) {
+        socket.emit("error", { message: "يجب تسجيل الدخول أولاً" });
+        return;
+      }
+
+      // TODO: التحقق من صلاحيات المشرف
+      socket.join("admin:room");
+      
+      console.log(`👑 Admin ${userId} joined admin room`);
+      
+      socket.emit("admin:joined", {
+        message: "تم الانضمام لغرفة المشرفين",
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Admin join error:", error.message);
+      socket.emit("error", { message: "فشل الانضمام لغرفة المشرفين" });
+    }
+  }
+
+  handleDashboardSubscription(socket) {
+    try {
+      const userId = this.getUserIdBySocket(socket.id);
+      if (!userId) {
+        socket.emit("error", { message: "يجب تسجيل الدخول أولاً" });
+        return;
+      }
+
+      socket.join("dashboard:updates");
+      
+      console.log(`📊 User ${userId} subscribed to dashboard updates`);
+      
+      socket.emit("dashboard:subscribed", {
+        message: "تم الاشتراك في تحديثات لوحة التحكم",
+        timestamp: new Date(),
+      });
+    } catch (error) {
+      console.error("Dashboard subscription error:", error.message);
+      socket.emit("error", { message: "فشل الاشتراك في لوحة التحكم" });
+    }
+  }
+
+  // ====== Disconnection Handler ======
+  
+  handleDisconnect(socket, reason) {
+    console.log(`🔴 Socket disconnected: ${socket.id}, reason: ${reason}`);
+    
+    const userId = this.getUserIdBySocket(socket.id);
+    if (userId) {
+      this.userSockets.delete(userId.toString());
+      
+      // تنظيف الغرف
+      if (this.userRooms.has(userId.toString())) {
+        const rooms = this.userRooms.get(userId.toString());
+        rooms.forEach(room => {
+          if (this.io) {
+            socket.leave(room);
+          }
+        });
+        this.userRooms.delete(userId.toString());
+      }
+      
+      if (this.io) {
+        socket.broadcast.emit("user:disconnected", {
+          userId,
+          socketId: socket.id,
+          reason,
+          timestamp: new Date(),
+        });
+      }
+    }
+  }
+
+  // ====== Helper Methods ======
+  
+  /**
+   * التحقق من صلاحية الوصول للمطعم
+   */
+  checkRestaurantAccess(user, restaurantId) {
+    // صاحب المطعم
+    if (user.role === "restaurant_owner") {
+      return user.restaurantOwnerInfo?.restaurant?.toString() === restaurantId;
+    }
+    
+    // المشرف أو الموظف
+    if (user.role === "admin" || user.role === "staff") {
+      return true;
+    }
+    
+    // السائق - قد يرى بعض المعلومات
+    if (user.role === "driver") {
+      // يمكن للسائق رؤية مطاعم الطلبات الموكلة إليه
+      return true;
+    }
+    
+    return false;
+  }
+
+  getUserIdBySocket(socketId) {
+    for (const [userId, sid] of this.userSockets.entries()) {
+      if (sid === socketId) {
+        return userId;
+      }
+    }
+    return null;
+  }
+
+  // ====== Core Methods ======
+  
+  sendToUser(userId, data) {
+    try {
+      if (!this.io) {
+        console.error("❌ Socket.io not initialized");
+        return { success: false, error: "Socket.io not initialized" };
+      }
+
+      const socketId = this.userSockets.get(userId.toString());
+      
+      if (socketId) {
+        this.io.to(socketId).emit(data.type, data.data || data);
+        console.log(`📨 Sent ${data.type} to user ${userId}`);
+        return { success: true, delivered: true };
+      }
+      
+      console.log(`📭 User ${userId} is not connected, notification queued`);
+      return { success: true, delivered: false, queued: true };
+    } catch (error) {
+      console.error("Send to user error:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  sendToUsers(userIds, data) {
+    const results = {
+      total: userIds.length,
+      delivered: 0,
+      queued: 0,
+      failed: 0,
+      errors: []
+    };
+    
+    userIds.forEach(userId => {
+      const result = this.sendToUser(userId, data);
+      if (result.success) {
+        if (result.delivered) {
+          results.delivered++;
+        } else {
+          results.queued++;
+        }
+      } else {
+        results.failed++;
+        results.errors.push({ userId, error: result.error });
+      }
+    });
+    
+    return results;
+  }
+
+  sendToRoom(room, data) {
+    try {
+      if (!this.io) {
+        console.error("❌ Socket.io not initialized");
+        return { success: false, error: "Socket.io not initialized" };
+      }
+
+      this.io.to(room).emit(data.type, data.data || data);
+      console.log(`📨 Sent ${data.type} to room ${room}`);
+      return { success: true };
+    } catch (error) {
+      console.error("Send to room error:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  broadcast(data, excludeSocketId = null) {
+    try {
+      if (!this.io) {
+        console.error("❌ Socket.io not initialized");
+        return { success: false, error: "Socket.io not initialized" };
+      }
+
+      if (excludeSocketId) {
+        this.io.except(excludeSocketId).emit(data.type, data.data || data);
+      } else {
+        this.io.emit(data.type, data.data || data);
+      }
+      
+      console.log(`📢 Broadcast ${data.type} to all connected clients`);
+      return { success: true };
+    } catch (error) {
+      console.error("Broadcast error:", error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  getConnectedUsersCount() {
+    return this.userSockets.size;
+  }
+
+  isUserConnected(userId) {
+    return this.userSockets.has(userId.toString());
+  }
+
+  getConnectedUsers() {
+    return Array.from(this.userSockets.keys());
+  }
+
+  getUserRooms(userId) {
+    return this.userRooms.has(userId.toString()) 
+      ? Array.from(this.userRooms.get(userId.toString())) 
+      : [];
+  }
+
+  // ====== Chat Service Integration ======
+  
+  initializeChatServices() {
+    try {
+      if (!this.io) {
+        console.warn("⚠️ Socket.io not initialized yet, chat service will be delayed");
+        return null;
+      }
+
+      const ChatSocketService = require("./chat.socket.service");
+      
+      const chatSocketService = ChatSocketService;
+      
+      if (chatSocketService.initializeWithIO) {
+        chatSocketService.initializeWithIO(this.io);
+      }
+      
+      this.chatSocketService = chatSocketService;
+      
+      console.log("✅ Chat socket service initialized");
+      return chatSocketService;
+    } catch (error) {
+      console.error("❌ Chat service initialization failed:", error.message);
+      return null;
+    }
+  }
+
+  // ====== Utility Methods ======
+  
+  getIO() {
+    if (!this.io) {
+      console.warn("⚠️ Socket.io not initialized yet");
+    }
+    return this.io;
+  }
+
+  isInitialized() {
+    return !!this.io;
+  }
+
+  getSocketInfo(socketId) {
+    const userId = this.getUserIdBySocket(socketId);
+    return {
+      socketId,
+      userId,
+      isConnected: !!userId,
+      rooms: userId ? this.getUserRooms(userId) : [],
+    };
+  }
+
+  getAllConnectionsInfo() {
+    const connections = [];
+    
+    for (const [userId, socketId] of this.userSockets.entries()) {
+      connections.push({
+        userId,
+        socketId,
+        rooms: this.getUserRooms(userId),
+        connectedAt: new Date().toISOString(), // يمكن إضافة وقت الاتصال الفعلي
+      });
+    }
+    
+    return connections;
+  }
+}
+
+const socketServiceInstance = new SocketService();
+
+module.exports = {
+  // الأساسية
+  initialize: (server) => socketServiceInstance.initialize(server),
+  
+  // إرسال الإشعارات
+  sendToUser: (userId, data) => socketServiceInstance.sendToUser(userId, data),
+  sendToUsers: (userIds, data) => socketServiceInstance.sendToUsers(userIds, data),
+  sendToRoom: (room, data) => socketServiceInstance.sendToRoom(room, data),
+  broadcast: (data, excludeSocketId) => socketServiceInstance.broadcast(data, excludeSocketId),
+  
+  // معلومات الاتصال
+  isUserConnected: (userId) => socketServiceInstance.isUserConnected(userId),
+  getConnectedUsers: () => socketServiceInstance.getConnectedUsers(),
+  getConnectedUsersCount: () => socketServiceInstance.getConnectedUsersCount(),
+  getUserRooms: (userId) => socketServiceInstance.getUserRooms(userId),
+  getSocketInfo: (socketId) => socketServiceInstance.getSocketInfo(socketId),
+  getAllConnectionsInfo: () => socketServiceInstance.getAllConnectionsInfo(),
+  
+  // الخدمات
+  initializeChatServices: () => socketServiceInstance.initializeChatServices(),
+  getIO: () => socketServiceInstance.getIO(),
+  isInitialized: () => socketServiceInstance.isInitialized(),
+  
+  // Instance للاستخدام المباشر إذا لزم الأمر
+  instance: socketServiceInstance
+};
+</file>
+
 <file path="src/socket.js">
 const socketService = require("./services/socket.service");
 
@@ -15973,7 +16800,7 @@ const userSchema = new mongoose.Schema(
     // الأدوار والصلاحيات
     role: {
       type: String,
-      enum: ["client", "driver", "admin"],
+      enum: ["client", "driver", "admin", "restaurant_owner"], // ✅ إضافة جديدة
       default: "client",
       index: true,
     },
@@ -16044,8 +16871,8 @@ const userSchema = new mongoose.Schema(
       },
       language: {
         type: String,
-        default: "ar",
-        enum: ["ar", "fr", "en"],
+        default: "fr",
+        enum: ["ar", "fr", "en", "ha"],
       },
       currency: {
         type: String,
@@ -16091,6 +16918,72 @@ const userSchema = new mongoose.Schema(
           default: [2.1098, 13.5126] // نفس إحداثيات location
         }
       },
+
+        // ✅ حقول خاصة بصاحب المطعم
+  restaurantOwnerInfo: {
+    // المطعم الذي يملكه
+    restaurant: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Restaurant",
+      default: null,
+    },
+    
+    // حالة الاشتراك
+    subscription: {
+      plan: {
+        type: String,
+        enum: ["free", "basic", "premium", "enterprise"],
+        default: "free",
+      },
+      expiresAt: Date,
+      isActive: { type: Boolean, default: true },
+    },
+    
+    // إعدادات الإشعارات
+    notificationSettings: {
+      newOrders: { type: Boolean, default: true },
+      orderUpdates: { type: Boolean, default: true },
+      lowStock: { type: Boolean, default: true },
+      dailyReport: { type: Boolean, default: true },
+      sound: { type: Boolean, default: true },
+      push: { type: Boolean, default: true },
+      email: { type: Boolean, default: true },
+    },
+    
+    // ساعات العمل
+    workingHours: {
+      monday: { open: String, close: String, isOpen: Boolean },
+      tuesday: { open: String, close: String, isOpen: Boolean },
+      wednesday: { open: String, close: String, isOpen: Boolean },
+      thursday: { open: String, close: String, isOpen: Boolean },
+      friday: { open: String, close: String, isOpen: Boolean },
+      saturday: { open: String, close: String, isOpen: Boolean },
+      sunday: { open: String, close: String, isOpen: Boolean },
+    },
+    
+    // إحصائيات المطعم
+    stats: {
+      totalOrders: { type: Number, default: 0 },
+      totalRevenue: { type: Number, default: 0 },
+      averageOrderValue: { type: Number, default: 0 },
+      rating: { type: Number, default: 0 },
+      totalCustomers: { type: Number, default: 0 },
+      cancellationRate: { type: Number, default: 0 },
+    },
+    
+    // حالة المطعم
+    isRestaurantOpen: { type: Boolean, default: true },
+    
+    // الموظفين (إذا كان لديهم صلاحيات محدودة)
+    staff: [{
+      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      role: { type: String, enum: ["manager", "chef", "cashier"] },
+      permissions: [String],
+      addedAt: { type: Date, default: Date.now },
+    }],
+  },
+
+
       
       rating: { type: Number, default: 0 },
       totalDeliveries: { type: Number, default: 0 },
@@ -16316,6 +17209,7 @@ const { httpLogger, errorLogger } = require('./utils/logger.util');
 
 // استيراد routes
 const userRoutes = require("./routes/user.routes");
+const restaurantOwnerRoutes = require("./routes/restaurantOwner.routes");
 const authRoutes = require("./routes/auth.routes");
 const restaurantRoutes = require("./routes/restaurant.routes");
 const orderRoutes = require("./routes/order.routes");
@@ -16336,14 +17230,18 @@ const cache = require('./utils/cache.util');
 const app = express();
 
 
-app.set('trust proxy', 1);
+
 // ========== MIDDLEWARES الأساسية ==========
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3001',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  credentials: true
-}));
+app.use(
+  cors({
+    origin:process.env.CLIENT_URL || "http://localhost:3000", // مؤقتاً للتجربة فقط
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+app.set('trust proxy', 1);
+
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -16445,6 +17343,7 @@ app.get("/", (req, res) => {
 app.use("/api/users", userRoutes);
 app.use("/api/complete", userCompleteRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/restaurant-owner", restaurantOwnerRoutes);
 app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/restaurants", restaurantCompleteRoutes);
 app.use("/api/items", itemRoutes);
