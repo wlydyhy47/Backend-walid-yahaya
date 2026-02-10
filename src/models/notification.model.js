@@ -97,7 +97,6 @@ const notificationSchema = new mongoose.Schema(
     // تاريخ انتهاء الصلاحية
     expiresAt: {
       type: Date,
-      index: true,
     },
     
     // الإعدادات
