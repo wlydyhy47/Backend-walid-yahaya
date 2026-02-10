@@ -48,7 +48,7 @@ const userSchema = new mongoose.Schema(
     // الأدوار والصلاحيات
     role: {
       type: String,
-      enum: ["client", "driver", "admin"],
+      enum: ["client", "driver", "admin", "restaurant_owner"], // ✅ إضافة جديدة
       default: "client",
       index: true,
     },
@@ -119,8 +119,8 @@ const userSchema = new mongoose.Schema(
       },
       language: {
         type: String,
-        default: "ar",
-        enum: ["ar", "fr", "en"],
+        default: "fr",
+        enum: ["ar", "fr", "en", "ha"],
       },
       currency: {
         type: String,
@@ -166,6 +166,72 @@ const userSchema = new mongoose.Schema(
           default: [2.1098, 13.5126] // نفس إحداثيات location
         }
       },
+
+        // ✅ حقول خاصة بصاحب المطعم
+  restaurantOwnerInfo: {
+    // المطعم الذي يملكه
+    restaurant: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Restaurant",
+      default: null,
+    },
+    
+    // حالة الاشتراك
+    subscription: {
+      plan: {
+        type: String,
+        enum: ["free", "basic", "premium", "enterprise"],
+        default: "free",
+      },
+      expiresAt: Date,
+      isActive: { type: Boolean, default: true },
+    },
+    
+    // إعدادات الإشعارات
+    notificationSettings: {
+      newOrders: { type: Boolean, default: true },
+      orderUpdates: { type: Boolean, default: true },
+      lowStock: { type: Boolean, default: true },
+      dailyReport: { type: Boolean, default: true },
+      sound: { type: Boolean, default: true },
+      push: { type: Boolean, default: true },
+      email: { type: Boolean, default: true },
+    },
+    
+    // ساعات العمل
+    workingHours: {
+      monday: { open: String, close: String, isOpen: Boolean },
+      tuesday: { open: String, close: String, isOpen: Boolean },
+      wednesday: { open: String, close: String, isOpen: Boolean },
+      thursday: { open: String, close: String, isOpen: Boolean },
+      friday: { open: String, close: String, isOpen: Boolean },
+      saturday: { open: String, close: String, isOpen: Boolean },
+      sunday: { open: String, close: String, isOpen: Boolean },
+    },
+    
+    // إحصائيات المطعم
+    stats: {
+      totalOrders: { type: Number, default: 0 },
+      totalRevenue: { type: Number, default: 0 },
+      averageOrderValue: { type: Number, default: 0 },
+      rating: { type: Number, default: 0 },
+      totalCustomers: { type: Number, default: 0 },
+      cancellationRate: { type: Number, default: 0 },
+    },
+    
+    // حالة المطعم
+    isRestaurantOpen: { type: Boolean, default: true },
+    
+    // الموظفين (إذا كان لديهم صلاحيات محدودة)
+    staff: [{
+      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      role: { type: String, enum: ["manager", "chef", "cashier"] },
+      permissions: [String],
+      addedAt: { type: Date, default: Date.now },
+    }],
+  },
+
+
       
       rating: { type: Number, default: 0 },
       totalDeliveries: { type: Number, default: 0 },

@@ -17,6 +17,7 @@ const { httpLogger, errorLogger } = require('./utils/logger.util');
 
 // استيراد routes
 const userRoutes = require("./routes/user.routes");
+const restaurantOwnerRoutes = require("./routes/restaurantOwner.routes");
 const authRoutes = require("./routes/auth.routes");
 const restaurantRoutes = require("./routes/restaurant.routes");
 const orderRoutes = require("./routes/order.routes");
@@ -41,7 +42,7 @@ const app = express();
 // ========== MIDDLEWARES الأساسية ==========
 app.use(
   cors({
-    origin: "*", // مؤقتاً للتجربة فقط
+    origin:process.env.CLIENT_URL || "http://localhost:3000", // مؤقتاً للتجربة فقط
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -150,6 +151,7 @@ app.get("/", (req, res) => {
 app.use("/api/users", userRoutes);
 app.use("/api/complete", userCompleteRoutes);
 app.use("/api/auth", authRoutes);
+app.use("/api/restaurant-owner", restaurantOwnerRoutes);
 app.use("/api/restaurants", restaurantRoutes);
 app.use("/api/restaurants", restaurantCompleteRoutes);
 app.use("/api/items", itemRoutes);
