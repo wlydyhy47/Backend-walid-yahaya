@@ -1,6 +1,6 @@
 const Restaurant = require("../models/restaurant.model");
 const RestaurantAddress = require("../models/restaurantAddress.model");
-const Favorite = require("../models/favorite.model"); // ← أضف هذا
+const Favorite = require("../models/favorite.model");
 const PaginationUtils = require('../utils/pagination.util');
 
 /**
@@ -16,8 +16,13 @@ exports.getRestaurants = async (req, res) => {
     let restaurantsWithFavorites = restaurants;
     
     if (req.user) {
-      const favorites = await Favorite.find({ userId: req.user.id });
-      const favoriteIds = favorites.map(f => f.restaurantId.toString());
+      // ✅ تصحيح: user بدلاً من userId
+      const favorites = await Favorite.find({ 
+        user: req.user.id,
+        isActive: true 
+      });
+      // ✅ تصحيح: restaurant بدلاً من restaurantId
+      const favoriteIds = favorites.map(f => f.restaurant.toString());
       
       restaurantsWithFavorites = restaurants.map(restaurant => {
         const rest = restaurant.toObject();
@@ -27,7 +32,8 @@ exports.getRestaurants = async (req, res) => {
     }
 
     res.json(restaurantsWithFavorites);
-  } catch {
+  } catch (error) {
+    console.error("Error in getRestaurants:", error);
     res.status(500).json({ message: "Failed to fetch restaurants" });
   }
 };
@@ -51,8 +57,13 @@ exports.searchRestaurants = async (req, res) => {
     let restaurantsWithFavorites = restaurants;
     
     if (req.user) {
-      const favorites = await Favorite.find({ userId: req.user.id });
-      const favoriteIds = favorites.map(f => f.restaurantId.toString());
+      // ✅ تصحيح: user بدلاً من userId
+      const favorites = await Favorite.find({ 
+        user: req.user.id,
+        isActive: true 
+      });
+      // ✅ تصحيح: restaurant بدلاً من restaurantId
+      const favoriteIds = favorites.map(f => f.restaurant.toString());
       
       restaurantsWithFavorites = restaurants.map(restaurant => {
         const rest = restaurant.toObject();
@@ -62,7 +73,8 @@ exports.searchRestaurants = async (req, res) => {
     }
 
     res.json(restaurantsWithFavorites);
-  } catch {
+  } catch (error) {
+    console.error("Error in searchRestaurants:", error);
     res.status(500).json({ message: "Search failed" });
   }
 };
@@ -87,9 +99,11 @@ exports.getRestaurantWithAddress = async (req, res) => {
     let restaurantWithDetails = { ...restaurant, addresses };
     
     if (req.user) {
+      // ✅ تصحيح: user بدلاً من userId, restaurant بدلاً من restaurantId
       const favorite = await Favorite.findOne({
-        userId: req.user.id,
-        restaurantId: restaurant._id
+        user: req.user.id,
+        restaurant: restaurant._id,
+        isActive: true
       });
       restaurantWithDetails.isFavorite = !!favorite;
     } else {
@@ -97,7 +111,8 @@ exports.getRestaurantWithAddress = async (req, res) => {
     }
 
     res.json(restaurantWithDetails);
-  } catch {
+  } catch (error) {
+    console.error("Error in getRestaurantWithAddress:", error);
     res.status(500).json({ message: "Failed to fetch restaurant info" });
   }
 };
@@ -115,7 +130,7 @@ exports.createRestaurant = async (req, res) => {
       type: type || "restaurant",
       image: req.files?.image ? req.files.image[0].path : null,
       coverImage: req.files?.coverImage ? req.files.coverImage[0].path : null,
-      createdBy: req.user.id, // ✅ هنا req.user موجود لأن auth إلزامي
+      createdBy: req.user.id,
       isOpen: true,
     });
 
@@ -141,7 +156,8 @@ exports.updateRestaurant = async (req, res) => {
     );
 
     res.json(restaurant);
-  } catch {
+  } catch (error) {
+    console.error("Error in updateRestaurant:", error);
     res.status(500).json({ message: "Failed to update restaurant" });
   }
 };
@@ -161,7 +177,8 @@ exports.updateCoverImage = async (req, res) => {
     );
 
     res.json(restaurant);
-  } catch {
+  } catch (error) {
+    console.error("Error in updateCoverImage:", error);
     res.status(500).json({ message: "Failed to update cover image" });
   }
 };
@@ -173,7 +190,8 @@ exports.deleteRestaurant = async (req, res) => {
   try {
     await Restaurant.findByIdAndDelete(req.params.id);
     res.json({ message: "Restaurant deleted" });
-  } catch {
+  } catch (error) {
+    console.error("Error in deleteRestaurant:", error);
     res.status(500).json({ message: "Failed to delete restaurant" });
   }
 };
@@ -215,8 +233,13 @@ exports.getRestaurantsPaginated = async (req, res) => {
     let restaurantsWithFavorites = restaurants;
     
     if (req.user) {
-      const favorites = await Favorite.find({ userId: req.user.id });
-      const favoriteIds = favorites.map(f => f.restaurantId.toString());
+      // ✅ تصحيح: user بدلاً من userId
+      const favorites = await Favorite.find({ 
+        user: req.user.id,
+        isActive: true 
+      });
+      // ✅ تصحيح: restaurant بدلاً من restaurantId
+      const favoriteIds = favorites.map(f => f.restaurant.toString());
       
       restaurantsWithFavorites = restaurants.map(restaurant => {
         const rest = restaurant.toObject();
@@ -291,8 +314,13 @@ exports.advancedSearch = async (req, res) => {
     let restaurantsWithFavorites = restaurants;
     
     if (req.user) {
-      const favorites = await Favorite.find({ userId: req.user.id });
-      const favoriteIds = favorites.map(f => f.restaurantId.toString());
+      // ✅ تصحيح: user بدلاً من userId
+      const favorites = await Favorite.find({ 
+        user: req.user.id,
+        isActive: true 
+      });
+      // ✅ تصحيح: restaurant بدلاً من restaurantId
+      const favoriteIds = favorites.map(f => f.restaurant.toString());
       
       restaurantsWithFavorites = restaurants.map(restaurant => {
         const rest = restaurant.toObject();
