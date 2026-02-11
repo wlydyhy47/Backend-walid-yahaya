@@ -44,3 +44,7 @@ A complete backend solution for food delivery applications with real-time featur
 ```bash
 git clone https://github.com/yourusername/food-delivery-backend.git
 cd food-delivery-backend
+
+to full project in one file
+
+repomix

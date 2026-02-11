@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require('path');
 const cors = require("cors");
 const helmet = require('helmet');
 const compression = require('compression');
@@ -53,7 +54,7 @@ app.set('trust proxy', 1);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.use(express.static(path.join(__dirname, 'public')));
 // Middleware لزيادة حجم الرفع
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -119,6 +120,18 @@ if (process.env.NODE_ENV !== 'production') {
     }
   }));
 }
+
+
+//  حل إضافي: تجاهل طلبات favicon.ico
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
+
+// حل إضافي: route مخصص لـ logo.png مع تخطي الـ cache middleware
+app.get('/logo.png', (req, res, next) => {
+    // تخطي الـ cache middleware
+    req.skipCache = true;
+    next();
+}, express.static(path.join(__dirname, 'public')));
 
 app.get('/api-docs.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');

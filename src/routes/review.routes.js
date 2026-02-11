@@ -8,6 +8,6 @@ const auth = require("../middlewares/auth.middleware");
 router.post("/", auth, reviewController.addReview);
 
 // جلب تقييمات مطعم
-router.get("/", reviewController.getRestaurantReviews);
+router.get("/",auth.optional, reviewController.getRestaurantReviews);
 
 module.exports = router;

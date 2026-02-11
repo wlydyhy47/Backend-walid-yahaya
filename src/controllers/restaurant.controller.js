@@ -1,5 +1,6 @@
 const Restaurant = require("../models/restaurant.model");
 const RestaurantAddress = require("../models/restaurantAddress.model");
+const Favorite = require("../models/favorite.model"); // ← أضف هذا
 const PaginationUtils = require('../utils/pagination.util');
 
 /**
@@ -11,7 +12,21 @@ exports.getRestaurants = async (req, res) => {
       .populate("createdBy", "name phone email")
       .populate("items");
 
-    res.json(restaurants);
+    // ✅ إضافة isFavorite للمستخدم المسجل
+    let restaurantsWithFavorites = restaurants;
+    
+    if (req.user) {
+      const favorites = await Favorite.find({ userId: req.user.id });
+      const favoriteIds = favorites.map(f => f.restaurantId.toString());
+      
+      restaurantsWithFavorites = restaurants.map(restaurant => {
+        const rest = restaurant.toObject();
+        rest.isFavorite = favoriteIds.includes(rest._id.toString());
+        return rest;
+      });
+    }
+
+    res.json(restaurantsWithFavorites);
   } catch {
     res.status(500).json({ message: "Failed to fetch restaurants" });
   }
@@ -32,7 +47,21 @@ exports.searchRestaurants = async (req, res) => {
       .populate("createdBy", "name phone")
       .populate("items");
 
-    res.json(restaurants);
+    // ✅ إضافة isFavorite للمستخدم المسجل
+    let restaurantsWithFavorites = restaurants;
+    
+    if (req.user) {
+      const favorites = await Favorite.find({ userId: req.user.id });
+      const favoriteIds = favorites.map(f => f.restaurantId.toString());
+      
+      restaurantsWithFavorites = restaurants.map(restaurant => {
+        const rest = restaurant.toObject();
+        rest.isFavorite = favoriteIds.includes(rest._id.toString());
+        return rest;
+      });
+    }
+
+    res.json(restaurantsWithFavorites);
   } catch {
     res.status(500).json({ message: "Search failed" });
   }
@@ -54,7 +83,20 @@ exports.getRestaurantWithAddress = async (req, res) => {
       restaurant: req.params.id,
     });
 
-    res.json({ ...restaurant, addresses });
+    // ✅ إضافة isFavorite للمستخدم المسجل
+    let restaurantWithDetails = { ...restaurant, addresses };
+    
+    if (req.user) {
+      const favorite = await Favorite.findOne({
+        userId: req.user.id,
+        restaurantId: restaurant._id
+      });
+      restaurantWithDetails.isFavorite = !!favorite;
+    } else {
+      restaurantWithDetails.isFavorite = false;
+    }
+
+    res.json(restaurantWithDetails);
   } catch {
     res.status(500).json({ message: "Failed to fetch restaurant info" });
   }
@@ -73,7 +115,7 @@ exports.createRestaurant = async (req, res) => {
       type: type || "restaurant",
       image: req.files?.image ? req.files.image[0].path : null,
       coverImage: req.files?.coverImage ? req.files.coverImage[0].path : null,
-      createdBy: req.user.id,
+      createdBy: req.user.id, // ✅ هنا req.user موجود لأن auth إلزامي
       isOpen: true,
     });
 
@@ -169,8 +211,22 @@ exports.getRestaurantsPaginated = async (req, res) => {
       Restaurant.countDocuments(query),
     ]);
 
+    // ✅ إضافة isFavorite للمستخدم المسجل
+    let restaurantsWithFavorites = restaurants;
+    
+    if (req.user) {
+      const favorites = await Favorite.find({ userId: req.user.id });
+      const favoriteIds = favorites.map(f => f.restaurantId.toString());
+      
+      restaurantsWithFavorites = restaurants.map(restaurant => {
+        const rest = restaurant.toObject();
+        rest.isFavorite = favoriteIds.includes(rest._id.toString());
+        return rest;
+      });
+    }
+
     const response = PaginationUtils.createPaginationResponse(
-      restaurants,
+      restaurantsWithFavorites,
       total,
       paginationOptions
     );
@@ -231,6 +287,20 @@ exports.advancedSearch = async (req, res) => {
       Restaurant.countDocuments(query),
     ]);
 
+    // ✅ إضافة isFavorite للمستخدم المسجل
+    let restaurantsWithFavorites = restaurants;
+    
+    if (req.user) {
+      const favorites = await Favorite.find({ userId: req.user.id });
+      const favoriteIds = favorites.map(f => f.restaurantId.toString());
+      
+      restaurantsWithFavorites = restaurants.map(restaurant => {
+        const rest = restaurant.toObject();
+        rest.isFavorite = favoriteIds.includes(rest._id.toString());
+        return rest;
+      });
+    }
+
     // جلب إحصائيات البحث
     const stats = {
       types: await Restaurant.distinct('type', query),
@@ -245,7 +315,7 @@ exports.advancedSearch = async (req, res) => {
     };
 
     const response = PaginationUtils.createPaginationResponse(
-      restaurants,
+      restaurantsWithFavorites,
       total,
       paginationOptions,
       { stats }

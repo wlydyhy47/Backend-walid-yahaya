@@ -37,7 +37,7 @@ const errorHandler = (err, req, res, next) => {
 
   // في بيئة الإنتاج، عرض رسالة عامة
   const message = err.isOperational ? err.message : 'Something went wrong!';
-  
+
   res.status(err.statusCode).json({
     success: false,
     status: err.status,
@@ -47,6 +47,14 @@ const errorHandler = (err, req, res, next) => {
 
 // Middleware لالتقاط 404
 const notFoundHandler = (req, res, next) => {
+  // ✅ تجاهل أخطاء الملفات الثابتة
+  if (req.path === '/logo.png' ||
+    req.path === '/favicon.ico' ||
+    req.path.match(/\.(png|jpg|jpeg|gif|ico|svg|css|js)$/)) {
+
+    // أرسل رد 204 No Content بدلاً من 404
+    return res.status(204).end();
+  }
   const error = new AppError(`Can't find ${req.originalUrl} on this server!`, 404);
   next(error);
 };
