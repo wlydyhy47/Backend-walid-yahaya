@@ -1,3 +1,5 @@
+// /opt/render/project/src/src/middlewares/errorHandler.middleware.js
+
 class AppError extends Error {
   constructor(message, statusCode) {
     super(message);
@@ -50,11 +52,15 @@ const notFoundHandler = (req, res, next) => {
   // ✅ تجاهل أخطاء الملفات الثابتة
   if (req.path === '/logo.png' ||
     req.path === '/favicon.ico' ||
-    req.path.match(/\.(png|jpg|jpeg|gif|ico|svg|css|js)$/)) {
+    req.path === '/default-avatar.png' ||
+    req.path.match(/\.(png|jpg|jpeg|gif|ico|svg|css|js|webp|avif)$/)) {
 
-    // أرسل رد 204 No Content بدلاً من 404
     return res.status(204).end();
   }
+
+  // ✅ سجل الـ routes المفقودة (مفيد للتصحيح)
+  console.warn(`[404] Route not found: ${req.method} ${req.originalUrl} - IP: ${req.ip}`);
+
   const error = new AppError(`Can't find ${req.originalUrl} on this server!`, 404);
   next(error);
 };
