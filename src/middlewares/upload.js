@@ -74,7 +74,7 @@ const upload = (folder, allowedTypes = ['image']) => {
         
         return {
           folder: subfolder,
-          format: async () => {
+          format: () => {
             if (file.mimetype.startsWith('image')) return 'webp'; // تحويل الصور إلى webp
             if (file.mimetype.startsWith('video')) return 'mp4'; // تحويل الفيديو إلى mp4
             return file.originalname.split('.').pop();
