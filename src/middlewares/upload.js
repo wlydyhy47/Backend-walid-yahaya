@@ -72,24 +72,55 @@ const upload = (folder, allowedTypes = ['image']) => {
         const safeName = originalName.replace(/[^a-zA-Z0-9-_]/g, '_');
         const publicId = `${safeName}-${timestamp}-${random}`;
         
-        return {
-          folder: subfolder,
-          format: () => {
-            if (file.mimetype.startsWith('image')) return 'webp'; // تحويل الصور إلى webp
-            if (file.mimetype.startsWith('video')) return 'mp4'; // تحويل الفيديو إلى mp4
-            return file.originalname.split('.').pop();
-          },
-          public_id: publicId,
-          transformation: file.mimetype.startsWith('image') ? [
+        // تحديد الامتداد المناسب (كقيمة ثابتة وليس كدالة)
+        let format;
+        let transformation;
+        let resourceType = 'auto';
+
+        if (file.mimetype.startsWith('image')) {
+          format = 'webp'; // تحويل الصور إلى webp
+          transformation = [
             { width: 1200, height: 1200, crop: "limit" },
             { quality: "auto:good" },
             { fetch_format: "auto" }
-          ] : [],
-          resource_type: "auto"
+          ];
+          resourceType = 'image';
+        } else if (file.mimetype.startsWith('video')) {
+          format = 'mp4'; // تحويل الفيديو إلى mp4
+          transformation = [
+            { quality: "auto" },
+            { fetch_format: "mp4" }
+          ];
+          resourceType = 'video';
+        } else if (file.mimetype.startsWith('audio')) {
+          format = file.originalname.split('.').pop();
+          resourceType = 'video'; // الصوت يعامل كـ video في Cloudinary
+        } else {
+          format = file.originalname.split('.').pop();
+          resourceType = 'raw'; // للمستندات والملفات الأخرى
+        }
+        
+        return {
+          folder: subfolder,
+          format: format,
+          public_id: publicId,
+          transformation: transformation,
+          resource_type: resourceType,
+          // إعدادات إضافية حسب نوع الملف
+          ...(file.mimetype.startsWith('image') && {
+            eager: [
+              { width: 300, height: 300, crop: "fill", format: "webp" } // صورة مصغرة
+            ]
+          }),
+          ...(file.mimetype.startsWith('video') && {
+            eager: [
+              { width: 300, height: 300, crop: "fill", format: "jpg" } // صورة مصغرة للفيديو
+            ]
+          })
         };
       } catch (error) {
         console.error('Cloudinary storage params error:', error);
-        throw error;
+        throw new AppError('خطأ في تجهيز الملف للرفع', 500);
       }
     },
   });
@@ -112,25 +143,29 @@ const uploadMultiple = (folder, fields, allowedTypes = ['image']) => {
     uploader.fields(fields)(req, res, (err) => {
       if (err) {
         if (err instanceof multer.MulterError) {
-          if (err.code === 'LIMIT_FILE_SIZE') {
-            return next(new AppError('حجم الملف يتجاوز الحد المسموح به', 400));
-          }
-          if (err.code === 'LIMIT_FILE_COUNT') {
-            return next(new AppError('تم رفع عدد كبير جداً من الملفات', 400));
-          }
-          if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-            return next(new AppError('حقل ملف غير متوقع', 400));
-          }
-          if (err.code === 'LIMIT_PART_COUNT') {
-            return next(new AppError('عدد الأجزاء كبير جداً', 400));
+          switch (err.code) {
+            case 'LIMIT_FILE_SIZE':
+              return next(new AppError('حجم الملف يتجاوز الحد المسموح به', 400));
+            case 'LIMIT_FILE_COUNT':
+              return next(new AppError('تم رفع عدد كبير جداً من الملفات', 400));
+            case 'LIMIT_UNEXPECTED_FILE':
+              return next(new AppError('حقل ملف غير متوقع', 400));
+            case 'LIMIT_PART_COUNT':
+              return next(new AppError('عدد الأجزاء كبير جداً', 400));
+            default:
+              return next(new AppError(`خطأ في رفع الملف: ${err.message}`, 400));
           }
         }
         return next(new AppError(err.message || 'خطأ في رفع الملف', 400));
       }
       
       // التحقق من وجود الملفات المطلوبة
-      if (fields.some(field => field.required && !req.files?.[field.name])) {
-        return next(new AppError(`حقل ${field.name} مطلوب`, 400));
+      if (fields && Array.isArray(fields)) {
+        for (const field of fields) {
+          if (field.required && (!req.files || !req.files[field.name] || req.files[field.name].length === 0)) {
+            return next(new AppError(`حقل ${field.name} مطلوب`, 400));
+          }
+        }
       }
       
       next();
@@ -162,8 +197,26 @@ const validateUpload = (req, res, next) => {
   next();
 };
 
+// دالة مساعدة لرفع ملف واحد
+const uploadSingle = (folder, fieldName = 'file', allowedTypes = ['image']) => {
+  return (req, res, next) => {
+    const uploader = upload(folder, allowedTypes).single(fieldName);
+    
+    uploader(req, res, (err) => {
+      if (err) {
+        if (err instanceof multer.MulterError) {
+          return next(new AppError(`خطأ في رفع الملف: ${err.message}`, 400));
+        }
+        return next(new AppError(err.message || 'خطأ في رفع الملف', 400));
+      }
+      next();
+    });
+  };
+};
+
 module.exports = upload;
 module.exports.uploadMultiple = uploadMultiple;
+module.exports.uploadSingle = uploadSingle;
 module.exports.validateUpload = validateUpload;
 module.exports.allowedMimeTypes = allowedMimeTypes;
 module.exports.maxFileSizes = maxFileSizes;
