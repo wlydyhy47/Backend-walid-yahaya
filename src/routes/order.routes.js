@@ -8,6 +8,9 @@ const { noCache } = require('../middlewares/cache.middleware');
 const PaginationUtils = require('../utils/pagination.util');
 const { validateOrder } = require('../middlewares/validation.middleware');
 
+// ✅ إضافة استيراد نموذج الطلب
+const Order = require("../models/order.model");
+
 /**
  * 🏠 العملاء فقط
  * إنشاء طلب جديد من أي عنوان إلى أي عنوان
@@ -79,11 +82,12 @@ router.get("/:id", auth, async (req, res) => {
     const userRole = req.user.role;
 
     const order = await Order.findById(orderId)
-      .populate('user', 'name phone')
-      .populate('driver', 'name phone')
-      .populate('restaurant', 'name image')
+      .populate('user', 'name phone email image')
+      .populate('driver', 'name phone email image')
+      .populate('restaurant', 'name image phone address')
       .populate('pickupAddress')
-      .populate('deliveryAddress');
+      .populate('deliveryAddress')
+      .populate('items.item'); // ✅ إضافة populate للعناصر
 
     if (!order) {
       return res.status(404).json({
@@ -93,7 +97,7 @@ router.get("/:id", auth, async (req, res) => {
     }
 
     // التحقق من الصلاحيات
-    const isOwner = order.user._id.toString() === userId;
+    const isOwner = order.user && order.user._id.toString() === userId;
     const isDriver = order.driver && order.driver._id.toString() === userId;
     const isAdmin = userRole === 'admin';
 
@@ -109,10 +113,11 @@ router.get("/:id", auth, async (req, res) => {
       data: order
     });
   } catch (error) {
-    console.error('Get order error:', error);
+    console.error('❌ Get order error:', error);
     res.status(500).json({
       success: false,
-      message: 'فشل جلب بيانات الطلب'
+      message: 'فشل جلب بيانات الطلب',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 });
