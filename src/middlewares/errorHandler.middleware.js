@@ -49,15 +49,22 @@ const errorHandler = (err, req, res, next) => {
 
 // Middleware لالتقاط 404
 const notFoundHandler = (req, res, next) => {
-  // ✅ تجاهل أخطاء الملفات الثابتة
-  if (req.path === '/logo.png' ||
-    req.path === '/favicon.ico' ||
-    req.path === '/default-avatar.png' ||
-    req.path.match(/\.(png|jpg|jpeg|gif|ico|svg|css|js|webp|avif)$/)) {
-
-    return res.status(204).end();
-  }
-
+ // ✅ نسمح للملفات الثابتة بالمرور وعدم معالجتها كأخطاء
+    if (req.path.startsWith('/public/') ||
+        req.path.startsWith('/images/') ||
+        req.path.startsWith('/icons/') ||
+        req.path === '/logo.png' ||
+        req.path === '/favicon.ico' ||
+        req.path.match(/\.(png|jpg|jpeg|gif|ico|svg|css|js|webp|avif|woff|woff2|ttf)$/)) {
+        
+        // إذا كان الملف غير موجود، نعيد 404 مع رسالة مناسبة
+        return res.status(404).json({
+            success: false,
+            message: 'File not found',
+            path: req.path
+        });
+    }
+    
   // ✅ سجل الـ routes المفقودة (مفيد للتصحيح)
   console.warn(`[404] Route not found: ${req.method} ${req.originalUrl} - IP: ${req.ip}`);
 

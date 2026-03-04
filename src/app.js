@@ -122,16 +122,74 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 
-//  حل إضافي: تجاهل طلبات favicon.ico
-app.get('/favicon.ico', (req, res) => res.status(204).end());
+// ✅ السماح بكل الملفات الثابتة من مجلد public
+app.use('/public', express.static(path.join(__dirname, 'public'), {
+    maxAge: '7d', // كاش لمدة 7 أيام للملفات الثابتة
+    immutable: true,
+    setHeaders: (res, path) => {
+        if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.svg')) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+    }
+}));
+
+// ✅ مسارات مختصرة للوصول السهل
+app.use('/images', express.static(path.join(__dirname, 'public/images'), {
+    maxAge: '30d',
+    immutable: true
+}));
+
+app.use('/icons', express.static(path.join(__dirname, 'public/icons'), {
+    maxAge: '30d',
+    immutable: true
+}));
+
+// ✅ معالجة favicon بشكل صحيح
+app.get('/favicon.ico', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/icons/favicon.ico'));
+});
+
+// ✅ معالجة logo.png بشكل صحيح
+app.get('/logo.png', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/images/logo.png'));
+});
+
+// ✅ endpoint للحصول على قائمة الصور المتاحة
+app.get('/api/assets/images', (req, res) => {
+    const fs = require('fs');
+    const imagesDir = path.join(__dirname, 'public/images');
+    
+    fs.readdir(imagesDir, (err, files) => {
+        if (err) {
+            return res.status(500).json({ error: 'Cannot read images directory' });
+        }
+        
+        const images = files
+            .filter(file => /\.(png|jpg|jpeg|gif|svg|webp)$/i.test(file))
+            .map(file => ({
+                filename: file,
+                url: `/images/${file}`,
+                thumbnail: `/images/${file}`,
+                type: file.split('.').pop().toLowerCase()
+            }));
+        
+        res.json({
+            success: true,
+            data: images
+        });
+    });
+});
 
 
-// حل إضافي: route مخصص لـ logo.png مع تخطي الـ cache middleware
-app.get('/logo.png', (req, res, next) => {
-    // تخطي الـ cache middleware
-    req.skipCache = true;
-    next();
-}, express.static(path.join(__dirname, 'public')));
+
+
+
+
+
+
+
+
+
 
 app.get('/api-docs.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');

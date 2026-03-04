@@ -5,13 +5,20 @@ const cache = require('../utils/cache.util');
  */
 const cacheMiddleware = (req, res, next) => {
   // ✅ تجاهل الملفات الثابتة
-  if (req.path === '/logo.png' ||
-    req.path === '/favicon.ico' ||
-    req.path.startsWith('/public/') ||
-    req.path.match(/\.(png|jpg|jpeg|gif|ico|svg|css|js)$/)) {
-    return next();
-  }
+  // ✅ تجاهل الملفات الثابتة ولكن نسمح لها بالمرور
+    if (req.path.startsWith('/public/') ||
+        req.path.startsWith('/images/') ||
+        req.path.startsWith('/icons/') ||
+        req.path === '/logo.png' ||
+        req.path === '/favicon.ico' ||
+        req.path.match(/\.(png|jpg|jpeg|gif|ico|svg|css|js|webp|avif|woff|woff2|ttf)$/)) {
+        
+        // نسمح للملفات بالمرور ولكن لا نطبق عليها معالجة الكاش
+        res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 ساعة
+        return next();
+    }
 
+    
   // ✅ إذا كان هناك skipCache, تجاهل الكاش
   if (req.skipCache) {
     return next();
