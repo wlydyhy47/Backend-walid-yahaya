@@ -44,6 +44,7 @@ The content is organized as follows:
 .gitignore
 jest.config.js
 package.json
+public/logo.png
 README.md
 src/app.js
 src/config/cloudinary.js
@@ -53,6 +54,7 @@ src/controllers/address.controller.js
 src/controllers/aggregate.controller.js
 src/controllers/auth.controller.js
 src/controllers/chat.controller.js
+src/controllers/favorite.controller.js
 src/controllers/item.controller.js
 src/controllers/notification.controller.js
 src/controllers/order.controller.js
@@ -77,10 +79,12 @@ src/models/address.model.js
 src/models/conversation.model.js
 src/models/device.model.js
 src/models/driverLocation.model.js
+src/models/favorite.model.js
 src/models/item.model.js
 src/models/message.model.js
 src/models/notification.model.js
 src/models/order.model.js
+src/models/refreshToken.model.js
 src/models/restaurant.model.js
 src/models/restaurantAddress.model.js
 src/models/review.model.js
@@ -90,6 +94,7 @@ src/routes/aggregate.routes.js
 src/routes/auth.routes.js
 src/routes/chat.routes.js
 src/routes/driver.routes.js
+src/routes/favorite.routes.js
 src/routes/health.routes.js
 src/routes/item.routes.js
 src/routes/notification.routes.js
@@ -146,55 +151,6 @@ module.exports = {
   },
   verbose: true
 };
-</file>
-
-<file path="README.md">
-# 🚀 Food Delivery Backend API
-
-A complete backend solution for food delivery applications with real-time features.
-
-## Features
-
-- ✅ User authentication & authorization
-- ✅ Restaurant management
-- ✅ Order processing & tracking
-- ✅ Real-time chat
-- ✅ Notification system
-- ✅ File upload (Cloudinary)
-- ✅ Caching system
-- ✅ Rate limiting
-- ✅ Health checks
-- ✅ API documentation
-- ✅ Error handling
-- ✅ Logging
-
-## Tech Stack
-
-- **Runtime**: Node.js
-- **Framework**: Express.js
-- **Database**: MongoDB with Mongoose
-- **Real-time**: Socket.io
-- **File Upload**: Cloudinary + Multer
-- **Authentication**: JWT
-- **Caching**: Node-cache
-- **Logging**: Winston
-- **Testing**: Jest + Supertest
-- **Documentation**: Swagger/OpenAPI
-
-## Getting Started
-
-### Prerequisites
-- Node.js >= 14
-- MongoDB
-- Cloudinary account
-- npm or yarn
-
-### Installation
-
-1. Clone the repository
-```bash
-git clone https://github.com/yourusername/food-delivery-backend.git
-cd food-delivery-backend
 </file>
 
 <file path="src/config/cloudinary.js">
@@ -1904,6 +1860,125 @@ async function getBusiestChatDay(userId) {
     count: result[0].messageCount,
   };
 }
+</file>
+
+<file path="src/controllers/favorite.controller.js">
+// /opt/render/project/src/src/controllers/favorite.controller.js
+
+const Favorite = require("../models/favorite.model");
+
+/**
+ * GET مفضلات المستخدم
+ */
+exports.getUserFavorites = async (req, res) => {
+  try {
+    const { page, limit, sort } = req.query;
+    
+    const result = await Favorite.getUserFavorites(req.user.id, {
+      page: parseInt(page) || 1,
+      limit: parseInt(limit) || 20,
+      sort: sort || "-createdAt"
+    });
+    
+    res.json(result);
+  } catch (error) {
+    console.error("Error in getUserFavorites:", error);
+    res.status(500).json({ message: "Failed to fetch favorites" });
+  }
+};
+
+/**
+ * POST إضافة للمفضلة
+ */
+exports.addToFavorites = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    const { notes, tags } = req.body;
+    
+    const favorite = await Favorite.addToFavorites(
+      req.user.id,
+      restaurantId,
+      notes,
+      tags || []
+    );
+    
+    res.status(201).json({
+      message: "Added to favorites successfully",
+      favorite
+    });
+  } catch (error) {
+    console.error("Error in addToFavorites:", error);
+    
+    if (error.message === "Restaurant already in favorites") {
+      return res.status(400).json({ message: error.message });
+    }
+    
+    res.status(500).json({ message: "Failed to add to favorites" });
+  }
+};
+
+/**
+ * DELETE إزالة من المفضلة
+ */
+exports.removeFromFavorites = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    
+    await Favorite.removeFromFavorites(req.user.id, restaurantId);
+    
+    res.json({ message: "Removed from favorites successfully" });
+  } catch (error) {
+    console.error("Error in removeFromFavorites:", error);
+    res.status(500).json({ message: "Failed to remove from favorites" });
+  }
+};
+
+/**
+ * GET التحقق من حالة المفضلة
+ */
+exports.checkFavoriteStatus = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    
+    const isFavorite = await Favorite.isFavorite(req.user.id, restaurantId);
+    
+    res.json({ 
+      isFavorite,
+      restaurantId 
+    });
+  } catch (error) {
+    console.error("Error in checkFavoriteStatus:", error);
+    res.status(500).json({ message: "Failed to check favorite status" });
+  }
+};
+
+/**
+ * PUT تحديث المفضلة
+ */
+exports.updateFavorite = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    const { notes, tags, isActive } = req.body;
+    
+    const favorite = await Favorite.findOneAndUpdate(
+      { user: req.user.id, restaurant: restaurantId },
+      { notes, tags, isActive },
+      { new: true, runValidators: true }
+    );
+    
+    if (!favorite) {
+      return res.status(404).json({ message: "Favorite not found" });
+    }
+    
+    res.json({
+      message: "Favorite updated successfully",
+      favorite
+    });
+  } catch (error) {
+    console.error("Error in updateFavorite:", error);
+    res.status(500).json({ message: "Failed to update favorite" });
+  }
+};
 </file>
 
 <file path="src/controllers/notification.controller.js">
@@ -4667,182 +4742,6 @@ class NotificationCleanupJob {
 module.exports = new NotificationCleanupJob();
 </file>
 
-<file path="src/middlewares/cache.middleware.js">
-const cache = require('../utils/cache.util');
-
-/**
- * Middleware لتسجيل معلومات الكاش في الاستجابة
- */
-const cacheMiddleware = (req, res, next) => {
-  const originalJson = res.json;
-  const originalSend = res.send;
-  
-  res.json = function(data) {
-    if (data && typeof data === 'object') {
-      const cacheKey = cache.generateKey(req);
-      const isCached = cache.has(cacheKey);
-      
-      // إضافة metadata فقط إذا لم تكن موجودة بالفعل
-      if (!data.metadata) {
-        data.metadata = {};
-      }
-      
-      data.metadata.cacheInfo = {
-        cached: isCached,
-        key: cacheKey,
-        timestamp: new Date().toISOString(),
-        ttl: cache.cache.options.stdTTL || 300
-      };
-    }
-    
-    return originalJson.call(this, data);
-  };
-  
-  res.send = function(data) {
-    // التحقق إذا كان JSON
-    try {
-      if (typeof data === 'string') {
-        const parsed = JSON.parse(data);
-        const cacheKey = cache.generateKey(req);
-        const isCached = cache.has(cacheKey);
-        
-        if (!parsed.metadata) {
-          parsed.metadata = {};
-        }
-        
-        parsed.metadata.cacheInfo = {
-          cached: isCached,
-          key: cacheKey,
-          timestamp: new Date().toISOString(),
-          ttl: cache.cache.options.stdTTL || 300
-        };
-        
-        data = JSON.stringify(parsed);
-      }
-    } catch (error) {
-      // ليس JSON، تجاهل
-    }
-    
-    return originalSend.call(this, data);
-  };
-  
-  next();
-};
-
-/**
- * Middleware لمنع التخزين في الكاش
- */
-const noCache = (req, res, next) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  res.setHeader('Pragma', 'no-cache');
-  res.setHeader('Expires', '0');
-  res.setHeader('Surrogate-Control', 'no-store');
-  
-  res.locals.noCache = true;
-  
-  next();
-};
-
-/**
- * Middleware لتفعيل الكاش للمسارات المحددة
- */
-const cacheResponse = (ttl = 300) => {
-  return (req, res, next) => {
-    // التحقق من طرق HTTP التي يجب عدم تخزينها
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method.toUpperCase())) {
-      return next();
-    }
-    
-    const cacheKey = cache.generateKey(req);
-    const cachedData = cache.get(cacheKey);
-    
-    if (cachedData !== undefined && cachedData !== null) {
-      console.log(`📦 Serving from cache: ${cacheKey}`);
-      
-      // إضافة metadata
-      const responseData = {
-        ...cachedData,
-        metadata: {
-          ...cachedData.metadata,
-          cached: true,
-          servedFromCache: true,
-          timestamp: new Date().toISOString()
-        }
-      };
-      
-      return res.json(responseData);
-    }
-    
-    const originalJson = res.json;
-    res.json = function(data) {
-      try {
-        // فقط تخزين الردود الناجحة
-        if (res.statusCode >= 200 && res.statusCode < 300) {
-          // التحقق من عدم وجود noCache flag
-          if (!res.locals.noCache) {
-            cache.set(cacheKey, data, ttl);
-          }
-        }
-      } catch (error) {
-        console.error('❌ Cache set error:', error.message);
-      }
-      
-      return originalJson.call(this, data);
-    };
-    
-    next();
-  };
-};
-
-/**
- * Middleware لمسح الكاش عند الطلبات التي تعدل البيانات
- */
-const invalidateCacheOnMutation = (patterns = []) => {
-  return (req, res, next) => {
-    const originalJson = res.json;
-    
-    res.json = function(data) {
-      if (res.statusCode >= 200 && res.statusCode < 300) {
-        const method = req.method.toUpperCase();
-        
-        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
-          // تأخير إبطال الكاش لضمان اكتمال العملية
-          setTimeout(() => {
-            // مسح الأنماط المحددة
-            patterns.forEach(pattern => {
-              cache.invalidatePattern(pattern);
-            });
-            
-            // مسح الكاش العام للمستخدم
-            if (req.user && req.user.id) {
-              cache.invalidatePattern(`*:${req.user.id}:*`);
-              cache.invalidatePattern(`*:${req.user.id}`);
-              cache.del(`user:${req.user.id}`);
-              cache.del(`user:complete:${req.user.id}`);
-              cache.del(`dashboard:${req.user.id}`);
-            }
-            
-            console.log(`🗑️ Invalidated cache for ${req.method} ${req.originalUrl}`);
-          }, 100);
-        }
-      }
-      
-      return originalJson.call(this, data);
-    };
-    
-    next();
-  };
-};
-
-module.exports = {
-  cacheMiddleware,
-  noCache,
-  cacheResponse,
-  invalidateCacheOnMutation,
-  cacheLogger: cacheMiddleware // للحفاظ على التوافق
-};
-</file>
-
 <file path="src/middlewares/disableCache.middleware.js">
 /**
  * Middleware لتعطيل الكاش لطلبات معينة
@@ -4861,75 +4760,6 @@ const disableCache = (req, res, next) => {
 };
 
 module.exports = disableCache;
-</file>
-
-<file path="src/middlewares/errorHandler.middleware.js">
-class AppError extends Error {
-  constructor(message, statusCode) {
-    super(message);
-    this.statusCode = statusCode;
-    this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
-    this.isOperational = true;
-
-    Error.captureStackTrace(this, this.constructor);
-  }
-}
-
-// Middleware لمعالجة الأخطاء
-const errorHandler = (err, req, res, next) => {
-  err.statusCode = err.statusCode || 500;
-  err.status = err.status || 'error';
-
-  // تسجيل الخطأ
-  console.error(`[${new Date().toISOString()}] ERROR:`, {
-    message: err.message,
-    stack: err.stack,
-    url: req.originalUrl,
-    method: req.method,
-    ip: req.ip,
-    user: req.user?.id || 'guest'
-  });
-
-  // في بيئة التطوير، عرض تفاصيل أكثر
-  if (process.env.NODE_ENV === 'development') {
-    return res.status(err.statusCode).json({
-      success: false,
-      status: err.status,
-      error: err,
-      message: err.message,
-      stack: err.stack
-    });
-  }
-
-  // في بيئة الإنتاج، عرض رسالة عامة
-  const message = err.isOperational ? err.message : 'Something went wrong!';
-  
-  res.status(err.statusCode).json({
-    success: false,
-    status: err.status,
-    message
-  });
-};
-
-// Middleware لالتقاط 404
-const notFoundHandler = (req, res, next) => {
-  const error = new AppError(`Can't find ${req.originalUrl} on this server!`, 404);
-  next(error);
-};
-
-// Wrapper لـ async functions
-const catchAsync = (fn) => {
-  return (req, res, next) => {
-    fn(req, res, next).catch(next);
-  };
-};
-
-module.exports = {
-  AppError,
-  errorHandler,
-  notFoundHandler,
-  catchAsync
-};
 </file>
 
 <file path="src/middlewares/security.middleware.js">
@@ -5925,6 +5755,210 @@ driverLocationSchema.index({ location: "2dsphere" });
 module.exports = mongoose.model("DriverLocation", driverLocationSchema);
 </file>
 
+<file path="src/models/favorite.model.js">
+// /opt/render/project/src/src/models/favorite.model.js
+
+const mongoose = require("mongoose");
+
+const favoriteSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "User ID is required"],
+      index: true
+    },
+    restaurant: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Restaurant",
+      required: [true, "Restaurant ID is required"],
+    },
+    notes: {
+      type: String,
+      maxlength: [500, "Notes cannot exceed 500 characters"],
+      trim: true
+    },
+    tags: {
+      type: [String],
+      default: []
+    },
+    isActive: {
+      type: Boolean,
+      default: true
+    }
+  },
+  {
+    timestamps: true, // يضيف createdAt و updatedAt تلقائياً
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
+);
+
+// 🎯 **فهرس مركب لمنع تكرار نفس المطعم لنفس المستخدم**
+favoriteSchema.index({ user: 1, restaurant: 1 }, { unique: true });
+
+// 🎯 **Virtual populate للمطعم**
+favoriteSchema.virtual("restaurantDetails", {
+  ref: "Restaurant",
+  localField: "restaurant",
+  foreignField: "_id",
+  justOne: true
+});
+
+// 🎯 **Virtual populate للمستخدم**
+favoriteSchema.virtual("userDetails", {
+  ref: "User",
+  localField: "user",
+  foreignField: "_id",
+  justOne: true
+});
+
+// 🎯 **Middleware: قبل الحذف**
+favoriteSchema.pre("remove", async function(next) {
+  console.log(`Removing favorite: User ${this.user} - Restaurant ${this.restaurant}`);
+  next();
+});
+
+// 🎯 **طرق مساعدة (Methods)**
+favoriteSchema.methods = {
+  // تفعيل المفضلة
+  async activate() {
+    this.isActive = true;
+    return this.save();
+  },
+  
+  // تعطيل المفضلة
+  async deactivate() {
+    this.isActive = false;
+    return this.save();
+  },
+  
+  // إضافة tag
+  addTag(tag) {
+    if (!this.tags.includes(tag)) {
+      this.tags.push(tag);
+    }
+    return this.save();
+  },
+  
+  // إزالة tag
+  removeTag(tag) {
+    this.tags = this.tags.filter(t => t !== tag);
+    return this.save();
+  }
+};
+
+// 🎯 **ستاتيك ميثودز (Statics)**
+favoriteSchema.statics = {
+  // إضافة مطعم للمفضلة
+  async addToFavorites(userId, restaurantId, notes = "", tags = []) {
+    try {
+      const favorite = await this.findOneAndUpdate(
+        { user: userId, restaurant: restaurantId },
+        { user: userId, restaurant: restaurantId, notes, tags, isActive: true },
+        { upsert: true, new: true, runValidators: true }
+      );
+      return favorite;
+    } catch (error) {
+      if (error.code === 11000) {
+        throw new Error("Restaurant already in favorites");
+      }
+      throw error;
+    }
+  },
+  
+  // إزالة مطعم من المفضلة
+  async removeFromFavorites(userId, restaurantId) {
+    return this.findOneAndDelete({ user: userId, restaurant: restaurantId });
+  },
+  
+  // جلب كل مفضلات المستخدم
+  async getUserFavorites(userId, options = {}) {
+    const { page = 1, limit = 20, sort = "-createdAt", includeInactive = false } = options;
+    
+    const query = { user: userId };
+    if (!includeInactive) {
+      query.isActive = true;
+    }
+    
+    const skip = (page - 1) * limit;
+    
+    const [favorites, total] = await Promise.all([
+      this.find(query)
+        .populate({
+          path: "restaurant",
+          select: "name image description type averageRating deliveryFee estimatedDeliveryTime isOpen",
+          populate: {
+            path: "items",
+            match: { isAvailable: true },
+            options: { limit: 3 },
+            select: "name price image"
+          }
+        })
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      
+      this.countDocuments(query)
+    ]);
+    
+    return {
+      favorites,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    };
+  },
+  
+  // التحقق إذا كان المطعم في المفضلة
+  async isFavorite(userId, restaurantId) {
+    const favorite = await this.findOne({ 
+      user: userId, 
+      restaurant: restaurantId,
+      isActive: true 
+    });
+    return !!favorite;
+  },
+  
+  // إحصائيات المفضلة
+  async getFavoriteStats(userId) {
+    const stats = await this.aggregate([
+      { $match: { user: mongoose.Types.ObjectId(userId), isActive: true } },
+      {
+        $group: {
+          _id: null,
+          totalFavorites: { $sum: 1 },
+          uniqueTags: { $addToSet: "$tags" },
+          recentFavorites: {
+            $push: {
+              restaurantId: "$restaurant",
+              addedAt: "$createdAt"
+            }
+          }
+        }
+      },
+      {
+        $project: {
+          totalFavorites: 1,
+          tagCount: { $size: { $reduce: { input: "$uniqueTags", initialValue: [], in: { $concatArrays: ["$$value", "$$this"] } } } },
+          recentFavorites: { $slice: ["$recentFavorites", 5] }
+        }
+      }
+    ]);
+    
+    return stats[0] || { totalFavorites: 0, tagCount: 0, recentFavorites: [] };
+  }
+};
+
+// 🎯 **تسجيل الموديل**
+const Favorite = mongoose.model("Favorite", favoriteSchema);
+
+module.exports = Favorite;
+</file>
+
 <file path="src/models/message.model.js">
 const mongoose = require("mongoose");
 
@@ -6579,440 +6613,6 @@ messageSchema.statics.getUnreadCount = async function(conversationId, userId) {
 module.exports = mongoose.model("Message", messageSchema);
 </file>
 
-<file path="src/models/notification.model.js">
-const mongoose = require("mongoose");
-
-const notificationSchema = new mongoose.Schema(
-  {
-    // المستخدم المستهدف
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
-    
-    // نوع الإشعار
-    type: {
-      type: String,
-      required: true,
-      enum: [
-        "system",           // إشعارات النظام
-        "order_created",    // طلب جديد
-        "order_accepted",   // تم قبول الطلب
-        "order_picked",     // تم استلام الطلب
-        "order_delivered",  // تم التوصيل
-        "order_cancelled",  // طلب ملغي
-        "driver_assigned",  // تم تعيين مندوب
-        "driver_arrived",   // المندوب وصل
-        "payment_success",  // دفع ناجح
-        "payment_failed",   // دفع فاشل
-        "review_reminder",  // تذكير بالتقييم
-        "promotion",        // عروض ترويجية
-        "announcement",     // إعلانات
-        "security",         // إشعارات أمنية
-        "support",          // ردود الدعم
-      ],
-      index: true,
-    },
-    
-    // العنوان
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 200,
-    },
-    
-    // المحتوى
-    content: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 1000,
-    },
-    
-    // البيانات الإضافية
-    data: {
-      type: mongoose.Schema.Types.Mixed,
-      default: {},
-    },
-    
-    // الصورة أو الأيقونة
-    icon: {
-      type: String,
-    },
-    
-    // الرابط المرتبط
-    link: {
-      type: String,
-      trim: true,
-    },
-    
-    // أولوية الإشعار
-    priority: {
-      type: String,
-      enum: ["low", "medium", "high", "urgent"],
-      default: "medium",
-    },
-    
-    // حالة الإشعار
-    status: {
-      type: String,
-      enum: ["unread", "read", "archived", "deleted"],
-      default: "unread",
-      index: true,
-    },
-    
-    // وقت الإرسال
-    sentAt: {
-      type: Date,
-      default: Date.now,
-      index: true,
-    },
-    
-    // وقت القراءة
-    readAt: {
-      type: Date,
-    },
-    
-    // تاريخ انتهاء الصلاحية
-    expiresAt: {
-      type: Date,
-      index: true,
-    },
-    
-    // الإعدادات
-    settings: {
-      push: { type: Boolean, default: true },       // إرسال push notification
-      email: { type: Boolean, default: false },     // إرسال email
-      sms: { type: Boolean, default: false },       // إرسال SMS
-      inApp: { type: Boolean, default: true },      // عرض في التطبيق
-    },
-    
-    // تفاصيل الإرسال
-    delivery: {
-      pushSent: { type: Boolean, default: false },
-      emailSent: { type: Boolean, default: false },
-      smsSent: { type: Boolean, default: false },
-      pushError: String,
-      emailError: String,
-      smsError: String,
-      retryCount: { type: Number, default: 0 },
-    },
-    
-    // تتبع الحملة
-    campaignId: {
-      type: String,
-      index: true,
-    },
-    
-    // المجموعة
-    group: {
-      type: String,
-      index: true,
-    },
-    
-    // الوسوم
-    tags: [{
-      type: String,
-      trim: true,
-      index: true,
-    }],
-  },
-  {
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
-  }
-);
-
-// Indexes
-notificationSchema.index({ user: 1, status: 1, sentAt: -1 });
-notificationSchema.index({ type: 1, sentAt: -1 });
-notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // لحذف المنتهية تلقائياً
-
-// Middleware
-notificationSchema.pre("save", function(next) {
-  if (this.isModified("status") && this.status === "read" && !this.readAt) {
-    this.readAt = new Date();
-  }
-  
-  // تعيين تاريخ انتهاء الصلاحية إذا لم يكن موجوداً
-  if (!this.expiresAt) {
-    const expiryDays = {
-      urgent: 7,     // 7 أيام للإشعارات العاجلة
-      high: 14,      // 14 يوم للإشعارات المهمة
-      medium: 30,    // 30 يوم للإشعارات العادية
-      low: 60,       // 60 يوم للإشعارات المنخفضة
-    };
-    
-    this.expiresAt = new Date();
-    this.expiresAt.setDate(this.expiresAt.getDate() + (expiryDays[this.priority] || 30));
-  }
-  
-  next();
-});
-
-// Virtuals
-notificationSchema.virtual("isExpired").get(function() {
-  return this.expiresAt && this.expiresAt < new Date();
-});
-
-notificationSchema.virtual("timeAgo").get(function() {
-  const now = new Date();
-  const sent = new Date(this.sentAt);
-  const diffMs = now - sent;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-  
-  if (diffMins < 1) return "الآن";
-  if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
-  if (diffHours < 24) return `منذ ${diffHours} ساعة`;
-  if (diffDays < 7) return `منذ ${diffDays} يوم`;
-  if (diffDays < 30) return `منذ ${Math.floor(diffDays / 7)} أسبوع`;
-  if (diffDays < 365) return `منذ ${Math.floor(diffDays / 30)} شهر`;
-  return `منذ ${Math.floor(diffDays / 365)} سنة`;
-});
-
-// Static Methods
-notificationSchema.statics.createForOrder = async function(order, type, additionalData = {}) {
-  const Notification = this;
-  
-  let title, content, priority = "medium";
-  
-  switch (type) {
-    case "order_created":
-      title = "تم إنشاء طلب جديد";
-      content = `تم إنشاء طلبك #${order._id.toString().slice(-6)} بنجاح.`;
-      priority = "high";
-      break;
-      
-    case "order_accepted":
-      title = "تم قبول طلبك";
-      content = `تم قبول طلبك #${order._id.toString().slice(-6)} وجاري تجهيزه.`;
-      priority = "high";
-      break;
-      
-    case "driver_assigned":
-      title = "تم تعيين مندوب";
-      content = `تم تعيين مندوب لتوصيل طلبك #${order._id.toString().slice(-6)}.`;
-      priority = "high";
-      break;
-      
-    case "order_picked":
-      title = "تم استلام الطلب";
-      content = `تم استلام طلبك #${order._id.toString().slice(-6)} من المطعم.`;
-      priority = "medium";
-      break;
-      
-    case "order_delivered":
-      title = "تم توصيل الطلب";
-      content = `تم توصيل طلبك #${order._id.toString().slice(-6)} بنجاح.`;
-      priority = "high";
-      break;
-      
-    case "order_cancelled":
-      title = "تم إلغاء الطلب";
-      content = `تم إلغاء طلبك #${order._id.toString().slice(-6)}.`;
-      priority = "urgent";
-      break;
-      
-    default:
-      title = "تحديث على طلبك";
-      content = `هناك تحديث على طلبك #${order._id.toString().slice(-6)}.`;
-  }
-  
-  const notification = await Notification.create({
-    user: order.user,
-    type,
-    title,
-    content,
-    priority,
-    data: {
-      orderId: order._id,
-      orderNumber: order._id.toString().slice(-6),
-      status: order.status,
-      totalPrice: order.totalPrice,
-      restaurant: order.restaurant?._id || order.restaurant,
-      driver: order.driver?._id || order.driver,
-      ...additionalData,
-    },
-    link: `/orders/${order._id}`,
-    icon: this.getIconByType(type),
-    tags: ["order", type, `order_${order._id}`],
-  });
-  
-  return notification;
-};
-
-notificationSchema.statics.createForUser = async function(userId, type, data = {}) {
-  const Notification = this;
-  
-  const templates = {
-    welcome: {
-      title: "مرحباً بك!",
-      content: "شكراً لانضمامك إلينا. نتمنى لك تجربة ممتعة.",
-      priority: "medium",
-    },
-    password_changed: {
-      title: "تم تغيير كلمة المرور",
-      content: "تم تغيير كلمة مرور حسابك بنجاح.",
-      priority: "high",
-    },
-    profile_updated: {
-      title: "تم تحديث الملف الشخصي",
-      content: "تم تحديث معلومات ملفك الشخصي بنجاح.",
-      priority: "low",
-    },
-    new_message: {
-      title: "رسالة جديدة",
-      content: data.message || "لديك رسالة جديدة.",
-      priority: "medium",
-    },
-    review_reminder: {
-      title: "كيف كانت تجربتك؟",
-      content: "شاركنا تجربتك مع المطعم لتساعد الآخرين.",
-      priority: "low",
-    },
-  };
-  
-  const template = templates[type] || {
-    title: "إشعار جديد",
-    content: data.content || "لديك إشعار جديد.",
-    priority: "medium",
-  };
-  
-  const notification = await Notification.create({
-    user: userId,
-    type: "system",
-    title: template.title,
-    content: template.content,
-    priority: template.priority,
-    data,
-    icon: this.getIconByType(type),
-    tags: ["user", type, `user_${userId}`],
-  });
-  
-  return notification;
-};
-
-notificationSchema.statics.createPromotional = async function(userId, data) {
-  const Notification = this;
-  
-  const notification = await Notification.create({
-    user: userId,
-    type: "promotion",
-    title: data.title || "عرض خاص!",
-    content: data.content || "استمتع بعروضنا الخاصة والمميزة.",
-    priority: data.priority || "medium",
-    data: {
-      promotionId: data.promotionId,
-      discount: data.discount,
-      validUntil: data.validUntil,
-      ...data,
-    },
-    link: data.link,
-    icon: data.icon || "🎁",
-    campaignId: data.campaignId,
-    group: data.group,
-    tags: ["promotion", "marketing", ...(data.tags || [])],
-  });
-  
-  return notification;
-};
-
-notificationSchema.statics.getIconByType = function(type) {
-  const icons = {
-    system: "🔔",
-    order_created: "🛒",
-    order_accepted: "✅",
-    order_picked: "📦",
-    order_delivered: "🚚",
-    order_cancelled: "❌",
-    driver_assigned: "🚗",
-    driver_arrived: "📍",
-    payment_success: "💳",
-    payment_failed: "⚠️",
-    review_reminder: "⭐",
-    promotion: "🎁",
-    announcement: "📢",
-    security: "🔒",
-    support: "💬",
-    welcome: "👋",
-    password_changed: "🔑",
-    profile_updated: "👤",
-    new_message: "💬",
-  };
-  
-  return icons[type] || "🔔";
-};
-
-notificationSchema.statics.getUnreadCount = async function(userId) {
-  return await this.countDocuments({
-    user: userId,
-    status: "unread",
-    expiresAt: { $gt: new Date() },
-  });
-};
-
-notificationSchema.statics.markAllAsRead = async function(userId) {
-  return await this.updateMany(
-    {
-      user: userId,
-      status: "unread",
-    },
-    {
-      status: "read",
-      readAt: new Date(),
-    }
-  );
-};
-
-notificationSchema.statics.cleanupExpired = async function() {
-  return await this.deleteMany({
-    expiresAt: { $lt: new Date() },
-  });
-};
-
-// Instance Methods
-notificationSchema.methods.markAsRead = async function() {
-  this.status = "read";
-  this.readAt = new Date();
-  return await this.save();
-};
-
-notificationSchema.methods.markAsUnread = async function() {
-  this.status = "unread";
-  this.readAt = null;
-  return await this.save();
-};
-
-notificationSchema.methods.archive = async function() {
-  this.status = "archived";
-  return await this.save();
-};
-
-notificationSchema.methods.retryDelivery = async function() {
-  if (this.delivery.retryCount >= 3) {
-    throw new Error("Maximum retry attempts reached");
-  }
-  
-  this.delivery.retryCount += 1;
-  this.delivery.pushSent = false;
-  this.delivery.emailSent = false;
-  this.delivery.smsSent = false;
-  
-  await this.save();
-  
-  // TODO: إعادة محاولة الإرسال
-  return this;
-};
-
-module.exports = mongoose.model("Notification", notificationSchema);
-</file>
-
 <file path="src/models/order.model.js">
 const mongoose = require("mongoose");
 
@@ -7064,6 +6664,52 @@ const orderSchema = new mongoose.Schema(
 );
 
 module.exports = mongoose.model("Order", orderSchema);
+</file>
+
+<file path="src/models/refreshToken.model.js">
+// /opt/render/project/src/src/models/refreshToken.model.js
+
+const mongoose = require("mongoose");
+
+const refreshTokenSchema = new mongoose.Schema({
+  token: {
+    type: String,
+    required: true,
+    unique: true
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+    required: true
+  },
+  expiresAt: {
+    type: Date,
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  revokedAt: {
+    type: Date,
+    default: null
+  },
+  replacedByToken: {
+    type: String,
+    default: null
+  },
+  deviceInfo: {
+    ip: String,
+    userAgent: String,
+    deviceId: String
+  }
+});
+
+// 🔥 Auto-delete expired tokens
+refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+const RefreshToken = mongoose.model("RefreshToken", refreshTokenSchema);
+module.exports = RefreshToken;
 </file>
 
 <file path="src/models/restaurantAddress.model.js">
@@ -7340,6 +6986,34 @@ router.get("/", auth, role("admin"), async (req, res) => {
     .sort({ timestamp: -1 });
   res.json(locations);
 });
+
+module.exports = router;
+</file>
+
+<file path="src/routes/favorite.routes.js">
+// /opt/render/project/src/src/routes/favorite.routes.js
+const express = require("express");
+const router = express.Router({ mergeParams: true });
+const auth = require("../middlewares/auth.middleware");
+const favoriteController = require("../controllers/favorite.controller");
+
+// جميع الرواتب تحتاج مصادقة
+router.use(auth);
+
+// GET مفضلات المستخدم
+router.get("/", favoriteController.getUserFavorites);
+
+// POST إضافة للمفضلة
+router.post("/:restaurantId", favoriteController.addToFavorites);
+
+// DELETE إزالة من المفضلة
+router.delete("/:restaurantId", favoriteController.removeFromFavorites);
+
+// GET التحقق من حالة المفضلة
+router.get("/:restaurantId/status", favoriteController.checkFavoriteStatus);
+
+// PUT تحديث ملاحظات/تاجات
+router.put("/:restaurantId", favoriteController.updateFavorite);
 
 module.exports = router;
 </file>
@@ -7621,22 +7295,6 @@ router.put("/settings/notifications", async (req, res) => {
     res.status(500).json({ success: false, message: "فشل تحديث الإعدادات" });
   }
 });
-
-module.exports = router;
-</file>
-
-<file path="src/routes/review.routes.js">
-const express = require("express");
-const router = express.Router({ mergeParams: true });
-
-const reviewController = require("../controllers/review.controller");
-const auth = require("../middlewares/auth.middleware");
-
-// إضافة تقييم لمطعم
-router.post("/", auth, reviewController.addReview);
-
-// جلب تقييمات مطعم
-router.get("/", reviewController.getRestaurantReviews);
 
 module.exports = router;
 </file>
@@ -10191,6 +9849,59 @@ LOG_LEVEL=debug
 # CACHE_TTL=600
 </file>
 
+<file path="README.md">
+# 🚀 Food Delivery Backend API
+
+A complete backend solution for food delivery applications with real-time features.
+
+## Features
+
+- ✅ User authentication & authorization
+- ✅ Restaurant management
+- ✅ Order processing & tracking
+- ✅ Real-time chat
+- ✅ Notification system
+- ✅ File upload (Cloudinary)
+- ✅ Caching system
+- ✅ Rate limiting
+- ✅ Health checks
+- ✅ API documentation
+- ✅ Error handling
+- ✅ Logging
+
+## Tech Stack
+
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Database**: MongoDB with Mongoose
+- **Real-time**: Socket.io
+- **File Upload**: Cloudinary + Multer
+- **Authentication**: JWT
+- **Caching**: Node-cache
+- **Logging**: Winston
+- **Testing**: Jest + Supertest
+- **Documentation**: Swagger/OpenAPI
+
+## Getting Started
+
+### Prerequisites
+- Node.js >= 14
+- MongoDB
+- Cloudinary account
+- npm or yarn
+
+### Installation
+
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/food-delivery-backend.git
+cd food-delivery-backend
+
+to full project in one file
+
+repomix
+</file>
+
 <file path="src/controllers/aggregate.controller.js">
 const User = require('../models/user.model');
 const Address = require('../models/address.model');
@@ -12569,317 +12280,191 @@ exports.getOrderStats = async (req, res) => {
 };
 </file>
 
-<file path="src/controllers/restaurant.controller.js">
-const Restaurant = require("../models/restaurant.model");
-const RestaurantAddress = require("../models/restaurantAddress.model");
-const PaginationUtils = require('../utils/pagination.util');
+<file path="src/middlewares/cache.middleware.js">
+const cache = require('../utils/cache.util');
 
 /**
- * GET all restaurants
+ * Middleware لتسجيل معلومات الكاش في الاستجابة
  */
-exports.getRestaurants = async (req, res) => {
-  try {
-    const restaurants = await Restaurant.find()
-      .populate("createdBy", "name phone email")
-      .populate("items");
-
-    res.json(restaurants);
-  } catch {
-    res.status(500).json({ message: "Failed to fetch restaurants" });
+const cacheMiddleware = (req, res, next) => {
+  // ✅ تجاهل الملفات الثابتة
+  if (req.path === '/logo.png' ||
+    req.path === '/favicon.ico' ||
+    req.path.startsWith('/public/') ||
+    req.path.match(/\.(png|jpg|jpeg|gif|ico|svg|css|js)$/)) {
+    return next();
   }
-};
 
-/**
- * Search restaurants
- */
-exports.searchRestaurants = async (req, res) => {
-  try {
-    const { name, type } = req.query;
-    const filter = {};
-
-    if (name) filter.name = { $regex: name, $options: "i" };
-    if (type) filter.type = type;
-
-    const restaurants = await Restaurant.find(filter)
-      .populate("createdBy", "name phone")
-      .populate("items");
-
-    res.json(restaurants);
-  } catch {
-    res.status(500).json({ message: "Search failed" });
+  // ✅ إذا كان هناك skipCache, تجاهل الكاش
+  if (req.skipCache) {
+    return next();
   }
-};
+  const originalJson = res.json;
+  const originalSend = res.send;
 
-/**
- * Get restaurant with addresses
- */
-exports.getRestaurantWithAddress = async (req, res) => {
-  try {
-    const restaurant = await Restaurant.findById(req.params.id)
-      .populate("createdBy", "name email phone")
-      .lean();
+  res.json = function (data) {
+    if (data && typeof data === 'object') {
+      const cacheKey = cache.generateKey(req);
+      const isCached = cache.has(cacheKey);
 
-    if (!restaurant)
-      return res.status(404).json({ message: "Restaurant not found" });
+      // إضافة metadata فقط إذا لم تكن موجودة بالفعل
+      if (!data.metadata) {
+        data.metadata = {};
+      }
 
-    const addresses = await RestaurantAddress.find({
-      restaurant: req.params.id,
-    });
-
-    res.json({ ...restaurant, addresses });
-  } catch {
-    res.status(500).json({ message: "Failed to fetch restaurant info" });
-  }
-};
-
-/**
- * Create restaurant
- */
-exports.createRestaurant = async (req, res) => {
-  try {
-    const { name, description, type } = req.body;
-
-    const restaurant = await Restaurant.create({
-      name,
-      description,
-      type: type || "restaurant",
-      image: req.files?.image ? req.files.image[0].path : null,
-      coverImage: req.files?.coverImage ? req.files.coverImage[0].path : null,
-      createdBy: req.user.id,
-      isOpen: true,
-    });
-
-    await restaurant.populate("createdBy", "name email phone");
-    res.status(201).json(restaurant);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to create restaurant" });
-  }
-};
-
-/**
- * Update restaurant data
- */
-exports.updateRestaurant = async (req, res) => {
-  try {
-    const { name, description, type, isOpen } = req.body;
-
-    const restaurant = await Restaurant.findByIdAndUpdate(
-      req.params.id,
-      { name, description, type, isOpen },
-      { new: true }
-    );
-
-    res.json(restaurant);
-  } catch {
-    res.status(500).json({ message: "Failed to update restaurant" });
-  }
-};
-
-/**
- * Update cover image
- */
-exports.updateCoverImage = async (req, res) => {
-  try {
-    if (!req.file)
-      return res.status(400).json({ message: "No image uploaded" });
-
-    const restaurant = await Restaurant.findByIdAndUpdate(
-      req.params.id,
-      { coverImage: req.file.path },
-      { new: true }
-    );
-
-    res.json(restaurant);
-  } catch {
-    res.status(500).json({ message: "Failed to update cover image" });
-  }
-};
-
-/**
- * Delete restaurant
- */
-exports.deleteRestaurant = async (req, res) => {
-  try {
-    await Restaurant.findByIdAndDelete(req.params.id);
-    res.json({ message: "Restaurant deleted" });
-  } catch {
-    res.status(500).json({ message: "Failed to delete restaurant" });
-  }
-};
-
-/**
- * 📋 الحصول على المطاعم مع Pagination
- * GET /api/restaurants
- */
-exports.getRestaurantsPaginated = async (req, res) => {
-  try {
-    const paginationOptions = PaginationUtils.getPaginationOptions(req);
-    const { skip, limit, sort, search, filters } = paginationOptions;
-    
-    let query = { isOpen: true };
-    
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { description: { $regex: search, $options: 'i' } },
-      ];
-    }
-    
-    if (filters.type) {
-      query.type = filters.type;
-    }
-    
-    const [restaurants, total] = await Promise.all([
-      Restaurant.find(query)
-        .populate('createdBy', 'name phone email')
-        .populate('items')
-        .sort(sort)
-        .skip(skip)
-        .limit(limit),
-      
-      Restaurant.countDocuments(query),
-    ]);
-
-    const response = PaginationUtils.createPaginationResponse(
-      restaurants,
-      total,
-      paginationOptions
-    );
-    
-    res.json(response);
-  } catch (error) {
-    console.error('Pagination error:', error);
-    res.status(500).json({ message: 'Failed to fetch restaurants' });
-  }
-};
-
-/**
- * 🔍 بحث متقدم مع Pagination
- * GET /api/restaurants/search/advanced
- */
-exports.advancedSearch = async (req, res) => {
-  try {
-    const paginationOptions = PaginationUtils.getPaginationOptions(req);
-    const { skip, limit, sort, filters } = paginationOptions;
-    
-    // بناء استعلام متقدم
-    let query = { isOpen: true };
-    
-    if (filters.name) {
-      query.name = { $regex: filters.name, $options: 'i' };
-    }
-    
-    if (filters.type) {
-      query.type = filters.type;
-    }
-    
-    if (filters.minRating) {
-      query.averageRating = { $gte: Number(filters.minRating) };
-    }
-    
-    if (filters.tags) {
-      query.tags = { $in: filters.tags.split(',') };
-    }
-    
-    if (filters.hasDelivery !== undefined) {
-      query.deliveryFee = filters.hasDelivery === 'true' 
-        ? { $gt: 0 } 
-        : { $eq: 0 };
+      data.metadata.cacheInfo = {
+        cached: isCached,
+        key: cacheKey,
+        timestamp: new Date().toISOString(),
+        ttl: cache.cache.options.stdTTL || 300
+      };
     }
 
-    const [restaurants, total] = await Promise.all([
-      Restaurant.find(query)
-        .populate('createdBy', 'name phone')
-        .populate({
-          path: 'items',
-          match: { isAvailable: true },
-          options: { limit: 5 },
-        })
-        .sort(sort)
-        .skip(skip)
-        .limit(limit),
-      
-      Restaurant.countDocuments(query),
-    ]);
+    return originalJson.call(this, data);
+  };
 
-    // جلب إحصائيات البحث
-    const stats = {
-      types: await Restaurant.distinct('type', query),
-      averageRating: await Restaurant.aggregate([
-        { $match: query },
-        { $group: { _id: null, avg: { $avg: '$averageRating' } } },
-      ]),
-      countByType: await Restaurant.aggregate([
-        { $match: query },
-        { $group: { _id: '$type', count: { $sum: 1 } } },
-      ]),
+  res.send = function (data) {
+    // التحقق إذا كان JSON
+    try {
+      if (typeof data === 'string') {
+        const parsed = JSON.parse(data);
+        const cacheKey = cache.generateKey(req);
+        const isCached = cache.has(cacheKey);
+
+        if (!parsed.metadata) {
+          parsed.metadata = {};
+        }
+
+        parsed.metadata.cacheInfo = {
+          cached: isCached,
+          key: cacheKey,
+          timestamp: new Date().toISOString(),
+          ttl: cache.cache.options.stdTTL || 300
+        };
+
+        data = JSON.stringify(parsed);
+      }
+    } catch (error) {
+      // ليس JSON، تجاهل
+    }
+
+    return originalSend.call(this, data);
+  };
+
+  next();
+};
+
+/**
+ * Middleware لمنع التخزين في الكاش
+ */
+const noCache = (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  res.setHeader('Surrogate-Control', 'no-store');
+
+  res.locals.noCache = true;
+
+  next();
+};
+
+/**
+ * Middleware لتفعيل الكاش للمسارات المحددة
+ */
+const cacheResponse = (ttl = 300) => {
+  return (req, res, next) => {
+    // التحقق من طرق HTTP التي يجب عدم تخزينها
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method.toUpperCase())) {
+      return next();
+    }
+
+    const cacheKey = cache.generateKey(req);
+    const cachedData = cache.get(cacheKey);
+
+    if (cachedData !== undefined && cachedData !== null) {
+      console.log(`📦 Serving from cache: ${cacheKey}`);
+
+      // إضافة metadata
+      const responseData = {
+        ...cachedData,
+        metadata: {
+          ...cachedData.metadata,
+          cached: true,
+          servedFromCache: true,
+          timestamp: new Date().toISOString()
+        }
+      };
+
+      return res.json(responseData);
+    }
+
+    const originalJson = res.json;
+    res.json = function (data) {
+      try {
+        // فقط تخزين الردود الناجحة
+        if (res.statusCode >= 200 && res.statusCode < 300) {
+          // التحقق من عدم وجود noCache flag
+          if (!res.locals.noCache) {
+            cache.set(cacheKey, data, ttl);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Cache set error:', error.message);
+      }
+
+      return originalJson.call(this, data);
     };
 
-    const response = PaginationUtils.createPaginationResponse(
-      restaurants,
-      total,
-      paginationOptions,
-      { stats }
-    );
-    
-    res.json(response);
-  } catch (error) {
-    console.error('Advanced search error:', error);
-    res.status(500).json({ message: 'Search failed' });
-  }
+    next();
+  };
 };
-</file>
 
-<file path="src/middlewares/auth.middleware.js">
-const jwt = require("jsonwebtoken");
-const cache = require("../utils/cache.util");
-const User = require("../models/user.model");
+/**
+ * Middleware لمسح الكاش عند الطلبات التي تعدل البيانات
+ */
+const invalidateCacheOnMutation = (patterns = []) => {
+  return (req, res, next) => {
+    const originalJson = res.json;
 
-module.exports = async (req, res, next) => {
-  try {
-    const token = req.headers.authorization?.split(" ")[1];
+    res.json = function (data) {
+      if (res.statusCode >= 200 && res.statusCode < 300) {
+        const method = req.method.toUpperCase();
 
-    if (!token) {
-      return res.status(401).json({ message: "No token provided" });
-    }
+        if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+          // تأخير إبطال الكاش لضمان اكتمال العملية
+          setTimeout(() => {
+            // مسح الأنماط المحددة
+            patterns.forEach(pattern => {
+              cache.invalidatePattern(pattern);
+            });
 
-    // التحقق من blacklist
-    const isBlacklisted = cache.get(`token:blacklist:${token}`);
-    if (isBlacklisted) {
-      return res.status(401).json({ message: "Token is invalid" });
-    }
+            // مسح الكاش العام للمستخدم
+            if (req.user && req.user.id) {
+              cache.invalidatePattern(`*:${req.user.id}:*`);
+              cache.invalidatePattern(`*:${req.user.id}`);
+              cache.del(`user:${req.user.id}`);
+              cache.del(`user:complete:${req.user.id}`);
+              cache.del(`dashboard:${req.user.id}`);
+            }
 
-    // التحقق من صلاحية Token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-
-    // تحديث آخر نشاط للمستخدم
-    try {
-      const user = await User.findById(decoded.id);
-      if (user) {
-        user.lastActivity = new Date();
-        await user.save();
+            console.log(`🗑️ Invalidated cache for ${req.method} ${req.originalUrl}`);
+          }, 100);
+        }
       }
-    } catch (userError) {
-      console.error("User activity update error:", userError);
-      // لا نوقف الطلب إذا فشل تحديث النشاط
-    }
+
+      return originalJson.call(this, data);
+    };
 
     next();
-  } catch (error) {
-    console.error("Auth middleware error:", error.message);
-    
-    if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({ message: "Invalid token" });
-    }
-    
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({ message: "Token expired" });
-    }
-    
-    res.status(500).json({ message: "Authentication failed" });
-  }
+  };
+};
+
+module.exports = {
+  cacheMiddleware,
+  noCache,
+  cacheResponse,
+  invalidateCacheOnMutation,
+  cacheLogger: cacheMiddleware // للحفاظ على التوافق
 };
 </file>
 
@@ -13010,178 +12595,6 @@ const restaurantOwnerMiddleware = async (req, res, next) => {
 
 module.exports = roleMiddleware;
 module.exports.restaurantOwnerMiddleware = restaurantOwnerMiddleware;
-</file>
-
-<file path="src/middlewares/upload.js">
-const multer = require("multer");
-const { CloudinaryStorage } = require("multer-storage-cloudinary");
-const cloudinary = require("../config/cloudinary");
-const { AppError } = require("./errorHandler.middleware");
-
-// التحقق من أنواع الملفات المسموح بها
-const allowedMimeTypes = {
-  image: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
-  video: ['video/mp4', 'video/mov', 'video/avi', 'video/mkv', 'video/webm'],
-  audio: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp3'],
-  document: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
-};
-
-// حجم الملفات الأقصى (10MB للصور، 50MB للفيديو، 5MB للمستندات)
-const maxFileSizes = {
-  image: 10 * 1024 * 1024, // 10MB
-  video: 50 * 1024 * 1024, // 50MB
-  audio: 20 * 1024 * 1024, // 20MB
-  document: 5 * 1024 * 1024, // 5MB
-  default: 5 * 1024 * 1024 // 5MB
-};
-
-const fileFilter = (allowedTypes) => (req, file, cb) => {
-  try {
-    // التحقق من نوع الملف
-    const fileType = Object.keys(allowedMimeTypes).find(type => 
-      allowedMimeTypes[type].includes(file.mimetype)
-    );
-
-    if (!fileType) {
-      return cb(new AppError(`نوع الملف ${file.mimetype} غير مسموح به`, 400), false);
-    }
-
-    // التحقق إذا كان النوع مسموحاً به
-    if (!allowedTypes.includes(fileType) && !allowedTypes.includes('all')) {
-      return cb(new AppError(`نوع الملف ${fileType} غير مسموح به للرفع`, 400), false);
-    }
-
-    // التحقق من حجم الملف
-    const maxSize = maxFileSizes[fileType] || maxFileSizes.default;
-    if (file.size > maxSize) {
-      return cb(new AppError(`حجم الملف يتجاوز الحد المسموح به (${maxSize / 1024 / 1024}MB)`, 400), false);
-    }
-
-    // التحقق من اسم الملف
-    if (!file.originalname || file.originalname.length > 255) {
-      return cb(new AppError('اسم الملف غير صالح', 400), false);
-    }
-
-    cb(null, true);
-  } catch (error) {
-    cb(new AppError('خطأ في التحقق من الملف', 500), false);
-  }
-};
-
-const upload = (folder, allowedTypes = ['image']) => {
-  const storage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: async (req, file) => {
-      try {
-        // تحديد مجلد فرعي بناءً على نوع الملف
-        const fileType = Object.keys(allowedMimeTypes).find(type => 
-          allowedMimeTypes[type].includes(file.mimetype)
-        ) || 'other';
-
-        const subfolder = `${folder}/${fileType}s`;
-        
-        // إنشاء اسم ملف فريد
-        const timestamp = Date.now();
-        const random = Math.random().toString(36).substring(7);
-        const originalName = file.originalname.replace(/\.[^/.]+$/, ""); // إزالة الامتداد
-        const safeName = originalName.replace(/[^a-zA-Z0-9-_]/g, '_');
-        const publicId = `${safeName}-${timestamp}-${random}`;
-        
-        return {
-          folder: subfolder,
-          format: async () => {
-            if (file.mimetype.startsWith('image')) return 'webp'; // تحويل الصور إلى webp
-            if (file.mimetype.startsWith('video')) return 'mp4'; // تحويل الفيديو إلى mp4
-            return file.originalname.split('.').pop();
-          },
-          public_id: publicId,
-          transformation: file.mimetype.startsWith('image') ? [
-            { width: 1200, height: 1200, crop: "limit" },
-            { quality: "auto:good" },
-            { fetch_format: "auto" }
-          ] : [],
-          resource_type: "auto"
-        };
-      } catch (error) {
-        console.error('Cloudinary storage params error:', error);
-        throw error;
-      }
-    },
-  });
-
-  return multer({
-    storage,
-    fileFilter: fileFilter(allowedTypes),
-    limits: {
-      fileSize: Math.max(...allowedTypes.map(type => maxFileSizes[type] || maxFileSizes.default)),
-      files: 10 // الحد الأقصى لعدد الملفات
-    }
-  });
-};
-
-// دالة مساعدة لرفع ملفات متعددة
-const uploadMultiple = (folder, fields, allowedTypes = ['image']) => {
-  const uploader = upload(folder, allowedTypes);
-  
-  return (req, res, next) => {
-    uploader.fields(fields)(req, res, (err) => {
-      if (err) {
-        if (err instanceof multer.MulterError) {
-          if (err.code === 'LIMIT_FILE_SIZE') {
-            return next(new AppError('حجم الملف يتجاوز الحد المسموح به', 400));
-          }
-          if (err.code === 'LIMIT_FILE_COUNT') {
-            return next(new AppError('تم رفع عدد كبير جداً من الملفات', 400));
-          }
-          if (err.code === 'LIMIT_UNEXPECTED_FILE') {
-            return next(new AppError('حقل ملف غير متوقع', 400));
-          }
-          if (err.code === 'LIMIT_PART_COUNT') {
-            return next(new AppError('عدد الأجزاء كبير جداً', 400));
-          }
-        }
-        return next(new AppError(err.message || 'خطأ في رفع الملف', 400));
-      }
-      
-      // التحقق من وجود الملفات المطلوبة
-      if (fields.some(field => field.required && !req.files?.[field.name])) {
-        return next(new AppError(`حقل ${field.name} مطلوب`, 400));
-      }
-      
-      next();
-    });
-  };
-};
-
-// دالة مساعدة للتحقق من الملفات المرفوعة
-const validateUpload = (req, res, next) => {
-  if (!req.file && !req.files) {
-    return next(new AppError('لم يتم رفع أي ملف', 400));
-  }
-  
-  // التحقق من أن الملفات قد تم رفعها بنجاح إلى Cloudinary
-  if (req.file && !req.file.path) {
-    return next(new AppError('فشل رفع الملف إلى السحابة', 500));
-  }
-  
-  if (req.files) {
-    for (const fieldName in req.files) {
-      for (const file of req.files[fieldName]) {
-        if (!file.path) {
-          return next(new AppError(`فشل رفع ملف ${file.originalname}`, 500));
-        }
-      }
-    }
-  }
-  
-  next();
-};
-
-module.exports = upload;
-module.exports.uploadMultiple = uploadMultiple;
-module.exports.validateUpload = validateUpload;
-module.exports.allowedMimeTypes = allowedMimeTypes;
-module.exports.maxFileSizes = maxFileSizes;
 </file>
 
 <file path="src/models/conversation.model.js">
@@ -13765,6 +13178,439 @@ itemSchema.index({ restaurant: 1, isAvailable: 1 });
 module.exports = mongoose.model("Item", itemSchema);
 </file>
 
+<file path="src/models/notification.model.js">
+const mongoose = require("mongoose");
+
+const notificationSchema = new mongoose.Schema(
+  {
+    // المستخدم المستهدف
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    
+    // نوع الإشعار
+    type: {
+      type: String,
+      required: true,
+      enum: [
+        "system",           // إشعارات النظام
+        "order_created",    // طلب جديد
+        "order_accepted",   // تم قبول الطلب
+        "order_picked",     // تم استلام الطلب
+        "order_delivered",  // تم التوصيل
+        "order_cancelled",  // طلب ملغي
+        "driver_assigned",  // تم تعيين مندوب
+        "driver_arrived",   // المندوب وصل
+        "payment_success",  // دفع ناجح
+        "payment_failed",   // دفع فاشل
+        "review_reminder",  // تذكير بالتقييم
+        "promotion",        // عروض ترويجية
+        "announcement",     // إعلانات
+        "security",         // إشعارات أمنية
+        "support",          // ردود الدعم
+      ],
+      index: true,
+    },
+    
+    // العنوان
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 200,
+    },
+    
+    // المحتوى
+    content: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 1000,
+    },
+    
+    // البيانات الإضافية
+    data: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    
+    // الصورة أو الأيقونة
+    icon: {
+      type: String,
+    },
+    
+    // الرابط المرتبط
+    link: {
+      type: String,
+      trim: true,
+    },
+    
+    // أولوية الإشعار
+    priority: {
+      type: String,
+      enum: ["low", "medium", "high", "urgent"],
+      default: "medium",
+    },
+    
+    // حالة الإشعار
+    status: {
+      type: String,
+      enum: ["unread", "read", "archived", "deleted"],
+      default: "unread",
+      index: true,
+    },
+    
+    // وقت الإرسال
+    sentAt: {
+      type: Date,
+      default: Date.now,
+      index: true,
+    },
+    
+    // وقت القراءة
+    readAt: {
+      type: Date,
+    },
+    
+    // تاريخ انتهاء الصلاحية
+    expiresAt: {
+      type: Date,
+    },
+    
+    // الإعدادات
+    settings: {
+      push: { type: Boolean, default: true },       // إرسال push notification
+      email: { type: Boolean, default: false },     // إرسال email
+      sms: { type: Boolean, default: false },       // إرسال SMS
+      inApp: { type: Boolean, default: true },      // عرض في التطبيق
+    },
+    
+    // تفاصيل الإرسال
+    delivery: {
+      pushSent: { type: Boolean, default: false },
+      emailSent: { type: Boolean, default: false },
+      smsSent: { type: Boolean, default: false },
+      pushError: String,
+      emailError: String,
+      smsError: String,
+      retryCount: { type: Number, default: 0 },
+    },
+    
+    // تتبع الحملة
+    campaignId: {
+      type: String,
+      index: true,
+    },
+    
+    // المجموعة
+    group: {
+      type: String,
+      index: true,
+    },
+    
+    // الوسوم
+    tags: [{
+      type: String,
+      trim: true,
+      index: true,
+    }],
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  }
+);
+
+// Indexes
+notificationSchema.index({ user: 1, status: 1, sentAt: -1 });
+notificationSchema.index({ type: 1, sentAt: -1 });
+notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // لحذف المنتهية تلقائياً
+
+// Middleware
+notificationSchema.pre("save", function(next) {
+  if (this.isModified("status") && this.status === "read" && !this.readAt) {
+    this.readAt = new Date();
+  }
+  
+  // تعيين تاريخ انتهاء الصلاحية إذا لم يكن موجوداً
+  if (!this.expiresAt) {
+    const expiryDays = {
+      urgent: 7,     // 7 أيام للإشعارات العاجلة
+      high: 14,      // 14 يوم للإشعارات المهمة
+      medium: 30,    // 30 يوم للإشعارات العادية
+      low: 60,       // 60 يوم للإشعارات المنخفضة
+    };
+    
+    this.expiresAt = new Date();
+    this.expiresAt.setDate(this.expiresAt.getDate() + (expiryDays[this.priority] || 30));
+  }
+  
+  next();
+});
+
+// Virtuals
+notificationSchema.virtual("isExpired").get(function() {
+  return this.expiresAt && this.expiresAt < new Date();
+});
+
+notificationSchema.virtual("timeAgo").get(function() {
+  const now = new Date();
+  const sent = new Date(this.sentAt);
+  const diffMs = now - sent;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  
+  if (diffMins < 1) return "الآن";
+  if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
+  if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+  if (diffDays < 7) return `منذ ${diffDays} يوم`;
+  if (diffDays < 30) return `منذ ${Math.floor(diffDays / 7)} أسبوع`;
+  if (diffDays < 365) return `منذ ${Math.floor(diffDays / 30)} شهر`;
+  return `منذ ${Math.floor(diffDays / 365)} سنة`;
+});
+
+// Static Methods
+notificationSchema.statics.createForOrder = async function(order, type, additionalData = {}) {
+  const Notification = this;
+  
+  let title, content, priority = "medium";
+  
+  switch (type) {
+    case "order_created":
+      title = "تم إنشاء طلب جديد";
+      content = `تم إنشاء طلبك #${order._id.toString().slice(-6)} بنجاح.`;
+      priority = "high";
+      break;
+      
+    case "order_accepted":
+      title = "تم قبول طلبك";
+      content = `تم قبول طلبك #${order._id.toString().slice(-6)} وجاري تجهيزه.`;
+      priority = "high";
+      break;
+      
+    case "driver_assigned":
+      title = "تم تعيين مندوب";
+      content = `تم تعيين مندوب لتوصيل طلبك #${order._id.toString().slice(-6)}.`;
+      priority = "high";
+      break;
+      
+    case "order_picked":
+      title = "تم استلام الطلب";
+      content = `تم استلام طلبك #${order._id.toString().slice(-6)} من المطعم.`;
+      priority = "medium";
+      break;
+      
+    case "order_delivered":
+      title = "تم توصيل الطلب";
+      content = `تم توصيل طلبك #${order._id.toString().slice(-6)} بنجاح.`;
+      priority = "high";
+      break;
+      
+    case "order_cancelled":
+      title = "تم إلغاء الطلب";
+      content = `تم إلغاء طلبك #${order._id.toString().slice(-6)}.`;
+      priority = "urgent";
+      break;
+      
+    default:
+      title = "تحديث على طلبك";
+      content = `هناك تحديث على طلبك #${order._id.toString().slice(-6)}.`;
+  }
+  
+  const notification = await Notification.create({
+    user: order.user,
+    type,
+    title,
+    content,
+    priority,
+    data: {
+      orderId: order._id,
+      orderNumber: order._id.toString().slice(-6),
+      status: order.status,
+      totalPrice: order.totalPrice,
+      restaurant: order.restaurant?._id || order.restaurant,
+      driver: order.driver?._id || order.driver,
+      ...additionalData,
+    },
+    link: `/orders/${order._id}`,
+    icon: this.getIconByType(type),
+    tags: ["order", type, `order_${order._id}`],
+  });
+  
+  return notification;
+};
+
+notificationSchema.statics.createForUser = async function(userId, type, data = {}) {
+  const Notification = this;
+  
+  const templates = {
+    welcome: {
+      title: "مرحباً بك!",
+      content: "شكراً لانضمامك إلينا. نتمنى لك تجربة ممتعة.",
+      priority: "medium",
+    },
+    password_changed: {
+      title: "تم تغيير كلمة المرور",
+      content: "تم تغيير كلمة مرور حسابك بنجاح.",
+      priority: "high",
+    },
+    profile_updated: {
+      title: "تم تحديث الملف الشخصي",
+      content: "تم تحديث معلومات ملفك الشخصي بنجاح.",
+      priority: "low",
+    },
+    new_message: {
+      title: "رسالة جديدة",
+      content: data.message || "لديك رسالة جديدة.",
+      priority: "medium",
+    },
+    review_reminder: {
+      title: "كيف كانت تجربتك؟",
+      content: "شاركنا تجربتك مع المطعم لتساعد الآخرين.",
+      priority: "low",
+    },
+  };
+  
+  const template = templates[type] || {
+    title: "إشعار جديد",
+    content: data.content || "لديك إشعار جديد.",
+    priority: "medium",
+  };
+  
+  const notification = await Notification.create({
+    user: userId,
+    type: "system",
+    title: template.title,
+    content: template.content,
+    priority: template.priority,
+    data,
+    icon: this.getIconByType(type),
+    tags: ["user", type, `user_${userId}`],
+  });
+  
+  return notification;
+};
+
+notificationSchema.statics.createPromotional = async function(userId, data) {
+  const Notification = this;
+  
+  const notification = await Notification.create({
+    user: userId,
+    type: "promotion",
+    title: data.title || "عرض خاص!",
+    content: data.content || "استمتع بعروضنا الخاصة والمميزة.",
+    priority: data.priority || "medium",
+    data: {
+      promotionId: data.promotionId,
+      discount: data.discount,
+      validUntil: data.validUntil,
+      ...data,
+    },
+    link: data.link,
+    icon: data.icon || "🎁",
+    campaignId: data.campaignId,
+    group: data.group,
+    tags: ["promotion", "marketing", ...(data.tags || [])],
+  });
+  
+  return notification;
+};
+
+notificationSchema.statics.getIconByType = function(type) {
+  const icons = {
+    system: "🔔",
+    order_created: "🛒",
+    order_accepted: "✅",
+    order_picked: "📦",
+    order_delivered: "🚚",
+    order_cancelled: "❌",
+    driver_assigned: "🚗",
+    driver_arrived: "📍",
+    payment_success: "💳",
+    payment_failed: "⚠️",
+    review_reminder: "⭐",
+    promotion: "🎁",
+    announcement: "📢",
+    security: "🔒",
+    support: "💬",
+    welcome: "👋",
+    password_changed: "🔑",
+    profile_updated: "👤",
+    new_message: "💬",
+  };
+  
+  return icons[type] || "🔔";
+};
+
+notificationSchema.statics.getUnreadCount = async function(userId) {
+  return await this.countDocuments({
+    user: userId,
+    status: "unread",
+    expiresAt: { $gt: new Date() },
+  });
+};
+
+notificationSchema.statics.markAllAsRead = async function(userId) {
+  return await this.updateMany(
+    {
+      user: userId,
+      status: "unread",
+    },
+    {
+      status: "read",
+      readAt: new Date(),
+    }
+  );
+};
+
+notificationSchema.statics.cleanupExpired = async function() {
+  return await this.deleteMany({
+    expiresAt: { $lt: new Date() },
+  });
+};
+
+// Instance Methods
+notificationSchema.methods.markAsRead = async function() {
+  this.status = "read";
+  this.readAt = new Date();
+  return await this.save();
+};
+
+notificationSchema.methods.markAsUnread = async function() {
+  this.status = "unread";
+  this.readAt = null;
+  return await this.save();
+};
+
+notificationSchema.methods.archive = async function() {
+  this.status = "archived";
+  return await this.save();
+};
+
+notificationSchema.methods.retryDelivery = async function() {
+  if (this.delivery.retryCount >= 3) {
+    throw new Error("Maximum retry attempts reached");
+  }
+  
+  this.delivery.retryCount += 1;
+  this.delivery.pushSent = false;
+  this.delivery.emailSent = false;
+  this.delivery.smsSent = false;
+  
+  await this.save();
+  
+  // TODO: إعادة محاولة الإرسال
+  return this;
+};
+
+module.exports = mongoose.model("Notification", notificationSchema);
+</file>
+
 <file path="src/models/restaurant.model.js">
 const mongoose = require("mongoose");
 
@@ -14035,21 +13881,6 @@ router.get('/cache/stats', auth, role('admin'), aggregateController.getCacheStat
 module.exports = router;
 </file>
 
-<file path="src/routes/auth.routes.js">
-const express = require("express");
-const router = express.Router();
-const authController = require("../controllers/auth.controller");
-const { validateRegister, validateLogin } = require('../middlewares/validation.middleware');
-
-
-
-router.post("/register", validateRegister, authController.register);
-router.post("/login", validateLogin, authController.login);
-
-
-module.exports = router;
-</file>
-
 <file path="src/routes/item.routes.js">
 const express = require("express");
 const router = express.Router();
@@ -14089,197 +13920,18 @@ router.delete(
 module.exports = router;
 </file>
 
-<file path="src/routes/order.routes.js">
+<file path="src/routes/review.routes.js">
 const express = require("express");
-const router = express.Router();
+const router = express.Router({ mergeParams: true });
 
-const orderController = require("../controllers/order.controller");
+const reviewController = require("../controllers/review.controller");
 const auth = require("../middlewares/auth.middleware");
-const role = require("../middlewares/role.middleware");
-const { noCache } = require('../middlewares/cache.middleware');
-const PaginationUtils = require('../utils/pagination.util');
-const { validateOrder } = require('../middlewares/validation.middleware');
 
-/**
- * 🏠 العملاء فقط
- * إنشاء طلب جديد من أي عنوان إلى أي عنوان
- * POST /api/orders
- */
-router.post("/", auth, role("client"), validateOrder, orderController.createOrder);
+// إضافة تقييم لمطعم
+router.post("/", auth, reviewController.addReview);
 
-/**
- * 👤 العملاء فقط - مع Pagination
- * GET /api/orders/me
- */
-router.get('/me', auth, role('client'), PaginationUtils.validatePaginationParams, orderController.getMyOrdersPaginated);
-
-/**
- * 🔑 الأدمن فقط - مع Pagination
- * GET /api/orders
- */
-router.get('/', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getAllOrdersPaginated);
-
-/**
- * 🔧 الأدمن فقط
- * إعادة تعيين المندوب تلقائيًا
- * PUT /api/orders/:orderId/reassign
- */
-router.put("/:orderId/reassign", auth, role("admin"), orderController.reassignDriver);
-
-/**
- * 🔧 الأدمن فقط
- * تعيين مندوب يدويًا
- * PUT /api/orders/:id/assign
- */
-router.put("/:id/assign", auth, role("admin"), orderController.assignDriver);
-
-/**
- * 🚚 المندوب فقط
- * تحديث حالة الطلب
- * PUT /api/orders/:id/status
- */
-router.put("/:id/status", auth, role("driver"), noCache, orderController.updateStatus);
-
-/**
- * 🚚 المندوب فقط
- * تحديث موقع المندوب
- * POST /api/orders/:id/location
- */
-router.post("/:id/location", auth, role("driver"), orderController.updateDriverLocation);
-
-/**
- * ❌ إلغاء الطلب (العميل فقط)
- * PUT /api/orders/:id/cancel
- */
-router.put("/:id/cancel", auth, role("client"), orderController.cancelOrder);
-
-/**
- * 🚚 المندوب فقط
- * الحصول على طلبات المندوب
- * GET /api/orders/driver/me
- */
-router.get("/driver/me", auth, role("driver"), PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
-
-/**
- * 📋 الحصول على تفاصيل طلب معين
- * GET /api/orders/:id
- */
-router.get("/:id", auth, async (req, res) => {
-  try {
-    const orderId = req.params.id;
-    const userId = req.user.id;
-    const userRole = req.user.role;
-
-    const order = await Order.findById(orderId)
-      .populate('user', 'name phone')
-      .populate('driver', 'name phone')
-      .populate('restaurant', 'name image')
-      .populate('pickupAddress')
-      .populate('deliveryAddress');
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'الطلب غير موجود'
-      });
-    }
-
-    // التحقق من الصلاحيات
-    const isOwner = order.user._id.toString() === userId;
-    const isDriver = order.driver && order.driver._id.toString() === userId;
-    const isAdmin = userRole === 'admin';
-
-    if (!isOwner && !isDriver && !isAdmin) {
-      return res.status(403).json({
-        success: false,
-        message: 'غير مصرح لك بالوصول إلى هذا الطلب'
-      });
-    }
-
-    res.json({
-      success: true,
-      data: order
-    });
-  } catch (error) {
-    console.error('Get order error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'فشل جلب بيانات الطلب'
-    });
-  }
-});
-
-module.exports = router;
-</file>
-
-<file path="src/routes/restaurant.routes.js">
-const express = require("express");
-const router = express.Router();
-const restaurantController = require("../controllers/restaurant.controller");
-const auth = require("../middlewares/auth.middleware");
-const role = require("../middlewares/role.middleware");
-const upload = require("../middlewares/upload");
-const reviewRoutes = require("./review.routes");
-
-// استيراد PaginationUtils
-const PaginationUtils = require('../utils/pagination.util');
-
-// Middleware لتحميل الصور للمطاعم (image + coverImage)
-const restaurantUpload = upload("restaurants").fields([
-  { name: "image", maxCount: 1 },
-  { name: "coverImage", maxCount: 1 }, 
-]);
-
-// ======== ROUTES ========
-
-// GET all restaurants with pagination
-router.get('/', PaginationUtils.validatePaginationParams, restaurantController.getRestaurantsPaginated);
-
-// Advanced search with pagination
-router.get('/search/advanced', PaginationUtils.validatePaginationParams, restaurantController.advancedSearch);
-
-// ✅ البحث بالاسم والنوع
-router.get("/search", restaurantController.searchRestaurants);
-
-// GET مطعم مع جميع العناوين
-router.get("/:id/details", restaurantController.getRestaurantWithAddress);
-
-// POST إنشاء مطعم جديد مع رفع الصور
-router.post(
-  "/",
-  auth,
-  role("admin"),
-  restaurantUpload,
-  restaurantController.createRestaurant
-);
-
-// ======== Reviews ========
-router.use("/:id/reviews", reviewRoutes);
-
-// PUT تحديث صورة الغلاف
-router.put(
-  "/:id/cover",
-  auth,
-  role("admin"),
-  upload("restaurants").single("image"),
-  restaurantController.updateCoverImage
-);
-
-// PUT تحديث بيانات المطعم (اسم، وصف، حالة مفتوح/مغلق)
-router.put(
-  "/:id",
-  auth,
-  role("admin"),
-  restaurantController.updateRestaurant
-);
-
-// DELETE حذف المطعم
-router.delete(
-  "/:id",
-  auth,
-  role("admin"),
-  restaurantController.deleteRestaurant
-);
+// جلب تقييمات مطعم
+router.get("/",auth.optional, reviewController.getRestaurantReviews);
 
 module.exports = router;
 </file>
@@ -15930,6 +15582,658 @@ const initSocket = (server) => {
 module.exports = initSocket;
 </file>
 
+<file path="src/middlewares/auth.middleware.js">
+const jwt = require("jsonwebtoken");
+const cache = require("../utils/cache.util");
+const User = require("../models/user.model");
+
+/**
+ * التحقق من صحة تنسيق JWT
+ * @param {string} token - التوكن المراد التحقق منه
+ * @returns {boolean} - هل التوكن صحيح التنسيق
+ */
+const isValidJwtFormat = (token) => {
+  if (!token || typeof token !== 'string') return false;
+  
+  // JWT يتكون من 3 أجزاء مفصولة بنقاط
+  const parts = token.split('.');
+  if (parts.length !== 3) return false;
+  
+  // التحقق أن كل جزء هو Base64 صالح
+  try {
+    parts.forEach(part => {
+      // إضافة padding إذا لزم
+      const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
+      const padding = '='.repeat((4 - (base64.length % 4)) % 4);
+      Buffer.from(base64 + padding, 'base64');
+    });
+    return true;
+  } catch (e) {
+    return false;
+  }
+};
+
+/**
+ * استخراج التوكن من الهيدر بأشكال مختلفة
+ * @param {object} headers - هيدرات الطلب
+ * @returns {string|null} - التوكن أو null
+ */
+const extractToken = (headers) => {
+  // 1. الطريقة القياسية: Bearer token
+  if (headers.authorization) {
+    const parts = headers.authorization.split(' ');
+    if (parts.length === 2 && parts[0].toLowerCase() === 'bearer') {
+      return parts[1];
+    }
+  }
+  
+  // 2. طرق بديلة
+  if (headers['x-access-token']) {
+    return headers['x-access-token'];
+  }
+  
+  if (headers.token) {
+    return headers.token;
+  }
+  
+  return null;
+};
+
+module.exports = async (req, res, next) => {
+  try {
+    // استخراج التوكن
+    const token = extractToken(req.headers);
+
+    // التحقق من وجود التوكن
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "No token provided",
+        code: "NO_TOKEN",
+        details: "Authorization header is missing or invalid format"
+      });
+    }
+
+    // التحقق من تنسيق التوكن
+    if (!isValidJwtFormat(token)) {
+      console.warn(`[Auth] Invalid JWT format detected: ${token.substring(0, 20)}...`);
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token format",
+        code: "INVALID_TOKEN_FORMAT",
+        details: "Token must be a valid JWT (3 parts separated by dots)"
+      });
+    }
+
+    // التحقق من blacklist
+    try {
+      const isBlacklisted = await cache.get(`token:blacklist:${token}`);
+      if (isBlacklisted) {
+        return res.status(401).json({
+          success: false,
+          message: "Token has been revoked",
+          code: "TOKEN_REVOKED"
+        });
+      }
+    } catch (cacheError) {
+      console.error("[Auth] Cache error:", cacheError.message);
+      // نكمل حتى لو فشل الكاش
+    }
+
+    // التحقق من صلاحية Token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET, {
+        algorithms: ['HS256'],
+        complete: false // نريد فقط الـ payload
+      });
+    } catch (jwtError) {
+      console.error(`[Auth] JWT verification failed: ${jwtError.message}`);
+      
+      // معالجة أنواع الأخطاء المختلفة
+      if (jwtError.name === "JsonWebTokenError") {
+        // تحسين رسالة الخطأ بناءً على السبب
+        let details = "Token is malformed or invalid";
+        let code = "JWT_MALFORMED";
+        
+        if (jwtError.message.includes('invalid signature')) {
+          details = "Token signature is invalid";
+          code = "INVALID_SIGNATURE";
+        } else if (jwtError.message.includes('invalid algorithm')) {
+          details = "Invalid token algorithm";
+          code = "INVALID_ALGORITHM";
+        } else if (jwtError.message.includes('jwt malformed')) {
+          details = "Token structure is corrupted";
+          code = "JWT_MALFORMED";
+        }
+        
+        return res.status(401).json({
+          success: false,
+          message: "Invalid token",
+          code,
+          details
+        });
+      }
+      
+      if (jwtError.name === "TokenExpiredError") {
+        return res.status(401).json({
+          success: false,
+          message: "Token has expired",
+          code: "TOKEN_EXPIRED",
+          expiredAt: jwtError.expiredAt
+        });
+      }
+      
+      // أخطاء غير متوقعة
+      return res.status(401).json({
+        success: false,
+        message: "Token verification failed",
+        code: "TOKEN_VERIFICATION_FAILED"
+      });
+    }
+
+    // التحقق من وجود الـ id في الـ decoded token
+    if (!decoded || !decoded.id) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token payload",
+        code: "INVALID_PAYLOAD",
+        details: "Token missing required user ID"
+      });
+    }
+
+    // حفظ معلومات المستخدم في الطلب
+    req.user = decoded;
+
+    // تحديث آخر نشاط للمستخدم (بشكل غير متزامن)
+    User.findById(decoded.id)
+      .then(user => {
+        if (user) {
+          user.lastActivity = new Date();
+          user.lastIp = req.ip || req.connection.remoteAddress;
+          user.lastUserAgent = req.headers['user-agent'];
+          
+          return user.save()
+            .catch(err => console.error("[Auth] Failed to update user activity:", err.message));
+        }
+      })
+      .catch(err => console.error("[Auth] Failed to find user for activity update:", err.message));
+
+    // إضافة معلومات إضافية للـ request
+    req.auth = {
+      authenticated: true,
+      method: 'jwt',
+      token: token.substring(0, 20) + '...' // للـ logging فقط
+    };
+
+    next();
+  } catch (error) {
+    console.error("[Auth] Unexpected error in auth middleware:", error);
+    
+    res.status(500).json({
+      success: false,
+      message: "Authentication service unavailable",
+      code: "AUTH_SERVICE_ERROR"
+    });
+  }
+};
+
+/**
+ * Middleware للتحقق من صحة التوكن دون إيقاع خطأ (للاستخدام في الـ public routes)
+ */
+module.exports.optional = async (req, res, next) => {
+  try {
+    const token = extractToken(req.headers);
+    
+    if (token && isValidJwtFormat(token)) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        req.auth = { authenticated: true, method: 'jwt' };
+      } catch (e) {
+        // تجاهل أخطاء التوكن في الـ optional auth
+        req.user = null;
+        req.auth = { authenticated: false, method: 'none' };
+      }
+    } else {
+      req.user = null;
+      req.auth = { authenticated: false, method: 'none' };
+    }
+    
+    next();
+  } catch (error) {
+    req.user = null;
+    req.auth = { authenticated: false, method: 'none' };
+    next();
+  }
+};
+</file>
+
+<file path="src/middlewares/errorHandler.middleware.js">
+// /opt/render/project/src/src/middlewares/errorHandler.middleware.js
+
+class AppError extends Error {
+  constructor(message, statusCode) {
+    super(message);
+    this.statusCode = statusCode;
+    this.status = `${statusCode}`.startsWith('4') ? 'fail' : 'error';
+    this.isOperational = true;
+
+    Error.captureStackTrace(this, this.constructor);
+  }
+}
+
+// Middleware لمعالجة الأخطاء
+const errorHandler = (err, req, res, next) => {
+  err.statusCode = err.statusCode || 500;
+  err.status = err.status || 'error';
+
+  // تسجيل الخطأ
+  console.error(`[${new Date().toISOString()}] ERROR:`, {
+    message: err.message,
+    stack: err.stack,
+    url: req.originalUrl,
+    method: req.method,
+    ip: req.ip,
+    user: req.user?.id || 'guest'
+  });
+
+  // في بيئة التطوير، عرض تفاصيل أكثر
+  if (process.env.NODE_ENV === 'development') {
+    return res.status(err.statusCode).json({
+      success: false,
+      status: err.status,
+      error: err,
+      message: err.message,
+      stack: err.stack
+    });
+  }
+
+  // في بيئة الإنتاج، عرض رسالة عامة
+  const message = err.isOperational ? err.message : 'Something went wrong!';
+
+  res.status(err.statusCode).json({
+    success: false,
+    status: err.status,
+    message
+  });
+};
+
+// Middleware لالتقاط 404
+const notFoundHandler = (req, res, next) => {
+  // ✅ تجاهل أخطاء الملفات الثابتة
+  if (req.path === '/logo.png' ||
+    req.path === '/favicon.ico' ||
+    req.path === '/default-avatar.png' ||
+    req.path.match(/\.(png|jpg|jpeg|gif|ico|svg|css|js|webp|avif)$/)) {
+
+    return res.status(204).end();
+  }
+
+  // ✅ سجل الـ routes المفقودة (مفيد للتصحيح)
+  console.warn(`[404] Route not found: ${req.method} ${req.originalUrl} - IP: ${req.ip}`);
+
+  const error = new AppError(`Can't find ${req.originalUrl} on this server!`, 404);
+  next(error);
+};
+
+// Wrapper لـ async functions
+const catchAsync = (fn) => {
+  return (req, res, next) => {
+    fn(req, res, next).catch(next);
+  };
+};
+
+module.exports = {
+  AppError,
+  errorHandler,
+  notFoundHandler,
+  catchAsync
+};
+</file>
+
+<file path="src/routes/auth.routes.js">
+// /opt/render/project/src/src/routes/auth.routes.js
+
+const express = require("express");
+const router = express.Router();
+const authController = require("../controllers/auth.controller");
+const auth = require("../middlewares/auth.middleware");
+const { rateLimit } = require("express-rate-limit");
+
+// 🛡️ Rate limiting لطرق المصادقة
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 دقيقة
+  max: 10, // 10 محاولات كحد أقصى
+  message: {
+    success: false,
+    message: "محاولات كثيرة جداً، الرجاء المحاولة بعد 15 دقيقة"
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// ==================== المسارات العامة (لا تحتاج مصادقة) ====================
+
+/**
+ * @route   POST /api/auth/register
+ * @desc    تسجيل مستخدم جديد (بسيط)
+ * @access  Public
+ */
+router.post("/register", authLimiter, authController.register);
+
+/**
+ * @route   POST /api/auth/register/complete
+ * @desc    تسجيل مستخدم جديد (متقدم)
+ * @access  Public
+ */
+router.post("/register/complete", authLimiter, authController.registerComplete);
+
+/**
+ * @route   POST /api/auth/login
+ * @desc    تسجيل الدخول (بسيط)
+ * @access  Public
+ */
+router.post("/login", authLimiter, authController.login);
+
+/**
+ * @route   POST /api/auth/login/complete
+ * @desc    تسجيل الدخول (متقدم)
+ * @access  Public
+ */
+router.post("/login/complete", authLimiter, authController.loginComplete);
+
+/**
+ * @route   POST /api/auth/verify
+ * @desc    تأكيد الحساب
+ * @access  Public
+ */
+router.post("/verify", authLimiter, authController.verifyAccount);
+
+/**
+ * @route   POST /api/auth/resend-verification
+ * @desc    إعادة إرسال كود التحقق
+ * @access  Public
+ */
+router.post("/resend-verification", authLimiter, authController.resendVerification);
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    نسيت كلمة المرور
+ * @access  Public
+ */
+router.post("/forgot-password", authLimiter, authController.forgotPassword);
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    إعادة تعيين كلمة المرور
+ * @access  Public
+ */
+router.post("/reset-password", authLimiter, authController.resetPassword);
+
+/**
+ * @route   POST /api/auth/refresh
+ * @desc    تجديد التوكن
+ * @access  Public (يحتاج refresh token)
+ */
+router.post("/refresh", authLimiter, authController.refreshToken);
+
+// ==================== المسارات المحمية (تحتاج مصادقة) ====================
+
+/**
+ * @route   POST /api/auth/logout
+ * @desc    تسجيل الخروج
+ * @access  Private
+ */
+router.post("/logout", auth, authController.logout);
+
+/**
+ * @route   GET /api/auth/validate
+ * @desc    التحقق من صلاحية التوكن
+ * @access  Private
+ */
+router.get("/validate", auth, authController.validateToken);
+
+/**
+ * @route   POST /api/auth/change-password
+ * @desc    تغيير كلمة المرور
+ * @access  Private
+ */
+router.post("/change-password", auth, authController.changePassword);
+
+/**
+ * @route   POST /api/auth/revoke-all-sessions
+ * @desc    إبطال جميع جلسات المستخدم
+ * @access  Private
+ */
+router.post("/revoke-all-sessions", auth, authController.revokeAllSessions);
+
+module.exports = router;
+</file>
+
+<file path="src/routes/order.routes.js">
+const express = require("express");
+const router = express.Router();
+
+const orderController = require("../controllers/order.controller");
+const auth = require("../middlewares/auth.middleware");
+const role = require("../middlewares/role.middleware");
+const { noCache } = require('../middlewares/cache.middleware');
+const PaginationUtils = require('../utils/pagination.util');
+const { validateOrder } = require('../middlewares/validation.middleware');
+
+// ✅ إضافة استيراد نموذج الطلب
+const Order = require("../models/order.model");
+
+/**
+ * 🏠 العملاء فقط
+ * إنشاء طلب جديد من أي عنوان إلى أي عنوان
+ * POST /api/orders
+ */
+router.post("/", auth, role("client"), validateOrder, orderController.createOrder);
+
+/**
+ * 👤 العملاء فقط - مع Pagination
+ * GET /api/orders/me
+ */
+router.get('/me', auth, role('client'), PaginationUtils.validatePaginationParams, orderController.getMyOrdersPaginated);
+
+/**
+ * 🔑 الأدمن فقط - مع Pagination
+ * GET /api/orders
+ */
+router.get('/', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getAllOrdersPaginated);
+
+/**
+ * 🔧 الأدمن فقط
+ * إعادة تعيين المندوب تلقائيًا
+ * PUT /api/orders/:orderId/reassign
+ */
+router.put("/:orderId/reassign", auth, role("admin"), orderController.reassignDriver);
+
+/**
+ * 🔧 الأدمن فقط
+ * تعيين مندوب يدويًا
+ * PUT /api/orders/:id/assign
+ */
+router.put("/:id/assign", auth, role("admin"), orderController.assignDriver);
+
+/**
+ * 🚚 المندوب فقط
+ * تحديث حالة الطلب
+ * PUT /api/orders/:id/status
+ */
+router.put("/:id/status", auth, role("driver"), noCache, orderController.updateStatus);
+
+/**
+ * 🚚 المندوب فقط
+ * تحديث موقع المندوب
+ * POST /api/orders/:id/location
+ */
+router.post("/:id/location", auth, role("driver"), orderController.updateDriverLocation);
+
+/**
+ * ❌ إلغاء الطلب (العميل فقط)
+ * PUT /api/orders/:id/cancel
+ */
+router.put("/:id/cancel", auth, role("client"), orderController.cancelOrder);
+
+/**
+ * 🚚 المندوب فقط
+ * الحصول على طلبات المندوب
+ * GET /api/orders/driver/me
+ */
+router.get("/driver/me", auth, role("driver"), PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
+
+/**
+ * 📋 الحصول على تفاصيل طلب معين
+ * GET /api/orders/:id
+ */
+router.get("/:id", auth, async (req, res) => {
+  try {
+    const orderId = req.params.id;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    const order = await Order.findById(orderId)
+      .populate('user', 'name phone email image')
+      .populate('driver', 'name phone email image')
+      .populate('restaurant', 'name image phone address')
+      .populate('pickupAddress')
+      .populate('deliveryAddress')
+      .populate('items.item'); // ✅ إضافة populate للعناصر
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'الطلب غير موجود'
+      });
+    }
+
+    // التحقق من الصلاحيات
+    const isOwner = order.user && order.user._id.toString() === userId;
+    const isDriver = order.driver && order.driver._id.toString() === userId;
+    const isAdmin = userRole === 'admin';
+
+    if (!isOwner && !isDriver && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'غير مصرح لك بالوصول إلى هذا الطلب'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: order
+    });
+  } catch (error) {
+    console.error('❌ Get order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب بيانات الطلب',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+module.exports = router;
+</file>
+
+<file path="src/routes/restaurant.routes.js">
+const express = require("express");
+const router = express.Router();
+const restaurantController = require("../controllers/restaurant.controller");
+const auth = require("../middlewares/auth.middleware"); // ← هذا يجيب auth و auth.optional
+const role = require("../middlewares/role.middleware");
+const upload = require("../middlewares/upload");
+const reviewRoutes = require("./review.routes");
+
+// استيراد PaginationUtils
+const PaginationUtils = require('../utils/pagination.util');
+
+// Middleware لتحميل الصور للمطاعم (image + coverImage)
+const restaurantUpload = upload("restaurants").fields([
+  { name: "image", maxCount: 1 },
+  { name: "coverImage", maxCount: 1 }, 
+]);
+
+// ======== PUBLIC ROUTES (لا تحتاج تسجيل دخول) ========
+// ✅ هنا نستخدم auth.optional
+
+// GET all restaurants with pagination
+router.get(
+  '/', 
+  auth.optional,  // ← تغيير: auth → auth.optional
+  PaginationUtils.validatePaginationParams, 
+  restaurantController.getRestaurantsPaginated
+);
+
+// Advanced search with pagination
+router.get(
+  '/search/advanced', 
+  auth.optional,  // ← تغيير: auth → auth.optional
+  PaginationUtils.validatePaginationParams, 
+  restaurantController.advancedSearch
+);
+
+// ✅ البحث بالاسم والنوع
+router.get(
+  "/search", 
+  auth.optional,  // ← تغيير: auth → auth.optional
+  restaurantController.searchRestaurants
+);
+
+// GET مطعم مع جميع العناوين
+router.get(
+  "/:id/details", 
+  auth.optional,  // ← تغيير: auth → auth.optional
+  restaurantController.getRestaurantWithAddress
+);
+
+// ======== REVIEWS ROUTES (مختلط: عام + محمي) ========
+// ملاحظة: لازم نعدل ملف review.routes.js كمان
+router.use("/:id/reviews", reviewRoutes);
+
+// ======== PROTECTED ROUTES (تحتاج تسجيل دخول) ========
+// ✅ هنا نستخدم auth (العادي)
+
+// POST إنشاء مطعم جديد مع رفع الصور
+router.post(
+  "/",
+  auth,  // ← يبقى auth (لازم مسجل دخول)
+  role("admin"),
+  restaurantUpload,
+  restaurantController.createRestaurant
+);
+
+// PUT تحديث صورة الغلاف
+router.put(
+  "/:id/cover",
+  auth,  // ← يبقى auth (لازم مسجل دخول)
+  role("admin"),
+  upload("restaurants").single("image"),
+  restaurantController.updateCoverImage
+);
+
+// PUT تحديث بيانات المطعم (اسم، وصف، حالة مفتوح/مغلق)
+router.put(
+  "/:id",
+  auth,  // ← يبقى auth (لازم مسجل دخول)
+  role("admin"),
+  restaurantController.updateRestaurant
+);
+
+// DELETE حذف المطعم
+router.delete(
+  "/:id",
+  auth,  // ← يبقى auth (لازم مسجل دخول)
+  role("admin"),
+  restaurantController.deleteRestaurant
+);
+
+module.exports = router;
+</file>
+
 <file path="package.json">
 {
   "name": "backend",
@@ -15976,122 +16280,614 @@ module.exports = initSocket;
 }
 </file>
 
+<file path="src/controllers/restaurant.controller.js">
+const Restaurant = require("../models/restaurant.model");
+const RestaurantAddress = require("../models/restaurantAddress.model");
+const Favorite = require("../models/favorite.model");
+const PaginationUtils = require('../utils/pagination.util');
+
+/**
+ * GET all restaurants
+ */
+exports.getRestaurants = async (req, res) => {
+  try {
+    const restaurants = await Restaurant.find()
+      .populate("createdBy", "name phone email")
+      .populate("items");
+
+    // ✅ إضافة isFavorite للمستخدم المسجل
+    let restaurantsWithFavorites = restaurants;
+    
+    if (req.user) {
+      // ✅ تصحيح: user بدلاً من userId
+      const favorites = await Favorite.find({ 
+        user: req.user.id,
+        isActive: true 
+      });
+      // ✅ تصحيح: restaurant بدلاً من restaurantId
+      const favoriteIds = favorites.map(f => f.restaurant.toString());
+      
+      restaurantsWithFavorites = restaurants.map(restaurant => {
+        const rest = restaurant.toObject();
+        rest.isFavorite = favoriteIds.includes(rest._id.toString());
+        return rest;
+      });
+    }
+
+    res.json(restaurantsWithFavorites);
+  } catch (error) {
+    console.error("Error in getRestaurants:", error);
+    res.status(500).json({ message: "Failed to fetch restaurants" });
+  }
+};
+
+/**
+ * Search restaurants
+ */
+exports.searchRestaurants = async (req, res) => {
+  try {
+    const { name, type } = req.query;
+    const filter = {};
+
+    if (name) filter.name = { $regex: name, $options: "i" };
+    if (type) filter.type = type;
+
+    const restaurants = await Restaurant.find(filter)
+      .populate("createdBy", "name phone")
+      .populate("items");
+
+    // ✅ إضافة isFavorite للمستخدم المسجل
+    let restaurantsWithFavorites = restaurants;
+    
+    if (req.user) {
+      // ✅ تصحيح: user بدلاً من userId
+      const favorites = await Favorite.find({ 
+        user: req.user.id,
+        isActive: true 
+      });
+      // ✅ تصحيح: restaurant بدلاً من restaurantId
+      const favoriteIds = favorites.map(f => f.restaurant.toString());
+      
+      restaurantsWithFavorites = restaurants.map(restaurant => {
+        const rest = restaurant.toObject();
+        rest.isFavorite = favoriteIds.includes(rest._id.toString());
+        return rest;
+      });
+    }
+
+    res.json(restaurantsWithFavorites);
+  } catch (error) {
+    console.error("Error in searchRestaurants:", error);
+    res.status(500).json({ message: "Search failed" });
+  }
+};
+
+/**
+ * Get restaurant with addresses
+ */
+exports.getRestaurantWithAddress = async (req, res) => {
+  try {
+    const restaurant = await Restaurant.findById(req.params.id)
+      .populate("createdBy", "name email phone")
+      .lean();
+
+    if (!restaurant)
+      return res.status(404).json({ message: "Restaurant not found" });
+
+    const addresses = await RestaurantAddress.find({
+      restaurant: req.params.id,
+    });
+
+    // ✅ إضافة isFavorite للمستخدم المسجل
+    let restaurantWithDetails = { ...restaurant, addresses };
+    
+    if (req.user) {
+      // ✅ تصحيح: user بدلاً من userId, restaurant بدلاً من restaurantId
+      const favorite = await Favorite.findOne({
+        user: req.user.id,
+        restaurant: restaurant._id,
+        isActive: true
+      });
+      restaurantWithDetails.isFavorite = !!favorite;
+    } else {
+      restaurantWithDetails.isFavorite = false;
+    }
+
+    res.json(restaurantWithDetails);
+  } catch (error) {
+    console.error("Error in getRestaurantWithAddress:", error);
+    res.status(500).json({ message: "Failed to fetch restaurant info" });
+  }
+};
+
+/**
+ * Create restaurant
+ */
+exports.createRestaurant = async (req, res) => {
+  try {
+    const { name, description, type } = req.body;
+
+    const restaurant = await Restaurant.create({
+      name,
+      description,
+      type: type || "restaurant",
+      image: req.files?.image ? req.files.image[0].path : null,
+      coverImage: req.files?.coverImage ? req.files.coverImage[0].path : null,
+      createdBy: req.user.id,
+      isOpen: true,
+    });
+
+    await restaurant.populate("createdBy", "name email phone");
+    res.status(201).json(restaurant);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Failed to create restaurant" });
+  }
+};
+
+/**
+ * Update restaurant data
+ */
+exports.updateRestaurant = async (req, res) => {
+  try {
+    const { name, description, type, isOpen } = req.body;
+
+    const restaurant = await Restaurant.findByIdAndUpdate(
+      req.params.id,
+      { name, description, type, isOpen },
+      { new: true }
+    );
+
+    res.json(restaurant);
+  } catch (error) {
+    console.error("Error in updateRestaurant:", error);
+    res.status(500).json({ message: "Failed to update restaurant" });
+  }
+};
+
+/**
+ * Update cover image
+ */
+exports.updateCoverImage = async (req, res) => {
+  try {
+    if (!req.file)
+      return res.status(400).json({ message: "No image uploaded" });
+
+    const restaurant = await Restaurant.findByIdAndUpdate(
+      req.params.id,
+      { coverImage: req.file.path },
+      { new: true }
+    );
+
+    res.json(restaurant);
+  } catch (error) {
+    console.error("Error in updateCoverImage:", error);
+    res.status(500).json({ message: "Failed to update cover image" });
+  }
+};
+
+/**
+ * Delete restaurant
+ */
+exports.deleteRestaurant = async (req, res) => {
+  try {
+    await Restaurant.findByIdAndDelete(req.params.id);
+    res.json({ message: "Restaurant deleted" });
+  } catch (error) {
+    console.error("Error in deleteRestaurant:", error);
+    res.status(500).json({ message: "Failed to delete restaurant" });
+  }
+};
+
+/**
+ * 📋 الحصول على المطاعم مع Pagination
+ * GET /api/restaurants
+ */
+exports.getRestaurantsPaginated = async (req, res) => {
+  try {
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    const { skip, limit, sort, search, filters } = paginationOptions;
+    
+    let query = { isOpen: true };
+    
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+    
+    if (filters.type) {
+      query.type = filters.type;
+    }
+    
+    const [restaurants, total] = await Promise.all([
+      Restaurant.find(query)
+        .populate('createdBy', 'name phone email')
+        .populate('items')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      
+      Restaurant.countDocuments(query),
+    ]);
+
+    // ✅ إضافة isFavorite للمستخدم المسجل
+    let restaurantsWithFavorites = restaurants;
+    
+    if (req.user) {
+      // ✅ تصحيح: user بدلاً من userId
+      const favorites = await Favorite.find({ 
+        user: req.user.id,
+        isActive: true 
+      });
+      // ✅ تصحيح: restaurant بدلاً من restaurantId
+      const favoriteIds = favorites.map(f => f.restaurant.toString());
+      
+      restaurantsWithFavorites = restaurants.map(restaurant => {
+        const rest = restaurant.toObject();
+        rest.isFavorite = favoriteIds.includes(rest._id.toString());
+        return rest;
+      });
+    }
+
+    const response = PaginationUtils.createPaginationResponse(
+      restaurantsWithFavorites,
+      total,
+      paginationOptions
+    );
+    
+    res.json(response);
+  } catch (error) {
+    console.error('Pagination error:', error);
+    res.status(500).json({ message: 'Failed to fetch restaurants' });
+  }
+};
+
+/**
+ * 🔍 بحث متقدم مع Pagination
+ * GET /api/restaurants/search/advanced
+ */
+exports.advancedSearch = async (req, res) => {
+  try {
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    const { skip, limit, sort, filters } = paginationOptions;
+    
+    // بناء استعلام متقدم
+    let query = { isOpen: true };
+    
+    if (filters.name) {
+      query.name = { $regex: filters.name, $options: 'i' };
+    }
+    
+    if (filters.type) {
+      query.type = filters.type;
+    }
+    
+    if (filters.minRating) {
+      query.averageRating = { $gte: Number(filters.minRating) };
+    }
+    
+    if (filters.tags) {
+      query.tags = { $in: filters.tags.split(',') };
+    }
+    
+    if (filters.hasDelivery !== undefined) {
+      query.deliveryFee = filters.hasDelivery === 'true' 
+        ? { $gt: 0 } 
+        : { $eq: 0 };
+    }
+
+    const [restaurants, total] = await Promise.all([
+      Restaurant.find(query)
+        .populate('createdBy', 'name phone')
+        .populate({
+          path: 'items',
+          match: { isAvailable: true },
+          options: { limit: 5 },
+        })
+        .sort(sort)
+        .skip(skip)
+        .limit(limit),
+      
+      Restaurant.countDocuments(query),
+    ]);
+
+    // ✅ إضافة isFavorite للمستخدم المسجل
+    let restaurantsWithFavorites = restaurants;
+    
+    if (req.user) {
+      // ✅ تصحيح: user بدلاً من userId
+      const favorites = await Favorite.find({ 
+        user: req.user.id,
+        isActive: true 
+      });
+      // ✅ تصحيح: restaurant بدلاً من restaurantId
+      const favoriteIds = favorites.map(f => f.restaurant.toString());
+      
+      restaurantsWithFavorites = restaurants.map(restaurant => {
+        const rest = restaurant.toObject();
+        rest.isFavorite = favoriteIds.includes(rest._id.toString());
+        return rest;
+      });
+    }
+
+    // جلب إحصائيات البحث
+    const stats = {
+      types: await Restaurant.distinct('type', query),
+      averageRating: await Restaurant.aggregate([
+        { $match: query },
+        { $group: { _id: null, avg: { $avg: '$averageRating' } } },
+      ]),
+      countByType: await Restaurant.aggregate([
+        { $match: query },
+        { $group: { _id: '$type', count: { $sum: 1 } } },
+      ]),
+    };
+
+    const response = PaginationUtils.createPaginationResponse(
+      restaurantsWithFavorites,
+      total,
+      paginationOptions,
+      { stats }
+    );
+    
+    res.json(response);
+  } catch (error) {
+    console.error('Advanced search error:', error);
+    res.status(500).json({ message: 'Search failed' });
+  }
+};
+</file>
+
+<file path="src/middlewares/upload.js">
+const multer = require("multer");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const cloudinary = require("../config/cloudinary");
+const { AppError } = require("./errorHandler.middleware");
+
+// التحقق من أنواع الملفات المسموح بها
+const allowedMimeTypes = {
+  image: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml'],
+  video: ['video/mp4', 'video/mov', 'video/avi', 'video/mkv', 'video/webm'],
+  audio: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp3'],
+  document: ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'text/plain']
+};
+
+// حجم الملفات الأقصى (10MB للصور، 50MB للفيديو، 5MB للمستندات)
+const maxFileSizes = {
+  image: 10 * 1024 * 1024, // 10MB
+  video: 50 * 1024 * 1024, // 50MB
+  audio: 20 * 1024 * 1024, // 20MB
+  document: 5 * 1024 * 1024, // 5MB
+  default: 5 * 1024 * 1024 // 5MB
+};
+
+const fileFilter = (allowedTypes) => (req, file, cb) => {
+  try {
+    // التحقق من نوع الملف
+    const fileType = Object.keys(allowedMimeTypes).find(type => 
+      allowedMimeTypes[type].includes(file.mimetype)
+    );
+
+    if (!fileType) {
+      return cb(new AppError(`نوع الملف ${file.mimetype} غير مسموح به`, 400), false);
+    }
+
+    // التحقق إذا كان النوع مسموحاً به
+    if (!allowedTypes.includes(fileType) && !allowedTypes.includes('all')) {
+      return cb(new AppError(`نوع الملف ${fileType} غير مسموح به للرفع`, 400), false);
+    }
+
+    // التحقق من حجم الملف
+    const maxSize = maxFileSizes[fileType] || maxFileSizes.default;
+    if (file.size > maxSize) {
+      return cb(new AppError(`حجم الملف يتجاوز الحد المسموح به (${maxSize / 1024 / 1024}MB)`, 400), false);
+    }
+
+    // التحقق من اسم الملف
+    if (!file.originalname || file.originalname.length > 255) {
+      return cb(new AppError('اسم الملف غير صالح', 400), false);
+    }
+
+    cb(null, true);
+  } catch (error) {
+    cb(new AppError('خطأ في التحقق من الملف', 500), false);
+  }
+};
+
+const upload = (folder, allowedTypes = ['image']) => {
+  const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: async (req, file) => {
+      try {
+        // تحديد مجلد فرعي بناءً على نوع الملف
+        const fileType = Object.keys(allowedMimeTypes).find(type => 
+          allowedMimeTypes[type].includes(file.mimetype)
+        ) || 'other';
+
+        const subfolder = `${folder}/${fileType}s`;
+        
+        // إنشاء اسم ملف فريد
+        const timestamp = Date.now();
+        const random = Math.random().toString(36).substring(7);
+        const originalName = file.originalname.replace(/\.[^/.]+$/, ""); // إزالة الامتداد
+        const safeName = originalName.replace(/[^a-zA-Z0-9-_]/g, '_');
+        const publicId = `${safeName}-${timestamp}-${random}`;
+        
+        // تحديد الامتداد المناسب (كقيمة ثابتة وليس كدالة)
+        let format;
+        let transformation;
+        let resourceType = 'auto';
+
+        if (file.mimetype.startsWith('image')) {
+          format = 'webp'; // تحويل الصور إلى webp
+          transformation = [
+            { width: 1200, height: 1200, crop: "limit" },
+            { quality: "auto:good" },
+            { fetch_format: "auto" }
+          ];
+          resourceType = 'image';
+        } else if (file.mimetype.startsWith('video')) {
+          format = 'mp4'; // تحويل الفيديو إلى mp4
+          transformation = [
+            { quality: "auto" },
+            { fetch_format: "mp4" }
+          ];
+          resourceType = 'video';
+        } else if (file.mimetype.startsWith('audio')) {
+          format = file.originalname.split('.').pop();
+          resourceType = 'video'; // الصوت يعامل كـ video في Cloudinary
+        } else {
+          format = file.originalname.split('.').pop();
+          resourceType = 'raw'; // للمستندات والملفات الأخرى
+        }
+        
+        return {
+          folder: subfolder,
+          format: format,
+          public_id: publicId,
+          transformation: transformation,
+          resource_type: resourceType,
+          // إعدادات إضافية حسب نوع الملف
+          ...(file.mimetype.startsWith('image') && {
+            eager: [
+              { width: 300, height: 300, crop: "fill", format: "webp" } // صورة مصغرة
+            ]
+          }),
+          ...(file.mimetype.startsWith('video') && {
+            eager: [
+              { width: 300, height: 300, crop: "fill", format: "jpg" } // صورة مصغرة للفيديو
+            ]
+          })
+        };
+      } catch (error) {
+        console.error('Cloudinary storage params error:', error);
+        throw new AppError('خطأ في تجهيز الملف للرفع', 500);
+      }
+    },
+  });
+
+  return multer({
+    storage,
+    fileFilter: fileFilter(allowedTypes),
+    limits: {
+      fileSize: Math.max(...allowedTypes.map(type => maxFileSizes[type] || maxFileSizes.default)),
+      files: 10 // الحد الأقصى لعدد الملفات
+    }
+  });
+};
+
+// دالة مساعدة لرفع ملفات متعددة
+const uploadMultiple = (folder, fields, allowedTypes = ['image']) => {
+  const uploader = upload(folder, allowedTypes);
+  
+  return (req, res, next) => {
+    uploader.fields(fields)(req, res, (err) => {
+      if (err) {
+        if (err instanceof multer.MulterError) {
+          switch (err.code) {
+            case 'LIMIT_FILE_SIZE':
+              return next(new AppError('حجم الملف يتجاوز الحد المسموح به', 400));
+            case 'LIMIT_FILE_COUNT':
+              return next(new AppError('تم رفع عدد كبير جداً من الملفات', 400));
+            case 'LIMIT_UNEXPECTED_FILE':
+              return next(new AppError('حقل ملف غير متوقع', 400));
+            case 'LIMIT_PART_COUNT':
+              return next(new AppError('عدد الأجزاء كبير جداً', 400));
+            default:
+              return next(new AppError(`خطأ في رفع الملف: ${err.message}`, 400));
+          }
+        }
+        return next(new AppError(err.message || 'خطأ في رفع الملف', 400));
+      }
+      
+      // التحقق من وجود الملفات المطلوبة
+      if (fields && Array.isArray(fields)) {
+        for (const field of fields) {
+          if (field.required && (!req.files || !req.files[field.name] || req.files[field.name].length === 0)) {
+            return next(new AppError(`حقل ${field.name} مطلوب`, 400));
+          }
+        }
+      }
+      
+      next();
+    });
+  };
+};
+
+// دالة مساعدة للتحقق من الملفات المرفوعة
+const validateUpload = (req, res, next) => {
+  if (!req.file && !req.files) {
+    return next(new AppError('لم يتم رفع أي ملف', 400));
+  }
+  
+  // التحقق من أن الملفات قد تم رفعها بنجاح إلى Cloudinary
+  if (req.file && !req.file.path) {
+    return next(new AppError('فشل رفع الملف إلى السحابة', 500));
+  }
+  
+  if (req.files) {
+    for (const fieldName in req.files) {
+      for (const file of req.files[fieldName]) {
+        if (!file.path) {
+          return next(new AppError(`فشل رفع ملف ${file.originalname}`, 500));
+        }
+      }
+    }
+  }
+  
+  next();
+};
+
+// دالة مساعدة لرفع ملف واحد
+const uploadSingle = (folder, fieldName = 'file', allowedTypes = ['image']) => {
+  return (req, res, next) => {
+    const uploader = upload(folder, allowedTypes).single(fieldName);
+    
+    uploader(req, res, (err) => {
+      if (err) {
+        if (err instanceof multer.MulterError) {
+          return next(new AppError(`خطأ في رفع الملف: ${err.message}`, 400));
+        }
+        return next(new AppError(err.message || 'خطأ في رفع الملف', 400));
+      }
+      next();
+    });
+  };
+};
+
+module.exports = upload;
+module.exports.uploadMultiple = uploadMultiple;
+module.exports.uploadSingle = uploadSingle;
+module.exports.validateUpload = validateUpload;
+module.exports.allowedMimeTypes = allowedMimeTypes;
+module.exports.maxFileSizes = maxFileSizes;
+</file>
+
 <file path="src/controllers/auth.controller.js">
+// /opt/render/project/src/src/controllers/auth.controller.js
+
 const User = require("../models/user.model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const cache = require("../utils/cache.util");
-
-// Register
-exports.register = async (req, res) => {
-  const { name, phone, password } = req.body;
-
-  const exists = await User.findOne({ phone });
-  if (exists) {
-    return res.status(400).json({ message: "User already exists" });
-  }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const user = await User.create({
-    name,
-    phone,
-    password: hashedPassword,
-  });
-
-  res.status(201).json({ message: "User registered" });
-};
-
-// Login
-exports.login = async (req, res) => {
-  try {
-    const { phone, password } = req.body;
-
-    // 1. ابحث عن المستخدم مع كلمة المرور (مهم: select('+password'))
-    const user = await User.findOne({ phone }).select('+password +isActive +isVerified');
-    
-    if (!user) {
-      return res.status(400).json({ 
-        success: false,
-        message: "رقم الهاتف أو كلمة المرور غير صحيحة" 
-      });
-    }
-
-    // 2. تحقق من حالة الحساب
-    if (!user.isActive) {
-      return res.status(403).json({ 
-        success: false,
-        message: "الحساب معطل، الرجاء التواصل مع الدعم" 
-      });
-    }
-
-    // 3. تحقق من كلمة المرور
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({ 
-        success: false,
-        message: "رقم الهاتف أو كلمة المرور غير صحيحة" 
-      });
-    }
-
-    // 4. أنشئ التوكن
-    const token = jwt.sign(
-      { 
-        id: user._id, 
-        role: user.role,
-        phone: user.phone 
-      },
-      process.env.JWT_SECRET || 'fallback-secret-key-change-in-production',
-      { expiresIn: "7d" }
-    );
-
-    // 5. سجل نشاط الدخول
-    await user.logActivity('login', {
-      ip: req.ip,
-      userAgent: req.get('user-agent')
-    });
-
-    // 6. تحديث آخر دخول
-    user.lastLogin = new Date();
-    await user.save({ validateBeforeSave: false });
-
-    // 7. أعد الرد (بدون كلمة المرور)
-    const userResponse = user.toObject();
-    delete userResponse.password;
-
-    res.json({ 
-      success: true,
-      token,
-      user: userResponse,
-      message: "تم تسجيل الدخول بنجاح"
-    });
-
-  } catch (error) {
-    console.error('Login error:', error);
-    
-    res.status(500).json({ 
-      success: false,
-      message: "حدث خطأ أثناء تسجيل الدخول",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-
+const RefreshToken = require("../models/refreshToken.model");
 
 /**
- * 🔐 تسجيل مستخدم جديد متقدم
- * POST /api/auth/register/complete
+ * 📝 تسجيل مستخدم جديد (بسيط)
+ * POST /api/auth/register
  */
-exports.registerComplete = async (req, res) => {
+exports.register = async (req, res) => {
   try {
-    const { name, phone, password, email, role = "client", ...additionalData } = req.body;
+    const { name, phone, password } = req.body;
 
     // التحقق من البيانات
     if (!name || !phone || !password) {
       return res.status(400).json({
         success: false,
-        message: "Name, phone, and password are required",
+        message: "الاسم ورقم الهاتف وكلمة المرور مطلوبة"
       });
     }
 
@@ -16100,412 +16896,272 @@ exports.registerComplete = async (req, res) => {
     if (exists) {
       return res.status(400).json({
         success: false,
-        message: "User already exists",
+        message: "رقم الهاتف مسجل بالفعل"
       });
     }
 
-    // تجهيز بيانات المستخدم
-    const userData = {
-      name,
-      phone,
-      password: await bcrypt.hash(password, 10),
-      email,
-      role,
-      isVerified: false,
-      stats: {
-        joinedDate: new Date(),
-      },
-      preferences: {
-        notifications: {
-          email: true,
-          sms: true,
-          push: true,
-          orderUpdates: true,
-          promotions: true,
-        },
-        language: "ar",
-        currency: "XOF",
-        theme: "light",
-      },
-    };
-
-    // إضافة البيانات الإضافية إذا كانت موجودة
-    if (additionalData.dateOfBirth) {
-      userData.dateOfBirth = new Date(additionalData.dateOfBirth);
-    }
-
-    if (additionalData.gender) {
-      userData.gender = additionalData.gender;
-    }
-
-    if (additionalData.city) {
-      userData.city = additionalData.city;
-    }
+    // تشفير كلمة المرور
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // إنشاء المستخدم
-    const user = await User.create(userData);
-
-    // إنشاء verification code
-    const verificationCode = crypto.randomBytes(3).toString("hex").toUpperCase();
-    user.verificationCode = verificationCode;
-    user.verificationCodeExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 ساعة
-    await user.save();
-
-    // تسجيل النشاط
-    await user.logActivity("registered", {
-      method: "email",
-      ip: req.ip,
-      userAgent: req.headers["user-agent"]
-    });
-    // إنشاء token
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    // TODO: إرسال verification code عبر SMS أو Email
-
-    res.status(201).json({
-      success: true,
-      message: "Registration successful. Please verify your account.",
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          phone: user.phone,
-          email: user.email,
-          role: user.role,
-          isVerified: user.isVerified,
-        },
-        token,
-        verificationCode, // فقط للتطوير، إزالة في الإنتاج
-        nextStep: "verify_account",
-      },
-    });
-  } catch (error) {
-    console.error("❌ Registration error:", {
-      message: error.message,
-      stack: error.stack,
-      name: error.name,
-      code: error.code,
-      body: req.body
-    });
-
-    let statusCode = 500;
-    let message = "Registration failed";
-
-    if (error.name === 'ValidationError') {
-      statusCode = 400;
-      const errors = Object.values(error.errors).map(err => err.message);
-      message = `Validation failed: ${errors.join(', ')}`;
-    } else if (error.code === 11000) {
-      statusCode = 400;
-      const field = error.message.includes('email') ? 'Email' : 'Phone';
-      message = `${field} already exists`;
-    } else if (error.message.includes('next is not a function')) {
-      message = "Server configuration error - please contact support";
-    }
-
-    res.status(statusCode).json({
-      success: false,
-      message: message,
-      metadata: {
-        timestamp: new Date().toISOString(),
-        ...(process.env.NODE_ENV === 'development' && {
-          error: error.message,
-          errorType: error.name
-        })
-      }
-    });
-  }
-};
-
-/**
- * 📧 تأكيد الحساب
- * POST /api/auth/verify
- */
-exports.verifyAccount = async (req, res) => {
-  try {
-    const { phone, verificationCode } = req.body;
-
-    const user = await User.findOne({
+    const user = await User.create({
+      name,
       phone,
-      verificationCode,
-      verificationCodeExpires: { $gt: Date.now() }
+      password: hashedPassword,
+      role: "client",
+      isVerified: false,
+      isActive: true
     });
 
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid or expired verification code",
-      });
-    }
-
-    // تحديث حالة المستخدم
-    user.isVerified = true;
-    user.verificationCode = undefined;
-    user.verificationCodeExpires = undefined;
-    await user.save();
-
-    // تسجيل النشاط
-    await user.logActivity("account_verified", {
-      method: "code",
-      ip: req.ip,
-    }, req);
-
-    // إنشاء token جديد
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "30d" }
-    );
-
-    res.json({
-      success: true,
-      message: "Account verified successfully",
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          phone: user.phone,
-          isVerified: user.isVerified,
-        },
-        token,
-      },
-    });
-  } catch (error) {
-    console.error("❌ Verification error:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Verification failed",
-    });
-  }
-};
-
-/**
- * 🔄 إعادة إرسال كود التحقق
- * POST /api/auth/resend-verification
- */
-exports.resendVerification = async (req, res) => {
-  try {
-    const { phone } = req.body;
-
-    const user = await User.findOne({ phone, isVerified: false });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found or already verified",
-      });
-    }
-
-    // إنشاء كود جديد
+    // إنشاء كود التحقق
     const verificationCode = crypto.randomBytes(3).toString("hex").toUpperCase();
     user.verificationCode = verificationCode;
     user.verificationCodeExpires = Date.now() + 24 * 60 * 60 * 1000;
     await user.save();
 
-    // TODO: إرسال SMS أو Email
-
-    res.json({
-      success: true,
-      message: "Verification code sent successfully",
-      data: {
-        phone: user.phone,
-        verificationCode, // للتطوير فقط
-        expiresIn: "24 hours",
-      },
-    });
-  } catch (error) {
-    console.error("❌ Resend verification error:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Failed to resend verification",
-    });
-  }
-};
-
-/**
- * 🔑 نسيت كلمة المرور
- * POST /api/auth/forgot-password
- */
-exports.forgotPassword = async (req, res) => {
-  try {
-    const { phone } = req.body;
-
-    const user = await User.findOne({ phone });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    // إنشاء reset token
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    user.resetPasswordToken = crypto
-      .createHash("sha256")
-      .update(resetToken)
-      .digest("hex");
-
-    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000; // 10 دقائق
-    await user.save();
-
-    // TODO: إرسال SMS مع الرابط
-
-    res.json({
-      success: true,
-      message: "Password reset instructions sent",
-      data: {
-        phone: user.phone,
-        resetToken, // للتطوير فقط
-        expiresIn: "10 minutes",
-      },
-    });
-  } catch (error) {
-    console.error("❌ Forgot password error:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "Failed to process forgot password",
-    });
-  }
-};
-
-/**
- * 🔄 إعادة تعيين كلمة المرور
- * POST /api/auth/reset-password
- */
-exports.resetPassword = async (req, res) => {
-  try {
-    const { phone, resetToken, newPassword } = req.body;
-
-    // تشفير token للبحث
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(resetToken)
-      .digest("hex");
-
-    const user = await User.findOne({
-      phone,
-      resetPasswordToken: hashedToken,
-      resetPasswordExpires: { $gt: Date.now() },
-    });
-
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid or expired reset token",
-      });
-    }
-
-    // تحديث كلمة المرور
-    user.password = await bcrypt.hash(newPassword, 10);
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-    await user.save();
-
     // تسجيل النشاط
-    await user.logActivity("password_reset", {
-      method: "reset_token",
+    await user.logActivity("register", {
+      method: "simple",
       ip: req.ip,
-    }, req);
-
-    res.json({
-      success: true,
-      message: "Password reset successfully",
+      userAgent: req.get("user-agent")
     });
+
+    res.status(201).json({
+      success: true,
+      message: "تم التسجيل بنجاح. الرجاء تفعيل الحساب",
+      data: {
+        userId: user._id,
+        phone: user.phone,
+        verificationCode // للتطوير فقط
+      }
+    });
+
   } catch (error) {
-    console.error("❌ Reset password error:", error.message);
+    console.error("❌ Register error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to reset password",
+      message: "فشل التسجيل"
     });
   }
 };
 
 /**
- * 🔐 تسجيل الدخول المتقدم
- * POST /api/auth/login/complete
+ * 🔐 تسجيل الدخول (بسيط)
+ * POST /api/auth/login
  */
-exports.loginComplete = async (req, res) => {
+exports.login = async (req, res) => {
   try {
     const { phone, password } = req.body;
 
-    const user = await User.findOne({ phone }).select("+password");
+    // التحقق من البيانات
+    if (!phone || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "رقم الهاتف وكلمة المرور مطلوبة"
+      });
+    }
+
+    // البحث عن المستخدم
+    const user = await User.findOne({ phone }).select('+password +isActive +isVerified');
 
     if (!user) {
       return res.status(400).json({
         success: false,
-        message: "Invalid credentials",
+        message: "رقم الهاتف أو كلمة المرور غير صحيحة"
       });
     }
 
-    // التحقق من كلمة المرور
+    // تحقق من حالة الحساب
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "الحساب معطل، الرجاء التواصل مع الدعم"
+      });
+    }
+
+    // تحقق من كلمة المرور
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({
         success: false,
-        message: "Invalid credentials",
+        message: "رقم الهاتف أو كلمة المرور غير صحيحة"
       });
     }
 
-    // التحقق من حالة الحساب
-    if (!user.isActive) {
-      return res.status(403).json({
-        success: false,
-        message: "Account is deactivated",
-      });
-    }
-
-    // تحديث آخر تسجيل دخول
-    user.lastLogin = new Date();
-    user.isOnline = true;
-    await user.save();
-
-    // تسجيل النشاط
-    await user.logActivity("login", {
-      method: "password",
-      ip: req.ip,
-      userAgent: req.headers["user-agent"],
-    }, req);
-
-    // إنشاء token
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
+    // إنشاء Access Token
+    const accessToken = jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+        phone: user.phone,
+        name: user.name
+      },
       process.env.JWT_SECRET,
-      { expiresIn: "30d" }
+      { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
     );
 
+    // إنشاء Refresh Token
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d" }
+    );
+
+    // حفظ Refresh Token في قاعدة البيانات
+    await RefreshToken.create({
+      token: refreshToken,
+      user: user._id,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 أيام
+      deviceInfo: {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        deviceId: req.body.deviceId
+      }
+    });
+
+    // تسجيل نشاط الدخول
+    await user.logActivity("login", {
+      method: "simple",
+      ip: req.ip,
+      userAgent: req.get("user-agent")
+    });
+
+    // تحديث آخر دخول
+    user.lastLogin = new Date();
+    user.isOnline = true;
+    await user.save({ validateBeforeSave: false });
+
     // إعداد بيانات المستخدم للرد
-    const userResponse = {
-      id: user._id,
-      name: user.name,
-      phone: user.phone,
-      email: user.email,
-      role: user.role,
-      image: user.image,
-      isVerified: user.isVerified,
-      stats: user.stats,
-      preferences: user.preferences,
-      lastLogin: user.lastLogin,
-    };
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    delete userResponse.verificationCode;
+    delete userResponse.resetPasswordToken;
 
     res.json({
       success: true,
-      message: "Login successful",
+      message: "تم تسجيل الدخول بنجاح",
       data: {
-        user: userResponse,
-        token,
-        expiresIn: "30 days",
-      },
+        accessToken,
+        refreshToken,
+        expiresIn: process.env.JWT_EXPIRES_IN || "1h",
+        user: userResponse
+      }
     });
+
   } catch (error) {
-    console.error("❌ Login error:", error.message);
+    console.error("❌ Login error:", error);
     res.status(500).json({
       success: false,
-      message: "Login failed",
+      message: "حدث خطأ أثناء تسجيل الدخول"
+    });
+  }
+};
+
+/**
+ * 🔄 تجديد التوكن
+ * POST /api/auth/refresh
+ */
+exports.refreshToken = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token مطلوب",
+        code: "REFRESH_TOKEN_REQUIRED"
+      });
+    }
+
+    // التحقق من وجود التوكن في قاعدة البيانات
+    const tokenDoc = await RefreshToken.findOne({
+      token: refreshToken,
+      revokedAt: null
+    }).populate('user');
+
+    if (!tokenDoc) {
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token غير صالح",
+        code: "INVALID_REFRESH_TOKEN"
+      });
+    }
+
+    // التحقق من صلاحية التوكن
+    if (tokenDoc.expiresAt < new Date()) {
+      await RefreshToken.deleteOne({ _id: tokenDoc._id });
+      return res.status(401).json({
+        success: false,
+        message: "Refresh token منتهي الصلاحية",
+        code: "REFRESH_TOKEN_EXPIRED"
+      });
+    }
+
+    const user = tokenDoc.user;
+
+    // التحقق من حالة المستخدم
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "الحساب معطل",
+        code: "ACCOUNT_DISABLED"
+      });
+    }
+
+    // إنشاء Access Token جديد
+    const accessToken = jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+        phone: user.phone,
+        name: user.name
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
+    );
+
+    // إنشاء Refresh Token جديد
+    const newRefreshToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d" }
+    );
+
+    // إبطال التوكن القديم
+    tokenDoc.revokedAt = new Date();
+    tokenDoc.replacedByToken = newRefreshToken;
+    await tokenDoc.save();
+
+    // حفظ التوكن الجديد
+    await RefreshToken.create({
+      token: newRefreshToken,
+      user: user._id,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      deviceInfo: tokenDoc.deviceInfo
+    });
+
+    // تسجيل النشاط
+    await user.logActivity("token_refresh", {
+      ip: req.ip,
+      userAgent: req.get("user-agent")
+    });
+
+    res.json({
+      success: true,
+      message: "تم تجديد التوكن بنجاح",
+      data: {
+        accessToken,
+        refreshToken: newRefreshToken,
+        expiresIn: process.env.JWT_EXPIRES_IN || "1h"
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Refresh token error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تجديد التوكن",
+      code: "REFRESH_TOKEN_FAILED"
     });
   }
 };
@@ -16517,6 +17173,7 @@ exports.loginComplete = async (req, res) => {
 exports.logout = async (req, res) => {
   try {
     const userId = req.user.id;
+    const { refreshToken } = req.body;
 
     const user = await User.findById(userId);
     if (user) {
@@ -16527,111 +17184,37 @@ exports.logout = async (req, res) => {
       // تسجيل النشاط
       await user.logActivity("logout", {
         ip: req.ip,
-      }, req);
+        userAgent: req.get("user-agent")
+      });
     }
 
-    // إبطال token (في حالة استخدام blacklist)
+    // إبطال Refresh Token
+    if (refreshToken) {
+      await RefreshToken.findOneAndUpdate(
+        { token: refreshToken },
+        { revokedAt: new Date() }
+      );
+    }
+
+    // إبطال Access Token (إضافته للـ blacklist)
     const token = req.headers.authorization?.split(" ")[1];
     if (token) {
-      cache.set(`token:blacklist:${token}`, true, 3600); // ساعة واحدة
+      await cache.set(`token:blacklist:${token}`, true, 3600); // ساعة واحدة
     }
 
     res.json({
       success: true,
-      message: "Logged out successfully",
+      message: "تم تسجيل الخروج بنجاح"
     });
+
   } catch (error) {
-    console.error("❌ Logout error:", error.message);
+    console.error("❌ Logout error:", error);
     res.status(500).json({
       success: false,
-      message: "Logout failed",
+      message: "فشل تسجيل الخروج"
     });
   }
 };
-
-/**
- * 🔍 التحقق من صلاحية Token
- * GET /api/auth/validate
- */
-exports.validateToken = async (req, res) => {
-  try {
-    const token = req.headers.authorization?.split(" ")[1];
-
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "No token provided",
-      });
-    }
-
-    // التحقق من blacklist
-    const isBlacklisted = cache.get(`token:blacklist:${token}`);
-    if (isBlacklisted) {
-      return res.status(401).json({
-        success: false,
-        message: "Token is invalid",
-      });
-    }
-
-    // التحقق من صلاحية Token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    // جلب بيانات المستخدم
-    const user = await User.findById(decoded.id)
-      .select("-password -verificationCode -resetPasswordToken");
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    // التحقق من حالة الحساب
-    if (!user.isActive) {
-      return res.status(403).json({
-        success: false,
-        message: "Account is deactivated",
-      });
-    }
-
-    res.json({
-      success: true,
-      message: "Token is valid",
-      data: {
-        user,
-        tokenInfo: {
-          expiresAt: new Date(decoded.exp * 1000),
-          issuedAt: new Date(decoded.iat * 1000),
-          role: decoded.role,
-        },
-      },
-    });
-  } catch (error) {
-    console.error("❌ Token validation error:", error.message);
-
-    if (error.name === "JsonWebTokenError") {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid token",
-      });
-    }
-
-    if (error.name === "TokenExpiredError") {
-      return res.status(401).json({
-        success: false,
-        message: "Token expired",
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: "Token validation failed",
-    });
-  }
-};
-
-// ... الكود الحالي ...
 
 /**
  * 🔐 تسجيل الدخول المتقدم
@@ -16645,13 +17228,12 @@ exports.loginComplete = async (req, res) => {
 
     // محاولة الدخول بالهاتف أولاً
     if (phone) {
-      user = await User.findOne({ phone }).select("+password");
+      user = await User.findOne({ phone }).select("+password +isActive +isVerified");
     }
     // ثم محاولة الدخول بالبريد الإلكتروني
     else if (email) {
-      user = await User.findOne({ email }).select("+password");
-    }
-    else {
+      user = await User.findOne({ email }).select("+password +isActive +isVerified");
+    } else {
       return res.status(400).json({
         success: false,
         message: "الهاتف أو البريد الإلكتروني مطلوب"
@@ -16682,15 +17264,36 @@ exports.loginComplete = async (req, res) => {
       });
     }
 
-    // التحقق من تفعيل الحساب
-    if (!user.isVerified && process.env.REQUIRE_VERIFICATION === 'true') {
-      return res.status(403).json({
-        success: false,
-        message: "يرجى تفعيل حسابك أولاً",
-        requiresVerification: true,
-        userId: user._id
-      });
-    }
+    // إنشاء Access Token
+    const accessToken = jwt.sign(
+      {
+        id: user._id,
+        role: user.role,
+        phone: user.phone,
+        name: user.name
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
+    );
+
+    // إنشاء Refresh Token
+    const refreshToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d" }
+    );
+
+    // حفظ Refresh Token
+    await RefreshToken.create({
+      token: refreshToken,
+      user: user._id,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      deviceInfo: {
+        ip: req.ip,
+        userAgent: req.get("user-agent"),
+        deviceId: req.body.deviceId
+      }
+    });
 
     // تحديث آخر تسجيل دخول
     user.lastLogin = new Date();
@@ -16699,54 +17302,502 @@ exports.loginComplete = async (req, res) => {
 
     // تسجيل النشاط
     await user.logActivity("login", {
-      method: "password",
+      method: "complete",
       ip: req.ip,
-      userAgent: req.headers["user-agent"],
-    }, req);
+      userAgent: req.get("user-agent")
+    });
 
-    // إنشاء token
-    const token = jwt.sign(
-      {
-        id: user._id,
-        role: user.role,
-        name: user.name,
-        phone: user.phone
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "30d" }
-    );
-
-    // إعداد بيانات المستخدم للرد
-    const userResponse = {
-      id: user._id,
-      name: user.name,
-      phone: user.phone,
-      email: user.email,
-      role: user.role,
-      image: user.image,
-      isVerified: user.isVerified,
-      stats: user.stats,
-      preferences: user.preferences,
-      lastLogin: user.lastLogin,
-    };
+    // إعداد بيانات المستخدم
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    delete userResponse.verificationCode;
+    delete userResponse.resetPasswordToken;
 
     res.json({
       success: true,
       message: "تم تسجيل الدخول بنجاح",
       data: {
-        user: userResponse,
-        token,
-        expiresIn: process.env.JWT_EXPIRES_IN || "30 days",
-      },
+        accessToken,
+        refreshToken,
+        expiresIn: process.env.JWT_EXPIRES_IN || "1h",
+        user: userResponse
+      }
     });
+
   } catch (error) {
-    console.error("❌ Login error:", error.message);
+    console.error("❌ Login complete error:", error);
     res.status(500).json({
       success: false,
-      message: "فشل تسجيل الدخول",
+      message: "فشل تسجيل الدخول"
     });
   }
 };
+
+/**
+ * 🔑 تغيير كلمة المرور
+ * POST /api/auth/change-password
+ */
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    const user = await User.findById(userId).select("+password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "المستخدم غير موجود"
+      });
+    }
+
+    // التحقق من كلمة المرور الحالية
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "كلمة المرور الحالية غير صحيحة"
+      });
+    }
+
+    // تحديث كلمة المرور
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    // إبطال جميع Refresh Tokens للمستخدم
+    await RefreshToken.updateMany(
+      { user: userId, revokedAt: null },
+      { revokedAt: new Date() }
+    );
+
+    // تسجيل النشاط
+    await user.logActivity("password_change", {
+      ip: req.ip,
+      userAgent: req.get("user-agent")
+    });
+
+    res.json({
+      success: true,
+      message: "تم تغيير كلمة المرور بنجاح"
+    });
+
+  } catch (error) {
+    console.error("❌ Change password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تغيير كلمة المرور"
+    });
+  }
+};
+
+/**
+ * 🚫 إبطال جميع جلسات المستخدم
+ * POST /api/auth/revoke-all-sessions
+ */
+exports.revokeAllSessions = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // إبطال جميع Refresh Tokens
+    const result = await RefreshToken.updateMany(
+      { user: userId, revokedAt: null },
+      { revokedAt: new Date() }
+    );
+
+    // تسجيل النشاط
+    const user = await User.findById(userId);
+    if (user) {
+      await user.logActivity("revoke_all_sessions", {
+        ip: req.ip,
+        userAgent: req.get("user-agent")
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "تم إبطال جميع الجلسات بنجاح",
+      data: {
+        revokedCount: result.modifiedCount
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Revoke all sessions error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل إبطال الجلسات"
+    });
+  }
+};
+
+/**
+ * 🔍 التحقق من صلاحية Token
+ * GET /api/auth/validate
+ */
+exports.validateToken = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "No token provided"
+      });
+    }
+
+    // التحقق من blacklist
+    const isBlacklisted = await cache.get(`token:blacklist:${token}`);
+    if (isBlacklisted) {
+      return res.status(401).json({
+        success: false,
+        message: "Token is invalid"
+      });
+    }
+
+    // التحقق من صلاحية Token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // جلب بيانات المستخدم
+    const user = await User.findById(decoded.id)
+      .select("-password -verificationCode -resetPasswordToken");
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "Account is deactivated"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "Token is valid",
+      data: {
+        user,
+        tokenInfo: {
+          expiresAt: new Date(decoded.exp * 1000),
+          issuedAt: new Date(decoded.iat * 1000)
+        }
+      }
+    });
+
+  } catch (error) {
+    if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token"
+      });
+    }
+
+    if (error.name === "TokenExpiredError") {
+      return res.status(401).json({
+        success: false,
+        message: "Token expired"
+      });
+    }
+
+    console.error("❌ Token validation error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Token validation failed"
+    });
+  }
+};
+
+// ========== الدوال الموجودة مسبقاً (registerComplete, verifyAccount, etc) ==========
+
+/**
+ * 🔐 تسجيل مستخدم جديد متقدم
+ * POST /api/auth/register/complete
+ */
+exports.registerComplete = async (req, res) => {
+  // الكود الموجود مسبقاً - لم يتم تغييره
+  try {
+    const { name, phone, password, email, role = "client", ...additionalData } = req.body;
+
+    if (!name || !phone || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Name, phone, and password are required",
+      });
+    }
+
+    const exists = await User.findOne({ phone });
+    if (exists) {
+      return res.status(400).json({
+        success: false,
+        message: "User already exists",
+      });
+    }
+
+    const userData = {
+      name,
+      phone,
+      password: await bcrypt.hash(password, 10),
+      email,
+      role,
+      isVerified: false,
+      stats: { joinedDate: new Date() },
+      preferences: {
+        notifications: { email: true, sms: true, push: true, orderUpdates: true, promotions: true },
+        language: "ar",
+        currency: "XOF",
+        theme: "light",
+      },
+    };
+
+    if (additionalData.dateOfBirth) userData.dateOfBirth = new Date(additionalData.dateOfBirth);
+    if (additionalData.gender) userData.gender = additionalData.gender;
+    if (additionalData.city) userData.city = additionalData.city;
+
+    const user = await User.create(userData);
+
+    const verificationCode = crypto.randomBytes(3).toString("hex").toUpperCase();
+    user.verificationCode = verificationCode;
+    user.verificationCodeExpires = Date.now() + 24 * 60 * 60 * 1000;
+    await user.save();
+
+    await user.logActivity("registered", {
+      method: "email",
+      ip: req.ip,
+      userAgent: req.headers["user-agent"]
+    });
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    res.status(201).json({
+      success: true,
+      message: "Registration successful. Please verify your account.",
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          phone: user.phone,
+          email: user.email,
+          role: user.role,
+          isVerified: user.isVerified,
+        },
+        token,
+        verificationCode,
+        nextStep: "verify_account",
+      },
+    });
+  } catch (error) {
+    console.error("❌ Registration error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Registration failed",
+    });
+  }
+};
+
+/**
+ * 📧 تأكيد الحساب
+ * POST /api/auth/verify
+ */
+exports.verifyAccount = async (req, res) => {
+  // الكود الموجود مسبقاً
+  try {
+    const { phone, verificationCode } = req.body;
+
+    const user = await User.findOne({
+      phone,
+      verificationCode,
+      verificationCodeExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired verification code",
+      });
+    }
+
+    user.isVerified = true;
+    user.verificationCode = undefined;
+    user.verificationCodeExpires = undefined;
+    await user.save();
+
+    await user.logActivity("account_verified", {
+      method: "code",
+      ip: req.ip,
+    });
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "30d" }
+    );
+
+    res.json({
+      success: true,
+      message: "Account verified successfully",
+      data: {
+        user: {
+          id: user._id,
+          name: user.name,
+          phone: user.phone,
+          isVerified: user.isVerified,
+        },
+        token,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Verification error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Verification failed",
+    });
+  }
+};
+
+/**
+ * 🔄 إعادة إرسال كود التحقق
+ * POST /api/auth/resend-verification
+ */
+exports.resendVerification = async (req, res) => {
+  // الكود الموجود مسبقاً
+  try {
+    const { phone } = req.body;
+
+    const user = await User.findOne({ phone, isVerified: false });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found or already verified",
+      });
+    }
+
+    const verificationCode = crypto.randomBytes(3).toString("hex").toUpperCase();
+    user.verificationCode = verificationCode;
+    user.verificationCodeExpires = Date.now() + 24 * 60 * 60 * 1000;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Verification code sent successfully",
+      data: {
+        phone: user.phone,
+        verificationCode,
+        expiresIn: "24 hours",
+      },
+    });
+  } catch (error) {
+    console.error("❌ Resend verification error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to resend verification",
+    });
+  }
+};
+
+/**
+ * 🔑 نسيت كلمة المرور
+ * POST /api/auth/forgot-password
+ */
+exports.forgotPassword = async (req, res) => {
+  // الكود الموجود مسبقاً
+  try {
+    const { phone } = req.body;
+
+    const user = await User.findOne({ phone });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString("hex");
+    user.resetPasswordToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: "Password reset instructions sent",
+      data: {
+        phone: user.phone,
+        resetToken,
+        expiresIn: "10 minutes",
+      },
+    });
+  } catch (error) {
+    console.error("❌ Forgot password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to process forgot password",
+    });
+  }
+};
+
+/**
+ * 🔄 إعادة تعيين كلمة المرور
+ * POST /api/auth/reset-password
+ */
+exports.resetPassword = async (req, res) => {
+  // الكود الموجود مسبقاً
+  try {
+    const { phone, resetToken, newPassword } = req.body;
+
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+
+    const user = await User.findOne({
+      phone,
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or expired reset token",
+      });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    await user.logActivity("password_reset", {
+      method: "reset_token",
+      ip: req.ip,
+    });
+
+    res.json({
+      success: true,
+      message: "Password reset successfully",
+    });
+  } catch (error) {
+    console.error("❌ Reset password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to reset password",
+    });
+  }
+};
+
+module.exports = exports;
 </file>
 
 <file path="src/models/user.model.js">
@@ -17191,6 +18242,7 @@ module.exports = mongoose.model("User", userSchema);
 
 <file path="src/app.js">
 const express = require("express");
+const path = require('path');
 const cors = require("cors");
 const helmet = require('helmet');
 const compression = require('compression');
@@ -17245,7 +18297,7 @@ app.set('trust proxy', 1);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.use(express.static(path.join(__dirname, 'public')));
 // Middleware لزيادة حجم الرفع
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -17311,6 +18363,18 @@ if (process.env.NODE_ENV !== 'production') {
     }
   }));
 }
+
+
+//  حل إضافي: تجاهل طلبات favicon.ico
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
+
+// حل إضافي: route مخصص لـ logo.png مع تخطي الـ cache middleware
+app.get('/logo.png', (req, res, next) => {
+    // تخطي الـ cache middleware
+    req.skipCache = true;
+    next();
+}, express.static(path.join(__dirname, 'public')));
 
 app.get('/api-docs.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');

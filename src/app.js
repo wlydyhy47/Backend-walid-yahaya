@@ -43,7 +43,7 @@ const app = express();
 // ========== MIDDLEWARES الأساسية ==========
 app.use(
   cors({
-    origin:process.env.CLIENT_URL || "http://localhost:3000", // مؤقتاً للتجربة فقط
+    origin:process.env.CLIENT_URL || "http://localhost:3000", // مؤقتاً للتجربة فقط 
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
