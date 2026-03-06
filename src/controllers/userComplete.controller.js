@@ -1089,3 +1089,137 @@ exports.updatePresence = async (req, res) => {
     });
   }
 };
+// في نهاية ملف userComplete.controller.js - أضف هذه الدوال
+
+/**
+ * @desc    الحصول على جميع المستخدمين (للأدمن)
+ * @route   GET /api/admin/users
+ * @access  Admin
+ */
+exports.getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find()
+      .select('-password -verificationCode -resetPasswordToken')
+      .sort('-createdAt');
+    
+    res.json({
+      success: true,
+      count: users.length,
+      data: users
+    });
+  } catch (error) {
+    console.error('Error in getAllUsers:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch users' 
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على مستخدم معين (للأدمن)
+ * @route   GET /api/admin/users/:id
+ * @access  Admin
+ */
+exports.getUserById = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id)
+      .select('-password -verificationCode -resetPasswordToken')
+      .populate('favorites', 'name image');
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    res.json({ 
+      success: true, 
+      data: user 
+    });
+  } catch (error) {
+    console.error('Error in getUserById:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch user' 
+    });
+  }
+};
+
+/**
+ * @desc    تحديث مستخدم (للأدمن)
+ * @route   PUT /api/admin/users/:id
+ * @access  Admin
+ */
+exports.updateUserById = async (req, res) => {
+  try {
+    const { name, email, role, isActive } = req.body;
+    
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { name, email, role, isActive },
+      { new: true, runValidators: true }
+    ).select('-password -verificationCode -resetPasswordToken');
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'User updated successfully', 
+      data: user 
+    });
+  } catch (error) {
+    console.error('Error in updateUserById:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update user' 
+    });
+  }
+};
+
+/**
+ * @desc    حذف/تعطيل مستخدم (للأدمن)
+ * @route   DELETE /api/admin/users/:id
+ * @access  Admin
+ */
+exports.deleteUserById = async (req, res) => {
+  try {
+    // منع حذف النفس
+    if (req.params.id === req.user.id) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot delete your own account' 
+      });
+    }
+    
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
+      { isActive: false },
+      { new: true }
+    );
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
+      });
+    }
+    
+    res.json({ 
+      success: true, 
+      message: 'User deactivated successfully' 
+    });
+  } catch (error) {
+    console.error('Error in deleteUserById:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to delete user' 
+    });
+  }
+};

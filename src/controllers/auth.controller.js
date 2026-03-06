@@ -1,12 +1,10 @@
-// /opt/render/project/src/src/controllers/auth.controller.js
-
 const User = require("../models/user.model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const cache = require("../utils/cache.util");
 const RefreshToken = require("../models/refreshToken.model");
-
+const SecurityCheck = require('../utils/securityCheck.util');
 /**
  * 📝 تسجيل مستخدم جديد (بسيط)
  * POST /api/auth/register
@@ -20,6 +18,25 @@ exports.register = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "الاسم ورقم الهاتف وكلمة المرور مطلوبة"
+      });
+    }
+
+    // 🔐 فحص قوة كلمة المرور
+    const passwordCheck = SecurityCheck.isPasswordStrong(password);
+    if (!passwordCheck.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'كلمة المرور ضعيفة',
+        requirements: passwordCheck.checks,
+        score: passwordCheck.score
+      });
+    }
+
+    // 🔐 فحص الاسم من SQL Injection
+    if (SecurityCheck.hasSqlInjection(name)) {
+      return res.status(400).json({
+        success: false,
+        message: 'الاسم يحتوي على أحرف غير مسموحة'
       });
     }
 
@@ -209,7 +226,7 @@ exports.refreshToken = async (req, res) => {
     const tokenDoc = await RefreshToken.findOne({
       token: refreshToken,
       revokedAt: null
-    }).populate('user');
+    }).populate('user', 'name phone image');
 
     if (!tokenDoc) {
       return res.status(401).json({
@@ -474,6 +491,16 @@ exports.changePassword = async (req, res) => {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user.id;
 
+    // 🔐 فحص قوة كلمة المرور الجديدة
+    const passwordCheck = SecurityCheck.isPasswordStrong(newPassword);
+    if (!passwordCheck.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'كلمة المرور الجديدة ضعيفة',
+        requirements: passwordCheck.checks
+      });
+    }
+
     const user = await User.findById(userId).select("+password");
 
     if (!user) {
@@ -494,6 +521,7 @@ exports.changePassword = async (req, res) => {
 
     // تحديث كلمة المرور
     user.password = await bcrypt.hash(newPassword, 10);
+    user.passwordChangedAt = Date.now();
     await user.save();
 
     // إبطال جميع Refresh Tokens للمستخدم
@@ -521,7 +549,6 @@ exports.changePassword = async (req, res) => {
     });
   }
 };
-
 /**
  * 🚫 إبطال جميع جلسات المستخدم
  * POST /api/auth/revoke-all-sessions

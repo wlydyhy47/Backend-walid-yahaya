@@ -4,39 +4,51 @@ const helmet = require('helmet');
 const mongoSanitize = require('express-mongo-sanitize');
 const xss = require('xss-clean');
 const hpp = require('hpp');
+const Redis = require('ioredis');
+
+// تهيئة Redis للتخزين الموزع
+let redisClient;
+try {
+  redisClient = new Redis({
+    host: process.env.REDIS_HOST || 'localhost',
+    port: process.env.REDIS_PORT || 6379,
+    password: process.env.REDIS_PASSWORD || null,
+    retryStrategy: (times) => Math.min(times * 50, 2000),
+  });
+  console.log('✅ Redis connected for rate limiting');
+} catch (error) {
+  console.warn('⚠️ Redis not available, using memory store');
+}
 
 /**
- * Middleware لحماية التطبيق من هجمات XSS
+ * Middleware لحماية التطبيق من هجمات XSS (محسّن)
  */
 const xssProtection = (req, res, next) => {
   try {
-    if (req.body) {
-      Object.keys(req.body).forEach(key => {
-        if (typeof req.body[key] === 'string') {
-          req.body[key] = xss(req.body[key], {
-            whiteList: {}, // لا تسمح بأي tags
-            stripIgnoreTag: true, // إزالة جميع tags
-            stripIgnoreTagBody: ['script'] // إزالة محتوى script tags
-          });
+    // تنظيف عميق لجميع المدخلات
+    const sanitizeDeep = (obj) => {
+      if (!obj || typeof obj !== 'object') return;
+      
+      Object.keys(obj).forEach(key => {
+        if (typeof obj[key] === 'string') {
+          // إزالة أي أكواد JavaScript ضارة
+          obj[key] = obj[key]
+            .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+            .replace(/javascript:/gi, '')
+            .replace(/onerror=/gi, '')
+            .replace(/onload=/gi, '')
+            .replace(/onclick=/gi, '')
+            .replace(/onmouseover=/gi, '')
+            .trim();
+        } else if (typeof obj[key] === 'object') {
+          sanitizeDeep(obj[key]);
         }
       });
-    }
-    
-    if (req.query) {
-      Object.keys(req.query).forEach(key => {
-        if (typeof req.query[key] === 'string') {
-          req.query[key] = xss(req.query[key]);
-        }
-      });
-    }
-    
-    if (req.params) {
-      Object.keys(req.params).forEach(key => {
-        if (typeof req.params[key] === 'string') {
-          req.params[key] = xss(req.params[key]);
-        }
-      });
-    }
+    };
+
+    sanitizeDeep(req.body);
+    sanitizeDeep(req.query);
+    sanitizeDeep(req.params);
     
     next();
   } catch (error) {
@@ -45,10 +57,33 @@ const xssProtection = (req, res, next) => {
 };
 
 /**
- * Middleware لمنع هجمات NoSQL injection
+ * Middleware لمنع هجمات NoSQL injection (محسّن)
  */
 const nosqlInjectionProtection = (req, res, next) => {
   try {
+    // تنظيف متقدم للـ NoSQL injection
+    const sanitizeNoSQL = (obj) => {
+      if (!obj || typeof obj !== 'object') return;
+      
+      Object.keys(obj).forEach(key => {
+        // الكشف عن محاولات NoSQL injection
+        if (typeof obj[key] === 'object') {
+          if (obj[key] && ('$where' in obj[key] || '$regex' in obj[key] || 
+              '$ne' in obj[key] || '$gt' in obj[key] || '$lt' in obj[key])) {
+            console.warn(`⚠️ NoSQL injection attempt detected on field: ${key}`);
+            delete obj[key];
+          } else {
+            sanitizeNoSQL(obj[key]);
+          }
+        }
+      });
+    };
+
+    sanitizeNoSQL(req.body);
+    sanitizeNoSQL(req.query);
+    sanitizeNoSQL(req.params);
+    
+    // استخدام المكتبة القياسية أيضاً
     mongoSanitize.sanitize(req.body);
     mongoSanitize.sanitize(req.query);
     mongoSanitize.sanitize(req.params);
@@ -79,21 +114,39 @@ const parameterPollutionProtection = hpp({
 });
 
 /**
- * Rate limiting مخصص للتطبيق
+ * Rate limiting مخصص للتطبيق مع Redis (محسّن)
  */
 const createRateLimiter = (options = {}) => {
+  const store = redisClient ? new (require('rate-limit-redis'))({
+    sendCommand: (...args) => redisClient.call(...args),
+    prefix: 'rl:'
+  }) : undefined;
+
   const defaultOptions = {
     windowMs: 15 * 60 * 1000, // 15 دقيقة
     max: 100, // 100 طلب لكل IP
     message: {
       success: false,
-      message: "Too many requests from this IP, please try again later"
+      message: "طلبات كثيرة جداً، الرجاء المحاولة بعد 15 دقيقة",
+      code: "RATE_LIMIT_EXCEEDED"
     },
     standardHeaders: true,
     legacyHeaders: false,
     skipSuccessfulRequests: false,
+    store,
     keyGenerator: (req) => {
-      return req.ip + ':' + (req.user?.id || 'anonymous');
+      // استخدام معرف المستخدم إذا كان مسجلاً، وإلا استخدام IP
+      return req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`;
+    },
+    handler: (req, res) => {
+      const retryAfter = Math.ceil(options.windowMs / 1000 / 60);
+      res.status(429).json({
+        success: false,
+        message: options.message?.message || 'طلبات كثيرة جداً',
+        code: 'RATE_LIMIT_EXCEEDED',
+        retryAfter: `${retryAfter} دقيقة`,
+        timestamp: new Date().toISOString()
+      });
     }
   };
   
@@ -101,16 +154,29 @@ const createRateLimiter = (options = {}) => {
 };
 
 /**
- * Rate limiters مختلفة لأنواع مختلفة من الطلبات
+ * Rate limiters مختلفة لأنواع مختلفة من الطلبات (محسّنة)
  */
 const rateLimiters = {
   // للتسجيل والدخول
   auth: createRateLimiter({
     windowMs: 60 * 60 * 1000, // ساعة واحدة
-    max: 5, // 5 محاولات فقط
+    max: 10, // 10 محاولات فقط (زيادة من 5)
     message: {
       success: false,
-      message: "Too many login attempts, please try again after an hour"
+      message: "محاولات تسجيل دخول كثيرة جداً، الرجاء المحاولة بعد ساعة",
+      code: "AUTH_RATE_LIMIT"
+    },
+    skipSuccessfulRequests: true
+  }),
+  
+  // صارم جداً لنسيان كلمة المرور
+  strict: createRateLimiter({
+    windowMs: 24 * 60 * 60 * 1000, // 24 ساعة
+    max: 3, // 3 محاولات فقط في اليوم
+    message: {
+      success: false,
+      message: "لقد تجاوزت الحد المسموح من المحاولات لهذا اليوم",
+      code: "STRICT_RATE_LIMIT"
     },
     skipSuccessfulRequests: true
   }),
@@ -121,7 +187,8 @@ const rateLimiters = {
     max: 20, // 20 طلب كل 15 دقيقة
     message: {
       success: false,
-      message: "Too many orders, please wait before creating more"
+      message: "طلبات كثيرة جداً، الرجاء الانتظار قبل إنشاء المزيد",
+      code: "ORDERS_RATE_LIMIT"
     }
   }),
   
@@ -131,7 +198,8 @@ const rateLimiters = {
     max: 20, // 20 ملف في 10 دقائق
     message: {
       success: false,
-      message: "Too many file uploads, please try again later"
+      message: "رفعت ملفات كثيرة جداً، الرجاء المحاولة بعد 10 دقائق",
+      code: "UPLOAD_RATE_LIMIT"
     }
   }),
   
@@ -141,7 +209,8 @@ const rateLimiters = {
     max: 100, // 100 طلب لكل IP
     message: {
       success: false,
-      message: "Too many API requests, please try again later"
+      message: "طلبات كثيرة جداً، الرجاء المحاولة بعد 15 دقيقة",
+      code: "API_RATE_LIMIT"
     }
   }),
   
@@ -151,13 +220,14 @@ const rateLimiters = {
     max: 30, // 30 طلب بحث في الدقيقة
     message: {
       success: false,
-      message: "Too many search requests, please slow down"
+      message: "طلبات بحث كثيرة جداً، الرجاء التهدئة قليلاً",
+      code: "SEARCH_RATE_LIMIT"
     }
   })
 };
 
 /**
- * Middleware للتحقق من أصل الطلب (CORS)
+ * Middleware للتحقق من أصل الطلب (CORS) - محسّن
  */
 const corsProtection = (req, res, next) => {
   const allowedOrigins = [
@@ -170,12 +240,13 @@ const corsProtection = (req, res, next) => {
   
   const origin = req.headers.origin;
   
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
+  // السماح بالطلبات من نفس المصدر حتى لو لم يكن في القائمة
+  if (!origin || allowedOrigins.includes(origin) || origin.includes('localhost')) {
+    res.setHeader('Access-Control-Allow-Origin', origin || '*');
   }
   
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.setHeader('Access-Control-Max-Age', '86400'); // 24 ساعة
   
@@ -187,19 +258,28 @@ const corsProtection = (req, res, next) => {
 };
 
 /**
- * Middleware للتحقق من نوع المحتوى
+ * Middleware للتحقق من نوع المحتوى - محسّن
  */
 const contentTypeValidation = (req, res, next) => {
-  if (req.method === 'POST' || req.method === 'PUT' || req.method === 'PATCH') {
-    const contentType = req.headers['content-type'];
-    
-    if (!contentType || !contentType.includes('application/json')) {
-      if (contentType && contentType.includes('multipart/form-data')) {
-        // مسموح لرفع الملفات
-        return next();
-      }
-      return next(new AppError('Content-Type must be application/json', 415));
-    }
+  // تجاهل طرق GET و OPTIONS
+  if (['GET', 'OPTIONS', 'HEAD', 'DELETE'].includes(req.method)) {
+    return next();
+  }
+  
+  const contentType = req.headers['content-type'];
+  
+  if (!contentType) {
+    return next(new AppError('Content-Type header مطلوب', 415));
+  }
+  
+  // السماح لـ multipart/form-data (لرفع الملفات)
+  if (contentType.includes('multipart/form-data')) {
+    return next();
+  }
+  
+  // التحقق من أن المحتوى JSON للطرق التي ترسل بيانات
+  if (!contentType.includes('application/json')) {
+    return next(new AppError('Content-Type must be application/json', 415));
   }
   
   next();
@@ -230,10 +310,15 @@ const xssBrowserProtection = (req, res, next) => {
 };
 
 /**
- * Middleware للتحقق من حجم الطلب
+ * Middleware للتحقق من حجم الطلب - محسّن
  */
 const requestSizeLimit = (maxSize = '10mb') => {
   return (req, res, next) => {
+    // تجاهل طرق معينة
+    if (['GET', 'OPTIONS', 'DELETE'].includes(req.method)) {
+      return next();
+    }
+    
     const contentLength = req.headers['content-length'];
     
     if (contentLength) {
@@ -241,7 +326,7 @@ const requestSizeLimit = (maxSize = '10mb') => {
       const maxSizeInMB = parseInt(maxSize);
       
       if (sizeInMB > maxSizeInMB) {
-        return next(new AppError(`Request size exceeds ${maxSize} limit`, 413));
+        return next(new AppError(`حجم الطلب يتجاوز الحد المسموح به (${maxSize})`, 413));
       }
     }
     
@@ -250,37 +335,44 @@ const requestSizeLimit = (maxSize = '10mb') => {
 };
 
 /**
- * Middleware للتحقق من user agent
+ * Middleware للتحقق من user agent - محسّن
  */
 const userAgentValidation = (req, res, next) => {
   const userAgent = req.headers['user-agent'];
   
-  if (!userAgent) {
-    return next(new AppError('User-Agent header is required', 400));
+  // في الإنتاج، نتحقق من وجود User-Agent
+  if (process.env.NODE_ENV === 'production' && !userAgent) {
+    return next(new AppError('User-Agent header مطلوب', 400));
   }
-  
-  // يمكن إضافة مزيد من التحقق هنا
+
+  // حظر بعض الـ User-Agents الضارة
   const blockedAgents = [
     'curl',
     'wget',
     'python-requests',
     'go-http-client',
-    'java'
+    'java',
+    'scrapy',
+    'nikto',
+    'nmap'
   ];
   
-  const isBlocked = blockedAgents.some(agent => 
-    userAgent.toLowerCase().includes(agent)
-  );
-  
-  if (isBlocked && process.env.NODE_ENV === 'production') {
-    return next(new AppError('Access denied for this user agent', 403));
+  if (userAgent) {
+    const isBlocked = blockedAgents.some(agent => 
+      userAgent.toLowerCase().includes(agent)
+    );
+    
+    if (isBlocked && process.env.NODE_ENV === 'production') {
+      console.warn(`🚫 Blocked request from ${userAgent}`);
+      return next(new AppError('Access denied for this user agent', 403));
+    }
   }
   
   next();
 };
 
 /**
- * Middleware للتحقق من referrer
+ * Middleware للتحقق من referrer - محسّن
  */
 const referrerValidation = (req, res, next) => {
   const referrer = req.headers.referer || req.headers.referrer;
@@ -290,8 +382,9 @@ const referrerValidation = (req, res, next) => {
       'fooddelivery.com',
       'www.fooddelivery.com',
       'localhost:3000',
-      'localhost:3001'
-    ];
+      'localhost:3001',
+      process.env.CLIENT_URL
+    ].filter(Boolean).map(domain => domain.replace(/https?:\/\//, ''));
     
     const isAllowed = allowedDomains.some(domain => 
       referrer.includes(domain)
@@ -307,26 +400,32 @@ const referrerValidation = (req, res, next) => {
 };
 
 /**
- * Middleware شامل للأمان
+ * Middleware شامل للأمان (محسّن)
  */
 const securityMiddleware = (app) => {
-  // Helmet للحماية الأساسية
+  // Helmet للحماية الأساسية (محدث)
   app.use(helmet({
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", "data:", "https://res.cloudinary.com"],
-        connectSrc: ["'self'", "ws://localhost:3000"],
-        fontSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
+        scriptSrc: ["'self'", "'unsafe-inline'", 'https://cdnjs.cloudflare.com'],
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://*.cloudinary.com"],
+        connectSrc: ["'self'", "ws://localhost:3000", process.env.CLIENT_URL].filter(Boolean),
+        fontSrc: ["'self'", "https://fonts.gstatic.com"],
         objectSrc: ["'none'"],
         mediaSrc: ["'self'"],
         frameSrc: ["'none'"],
       },
     },
     crossOriginEmbedderPolicy: false,
-    crossOriginResourcePolicy: { policy: "same-site" }
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true
+    }
   }));
   
   // CORS protection

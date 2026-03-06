@@ -1,11 +1,11 @@
-// /opt/render/project/src/src/routes/auth.routes.js
-
 const express = require("express");
 const router = express.Router();
 const authController = require("../controllers/auth.controller");
 const auth = require("../middlewares/auth.middleware");
 const { rateLimit } = require("express-rate-limit");
-
+const validate = require("../middlewares/validate.middleware");
+const { registerSchema, loginSchema,changePasswordSchema } = require("../validators/auth.validator");
+const rateLimiter = require("../middlewares/rateLimit.middleware");
 // 🛡️ Rate limiting لطرق المصادقة
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 دقيقة
@@ -25,28 +25,28 @@ const authLimiter = rateLimit({
  * @desc    تسجيل مستخدم جديد (بسيط)
  * @access  Public
  */
-router.post("/register", authLimiter, authController.register);
+router.post("/register",  rateLimiter.authLimiter, validate(registerSchema), authController.register);
 
 /**
  * @route   POST /api/auth/register/complete
  * @desc    تسجيل مستخدم جديد (متقدم)
  * @access  Public
  */
-router.post("/register/complete", authLimiter, authController.registerComplete);
+router.post("/register/complete", rateLimiter.authLimiter, validate(registerSchema), authController.registerComplete);
 
 /**
  * @route   POST /api/auth/login
  * @desc    تسجيل الدخول (بسيط)
  * @access  Public
  */
-router.post("/login", authLimiter, authController.login);
+router.post("/login", rateLimiter.authLimiter, validate(loginSchema), authController.login);
 
 /**
  * @route   POST /api/auth/login/complete
  * @desc    تسجيل الدخول (متقدم)
  * @access  Public
  */
-router.post("/login/complete", authLimiter, authController.loginComplete);
+router.post("/login/complete",  rateLimiter.authLimiter, validate(loginSchema), authController.loginComplete);
 
 /**
  * @route   POST /api/auth/verify
@@ -67,14 +67,14 @@ router.post("/resend-verification", authLimiter, authController.resendVerificati
  * @desc    نسيت كلمة المرور
  * @access  Public
  */
-router.post("/forgot-password", authLimiter, authController.forgotPassword);
+router.post("/forgot-password", rateLimiter.strictLimiter, authController.forgotPassword);
 
 /**
  * @route   POST /api/auth/reset-password
  * @desc    إعادة تعيين كلمة المرور
  * @access  Public
  */
-router.post("/reset-password", authLimiter, authController.resetPassword);
+router.post("/reset-password", rateLimiter.strictLimiter, authController.resetPassword);
 
 /**
  * @route   POST /api/auth/refresh
@@ -104,7 +104,7 @@ router.get("/validate", auth, authController.validateToken);
  * @desc    تغيير كلمة المرور
  * @access  Private
  */
-router.post("/change-password", auth, authController.changePassword);
+router.post("/change-password", auth, validate(changePasswordSchema), authController.changePassword);
 
 /**
  * @route   POST /api/auth/revoke-all-sessions

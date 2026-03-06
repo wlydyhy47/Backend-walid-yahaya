@@ -285,6 +285,37 @@ exports.reassignDriver = async (req, res) => {
   }
 };
 
+// controllers/order.controller.js - دالة جديدة
+exports.getDashboardStats = async (req, res) => {
+  const stats = await Order.aggregate([
+    {
+      $facet: {
+        totalStats: [{
+          $group: {
+            _id: null,
+            totalOrders: { $sum: 1 },
+            totalRevenue: { $sum: '$totalPrice' },
+            avgOrderValue: { $avg: '$totalPrice' }
+          }
+        }],
+        byStatus: [{
+          $group: { _id: '$status', count: { $sum: 1 } }
+        }],
+        last7Days: [{
+          $match: { createdAt: { $gte: new Date(Date.now() - 7*24*60*60*1000) } }
+        }, {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            orders: { $sum: 1 }
+          }
+        }]
+      }
+    }
+  ]);
+  
+  res.json(stats[0]);
+};
+
 /**
  * 📋 الحصول على طلباتي مع Pagination
  * GET /api/orders/me

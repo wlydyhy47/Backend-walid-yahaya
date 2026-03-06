@@ -46,5 +46,8 @@ const orderSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+orderSchema.index({ user: 1, createdAt: -1 });
+orderSchema.index({ driver: 1, status: 1 });
+orderSchema.index({ restaurant: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Order", orderSchema);

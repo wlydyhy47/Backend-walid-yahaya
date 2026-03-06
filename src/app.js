@@ -3,20 +3,26 @@ const path = require('path');
 const cors = require("cors");
 const helmet = require('helmet');
 const compression = require('compression');
-
+ 
 // استيراد middlewares
 const { 
   apiLimiter, 
   authLimiter, 
   notificationLimiter,
-  uploadLimiter 
+  uploadLimiter,
+  rateLimiters
 } = require('./middlewares/rateLimit.middleware');
+
+// استيراد middleware الأمان الجديد
+const securityMiddleware = require('./middlewares/security.middleware');
 
 const { cacheMiddleware, noCache, cacheResponse } = require("./middlewares/cache.middleware");
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler.middleware');
 const { httpLogger, errorLogger } = require('./utils/logger.util');
+const performanceService = require('./services/performance.service');
 
 // استيراد routes
+const adminRoutes = require('./routes/admin.routes');
 const userRoutes = require("./routes/user.routes");
 const restaurantOwnerRoutes = require("./routes/restaurantOwner.routes");
 const authRoutes = require("./routes/auth.routes");
@@ -31,6 +37,8 @@ const userCompleteRoutes = require("./routes/userComplete.routes");
 const notificationRoutes = require("./routes/notification.routes");
 const chatRoutes = require("./routes/chat.routes");
 const healthRoutes = require('./routes/health.routes');
+const securityRoutes = require('./routes/security.routes');
+const performanceRoutes = require('./routes/performance.routes');
 
 // استيراد Swagger
 const swaggerUi = require('swagger-ui-express');
@@ -38,24 +46,13 @@ const swaggerSpecs = require('./config/swagger');
 const cache = require('./utils/cache.util');
 const app = express();
 
+// ========== 1. الأمان المتقدم (يجب أن يكون الأول) ==========
+// تطبيق جميع إعدادات الأمان دفعة واحدة
+securityMiddleware.securityMiddleware(app);
 
-
-// ========== MIDDLEWARES الأساسية ==========
-app.use(
-  cors({
-    origin:process.env.CLIENT_URL || "http://localhost:3000", // مؤقتاً للتجربة فقط 
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-
+// ========== 2. MIDDLEWARES الأساسية ==========
 app.set('trust proxy', 1);
 
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
-// Middleware لزيادة حجم الرفع
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
@@ -64,49 +61,46 @@ app.use(compression({
   threshold: 100 * 1024 // ضغط الردود أكبر من 100KB
 }));
 
-// ========== الأمان ==========
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      scriptSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https://res.cloudinary.com", "https://*.cloudinary.com"],
-      connectSrc: ["'self'", "ws://localhost:3000", "ws://localhost:3001", process.env.CLIENT_URL],
-      fontSrc: ["'self'", "https://fonts.gstatic.com"],
-      objectSrc: ["'none'"],
-      mediaSrc: ["'self'"],
-      frameSrc: ["'none'"],
-    },
-  },
-  crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+// ========== 3. الملفات الثابتة ==========
+app.use('/public', express.static(path.join(__dirname, 'public'), {
+    maxAge: '7d',
+    immutable: true,
+    setHeaders: (res, path) => {
+        if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.svg')) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+    }
 }));
 
-// إضافة headers أمان إضافية
-app.use((req, res, next) => {
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-XSS-Protection', '1; mode=block');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
-  next();
-});
+app.use('/images', express.static(path.join(__dirname, 'public/images'), {
+    maxAge: '30d',
+    immutable: true
+}));
 
-// ========== Logging ==========
+app.use('/icons', express.static(path.join(__dirname, 'public/icons'), {
+    maxAge: '30d',
+    immutable: true
+}));
+
+// ========== 4. Logging ==========
 app.use(httpLogger);
 
-// ========== Cache Middleware ==========
+// ========== Performance Monitoring ==========
+app.use(performanceService.measureRequest()); // قياس أداء كل طلب
+
+// ========== 5. Cache Middleware ==========
 app.use(cacheMiddleware);
 
-// ========== Rate Limiting ==========
-// تطبيق rate limiting على مسارات محددة
-app.use("/api/auth", authLimiter); // للتسجيل والدخول
-app.use("/api/notifications/send", notificationLimiter); // لإرسال الإشعارات فقط
-app.use("/api/uploads", uploadLimiter); // للرفع
-app.use("/api", apiLimiter); // للعامة (يجب أن يكون آخر rate limiter)
+// ========== 6. Rate Limiting ==========
+// تطبيق rate limiters المحسّنة
+app.use("/api/auth", rateLimiters.auth);
+app.use("/api/auth/forgot-password", rateLimiters.strict);
+app.use("/api/auth/reset-password", rateLimiters.strict);
+app.use("/api/notifications/send", notificationLimiter);
+app.use("/api/uploads", uploadLimiter);
+app.use("/api", apiLimiter);
 
-// ========== Swagger Documentation ==========
+// ========== 7. Swagger Documentation ==========
 if (process.env.NODE_ENV !== 'production') {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
     explorer: true,
@@ -119,42 +113,22 @@ if (process.env.NODE_ENV !== 'production') {
       displayRequestDuration: true
     }
   }));
+  
+  app.get('/api-docs.json', (req, res) => {
+    res.setHeader('Content-Type', 'application/json');
+    res.send(swaggerSpecs);
+  });
 }
 
-
-// ✅ السماح بكل الملفات الثابتة من مجلد public
-app.use('/public', express.static(path.join(__dirname, 'public'), {
-    maxAge: '7d', // كاش لمدة 7 أيام للملفات الثابتة
-    immutable: true,
-    setHeaders: (res, path) => {
-        if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.svg')) {
-            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        }
-    }
-}));
-
-// ✅ مسارات مختصرة للوصول السهل
-app.use('/images', express.static(path.join(__dirname, 'public/images'), {
-    maxAge: '30d',
-    immutable: true
-}));
-
-app.use('/icons', express.static(path.join(__dirname, 'public/icons'), {
-    maxAge: '30d',
-    immutable: true
-}));
-
-// ✅ معالجة favicon بشكل صحيح
+// ========== 8. مسارات الملفات الثابتة ==========
 app.get('/favicon.ico', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/icons/favicon.ico'));
 });
 
-// ✅ معالجة logo.png بشكل صحيح
 app.get('/logo.png', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/images/logo.png'));
 });
 
-// ✅ endpoint للحصول على قائمة الصور المتاحة
 app.get('/api/assets/images', (req, res) => {
     const fs = require('fs');
     const imagesDir = path.join(__dirname, 'public/images');
@@ -180,23 +154,7 @@ app.get('/api/assets/images', (req, res) => {
     });
 });
 
-
-
-
-
-
-
-
-
-
-
-
-app.get('/api-docs.json', (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerSpecs);
-});
-
-// ========== Health Check Route ==========
+// ========== 9. Health Check Route ==========
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'healthy', 
@@ -206,7 +164,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ========== Routes ==========
+// ========== 10. Routes ==========
 // Public routes
 app.get("/", (req, res) => {
   res.json({ 
@@ -220,7 +178,6 @@ app.get("/", (req, res) => {
 
 // API routes
 app.use("/api/users", userRoutes);
-app.use("/api/complete", userCompleteRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/restaurant-owner", restaurantOwnerRoutes);
 app.use("/api/restaurants", restaurantRoutes);
@@ -233,19 +190,22 @@ app.use("/api/aggregate", aggregateRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/health", healthRoutes);
+app.use("/api/security", securityRoutes);
+app.use("/api/performance", performanceRoutes);
+app.use("/api/admin", adminRoutes); // ✅ مسار الأدمن الموحد
 
-// ========== Static Files ==========
+// ✅ ملاحظة: تم إزالة "/api/complete" لأن مساراتها انتقلت إلى "/api/admin"
+
+// ========== 11. Static Files ==========
 app.use('/uploads', express.static('uploads'));
 
-// ========== Error Handling ==========
+// ========== 12. Error Handling ==========
 app.use(notFoundHandler);
 app.use(errorLogger);
 app.use(errorHandler);
 
-// ========== Cache Monitoring ==========
-// تنظيف الكاش تلقائياً كل ساعة
+// ========== 13. Cache Monitoring ==========
 if (process.env.NODE_ENV !== 'production') {
-  // Endpoint لمراقبة الكاش (التطوير فقط)
   app.get('/api/cache-stats', (req, res) => {
     const stats = cache.getStats();
     res.json({
@@ -255,7 +215,6 @@ if (process.env.NODE_ENV !== 'production') {
     });
   });
 
-  // تنظيف الكاش تلقائياً كل ساعة
   setInterval(() => {
     const cleaned = cache.smartCleanup(2, 24);
     if (cleaned > 0) {

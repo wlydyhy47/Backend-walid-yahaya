@@ -2,7 +2,7 @@ const Restaurant = require("../models/restaurant.model");
 const RestaurantAddress = require("../models/restaurantAddress.model");
 const Favorite = require("../models/favorite.model");
 const PaginationUtils = require('../utils/pagination.util');
-
+const QueryBuilder = require('../utils/queryBuilder.util');
 /**
  * GET all restaurants
  */
@@ -37,6 +37,33 @@ exports.getRestaurants = async (req, res) => {
     res.status(500).json({ message: "Failed to fetch restaurants" });
   }
 };
+
+
+
+
+exports.getRestaurantsSmart = async (req, res) => {
+  const builder = new QueryBuilder(Restaurant, req.query);
+  
+  const { data, total } = await builder
+    .filterIfExists('type')
+    .filterIfExists('isOpen')
+    .search(['name', 'description'])
+    .rangeFilter('averageRating', 'minRating', 'maxRating')
+    .rangeFilter('deliveryFee', 'minFee', 'maxFee')
+    .paginate()
+    .execute();
+
+  res.json({
+    success: true,
+    data,
+    pagination: {
+      page: parseInt(req.query.page) || 1,
+      limit: parseInt(req.query.limit) || 20,
+      total
+    }
+  });
+};
+
 
 /**
  * Search restaurants

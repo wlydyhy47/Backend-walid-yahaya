@@ -90,4 +90,7 @@ restaurantSchema.virtual("reviews", {
 restaurantSchema.set("toObject", { virtuals: true });
 restaurantSchema.set("toJSON", { virtuals: true });
 
+restaurantSchema.index({ type: 1, averageRating: -1 });
+restaurantSchema.index({ isOpen: 1, tags: 1 });
+
 module.exports = mongoose.model("Restaurant", restaurantSchema);

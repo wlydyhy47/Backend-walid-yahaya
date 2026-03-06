@@ -434,4 +434,7 @@ userSchema.methods.updateStats = async function () {
     return this;
   }
 };
+userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ location: '2dsphere' });
+
 module.exports = mongoose.model("User", userSchema);

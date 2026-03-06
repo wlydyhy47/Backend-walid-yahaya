@@ -21,15 +21,22 @@ const restaurantUpload = upload("restaurants").fields([
 // GET all restaurants with pagination
 router.get(
   '/', 
-  auth.optional,  // ← تغيير: auth → auth.optional
+  auth.optional,
   PaginationUtils.validatePaginationParams, 
   restaurantController.getRestaurantsPaginated
+);
+
+// ✅ المسار الذكي الجديد (QueryBuilder)
+router.get(
+  '/smart',
+  auth.optional,
+  restaurantController.getRestaurantsSmart  // 👈 دالة جديدة
 );
 
 // Advanced search with pagination
 router.get(
   '/search/advanced', 
-  auth.optional,  // ← تغيير: auth → auth.optional
+  auth.optional,
   PaginationUtils.validatePaginationParams, 
   restaurantController.advancedSearch
 );
@@ -37,19 +44,18 @@ router.get(
 // ✅ البحث بالاسم والنوع
 router.get(
   "/search", 
-  auth.optional,  // ← تغيير: auth → auth.optional
+  auth.optional,
   restaurantController.searchRestaurants
 );
 
 // GET مطعم مع جميع العناوين
 router.get(
   "/:id/details", 
-  auth.optional,  // ← تغيير: auth → auth.optional
+  auth.optional,
   restaurantController.getRestaurantWithAddress
 );
 
 // ======== REVIEWS ROUTES (مختلط: عام + محمي) ========
-// ملاحظة: لازم نعدل ملف review.routes.js كمان
 router.use("/:id/reviews", reviewRoutes);
 
 // ======== PROTECTED ROUTES (تحتاج تسجيل دخول) ========
@@ -58,7 +64,7 @@ router.use("/:id/reviews", reviewRoutes);
 // POST إنشاء مطعم جديد مع رفع الصور
 router.post(
   "/",
-  auth,  // ← يبقى auth (لازم مسجل دخول)
+  auth,
   role("admin"),
   restaurantUpload,
   restaurantController.createRestaurant
@@ -67,7 +73,7 @@ router.post(
 // PUT تحديث صورة الغلاف
 router.put(
   "/:id/cover",
-  auth,  // ← يبقى auth (لازم مسجل دخول)
+  auth,
   role("admin"),
   upload("restaurants").single("image"),
   restaurantController.updateCoverImage
@@ -76,7 +82,7 @@ router.put(
 // PUT تحديث بيانات المطعم (اسم، وصف، حالة مفتوح/مغلق)
 router.put(
   "/:id",
-  auth,  // ← يبقى auth (لازم مسجل دخول)
+  auth,
   role("admin"),
   restaurantController.updateRestaurant
 );
@@ -84,7 +90,7 @@ router.put(
 // DELETE حذف المطعم
 router.delete(
   "/:id",
-  auth,  // ← يبقى auth (لازم مسجل دخول)
+  auth,
   role("admin"),
   restaurantController.deleteRestaurant
 );
