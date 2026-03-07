@@ -85,4 +85,8 @@ class RedisClient {
   }
 }
 
+getStatus() {
+  return this.client ? this.client.status : 'disconnected';
+}
+
 module.exports = new RedisClient();
