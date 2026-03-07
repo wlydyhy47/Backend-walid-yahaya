@@ -1,13 +1,13 @@
 // src/middlewares/rateLimit.middleware.js - نسخة محدثة بالكامل
 
 const rateLimit = require('express-rate-limit');
-const redisClient = require('../config/redis');
-
+const redisClient = require('../config/redis-client');
 class RateLimiterService {
+  
   constructor() {
-    this.limiters = new Map();
-    this.redis = redisClient.getClient();
-  }
+  this.limiters = new Map();
+  this.redis = redisClient.getClient(); // استخدم getClient()
+}
 
   /**
    * إنشاء Rate Limiter مخصص

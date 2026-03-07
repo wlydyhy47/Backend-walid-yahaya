@@ -7,17 +7,10 @@ const hpp = require('hpp');
 const Redis = require('ioredis');
 
 // تهيئة Redis للتخزين الموزع
-let redisClient;
-try {
-  redisClient = new Redis({
-    host: process.env.REDIS_HOST || 'localhost',
-    port: process.env.REDIS_PORT || 6379,
-    password: process.env.REDIS_PASSWORD || null,
-    retryStrategy: (times) => Math.min(times * 50, 2000),
-  });
+const redisClient = require('../config/redis-client');
+const redis = redisClient.getClient();
+if (redis) {
   console.log('✅ Redis connected for rate limiting');
-} catch (error) {
-  console.warn('⚠️ Redis not available, using memory store');
 }
 
 /**
@@ -119,16 +112,16 @@ const parameterPollutionProtection = hpp({
 const createRateLimiter = (options = {}) => {
   // ✅ تهيئة store بشكل صحيح
   let store;
-  if (redisClient) {
+  if (redis) {
     try {
       const { RedisStore } = require('rate-limit-redis');
       store = new RedisStore({
-        sendCommand: (...args) => redisClient.call(...args),
+        sendCommand: (...args) => redis.call(...args),
         prefix: 'rl:'
       });
-      console.log('✅ RedisStore initialized in security middleware');
+      console.log('✅ RedisStore initialized');
     } catch (error) {
-      console.warn('⚠️ RedisStore not available, using memory store:', error.message);
+      console.warn('⚠️ RedisStore not available:', error.message);
     }
   }
 
@@ -345,31 +338,25 @@ const requestSizeLimit = (maxSize = '10mb') => {
  * Middleware للتحقق من user agent - محسّن
  */
 const userAgentValidation = (req, res, next) => {
-  const userAgent = req.headers['user-agent'];
-
-  // في الإنتاج، نتحقق من وجود User-Agent
-  if (process.env.NODE_ENV === 'production' && !userAgent) {
-    return next(new AppError('User-Agent header مطلوب', 400));
+  const userAgent = req.headers['user-agent'] || '';
+  
+  // ✅ حضر قائمة الـ user agents المسموحة/الممنوعة
+  const allowedAgents = ['Mozilla', 'Chrome', 'Safari', 'Edge', 'Postman', 'Insomnia'];
+  const blockedAgents = ['curl', 'wget', 'python-requests', 'nikto', 'nmap'];
+  
+  // ✅ اسمح بـ Go-http-client للتجربة (لأنه يأتي من Render)
+  if (userAgent.includes('Go-http-client')) {
+    console.log(`⚠️ Allowing Go-http-client for testing`);
+    return next();
   }
 
-  // حظر بعض الـ User-Agents الضارة
-  const blockedAgents = [
-    'curl',
-    'wget',
-    'python-requests',
-    'go-http-client',
-    'java',
-    'scrapy',
-    'nikto',
-    'nmap'
-  ];
-
-  if (userAgent) {
+  // في الإنتاج، امنع الـ agents الضارة
+  if (process.env.NODE_ENV === 'production') {
     const isBlocked = blockedAgents.some(agent =>
       userAgent.toLowerCase().includes(agent)
     );
-
-    if (isBlocked && process.env.NODE_ENV === 'production') {
+    
+    if (isBlocked) {
       console.warn(`🚫 Blocked request from ${userAgent}`);
       return next(new AppError('Access denied for this user agent', 403));
     }
@@ -377,7 +364,6 @@ const userAgentValidation = (req, res, next) => {
 
   next();
 };
-
 /**
  * Middleware للتحقق من referrer - محسّن
  */

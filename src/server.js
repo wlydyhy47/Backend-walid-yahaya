@@ -3,11 +3,16 @@ const http = require("http");
 const app = require("./app");
 const connectDB = require("./config/db");
 const socketService = require("./services/socket.service");
-
+const redisClient = require('./config/redis-client');
 const PORT = process.env.PORT || 3000;
 
 // connect database
 connectDB(); 
+
+// محاولة الاتصال بـ Redis (بدون إيقاف التطبيق إذا فشل)
+redisClient.connect().catch(() => {
+  console.log('⚠️ Continuing without Redis...');
+});
 
 // create http server
 const server = http.createServer(app);

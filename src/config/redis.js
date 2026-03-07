@@ -1,6 +1,6 @@
 // src/config/redis.js
 const Redis = require('ioredis');
-
+const redisClient = require('./redis-client');
 class RedisClient {
   constructor() {
     this.client = null;
@@ -121,4 +121,7 @@ class RedisClient {
   }
 }
 
-module.exports = new RedisClient();
+module.exports = redisClient;
+module.exports.getClient = () => redisClient.getClient();
+module.exports.connect = () => redisClient.connect();
+module.exports.isConnected = () => redisClient.isConnected();
