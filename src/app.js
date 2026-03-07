@@ -8,7 +8,6 @@ const compression = require('compression');
 const rateLimiters = require('./middlewares/rateLimit.middleware');
 
 // ✅ استيراد middleware الأمان
-const securityMiddleware = require('./middlewares/security.middleware');
 
 const { cacheMiddleware, noCache, cacheResponse } = require("./middlewares/cache.middleware");
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler.middleware');
@@ -40,9 +39,6 @@ const swaggerSpecs = require('./config/swagger');
 const cache = require('./utils/cache.util');
 const app = express();
 
-// ========== 1. الأمان المتقدم (يجب أن يكون الأول) ==========
-// تطبيق جميع إعدادات الأمان دفعة واحدة
-securityMiddleware.securityMiddleware(app);
 
 // ========== 2. MIDDLEWARES الأساسية ==========
 app.set('trust proxy', 1);
