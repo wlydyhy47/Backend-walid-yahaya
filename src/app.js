@@ -4,16 +4,10 @@ const cors = require("cors");
 const helmet = require('helmet');
 const compression = require('compression');
  
-// استيراد middlewares
-const { 
-  apiLimiter, 
-  authLimiter, 
-  notificationLimiter,
-  uploadLimiter,
-  rateLimiters
-} = require('./middlewares/rateLimit.middleware');
+// ✅ استيراد rate limiters من الملف الصحيح
+const rateLimiters = require('./middlewares/rateLimit.middleware');
 
-// استيراد middleware الأمان الجديد
+// ✅ استيراد middleware الأمان
 const securityMiddleware = require('./middlewares/security.middleware');
 
 const { cacheMiddleware, noCache, cacheResponse } = require("./middlewares/cache.middleware");
@@ -92,13 +86,15 @@ app.use(performanceService.measureRequest()); // قياس أداء كل طلب
 app.use(cacheMiddleware);
 
 // ========== 6. Rate Limiting ==========
-// تطبيق rate limiters المحسّنة
-app.use("/api/auth", rateLimiters.auth);
-app.use("/api/auth/forgot-password", rateLimiters.strict);
-app.use("/api/auth/reset-password", rateLimiters.strict);
-app.use("/api/notifications/send", notificationLimiter);
-app.use("/api/uploads", uploadLimiter);
-app.use("/api", apiLimiter);
+// ✅ تطبيق rate limiters المحسّنة - استخدام الأسماء الصحيحة من rateLimiters
+app.use("/api/auth", rateLimiters.authLimiter);                    // للمصادقة
+app.use("/api/auth/forgot-password", rateLimiters.strictLimiter);  // صارم لنسيان كلمة المرور
+app.use("/api/auth/reset-password", rateLimiters.strictLimiter);   // صارم لإعادة التعيين
+app.use("/api/uploads", rateLimiters.uploadLimiter);               // للرفع
+app.use("/api", rateLimiters.apiLimiter);                          // للـ API العامة
+
+// ✅ rate limiter إضافي للبحث إذا أردت
+// app.use("/api/search", rateLimiters.searchLimiter);
 
 // ========== 7. Swagger Documentation ==========
 if (process.env.NODE_ENV !== 'production') {
@@ -192,9 +188,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/health", healthRoutes);
 app.use("/api/security", securityRoutes);
 app.use("/api/performance", performanceRoutes);
-app.use("/api/admin", adminRoutes); // ✅ مسار الأدمن الموحد
-
-// ✅ ملاحظة: تم إزالة "/api/complete" لأن مساراتها انتقلت إلى "/api/admin"
+app.use("/api/admin", adminRoutes);
 
 // ========== 11. Static Files ==========
 app.use('/uploads', express.static('uploads'));

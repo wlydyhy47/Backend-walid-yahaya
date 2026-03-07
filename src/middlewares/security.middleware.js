@@ -479,7 +479,7 @@ const securityMiddleware = (app) => {
 
 module.exports = {
   securityMiddleware,
-  rateLimiters,
+  securityRateLimiters,
   xssProtection,
   nosqlInjectionProtection,
   corsProtection,
