@@ -3,12 +3,11 @@ const path = require('path');
 const cors = require("cors");
 const helmet = require('helmet');
 const compression = require('compression');
- 
+
 // ✅ استيراد rate limiters من الملف الصحيح
 const rateLimiters = require('./middlewares/rateLimit.middleware');
 
 // ✅ استيراد middleware الأمان
-
 const { cacheMiddleware, noCache, cacheResponse } = require("./middlewares/cache.middleware");
 const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler.middleware');
 const { httpLogger, errorLogger } = require('./utils/logger.util');
@@ -33,12 +32,90 @@ const healthRoutes = require('./routes/health.routes');
 const securityRoutes = require('./routes/security.routes');
 const performanceRoutes = require('./routes/performance.routes');
 
+// ✅ استيراد المسارات الجديدة
+const loyaltyRoutes = require('./routes/loyalty.routes');
+const analyticsRoutes = require('./routes/analytics.routes');
+
 // استيراد Swagger
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpecs = require('./config/swagger');
 const cache = require('./utils/cache.util');
 const app = express();
 
+// ========== 1. ✅ إعدادات CORS المفتوحة (مؤقتاً) ==========
+console.log('🌐 CORS: تم تفعيل الوضع المفتوح للتطوير');
+
+// ✅ خيارات CORS الموسعة
+const corsOptions = {
+  // السماح لجميع النطاقات مؤقتاً
+  origin: true, // أو '*'
+  
+  // السماح بجميع الطرق
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
+  
+  // السماح بجميع الهيدرات
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Allow-Headers',
+    'Access-Control-Request-Method',
+    'Access-Control-Request-Headers',
+    'X-Forwarded-For',
+    'X-Real-IP'
+  ],
+  
+  // السماح بإرسال الكوكيز
+  credentials: true,
+  
+  // السماح بعرض هذه الهيدرات
+  exposedHeaders: [
+    'Content-Range',
+    'X-Content-Range',
+    'Authorization',
+    'X-Total-Count',
+    'X-Page',
+    'X-Total-Pages'
+  ],
+  
+  // زيادة المدة المسموح بها للطلبات المؤقتة
+  maxAge: 86400, // 24 ساعة
+  
+  // السماح بجميع أنواع الطلبات
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
+
+// ✅ تطبيق CORS على كل الطلبات
+app.use(cors(corsOptions));
+
+// ✅ معالجة طلبات OPTIONS بشكل صريح
+app.options('*', cors(corsOptions));
+
+// ✅ Middleware إضافي لضبط CORS يدوياً
+app.use((req, res, next) => {
+  // تحديد النطاق المسموح به (الطلب الحالي)
+  const origin = req.headers.origin;
+  if (origin) {
+    res.header('Access-Control-Allow-Origin', origin);
+  } else {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
+  
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Forwarded-For, X-Real-IP');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range, Authorization, X-Total-Count, X-Page, X-Total-Pages');
+  
+  // معالجة طلبات OPTIONS فوراً
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  
+  next();
+});
 
 // ========== 2. MIDDLEWARES الأساسية ==========
 app.set('trust proxy', 1);
@@ -167,6 +244,10 @@ app.get("/", (req, res) => {
     health: "/health"
   });
 });
+
+// ✅ المسارات الجديدة (مؤقتة)
+app.use("/api/loyalty", loyaltyRoutes);
+app.use("/api/analytics", analyticsRoutes);
 
 // API routes
 app.use("/api/users", userRoutes);
