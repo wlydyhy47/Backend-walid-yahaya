@@ -21,21 +21,11 @@ class RateLimiterService {
         message: 'محاولات كثيرة جداً، الرجاء المحاولة بعد 15 دقيقة',
         code: 'RATE_LIMIT_EXCEEDED'
       },
-      standardHeaders: true, // إرسال headers قياسية
-      legacyHeaders: false, // عدم إرسال headers قديمة
+      standardHeaders: true,
+      legacyHeaders: false,
       
-      // ✅ مفتاح فريد لكل مستخدم/IP - معالج بشكل صحيح لـ IPv6
-      keyGenerator: (req) => {
-        // استخدام معرف المستخدم إذا كان مسجلاً
-        const userId = req.user?.id || req.userId;
-        if (userId) {
-          return `user:${userId}`;
-        }
-        
-        // ✅ معالجة IP بشكل صحيح مع IPv6
-        // express-rate-limit يتعامل مع IP تلقائياً، نعيد فقط القيمة
-        return `ip:${req.ip}`;
-      },
+      // ✅ لا نستخدم keyGenerator مخصص - نترك المكتبة تتعامل مع IP
+      // المكتبة ستستخدم req.ip تلقائياً وهو معالج بشكل صحيح لـ IPv6
 
       // تخطي الطلبات الناجحة (للمصادقة)
       skipSuccessfulRequests: options.skipSuccessful || false,
@@ -53,10 +43,9 @@ class RateLimiterService {
       },
     };
 
-    // ✅ تخزين في Redis (إذا كان متاحاً) - مع معالجة الأخطاء
+    // ✅ تخزين في Redis (إذا كان متاحاً)
     if (this.redis) {
       try {
-        // استيراد RedisStore ديناميكياً لتجنب مشاكل التهيئة
         const { RedisStore } = require('rate-limit-redis');
         defaultOptions.store = new RedisStore({
           sendCommand: (...args) => this.redis.call(...args),
@@ -65,7 +54,6 @@ class RateLimiterService {
         console.log('✅ Using Redis store for rate limiting');
       } catch (storeError) {
         console.warn('⚠️ RedisStore not available, using memory store:', storeError.message);
-        // لا نضيف store، فيستخدم memory store افتراضياً
       }
     } else {
       console.log('ℹ️ Using memory store for rate limiting (Redis not available)');
@@ -215,7 +203,7 @@ class RateLimiterService {
       return {
         total: stats.length,
         active: stats.filter(s => !s.ttl.includes('منتهي')).length,
-        details: stats.slice(0, 20) // آخر 20 فقط
+        details: stats.slice(0, 20)
       };
     } catch (error) {
       console.error('❌ Redis stats error:', error.message);

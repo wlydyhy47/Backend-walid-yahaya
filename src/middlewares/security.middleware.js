@@ -116,11 +116,28 @@ const parameterPollutionProtection = hpp({
 /**
  * Rate limiting مخصص للتطبيق مع Redis (محسّن)
  */
+// src/middlewares/security.middleware.js - الجزء المعدل (السطر 115-140)
+
+/**
+ * Rate limiting مخصص للتطبيق مع Redis (محسّن)
+ */
 const createRateLimiter = (options = {}) => {
-  const store = redisClient ? new (require('rate-limit-redis'))({
-    sendCommand: (...args) => redisClient.call(...args),
-    prefix: 'rl:'
-  }) : undefined;
+  // ✅ استخدام try/catch للتعامل مع RedisStore بشكل صحيح
+  let store;
+  
+  if (redisClient) {
+    try {
+      const { RedisStore } = require('rate-limit-redis');
+      store = new RedisStore({
+        sendCommand: (...args) => redisClient.call(...args),
+        prefix: 'rl:'
+      });
+      console.log('✅ RedisStore initialized in security middleware');
+    } catch (error) {
+      console.warn('⚠️ RedisStore not available in security middleware:', error.message);
+      store = undefined; // سيستخدم memory store
+    }
+  }
 
   const defaultOptions = {
     windowMs: 15 * 60 * 1000, // 15 دقيقة
@@ -133,7 +150,7 @@ const createRateLimiter = (options = {}) => {
     standardHeaders: true,
     legacyHeaders: false,
     skipSuccessfulRequests: false,
-    store,
+    store, // قد يكون undefined، فيستخدم memory store
     keyGenerator: (req) => {
       // استخدام معرف المستخدم إذا كان مسجلاً، وإلا استخدام IP
       return req.user?.id ? `user:${req.user.id}` : `ip:${req.ip}`;
@@ -151,7 +168,7 @@ const createRateLimiter = (options = {}) => {
   };
   
   return rateLimit({ ...defaultOptions, ...options });
-};
+}; 
 
 /**
  * Rate limiters مختلفة لأنواع مختلفة من الطلبات (محسّنة)
