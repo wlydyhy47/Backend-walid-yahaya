@@ -92,7 +92,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 
 // ✅ معالجة طلبات OPTIONS بشكل صريح
-app.options('*', cors(corsOptions));
+app.options('/*', cors(corsOptions));
 
 // ✅ Middleware إضافي لضبط CORS يدوياً
 app.use((req, res, next) => {
