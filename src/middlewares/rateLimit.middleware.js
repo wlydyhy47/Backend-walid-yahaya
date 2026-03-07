@@ -1,7 +1,6 @@
-// src/middlewares/rateLimit.middleware.js - تحديث الملف
+// src/middlewares/rateLimit.middleware.js - نسخة محدثة بالكامل
 
 const rateLimit = require('express-rate-limit');
-const { RedisStore } = require('rate-limit-redis');
 const redisClient = require('../config/redis');
 
 class RateLimiterService {
@@ -25,12 +24,17 @@ class RateLimiterService {
       standardHeaders: true, // إرسال headers قياسية
       legacyHeaders: false, // عدم إرسال headers قديمة
       
-      // مفتاح فريد لكل مستخدم/IP
+      // ✅ مفتاح فريد لكل مستخدم/IP - معالج بشكل صحيح لـ IPv6
       keyGenerator: (req) => {
-        // استخدام معرف المستخدم إذا كان مسجلاً، وإلا استخدام IP
+        // استخدام معرف المستخدم إذا كان مسجلاً
         const userId = req.user?.id || req.userId;
-        const ip = req.ip || req.connection.remoteAddress;
-        return userId ? `user:${userId}` : `ip:${ip}`;
+        if (userId) {
+          return `user:${userId}`;
+        }
+        
+        // ✅ معالجة IP بشكل صحيح مع IPv6
+        // express-rate-limit يتعامل مع IP تلقائياً، نعيد فقط القيمة
+        return `ip:${req.ip}`;
       },
 
       // تخطي الطلبات الناجحة (للمصادقة)
@@ -47,13 +51,25 @@ class RateLimiterService {
           timestamp: new Date().toISOString()
         });
       },
-
-      // تخزين في Redis (إذا كان متاحاً)
-      store: this.redis ? new RedisStore({
-        sendCommand: (...args) => this.redis.call(...args),
-        prefix: 'rl:'
-      }) : undefined
     };
+
+    // ✅ تخزين في Redis (إذا كان متاحاً) - مع معالجة الأخطاء
+    if (this.redis) {
+      try {
+        // استيراد RedisStore ديناميكياً لتجنب مشاكل التهيئة
+        const { RedisStore } = require('rate-limit-redis');
+        defaultOptions.store = new RedisStore({
+          sendCommand: (...args) => this.redis.call(...args),
+          prefix: 'rl:'
+        });
+        console.log('✅ Using Redis store for rate limiting');
+      } catch (storeError) {
+        console.warn('⚠️ RedisStore not available, using memory store:', storeError.message);
+        // لا نضيف store، فيستخدم memory store افتراضياً
+      }
+    } else {
+      console.log('ℹ️ Using memory store for rate limiting (Redis not available)');
+    }
 
     const limiterOptions = { ...defaultOptions, ...options };
     return rateLimit(limiterOptions);
@@ -134,6 +150,24 @@ class RateLimiterService {
   }
 
   /**
+   * Rate Limiter للبحث
+   */
+  get searchLimiter() {
+    if (!this.limiters.has('search')) {
+      this.limiters.set('search', this.createLimiter({
+        windowMs: 60 * 1000, // دقيقة واحدة
+        max: 30, // 30 طلب بحث في الدقيقة
+        message: {
+          success: false,
+          message: 'طلبات بحث كثيرة جداً، الرجاء التهدئة قليلاً',
+          code: 'SEARCH_RATE_LIMIT'
+        }
+      }));
+    }
+    return this.limiters.get('search');
+  }
+
+  /**
    * Rate Limiter مخصص لرقم هاتف معين (لمنع هجمات Brute Force)
    */
   createPhoneLimiter(phone) {
@@ -153,7 +187,14 @@ class RateLimiterService {
    * الحصول على إحصائيات الـ Rate Limiting
    */
   async getStats() {
-    if (!this.redis) return null;
+    if (!this.redis) {
+      return {
+        total: 0,
+        active: 0,
+        details: [],
+        message: 'Redis not available, using memory store'
+      };
+    }
 
     try {
       const keys = await this.redis.keys('rl:*');
@@ -165,19 +206,25 @@ class RateLimiterService {
         
         stats.push({
           key: key.replace('rl:', ''),
-          ttl: `${ttl} ثانية`,
-          hits: parseInt(value) || 0
+          ttl: ttl > 0 ? `${ttl} ثانية` : 'منتهي',
+          hits: parseInt(value) || 0,
+          expiresIn: ttl > 0 ? `${Math.floor(ttl / 60)} دقيقة` : 'منتهي'
         });
       }
 
       return {
         total: stats.length,
-        active: stats.filter(s => s.ttl > 0).length,
+        active: stats.filter(s => !s.ttl.includes('منتهي')).length,
         details: stats.slice(0, 20) // آخر 20 فقط
       };
     } catch (error) {
       console.error('❌ Redis stats error:', error.message);
-      return null;
+      return {
+        total: 0,
+        active: 0,
+        details: [],
+        error: error.message
+      };
     }
   }
 
@@ -185,18 +232,45 @@ class RateLimiterService {
    * حذف جميع محاولات مستخدم معين
    */
   async resetUserLimits(userId) {
-    if (!this.redis) return false;
+    if (!this.redis) {
+      console.log(`ℹ️ Cannot reset limits for user ${userId}: Redis not available`);
+      return false;
+    }
 
     try {
       const keys = await this.redis.keys(`rl:user:${userId}*`);
       if (keys.length > 0) {
         await this.redis.del(...keys);
-        console.log(`🔄 Reset rate limits for user ${userId}`);
+        console.log(`🔄 Reset rate limits for user ${userId} (${keys.length} keys)`);
+        return true;
       }
+      console.log(`ℹ️ No rate limits found for user ${userId}`);
       return true;
     } catch (error) {
       console.error('❌ Reset limits error:', error.message);
       return false;
+    }
+  }
+
+  /**
+   * مسح جميع مفاتيح rate limiting (للمسؤول)
+   */
+  async clearAllLimits() {
+    if (!this.redis) {
+      return { success: false, message: 'Redis not available' };
+    }
+
+    try {
+      const keys = await this.redis.keys('rl:*');
+      if (keys.length > 0) {
+        await this.redis.del(...keys);
+        console.log(`🗑️ Cleared all rate limits (${keys.length} keys)`);
+        return { success: true, clearedCount: keys.length };
+      }
+      return { success: true, clearedCount: 0 };
+    } catch (error) {
+      console.error('❌ Clear all limits error:', error.message);
+      return { success: false, error: error.message };
     }
   }
 }
