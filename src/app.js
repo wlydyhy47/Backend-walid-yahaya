@@ -91,9 +91,6 @@ const corsOptions = {
 // ✅ تطبيق CORS على كل الطلبات
 app.use(cors(corsOptions));
 
-// ✅ معالجة طلبات OPTIONS بشكل صريح
-app.options('/*', cors(corsOptions));
-
 // ✅ Middleware إضافي لضبط CORS يدوياً
 app.use((req, res, next) => {
   // تحديد النطاق المسموح به (الطلب الحالي)
