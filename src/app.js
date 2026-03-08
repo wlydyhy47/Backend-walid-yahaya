@@ -42,58 +42,22 @@ const swaggerSpecs = require('./config/swagger');
 const cache = require('./utils/cache.util');
 const app = express();
 
-// ========== 1. ✅ إعدادات CORS المفتوحة (مؤقتاً) ==========
-console.log('🌐 CORS: تم تفعيل الوضع المفتوح للتطوير');
+// ========== 1. ✅ إعدادات CORS المبسطة - السماح بكل شيء ==========
+console.log('🌐 CORS: تم تفعيل الوضع المبسط - السماح بكل شيء');
 
-// ✅ خيارات CORS الموسعة
+// ✅ خيارات CORS المبسطة - السماح بكل شيء
 const corsOptions = {
-  // السماح لجميع النطاقات مؤقتاً
-  origin: true, // أو '*'
-  
-  // السماح بجميع الطرق
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH', 'HEAD'],
-  
-  // السماح بجميع الهيدرات
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With',
-    'Accept',
-    'Origin',
-    'Access-Control-Allow-Headers',
-    'Access-Control-Request-Method',
-    'Access-Control-Request-Headers',
-    'X-Forwarded-For',
-    'X-Real-IP'
-  ],
-  
-  // السماح بإرسال الكوكيز
-  credentials: true,
-  
-  // السماح بعرض هذه الهيدرات
-  exposedHeaders: [
-    'Content-Range',
-    'X-Content-Range',
-    'Authorization',
-    'X-Total-Count',
-    'X-Page',
-    'X-Total-Pages'
-  ],
-  
-  // زيادة المدة المسموح بها للطلبات المؤقتة
-  maxAge: 86400, // 24 ساعة
-  
-  // السماح بجميع أنواع الطلبات
-  preflightContinue: false,
-  optionsSuccessStatus: 204
+  origin: true,           // السماح لجميع النطاقات
+  credentials: true,      // السماح بإرسال الكوكيز
+  optionsSuccessStatus: 200 // حالة النجاح لطلبات OPTIONS
 };
 
 // ✅ تطبيق CORS على كل الطلبات
 app.use(cors(corsOptions));
 
-// ✅ Middleware إضافي لضبط CORS يدوياً
+// ✅ Middleware إضافي لضبط CORS يدوياً (للتأكد من تغطية جميع الحالات)
 app.use((req, res, next) => {
-  // تحديد النطاق المسموح به (الطلب الحالي)
+  // السماح لجميع النطاقات
   const origin = req.headers.origin;
   if (origin) {
     res.header('Access-Control-Allow-Origin', origin);
@@ -101,10 +65,17 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
   }
   
+  // السماح بجميع الطرق
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS, PATCH, HEAD');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Forwarded-For, X-Real-IP');
+  
+  // ✅ السماح بجميع الهيدرات (الحل الرئيسي للمشكلة)
+  res.header('Access-Control-Allow-Headers', '*');
+  
+  // السماح بإرسال الكوكيز
   res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Expose-Headers', 'Content-Range, X-Content-Range, Authorization, X-Total-Count, X-Page, X-Total-Pages');
+  
+  // السماح بعرض جميع الهيدرات
+  res.header('Access-Control-Expose-Headers', '*');
   
   // معالجة طلبات OPTIONS فوراً
   if (req.method === 'OPTIONS') {
@@ -117,12 +88,20 @@ app.use((req, res, next) => {
 // ========== 2. MIDDLEWARES الأساسية ==========
 app.set('trust proxy', 1);
 
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 app.use(compression({
   level: 6,
   threshold: 100 * 1024 // ضغط الردود أكبر من 100KB
+}));
+
+// تطبيق helmet مع إعدادات متوافقة مع CORS
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  crossOriginOpenerPolicy: { policy: "unsafe-none" },
+  crossOriginEmbedderPolicy: false,
+  contentSecurityPolicy: false
 }));
 
 // ========== 3. الملفات الثابتة ==========
@@ -133,40 +112,51 @@ app.use('/public', express.static(path.join(__dirname, 'public'), {
         if (path.endsWith('.png') || path.endsWith('.jpg') || path.endsWith('.svg')) {
             res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
         }
+        // إضافة هيدرات CORS للملفات الثابتة
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+        res.header('Access-Control-Allow-Headers', '*');
     }
 }));
 
 app.use('/images', express.static(path.join(__dirname, 'public/images'), {
     maxAge: '30d',
-    immutable: true
+    immutable: true,
+    setHeaders: (res) => {
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+        res.header('Access-Control-Allow-Headers', '*');
+    }
 }));
 
 app.use('/icons', express.static(path.join(__dirname, 'public/icons'), {
     maxAge: '30d',
-    immutable: true
+    immutable: true,
+    setHeaders: (res) => {
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+        res.header('Access-Control-Allow-Headers', '*');
+    }
 }));
 
 // ========== 4. Logging ==========
 app.use(httpLogger);
 
-// ========== Performance Monitoring ==========
-app.use(performanceService.measureRequest()); // قياس أداء كل طلب
+// ========== 5. Performance Monitoring ==========
+app.use(performanceService.measureRequest());
 
-// ========== 5. Cache Middleware ==========
+// ========== 6. Cache Middleware ==========
 app.use(cacheMiddleware);
 
-// ========== 6. Rate Limiting ==========
-// ✅ تطبيق rate limiters المحسّنة - استخدام الأسماء الصحيحة من rateLimiters
-app.use("/api/auth", rateLimiters.authLimiter);                    // للمصادقة
-app.use("/api/auth/forgot-password", rateLimiters.strictLimiter);  // صارم لنسيان كلمة المرور
-app.use("/api/auth/reset-password", rateLimiters.strictLimiter);   // صارم لإعادة التعيين
-app.use("/api/uploads", rateLimiters.uploadLimiter);               // للرفع
-app.use("/api", rateLimiters.apiLimiter);                          // للـ API العامة
+// ========== 7. Rate Limiting ==========
+// تطبيق rate limiters المحسّنة
+app.use("/api/auth", rateLimiters.authLimiter);
+app.use("/api/auth/forgot-password", rateLimiters.strictLimiter);
+app.use("/api/auth/reset-password", rateLimiters.strictLimiter);
+app.use("/api/uploads", rateLimiters.uploadLimiter);
+app.use("/api", rateLimiters.apiLimiter);
 
-// ✅ rate limiter إضافي للبحث إذا أردت
-// app.use("/api/search", rateLimiters.searchLimiter);
-
-// ========== 7. Swagger Documentation ==========
+// ========== 8. Swagger Documentation ==========
 if (process.env.NODE_ENV !== 'production') {
   app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, {
     explorer: true,
@@ -186,7 +176,7 @@ if (process.env.NODE_ENV !== 'production') {
   });
 }
 
-// ========== 8. مسارات الملفات الثابتة ==========
+// ========== 9. مسارات الملفات الثابتة ==========
 app.get('/favicon.ico', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/icons/favicon.ico'));
 });
@@ -220,17 +210,17 @@ app.get('/api/assets/images', (req, res) => {
     });
 });
 
-// ========== 9. Health Check Route ==========
+// ========== 10. Health Check Route ==========
 app.get('/health', (req, res) => {
   res.json({ 
     status: 'healthy', 
-    timestamp: new Date().toISOString(),
+    timestamp: new Date().toISOstring(),
     version: '1.0.0',
     service: 'Food Delivery API'
   });
 });
 
-// ========== 10. Routes ==========
+// ========== 11. Routes ==========
 // Public routes
 app.get("/", (req, res) => {
   res.json({ 
@@ -242,7 +232,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// ✅ المسارات الجديدة (مؤقتة)
+// المسارات الجديدة
 app.use("/api/loyalty", loyaltyRoutes);
 app.use("/api/analytics", analyticsRoutes);
 
@@ -264,15 +254,15 @@ app.use("/api/security", securityRoutes);
 app.use("/api/performance", performanceRoutes);
 app.use("/api/admin", adminRoutes);
 
-// ========== 11. Static Files ==========
+// ========== 12. Static Files ==========
 app.use('/uploads', express.static('uploads'));
 
-// ========== 12. Error Handling ==========
+// ========== 13. Error Handling ==========
 app.use(notFoundHandler);
 app.use(errorLogger);
 app.use(errorHandler);
 
-// ========== 13. Cache Monitoring ==========
+// ========== 14. Cache Monitoring ==========
 if (process.env.NODE_ENV !== 'production') {
   app.get('/api/cache-stats', (req, res) => {
     const stats = cache.getStats();
