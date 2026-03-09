@@ -1,10 +1,11 @@
-// src/routes/admin.routes.js (محدث)
+// src/routes/admin.routes.js (محدث ومصحح)
 
 const express = require('express');
 const router = express.Router();
 const auth = require('../middlewares/auth.middleware');
 const role = require('../middlewares/role.middleware');
 const rateLimiter = require('../middlewares/rateLimit.middleware');
+const redisClient = require('../config/redis-client');
 
 // ==================== جميع المسارات هنا تحتاج أدمن ====================
 router.use(auth);
@@ -22,18 +23,43 @@ router.use('/users', require('./admin/users.routes'));
  */
 router.get('/rate-limit/stats', async (req, res) => {
   try {
-    const stats = await rateLimiter.getStats();
+    const redis = redisClient.getClient();
     
-    if (!stats) {
+    if (!redis || !redisClient.isConnected()) {
       return res.status(503).json({
         success: false,
-        message: 'Redis غير متاح حالياً'
+        message: 'Redis غير متاح حالياً',
+        usingMemoryStore: true,
+        data: {
+          total: 0,
+          active: 0,
+          details: []
+        }
+      });
+    }
+    
+    const keys = await redis.keys('rl:*');
+    const stats = [];
+    
+    for (const key of keys.slice(0, 20)) {
+      const ttl = await redis.ttl(key);
+      const value = await redis.get(key);
+      
+      stats.push({
+        key: key.replace('rl:', ''),
+        ttl: `${ttl} ثانية`,
+        hits: parseInt(value) || 0,
+        expiresIn: ttl > 0 ? `${Math.floor(ttl / 60)} دقيقة و ${ttl % 60} ثانية` : 'منتهي'
       });
     }
     
     res.json({
       success: true,
-      data: stats,
+      data: {
+        total: keys.length,
+        active: stats.filter(s => s.ttl > 0).length,
+        details: stats
+      },
       timestamp: new Date().toISOString()
     });
   } catch (error) {
@@ -64,16 +90,30 @@ router.post('/rate-limit/reset/:userId', async (req, res) => {
       });
     }
     
-    const result = await rateLimiter.resetUserLimits(userId);
+    const redis = redisClient.getClient();
+    
+    if (!redis || !redisClient.isConnected()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Redis غير متاح، لا يمكن إعادة تعيين الحدود'
+      });
+    }
+    
+    const keys = await redis.keys(`rl:*:*:${userId}:*`);
+    
+    if (keys.length > 0) {
+      await redis.del(...keys);
+    }
     
     // تسجيل العملية
     console.log(`🔐 Admin ${req.user.id} reset limits for user ${userId}${reason ? `: ${reason}` : ''}`);
     
     res.json({
-      success: result,
-      message: result ? '✅ تم إعادة تعيين حدود المستخدم بنجاح' : '❌ فشل إعادة التعيين',
+      success: true,
+      message: '✅ تم إعادة تعيين حدود المستخدم بنجاح',
       data: {
         userId,
+        resetKeys: keys.length,
         resetAt: new Date().toISOString(),
         adminId: req.user.id
       }
@@ -97,7 +137,9 @@ router.get('/rate-limit/user/:userId', async (req, res) => {
   try {
     const { userId } = req.params;
     
-    if (!rateLimiter.redis) {
+    const redis = redisClient.getClient();
+    
+    if (!redis || !redisClient.isConnected()) {
       return res.status(503).json({
         success: false,
         message: 'Redis غير متاح'
@@ -105,20 +147,35 @@ router.get('/rate-limit/user/:userId', async (req, res) => {
     }
     
     // البحث عن جميع مفاتيح هذا المستخدم
-    const keys = await rateLimiter.redis.keys(`rl:user:${userId}*`);
+    const keys = await redis.keys(`rl:*:*:${userId}:*`);
     const limits = [];
     
     for (const key of keys) {
-      const ttl = await rateLimiter.redis.ttl(key);
-      const value = await rateLimiter.redis.get(key);
-      const keyParts = key.replace('rl:', '').split(':');
+      const ttl = await redis.ttl(key);
+      const value = await redis.get(key);
+      const keyParts = key.split(':');
+      
+      // استخراج النوع من المفتاح
+      let type = 'general';
+      if (keyParts[2]) type = keyParts[2];
       
       limits.push({
-        type: keyParts[2] || 'general',
-        remaining: Math.max(0, 10 - parseInt(value)), // افتراض أن الحد 10
-        total: 10,
-        resetsIn: `${Math.floor(ttl / 60)} دقيقة و ${ttl % 60} ثانية`,
+        type,
+        remaining: Math.max(0, (await this.getLimitForType(type)) - parseInt(value || '0')),
+        total: await this.getLimitForType(type),
+        resetsIn: this.formatTTL(ttl),
         ttl
+      });
+    }
+    
+    // إضافة الإحصائيات الافتراضية إذا لم توجد مفاتيح
+    if (keys.length === 0) {
+      limits.push({
+        type: 'general',
+        remaining: 100,
+        total: 100,
+        resetsIn: 'غير محدود',
+        ttl: -1
       });
     }
     
@@ -139,6 +196,26 @@ router.get('/rate-limit/user/:userId', async (req, res) => {
   }
 });
 
+// دالة مساعدة لتنسيق TTL
+function formatTTL(ttl) {
+  if (ttl <= 0) return 'منتهي';
+  if (ttl < 60) return `${ttl} ثانية`;
+  if (ttl < 3600) return `${Math.floor(ttl / 60)} دقيقة`;
+  return `${Math.floor(ttl / 3600)} ساعة`;
+}
+
+// دالة مساعدة للحصول على الحد المسموح حسب النوع
+async function getLimitForType(type) {
+  const limits = {
+    auth: 10,
+    api: 100,
+    upload: 20,
+    search: 30,
+    general: 100
+  };
+  return limits[type] || 100;
+}
+
 /**
  * @route   DELETE /api/admin/rate-limit/clear-all
  * @desc    مسح جميع حدود rate limiting (للمسؤول الرئيسي فقط)
@@ -154,16 +231,18 @@ router.delete('/rate-limit/clear-all', async (req, res) => {
       });
     }
     
-    if (!rateLimiter.redis) {
+    const redis = redisClient.getClient();
+    
+    if (!redis || !redisClient.isConnected()) {
       return res.status(503).json({
         success: false,
         message: 'Redis غير متاح'
       });
     }
     
-    const keys = await rateLimiter.redis.keys('rl:*');
+    const keys = await redis.keys('rl:*');
     if (keys.length > 0) {
-      await rateLimiter.redis.del(...keys);
+      await redis.del(...keys);
     }
     
     // تسجيل العملية
@@ -183,70 +262,6 @@ router.delete('/rate-limit/clear-all', async (req, res) => {
       success: false,
       message: 'فشل مسح جميع الحدود'
     });
-  }
-});
-
-/**
- * @route   GET /api/admin/rate-limit/dashboard
- * @desc    لوحة تحكم بسيطة لمراقبة rate limiting
- * @access  Admin only
- */
-router.get('/rate-limit/dashboard', async (req, res) => {
-  try {
-    const stats = await rateLimiter.getStats();
-    
-    if (!stats) {
-      return res.send(`
-        <html>
-          <head><title>Rate Limiting Dashboard</title></head>
-          <body>
-            <h1>❌ Redis غير متاح</h1>
-          </body>
-        </html>
-      `);
-    }
-    
-    // إنشاء جدول HTML بسيط
-    const tableRows = stats.details.map(item => `
-      <tr>
-        <td>${item.key}</td>
-        <td>${item.ttl}</td>
-        <td>${item.hits}</td>
-      </tr>
-    `).join('');
-    
-    res.send(`
-      <html>
-        <head>
-          <title>Rate Limiting Dashboard</title>
-          <style>
-            body { font-family: Arial; padding: 20px; }
-            table { border-collapse: collapse; width: 100%; }
-            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-            th { background-color: #4CAF50; color: white; }
-            tr:nth-child(even) { background-color: #f2f2f2; }
-            .stats { margin-bottom: 20px; }
-          </style>
-        </head>
-        <body>
-          <h1>📊 Rate Limiting Dashboard</h1>
-          <div class="stats">
-            <p><strong>Total Keys:</strong> ${stats.total}</p>
-            <p><strong>Active Keys:</strong> ${stats.active}</p>
-          </div>
-          <table>
-            <tr>
-              <th>Key</th>
-              <th>TTL</th>
-              <th>Hits</th>
-            </tr>
-            ${tableRows}
-          </table>
-        </body>
-      </html>
-    `);
-  } catch (error) {
-    res.status(500).send('Error loading dashboard');
   }
 });
 

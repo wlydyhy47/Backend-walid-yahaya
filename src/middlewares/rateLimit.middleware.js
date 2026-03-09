@@ -7,7 +7,7 @@ class RateLimiterService {
     this.limiters = new Map();
     this.store = null;
     this.redis = null;
-    
+
     // محاولة الحصول على اتصال Redis (بدون انتظار)
     this.initRedis();
   }
@@ -19,7 +19,7 @@ class RateLimiterService {
     try {
       // محاولة الاتصال بـ Redis
       this.redis = redisClient.getClient();
-      
+
       if (this.redis) {
         // انتظر قليلاً حتى يكتمل الاتصال
         setTimeout(() => {
@@ -170,6 +170,78 @@ class RateLimiterService {
       }));
     }
     return this.limiters.get('search');
+  }
+
+
+  // ====== دوال مساعدة جديدة ======
+
+  /**
+   * الحصول على Redis client
+   */
+  getRedisClient() {
+    return this.redis;
+  }
+
+  /**
+   * الحصول على إحصائيات الـ rate limiting
+   */
+  async getStats() {
+    if (!this.redis || !redisClient.isConnected()) {
+      return {
+        total: 0,
+        active: 0,
+        details: []
+      };
+    }
+
+    try {
+      const keys = await this.redis.keys('rl:*');
+      const details = [];
+
+      for (const key of keys.slice(0, 20)) {
+        const ttl = await this.redis.ttl(key);
+        const value = await this.redis.get(key);
+
+        details.push({
+          key: key.replace('rl:', ''),
+          ttl,
+          hits: parseInt(value) || 0
+        });
+      }
+
+      return {
+        total: keys.length,
+        active: details.filter(d => d.ttl > 0).length,
+        details
+      };
+    } catch (error) {
+      console.error('Error getting rate limit stats:', error);
+      return {
+        total: 0,
+        active: 0,
+        details: []
+      };
+    }
+  }
+
+  /**
+   * إعادة تعيين حدود مستخدم معين
+   */
+  async resetUserLimits(userId) {
+    if (!this.redis || !redisClient.isConnected()) {
+      return false;
+    }
+
+    try {
+      const keys = await this.redis.keys(`rl:*:*:${userId}:*`);
+      if (keys.length > 0) {
+        await this.redis.del(...keys);
+      }
+      return true;
+    } catch (error) {
+      console.error('Error resetting user limits:', error);
+      return false;
+    }
   }
 }
 
