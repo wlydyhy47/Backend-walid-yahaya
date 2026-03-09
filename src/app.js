@@ -31,7 +31,7 @@ const chatRoutes = require("./routes/chat.routes");
 const healthRoutes = require('./routes/health.routes');
 const securityRoutes = require('./routes/security.routes');
 const performanceRoutes = require('./routes/performance.routes');
-
+const driverRoutes = require('./routes/driver.routes');
 // ✅ استيراد المسارات الجديدة
 const loyaltyRoutes = require('./routes/loyalty.routes');
 const analyticsRoutes = require('./routes/analytics.routes');
@@ -253,7 +253,7 @@ app.use("/api/health", healthRoutes);
 app.use("/api/security", securityRoutes);
 app.use("/api/performance", performanceRoutes);
 app.use("/api/admin", adminRoutes);
-
+app.use("/api/driver", driverRoutes);
 // ========== 12. Static Files ==========
 app.use('/uploads', express.static('uploads'));
 
