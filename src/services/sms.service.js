@@ -1,18 +1,63 @@
+// ============================================
+// ملف: src/services/sms.service.js (محدث)
+// الوصف: خدمة إرسال الرسائل النصية المتقدمة
+// ============================================
+
+const twilio = require('twilio');
 const crypto = require('crypto');
+const { businessLogger } = require("../utils/logger.util");
 
 class SmsService {
   constructor() {
     this.config = {
       enabled: process.env.SMS_ENABLED === 'true',
       provider: process.env.SMS_PROVIDER || 'twilio',
-      from: process.env.SMS_FROM || 'FoodDelivery',
+      accountSid: process.env.TWILIO_ACCOUNT_SID,
+      authToken: process.env.TWILIO_AUTH_TOKEN,
+      fromNumber: process.env.TWILIO_PHONE_NUMBER || process.env.SMS_FROM,
       appName: process.env.APP_NAME || 'Food Delivery'
     };
-    
-    console.log(`📱 SMS service initialized - Enabled: ${this.config.enabled}`);
+
+    this.client = null;
+    this.smsQueue = [];
+    this.maxRetries = 3;
+    this.batchSize = 10;
+    this.rateLimit = 20; // رسالة في الثانية
+
+    if (this.config.enabled && this.config.provider === 'twilio') {
+      this.initializeTwilio();
+    }
+
+    businessLogger.info('SMS service initialized', { 
+      enabled: this.config.enabled,
+      provider: this.config.provider 
+    });
   }
 
-  async sendSms(to, message) {
+  /**
+   * تهيئة Twilio
+   */
+  initializeTwilio() {
+    try {
+      if (!this.config.accountSid || !this.config.authToken) {
+        throw new Error('Twilio credentials missing');
+      }
+
+      this.client = twilio(this.config.accountSid, this.config.authToken);
+      
+      businessLogger.info('Twilio client initialized');
+    } catch (error) {
+      businessLogger.error('Failed to initialize Twilio:', error);
+      this.client = null;
+    }
+  }
+
+  // ========== 1. دوال أساسية ==========
+
+  /**
+   * إرسال رسالة نصية
+   */
+  async sendSms(to, message, options = {}) {
     try {
       if (!to || !message) {
         throw new Error('Phone number and message are required');
@@ -20,180 +65,365 @@ class SmsService {
 
       // تنظيف رقم الهاتف
       const cleanPhone = this.cleanPhoneNumber(to);
-      
+
       if (!this.isValidPhoneNumber(cleanPhone)) {
         throw new Error(`Invalid phone number: ${to}`);
       }
 
-      if (!this.config.enabled) {
-        console.log(`📱 [SIMULATED] SMS to ${cleanPhone}: ${message.substring(0, 50)}...`);
-        return {
-          success: true,
-          simulated: true,
-          messageId: `simulated-${crypto.randomBytes(8).toString('hex')}`,
-          to: cleanPhone,
-          length: message.length,
-          timestamp: new Date()
-        };
+      if (!this.config.enabled || !this.client) {
+        return this.simulateSms(cleanPhone, message);
       }
 
-      // TODO: إضافة تكامل مع خدمة SMS حقيقية
-      // مثال مع Twilio (يحتاج تثبيت twilio):
-      /*
-      const client = require('twilio')(
-        process.env.TWILIO_ACCOUNT_SID,
-        process.env.TWILIO_AUTH_TOKEN
-      );
-      
-      const result = await client.messages.create({
-        body: message,
-        from: this.config.from,
-        to: cleanPhone
+      // تقليم الرسالة إذا كانت طويلة
+      const trimmedMessage = message.length > 160 
+        ? message.substring(0, 157) + '...' 
+        : message;
+
+      const result = await this.client.messages.create({
+        body: trimmedMessage,
+        from: this.config.fromNumber,
+        to: cleanPhone,
+        ...options
       });
-      */
-      
-      // Simulation للتنمية
-      console.log(`📱 SMS sent to ${cleanPhone}: ${message.substring(0, 100)}...`);
-      
+
+      businessLogger.info('SMS sent successfully', {
+        to: cleanPhone,
+        sid: result.sid,
+        length: trimmedMessage.length
+      });
+
       return {
         success: true,
-        messageId: `sms-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`,
+        messageId: result.sid,
         to: cleanPhone,
-        length: message.length,
+        length: trimmedMessage.length,
         timestamp: new Date()
       };
     } catch (error) {
-      console.error('❌ SMS sending error:', error.message);
+      businessLogger.error('SMS sending error:', error);
+
+      // إضافة إلى قائمة إعادة المحاولة
+      this.smsQueue.push({
+        to,
+        message,
+        options,
+        attempts: 1,
+        lastError: error.message
+      });
+
       return {
         success: false,
         error: error.message,
         to,
-        timestamp: new Date()
+        queued: true
       };
     }
   }
 
+  /**
+   * إرسال مع إعادة محاولة
+   */
+  async sendWithRetry(to, message, options = {}) {
+    let attempts = 0;
+    let lastError;
+
+    while (attempts < this.maxRetries) {
+      try {
+        const result = await this.sendSms(to, message, options);
+        if (result.success) {
+          return result;
+        }
+        lastError = result.error;
+      } catch (error) {
+        lastError = error.message;
+      }
+
+      attempts++;
+      if (attempts < this.maxRetries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempts)));
+      }
+    }
+
+    businessLogger.error('SMS failed after retries', {
+      to,
+      attempts,
+      lastError
+    });
+
+    return {
+      success: false,
+      error: lastError,
+      to,
+      attempts
+    };
+  }
+
+  /**
+   * إرسال رسائل متعددة
+   */
+  async sendBulkSms(recipients, message, options = {}) {
+    const results = {
+      total: recipients.length,
+      successful: 0,
+      failed: 0,
+      errors: []
+    };
+
+    // تطبيق Rate Limiting
+    for (let i = 0; i < recipients.length; i += this.batchSize) {
+      const batch = recipients.slice(i, i + this.batchSize);
+      
+      const batchPromises = batch.map(async recipient => {
+        const phone = typeof recipient === 'string' ? recipient : recipient.phone;
+        const customMessage = typeof recipient === 'object' && recipient.message 
+          ? recipient.message 
+          : message;
+
+        const result = await this.sendSms(phone, customMessage, options);
+        return { phone, result };
+      });
+
+      const batchResults = await Promise.allSettled(batchPromises);
+
+      batchResults.forEach(item => {
+        if (item.status === 'fulfilled') {
+          if (item.value.result.success) {
+            results.successful++;
+          } else {
+            results.failed++;
+            results.errors.push({
+              phone: item.value.phone,
+              error: item.value.result.error
+            });
+          }
+        } else {
+          results.failed++;
+        }
+      });
+
+      // تأخير بين الدفعات لتجنب rate limiting
+      if (i + this.batchSize < recipients.length) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+    businessLogger.info('Bulk SMS completed', {
+      total: results.total,
+      successful: results.successful,
+      failed: results.failed
+    });
+
+    return results;
+  }
+
+  // ========== 2. رسائل مخصصة ==========
+
+  /**
+   * إرسال كود التحقق
+   */
+  async sendVerificationCode(phone, code) {
+    const message = `${this.config.appName}: كود التحقق الخاص بك هو ${code}. صالح لمدة 10 دقائق.`;
+    return this.sendSms(phone, message);
+  }
+
+  /**
+   * إرسال رسالة ترحيب
+   */
+  async sendWelcomeSms(user) {
+    const message = `مرحباً ${user.name}! 👋 شكراً لانضمامك إلى ${this.config.appName}. يمكنك الآن طلب الطعام من أفضل المطاعم.`;
+    return this.sendSms(user.phone, message);
+  }
+
+  /**
+   * إرسال تأكيد الطلب
+   */
+  async sendOrderConfirmationSms(user, order) {
+    const message = `✅ تم استلام طلبك #${order._id.toString().slice(-6)} في ${this.config.appName}. القيمة: ${order.totalPrice} د.م. سنرسل لك تحديثات عن حالة الطلب.`;
+    return this.sendSms(user.phone, message);
+  }
+
+  /**
+   * إرسال تحديث حالة الطلب
+   */
+  async sendOrderStatusSms(user, order, status) {
+    const statusMessages = {
+      accepted: `✅ تم قبول طلبك #${order._id.toString().slice(-6)} وجاري تجهيزه.`,
+      picked: `📦 تم استلام طلبك #${order._id.toString().slice(-6)} من المطعم وجاري التوصيل.`,
+      delivered: `🚚 تم توصيل طلبك #${order._id.toString().slice(-6)} بنجاح. نتمنى لك وجبة شهية!`,
+      cancelled: `❌ تم إلغاء طلبك #${order._id.toString().slice(-6)}.`
+    };
+
+    const message = statusMessages[status] || `تحديث على طلبك #${order._id.toString().slice(-6)}: ${status}`;
+    return this.sendSms(user.phone, message);
+  }
+
+  /**
+   * إرسال رمز إعادة تعيين كلمة المرور
+   */
+  async sendPasswordResetSms(user, resetToken) {
+    const message = `🔐 رمز إعادة تعيين كلمة المرور: ${resetToken}. صالح لمدة 10 دقائق. ${this.config.appName}`;
+    return this.sendSms(user.phone, message);
+  }
+
+  /**
+   * إرسال إشعار تعيين مندوب
+   */
+  async sendDriverAssignedSms(user, order, driver) {
+    const message = `🚚 تم تعيين مندوب ${driver.name} لتوصيل طلبك #${order._id.toString().slice(-6)}. يمكنك تتبع المندوب في التطبيق.`;
+    return this.sendSms(user.phone, message);
+  }
+
+  /**
+   * إرسال إشعار نقاط الولاء
+   */
+  async sendLoyaltyPointsSms(user, points, type = 'earn') {
+    const message = type === 'earn'
+      ? `🎉 تهانينا! لقد حصلت على ${points} نقطة ولاء جديدة في ${this.config.appName}.`
+      : `🔄 تم استبدال ${points} نقطة ولاء بنجاح. شكراً لولائك!`;
+    
+    return this.sendSms(user.phone, message);
+  }
+
+  /**
+   * إرسال إشعار ترويجي
+   */
+  async sendPromotionalSms(phone, promotion) {
+    const message = `🎁 عرض خاص من ${this.config.appName}: ${promotion.title} - ${promotion.description}. صالح حتى: ${new Date(promotion.validUntil).toLocaleDateString('ar-SA')}`;
+    return this.sendSms(phone, message);
+  }
+
+  /**
+   * إرسال تذكير بالتقييم
+   */
+  async sendReviewReminderSms(user, order) {
+    const message = `⭐ كيف كانت تجربتك مع ${order.restaurant?.name || 'المطعم'}؟ قيم طلبك الآن: ${process.env.CLIENT_URL}/orders/${order._id}/review`;
+    return this.sendSms(user.phone, message);
+  }
+
+  /**
+   * إرسال إشعار دعم
+   */
+  async sendSupportSms(user, message) {
+    const sms = `💬 رد من فريق الدعم: ${message}`;
+    return this.sendSms(user.phone, sms);
+  }
+
+  // ========== 3. دوال مساعدة ==========
+
+  /**
+   * تنظيف رقم الهاتف
+   */
   cleanPhoneNumber(phone) {
+    if (!phone) return '';
+
     // إزالة جميع الأحرف غير الرقمية
     let cleaned = phone.replace(/\D/g, '');
-    
+
     // إضافة رمز الدولة إذا لم يكن موجوداً
     if (cleaned.startsWith('0')) {
-      cleaned = '212' + cleaned.substring(1); // مثال للمغرب
-    } else if (!cleaned.startsWith('+') && cleaned.length <= 10) {
-      cleaned = '212' + cleaned; // إضافة رمز الدولة افتراضياً
+      cleaned = '212' + cleaned.substring(1); // رمز المغرب
+    } else if (cleaned.length <= 9) {
+      cleaned = '212' + cleaned;
     }
-    
+
+    // إضافة + في البداية
     return '+' + cleaned;
   }
 
+  /**
+   * التحقق من صحة رقم الهاتف
+   */
   isValidPhoneNumber(phone) {
-    const phoneRegex = /^\+[1-9]\d{1,14}$/; // E.164 format
+    const phoneRegex = /^\+[1-9]\d{1,14}$/; // تنسيق E.164
     return phoneRegex.test(phone);
   }
 
-  async sendVerificationCode(phone, verificationCode) {
-    const message = `رمز التحقق الخاص بك في ${this.config.appName} هو: ${verificationCode}. صالح لمدة 10 دقائق.`;
+  /**
+   * محاكاة إرسال رسالة (للتطوير)
+   */
+  simulateSms(phone, message) {
+    const messageId = `simulated-${crypto.randomBytes(8).toString('hex')}`;
     
-    return this.sendSms(phone, message);
-  }
+    businessLogger.info(`[SIMULATED] SMS to ${phone}: ${message.substring(0, 50)}...`, {
+      messageId,
+      length: message.length
+    });
 
-  async sendWelcomeSms(user) {
-    const message = `مرحباً ${user.name}! شكراً لانضمامك إلى ${this.config.appName}. يمكنك الآن طلب الطعام من أفضل المطاعم.`;
-    
-    return this.sendSms(user.phone, message);
-  }
-
-  async sendOrderStatusSms(user, order, status) {
-    const statusMessages = {
-      pending: 'تم استلام طلبك بنجاح وجاري المعالجة.',
-      accepted: 'تم قبول طلبك وجاري تجهيزه.',
-      picked: 'تم استلام طلبك من المطعم وجاري التوصيل.',
-      delivered: 'تم توصيل طلبك بنجاح. نتمنى لك وجبة شهية!',
-      cancelled: 'تم إلغاء طلبك.'
+    return {
+      success: true,
+      simulated: true,
+      messageId,
+      to: phone,
+      length: message.length,
+      timestamp: new Date()
     };
-    
-    const message = `${statusMessages[status] || 'تحديث على طلبك.'} رقم الطلب: ${order._id.toString().slice(-6)}. المجموع: ${order.totalPrice.toFixed(2)} د.م`;
-    
-    return this.sendSms(user.phone, message);
   }
 
-  async sendDriverAssignedSms(user, order, driver) {
-    const message = `تم تعيين مندوب ${driver.name} لتوصيل طلبك رقم ${order._id.toString().slice(-6)}. يمكنك تتبع المندوب في التطبيق.`;
-    
-    return this.sendSms(user.phone, message);
-  }
+  /**
+   * إعادة محاولة الرسائل الفاشلة
+   */
+  async retryFailedSms() {
+    if (this.smsQueue.length === 0) {
+      return { success: true, message: 'No failed SMS to retry' };
+    }
 
-  async sendPasswordResetSms(user, resetToken) {
-    const message = `رمز إعادة تعيين كلمة المرور: ${resetToken}. صالح لمدة 10 دقائق. ${this.config.appName}`;
-    
-    return this.sendSms(user.phone, message);
-  }
-
-  async sendPromotionalSms(phone, promotion) {
-    const message = `عرض خاص من ${this.config.appName}: ${promotion.title} - ${promotion.description}. صالح حتى: ${new Date(promotion.validUntil).toLocaleDateString('ar-SA')}`;
-    
-    return this.sendSms(phone, message);
-  }
-
-  async sendBulkSms(phones, message, options = {}) {
     const results = {
-      total: phones.length,
+      total: this.smsQueue.length,
       successful: 0,
-      failed: 0,
-      details: []
+      failed: 0
     };
-    
-    // إرسال الرسائل بشكل متوازي مع rate limiting
-    const batchSize = options.batchSize || 10;
-    const delayBetweenBatches = options.delayBetweenBatches || 1000; // 1 second
-    
-    for (let i = 0; i < phones.length; i += batchSize) {
-      const batch = phones.slice(i, i + batchSize);
-      const batchPromises = batch.map(phone => this.sendSms(phone, message));
-      
-      try {
-        const batchResults = await Promise.allSettled(batchPromises);
-        
-        batchResults.forEach((result, index) => {
-          const phone = batch[index];
-          if (result.status === 'fulfilled' && result.value.success) {
-            results.successful++;
-            results.details.push({
-              phone,
-              success: true,
-              messageId: result.value.messageId
-            });
-          } else {
-            results.failed++;
-            results.details.push({
-              phone,
-              success: false,
-              error: result.reason?.message || result.value?.error || 'Unknown error'
-            });
-          }
-        });
-        
-        console.log(`📱 Batch ${Math.floor(i/batchSize) + 1} completed: ${results.successful}/${results.total} successful`);
-        
-        // تأخير بين الدفعات لتجنب rate limiting
-        if (i + batchSize < phones.length) {
-          await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
-        }
-      } catch (error) {
-        console.error('❌ Batch SMS error:', error.message);
-        batch.forEach(phone => {
+
+    const newQueue = [];
+
+    for (const sms of this.smsQueue) {
+      if (sms.attempts < this.maxRetries) {
+        const result = await this.sendSms(sms.to, sms.message, sms.options);
+
+        if (result.success) {
+          results.successful++;
+        } else {
+          sms.attempts++;
+          sms.lastError = result.error;
+          newQueue.push(sms);
           results.failed++;
-          results.details.push({
-            phone,
-            success: false,
-            error: error.message
-          });
-        });
+        }
+      } else {
+        results.failed++;
       }
     }
-    
-    return results;
+
+    this.smsQueue = newQueue;
+
+    businessLogger.info('Retry failed SMS completed', results);
+
+    return {
+      success: true,
+      ...results,
+      remaining: this.smsQueue.length
+    };
+  }
+
+  /**
+   * الحصول على معلومات الرصيد
+   */
+  async getBalance() {
+    if (!this.client) {
+      return { success: false, error: 'SMS client not initialized' };
+    }
+
+    try {
+      // هذا خاص بـ Twilio
+      const balance = await this.client.api.v2010.balance.fetch();
+      
+      return {
+        success: true,
+        balance: balance.balance,
+        currency: balance.currency
+      };
+    } catch (error) {
+      businessLogger.error('Get balance error:', error);
+      return { success: false, error: error.message };
+    }
   }
 }
 

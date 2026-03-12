@@ -1,13 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const userCompleteController = require("../controllers/userComplete.controller");
-const authController = require("../controllers/auth.controller");
-const auth = require("../middlewares/auth.middleware");
-const role = require("../middlewares/role.middleware");
-const upload = require("../middlewares/upload");
+const userCompleteController = require("../src/controllers/userComplete.controller");
+const authController = require("../src/controllers/auth.controller");
+const auth = require("../src/middlewares/auth.middleware");
+const role = require("../src/middlewares/role.middleware");
+const upload = require("../src/middlewares/upload");
 // في routes/userComplete.routes.js - إضافة في الأعلى
-const User = require("../models/user.model");
-const Order = require("../models/order.model");
+const User = require("../src/models/user.model");
+const Order = require("../src/models/order.model");
 
 /**
  * 🔐 Authentication Routes
@@ -85,7 +85,7 @@ router.put("/users/me/presence", auth, userCompleteController.updatePresence);
 // الحصول على جميع المستخدمين مع Pagination
 router.get("/admin/users", auth, role("admin"), async (req, res) => {
   try {
-    const PaginationUtils = require("../utils/pagination.util");
+    const PaginationUtils = require("../src/utils/pagination.util");
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, search, filters } = paginationOptions;
     

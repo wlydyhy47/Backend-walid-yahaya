@@ -1,12 +1,21 @@
+// ============================================
+// ملف: src/services/socket.service.js (محدث)
+// الوصف: خدمة Socket.io المتقدمة
+// ============================================
+
 const socketIo = require("socket.io");
+const jwt = require("jsonwebtoken");
+const User = require("../models/user.model");
+const { businessLogger } = require("../utils/logger.util");
 
 class SocketService {
   constructor() {
     this.io = null;
-    this.userSockets = new Map(); // تخزين userId -> socketId
-    this.userRooms = new Map(); // تخزين userId -> Set<rooms>
+    this.userSockets = new Map(); // userId -> Set<socketId>
+    this.socketUser = new Map();   // socketId -> userId
+    this.userRooms = new Map();    // userId -> Set<rooms>
+    this.userStatus = new Map();    // userId -> { online, lastSeen }
     this.chatSocketService = null;
-    this.User = null; // سيتم استيراده عند الحاجة
   }
 
   /**
@@ -22,16 +31,17 @@ class SocketService {
         },
         pingTimeout: 60000,
         pingInterval: 25000,
+        transports: ['websocket', 'polling']
       });
 
       this.setupEventHandlers();
-      console.log("✅ Socket.io initialized");
+      businessLogger.info("Socket.io initialized successfully");
       
       this.initializeChatServices();
       
       return this.io;
     } catch (error) {
-      console.error("❌ Failed to initialize Socket.io:", error.message);
+      businessLogger.error("Socket.io initialization failed:", error);
       throw error;
     }
   }
@@ -41,54 +51,68 @@ class SocketService {
    */
   setupEventHandlers() {
     if (!this.io) {
-      console.error("❌ Cannot setup event handlers: Socket.io not initialized");
+      businessLogger.error("Socket.io not initialized");
       return;
     }
 
-    this.io.on("connection", (socket) => {
-      console.log(`🟢 New socket connection: ${socket.id}`);
-      socket.userId = null;
+    this.io.use(async (socket, next) => {
+      try {
+        const token = socket.handshake.auth.token;
+        if (!token) {
+          socket.userId = null;
+          return next();
+        }
 
-      // ====== Authentication & Connection ======
-      socket.on("authenticate", async (userId) => {
-        await this.handleAuthentication(socket, userId);
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        socket.userId = decoded.id;
+        next();
+      } catch (error) {
+        socket.userId = null;
+        next();
+      }
+    });
+
+    this.io.on("connection", async (socket) => {
+      businessLogger.info(`Socket connected: ${socket.id}`, { 
+        userId: socket.userId 
       });
 
-      socket.on("join", async (userId) => {
-        await this.handleJoin(socket, userId);
+      // تسجيل الاتصال
+      if (socket.userId) {
+        await this.handleUserConnection(socket);
+      }
+
+      // ====== Authentication ======
+      socket.on("authenticate", async (token) => {
+        await this.handleAuthentication(socket, token);
       });
 
-      // ====== Room Subscriptions ======
-      socket.on("order:subscribe", (orderId) => {
-        this.handleOrderSubscription(socket, orderId);
-      });
-
-      socket.on("restaurant:subscribe", async (restaurantId) => {
-        await this.handleRestaurantSubscription(socket, restaurantId);
-      });
-
-      // ====== Presence & Status ======
+      // ====== Presence ======
       socket.on("presence:update", (data) => {
         this.handlePresenceUpdate(socket, data);
       });
 
-      // ====== Messaging ======
-      socket.on("message:send", async (data) => {
-        await this.handleMessageSend(socket, data);
+      // ====== Typing Indicators ======
+      socket.on("typing:start", (data) => {
+        this.handleTypingStart(socket, data);
       });
 
-      // ====== Driver Tracking ======
-      socket.on("driver:location:update", (data) => {
-        this.handleDriverLocationUpdate(socket, data);
+      socket.on("typing:stop", (data) => {
+        this.handleTypingStop(socket, data);
       });
 
-      // ====== Admin Features ======
-      socket.on("admin:join", () => {
-        this.handleAdminJoin(socket);
+      // ====== Read Receipts ======
+      socket.on("message:read", (data) => {
+        this.handleMessageRead(socket, data);
       });
 
-      socket.on("dashboard:subscribe", () => {
-        this.handleDashboardSubscription(socket);
+      // ====== Room Management ======
+      socket.on("room:join", (room) => {
+        this.handleRoomJoin(socket, room);
+      });
+
+      socket.on("room:leave", (room) => {
+        this.handleRoomLeave(socket, room);
       });
 
       // ====== Disconnection ======
@@ -97,445 +121,352 @@ class SocketService {
       });
 
       socket.on("error", (error) => {
-        console.error(`Socket error ${socket.id}:`, error);
+        businessLogger.error(`Socket error ${socket.id}:`, error);
       });
     });
   }
 
-  // ====== Authentication Handlers ======
-  
-  async handleAuthentication(socket, userId) {
+  // ====== Connection Handlers ======
+
+  /**
+   * معالجة اتصال المستخدم
+   */
+  async handleUserConnection(socket) {
+    const userId = socket.userId;
+
+    // تخزين الاتصال
+    if (!this.userSockets.has(userId)) {
+      this.userSockets.set(userId, new Set());
+    }
+    this.userSockets.get(userId).add(socket.id);
+    this.socketUser.set(socket.id, userId);
+
+    // تحديث حالة المستخدم
+    this.userStatus.set(userId, {
+      online: true,
+      lastSeen: new Date()
+    });
+
+    // تحديث في قاعدة البيانات
+    await User.findByIdAndUpdate(userId, {
+      isOnline: true,
+      lastSeen: new Date()
+    });
+
+    // الانضمام إلى غرفة المستخدم
+    socket.join(`user:${userId}`);
+
+    // إعلام الآخرين
+    socket.broadcast.emit("user:connected", {
+      userId,
+      timestamp: new Date()
+    });
+
+    businessLogger.info(`User ${userId} connected`, {
+      socketId: socket.id
+    });
+  }
+
+  /**
+   * معالجة المصادقة
+   */
+  async handleAuthentication(socket, token) {
     try {
-      if (!userId) {
-        socket.emit("error", { message: "يجب إدخال معرف المستخدم" });
+      if (!token) {
+        socket.emit("error", { message: "Token required" });
         return;
       }
 
-      socket.userId = userId.toString();
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      socket.userId = decoded.id;
       
-      // الانضمام إلى غرفة المستخدم الخاصة
-      socket.join(`user:${userId}`);
-      this.userSockets.set(userId.toString(), socket.id);
-      
-      // تخزين الغرف
-      if (!this.userRooms.has(userId.toString())) {
-        this.userRooms.set(userId.toString(), new Set());
-      }
-      this.userRooms.get(userId.toString()).add(`user:${userId}`);
-      
-      console.log(`👤 User ${userId} authenticated and joined their room`);
-      
+      await this.handleUserConnection(socket);
+
       socket.emit("authenticated", {
-        message: "تم المصادقة بنجاح",
-        userId: userId,
-        timestamp: new Date(),
-      });
-
-      // إشعار الآخرين باتصال المستخدم
-      socket.broadcast.emit("user:connected", {
-        userId: userId,
-        socketId: socket.id,
-        timestamp: new Date(),
+        message: "Authentication successful",
+        userId: decoded.id
       });
     } catch (error) {
-      console.error("Authentication error:", error.message);
-      socket.emit("error", { message: "فشلت المصادقة" });
+      businessLogger.error("Authentication error:", error);
+      socket.emit("error", { message: "Invalid token" });
     }
   }
 
-  async handleJoin(socket, userId) {
-    try {
-      if (!userId) {
-        socket.emit("error", { message: "يجب إدخال معرف المستخدم" });
-        return;
-      }
+  // ====== Presence Handlers ======
 
-      socket.userId = userId.toString();
-      socket.join(`user:${userId}`);
-      this.userSockets.set(userId.toString(), socket.id);
-      
-      if (!this.userRooms.has(userId.toString())) {
-        this.userRooms.set(userId.toString(), new Set());
-      }
-      this.userRooms.get(userId.toString()).add(`user:${userId}`);
-      
-      console.log(`👤 User ${userId} joined their room`);
-      
-      socket.emit("welcome", {
-        message: "تم الاتصال بخادم الإشعارات",
-        userId: userId,
-        timestamp: new Date(),
-      });
-
-      socket.broadcast.emit("user:connected", {
-        userId: userId,
-        socketId: socket.id,
-        timestamp: new Date(),
-      });
-    } catch (error) {
-      console.error("Join error:", error.message);
-      socket.emit("error", { message: "فشل الانضمام" });
-    }
-  }
-
-  // ====== Subscription Handlers ======
-  
-  handleOrderSubscription(socket, orderId) {
-    try {
-      if (!orderId) {
-        socket.emit("error", { message: "يجب إدخال معرف الطلب" });
-        return;
-      }
-
-      const room = `order:${orderId}`;
-      socket.join(room);
-      
-      // تخزين الغرفة للمستخدم
-      const userId = this.getUserIdBySocket(socket.id);
-      if (userId && this.userRooms.has(userId)) {
-        this.userRooms.get(userId).add(room);
-      }
-      
-      console.log(`📦 Socket ${socket.id} subscribed to order ${orderId}`);
-      
-      socket.emit("order:subscribed", {
-        orderId,
-        timestamp: new Date(),
-      });
-    } catch (error) {
-      console.error("Order subscribe error:", error.message);
-      socket.emit("error", { message: "فشل الاشتراك في الطلب" });
-    }
-  }
-
-  async handleRestaurantSubscription(socket, restaurantId) {
-    try {
-      if (!restaurantId) {
-        socket.emit("error", { message: "يجب إدخال معرف المطعم" });
-        return;
-      }
-
-      const userId = this.getUserIdBySocket(socket.id);
-      if (!userId) {
-        socket.emit("error", { message: "يجب تسجيل الدخول أولاً" });
-        return;
-      }
-
-      // تأخير استيراد الموديل حتى الحاجة الفعلية
-      if (!this.User) {
-        this.User = require("../models/user.model");
-      }
-
-      // التحقق من صلاحيات المستخدم
-      const user = await this.User.findById(userId);
-      if (!user) {
-        socket.emit("error", { message: "المستخدم غير موجود" });
-        return;
-      }
-
-      const isAuthorized = this.checkRestaurantAccess(user, restaurantId);
-      if (!isAuthorized) {
-        socket.emit("error", { message: "غير مصرح لك بالوصول لهذا المطعم" });
-        return;
-      }
-
-      const room = `restaurant:${restaurantId}`;
-      socket.join(room);
-      
-      // تخزين الغرفة
-      if (this.userRooms.has(userId)) {
-        this.userRooms.get(userId).add(room);
-      }
-      
-      console.log(`🏪 User ${userId} subscribed to restaurant ${restaurantId}`);
-      
-      socket.emit("restaurant:subscribed", {
-        restaurantId,
-        userId,
-        role: user.role,
-        timestamp: new Date(),
-      });
-    } catch (error) {
-      console.error("Restaurant subscribe error:", error);
-      socket.emit("error", { message: "فشل الاشتراك في المطعم" });
-    }
-  }
-
-  // ====== Presence & Messaging Handlers ======
-  
+  /**
+   * معالجة تحديث الحالة
+   */
   handlePresenceUpdate(socket, data) {
-    try {
-      const { userId, isOnline } = data;
-      
-      if (!userId) {
-        socket.emit("error", { message: "يجب إدخال معرف المستخدم" });
-        return;
-      }
+    const userId = socket.userId;
+    if (!userId) return;
 
-      socket.broadcast.emit("presence:changed", {
+    const { isOnline, status } = data;
+
+    this.userStatus.set(userId, {
+      online: isOnline,
+      status: status || 'online',
+      lastSeen: new Date()
+    });
+
+    // تحديث في قاعدة البيانات
+    User.findByIdAndUpdate(userId, {
+      isOnline,
+      lastSeen: new Date()
+    }).catch(err => businessLogger.error('Update presence error:', err));
+
+    // إعلام المشتركين
+    socket.broadcast.emit("presence:changed", {
+      userId,
+      isOnline,
+      status,
+      timestamp: new Date()
+    });
+  }
+
+  // ====== Typing Handlers ======
+
+  /**
+   * معالجة بدء الكتابة
+   */
+  handleTypingStart(socket, data) {
+    const { conversationId } = data;
+    const userId = socket.userId;
+
+    if (!userId || !conversationId) return;
+
+    socket.to(`chat:${conversationId}`).emit("typing:started", {
+      conversationId,
+      userId,
+      timestamp: new Date()
+    });
+  }
+
+  /**
+   * معالجة توقف الكتابة
+   */
+  handleTypingStop(socket, data) {
+    const { conversationId } = data;
+    const userId = socket.userId;
+
+    if (!userId || !conversationId) return;
+
+    socket.to(`chat:${conversationId}`).emit("typing:stopped", {
+      conversationId,
+      userId,
+      timestamp: new Date()
+    });
+  }
+
+  // ====== Read Receipts ======
+
+  /**
+   * معالجة قراءة الرسالة
+   */
+  async handleMessageRead(socket, data) {
+    const { conversationId, messageId } = data;
+    const userId = socket.userId;
+
+    if (!userId || !conversationId || !messageId) return;
+
+    try {
+      const Message = require("../models/message.model");
+      await Message.findByIdAndUpdate(messageId, {
+        $addToSet: {
+          readReceipts: {
+            user: userId,
+            readAt: new Date()
+          }
+        }
+      });
+
+      socket.to(`chat:${conversationId}`).emit("message:read", {
+        conversationId,
+        messageId,
         userId,
-        isOnline: Boolean(isOnline),
-        timestamp: new Date(),
+        timestamp: new Date()
       });
     } catch (error) {
-      console.error("Presence update error:", error.message);
-      socket.emit("error", { message: "فشل تحديث الحالة" });
+      businessLogger.error('Message read error:', error);
     }
   }
 
-  async handleMessageSend(socket, data) {
-    try {
-      const { to, message, type = "chat" } = data;
-      
-      if (!to || !message) {
-        socket.emit("error", { message: "يجب إدخال المستلم والرسالة" });
-        return;
-      }
+  // ====== Room Management ======
 
-      const from = this.getUserIdBySocket(socket.id);
-      if (!from) {
-        socket.emit("error", { message: "المستخدم غير مصرح به" });
-        return;
+  /**
+   * معالجة الانضمام لغرفة
+   */
+  handleRoomJoin(socket, room) {
+    socket.join(room);
+    
+    const userId = socket.userId;
+    if (userId) {
+      if (!this.userRooms.has(userId)) {
+        this.userRooms.set(userId, new Set());
       }
-
-      // إرسال الرسالة
-      this.sendToUser(to, {
-        type: "message:new",
-        data: {
-          from,
-          message,
-          type,
-          timestamp: new Date(),
-        },
-      });
-      
-      socket.emit("message:sent", {
-        to,
-        message,
-        timestamp: new Date(),
-      });
-    } catch (error) {
-      console.error("Message send error:", error.message);
-      socket.emit("error", { message: "فشل إرسال الرسالة" });
+      this.userRooms.get(userId).add(room);
     }
+
+    businessLogger.info(`Socket ${socket.id} joined room ${room}`);
   }
 
-  // ====== Driver Tracking Handlers ======
-  
-  handleDriverLocationUpdate(socket, data) {
-    try {
-      const { driverId, orderId, location } = data;
-      
-      if (!driverId || !location) {
-        socket.emit("error", { message: "يجب إدخال معرف السائق والموقع" });
-        return;
-      }
+  /**
+   * معالجة مغادرة غرفة
+   */
+  handleRoomLeave(socket, room) {
+    socket.leave(room);
 
-      // تحديث الموقع لمتابعي الطلب
-      if (orderId) {
-        this.io.to(`order:${orderId}`).emit("driver:location:updated", {
-          driverId,
-          orderId,
-          location,
-          timestamp: new Date(),
-        });
-      }
-      
-      // تحديث الموقع للمشرفين
-      this.io.to("admin:room").emit("driver:location:updated", {
-        driverId,
-        location,
-        timestamp: new Date(),
-      });
-    } catch (error) {
-      console.error("Driver location update error:", error.message);
-      socket.emit("error", { message: "فشل تحديث الموقع" });
+    const userId = socket.userId;
+    if (userId && this.userRooms.has(userId)) {
+      this.userRooms.get(userId).delete(room);
     }
-  }
 
-  // ====== Admin Handlers ======
-  
-  handleAdminJoin(socket) {
-    try {
-      const userId = this.getUserIdBySocket(socket.id);
-      if (!userId) {
-        socket.emit("error", { message: "يجب تسجيل الدخول أولاً" });
-        return;
-      }
-
-      // TODO: التحقق من صلاحيات المشرف
-      socket.join("admin:room");
-      
-      console.log(`👑 Admin ${userId} joined admin room`);
-      
-      socket.emit("admin:joined", {
-        message: "تم الانضمام لغرفة المشرفين",
-        timestamp: new Date(),
-      });
-    } catch (error) {
-      console.error("Admin join error:", error.message);
-      socket.emit("error", { message: "فشل الانضمام لغرفة المشرفين" });
-    }
-  }
-
-  handleDashboardSubscription(socket) {
-    try {
-      const userId = this.getUserIdBySocket(socket.id);
-      if (!userId) {
-        socket.emit("error", { message: "يجب تسجيل الدخول أولاً" });
-        return;
-      }
-
-      socket.join("dashboard:updates");
-      
-      console.log(`📊 User ${userId} subscribed to dashboard updates`);
-      
-      socket.emit("dashboard:subscribed", {
-        message: "تم الاشتراك في تحديثات لوحة التحكم",
-        timestamp: new Date(),
-      });
-    } catch (error) {
-      console.error("Dashboard subscription error:", error.message);
-      socket.emit("error", { message: "فشل الاشتراك في لوحة التحكم" });
-    }
+    businessLogger.info(`Socket ${socket.id} left room ${room}`);
   }
 
   // ====== Disconnection Handler ======
-  
-  handleDisconnect(socket, reason) {
-    console.log(`🔴 Socket disconnected: ${socket.id}, reason: ${reason}`);
-    
-    const userId = this.getUserIdBySocket(socket.id);
-    if (userId) {
-      this.userSockets.delete(userId.toString());
-      
-      // تنظيف الغرف
-      if (this.userRooms.has(userId.toString())) {
-        const rooms = this.userRooms.get(userId.toString());
-        rooms.forEach(room => {
-          if (this.io) {
-            socket.leave(room);
-          }
-        });
-        this.userRooms.delete(userId.toString());
-      }
-      
-      if (this.io) {
-        socket.broadcast.emit("user:disconnected", {
-          userId,
-          socketId: socket.id,
-          reason,
-          timestamp: new Date(),
-        });
-      }
-    }
-  }
 
-  // ====== Helper Methods ======
-  
   /**
-   * التحقق من صلاحية الوصول للمطعم
+   * معالجة قطع الاتصال
    */
-  checkRestaurantAccess(user, restaurantId) {
-    // صاحب المطعم
-    if (user.role === "restaurant_owner") {
-      return user.restaurantOwnerInfo?.restaurant?.toString() === restaurantId;
-    }
-    
-    // المشرف أو الموظف
-    if (user.role === "admin" || user.role === "staff") {
-      return true;
-    }
-    
-    // السائق - قد يرى بعض المعلومات
-    if (user.role === "driver") {
-      // يمكن للسائق رؤية مطاعم الطلبات الموكلة إليه
-      return true;
-    }
-    
-    return false;
-  }
+  async handleDisconnect(socket, reason) {
+    const userId = this.socketUser.get(socket.id);
 
-  getUserIdBySocket(socketId) {
-    for (const [userId, sid] of this.userSockets.entries()) {
-      if (sid === socketId) {
-        return userId;
+    businessLogger.info(`Socket disconnected: ${socket.id}`, { 
+      userId, 
+      reason 
+    });
+
+    if (userId) {
+      // إزالة من التخزين
+      this.socketUser.delete(socket.id);
+      
+      if (this.userSockets.has(userId)) {
+        this.userSockets.get(userId).delete(socket.id);
+
+        // إذا كان آخر اتصال للمستخدم
+        if (this.userSockets.get(userId).size === 0) {
+          this.userStatus.set(userId, {
+            online: false,
+            lastSeen: new Date()
+          });
+
+          // تحديث في قاعدة البيانات
+          await User.findByIdAndUpdate(userId, {
+            isOnline: false,
+            lastSeen: new Date()
+          });
+
+          // إعلام الآخرين
+          socket.broadcast.emit("user:disconnected", {
+            userId,
+            timestamp: new Date()
+          });
+        }
+      }
+
+      // تنظيف الغرف
+      if (this.userRooms.has(userId)) {
+        const rooms = this.userRooms.get(userId);
+        rooms.forEach(room => socket.leave(room));
+        this.userRooms.delete(userId);
       }
     }
-    return null;
   }
 
   // ====== Core Methods ======
-  
+
+  /**
+   * إرسال إلى مستخدم
+   */
   sendToUser(userId, data) {
     try {
       if (!this.io) {
-        console.error("❌ Socket.io not initialized");
+        businessLogger.error("Socket.io not initialized");
         return { success: false, error: "Socket.io not initialized" };
       }
 
-      const socketId = this.userSockets.get(userId.toString());
+      const sockets = this.userSockets.get(userId?.toString());
       
-      if (socketId) {
-        this.io.to(socketId).emit(data.type, data.data || data);
-        console.log(`📨 Sent ${data.type} to user ${userId}`);
-        return { success: true, delivered: true };
+      if (sockets && sockets.size > 0) {
+        sockets.forEach(socketId => {
+          this.io.to(socketId).emit(data.type, data.data || data);
+        });
+        
+        businessLogger.debug(`Sent ${data.type} to user ${userId}`, {
+          socketsCount: sockets.size
+        });
+        
+        return { success: true, delivered: true, socketsCount: sockets.size };
       }
       
-      console.log(`📭 User ${userId} is not connected, notification queued`);
-      return { success: true, delivered: false, queued: true };
+      businessLogger.debug(`User ${userId} is offline`, { type: data.type });
+      return { success: true, delivered: false, offline: true };
     } catch (error) {
-      console.error("Send to user error:", error);
+      businessLogger.error("Send to user error:", error);
       return { success: false, error: error.message };
     }
   }
 
+  /**
+   * إرسال إلى عدة مستخدمين
+   */
   sendToUsers(userIds, data) {
     const results = {
       total: userIds.length,
       delivered: 0,
-      queued: 0,
+      offline: 0,
       failed: 0,
       errors: []
     };
-    
+
     userIds.forEach(userId => {
       const result = this.sendToUser(userId, data);
       if (result.success) {
         if (result.delivered) {
           results.delivered++;
-        } else {
-          results.queued++;
+        } else if (result.offline) {
+          results.offline++;
         }
       } else {
         results.failed++;
         results.errors.push({ userId, error: result.error });
       }
     });
-    
+
+    businessLogger.info(`Broadcast to ${userIds.length} users`, {
+      delivered: results.delivered,
+      offline: results.offline
+    });
+
     return results;
   }
 
+  /**
+   * إرسال إلى غرفة
+   */
   sendToRoom(room, data) {
     try {
       if (!this.io) {
-        console.error("❌ Socket.io not initialized");
         return { success: false, error: "Socket.io not initialized" };
       }
 
       this.io.to(room).emit(data.type, data.data || data);
-      console.log(`📨 Sent ${data.type} to room ${room}`);
+      
+      businessLogger.debug(`Sent ${data.type} to room ${room}`);
       return { success: true };
     } catch (error) {
-      console.error("Send to room error:", error);
+      businessLogger.error("Send to room error:", error);
       return { success: false, error: error.message };
     }
   }
 
+  /**
+   * بث للجميع
+   */
   broadcast(data, excludeSocketId = null) {
     try {
       if (!this.io) {
-        console.error("❌ Socket.io not initialized");
         return { success: false, error: "Socket.io not initialized" };
       }
 
@@ -545,65 +476,90 @@ class SocketService {
         this.io.emit(data.type, data.data || data);
       }
       
-      console.log(`📢 Broadcast ${data.type} to all connected clients`);
+      businessLogger.debug(`Broadcast ${data.type} to all clients`);
       return { success: true };
     } catch (error) {
-      console.error("Broadcast error:", error);
+      businessLogger.error("Broadcast error:", error);
       return { success: false, error: error.message };
     }
   }
 
-  getConnectedUsersCount() {
+  // ====== Info Methods ======
+
+  /**
+   * التحقق من اتصال المستخدم
+   */
+  isUserOnline(userId) {
+    return this.userSockets.has(userId?.toString()) && 
+           this.userSockets.get(userId?.toString())?.size > 0;
+  }
+
+  /**
+   * الحصول على حالة المستخدم
+   */
+  getUserStatus(userId) {
+    return this.userStatus.get(userId?.toString()) || {
+      online: false,
+      lastSeen: null
+    };
+  }
+
+  /**
+   * الحصول على عدد المستخدمين المتصلين
+   */
+  getOnlineUsersCount() {
     return this.userSockets.size;
   }
 
-  isUserConnected(userId) {
-    return this.userSockets.has(userId.toString());
+  /**
+   * الحصول على جميع المستخدمين المتصلين
+   */
+  getOnlineUsers() {
+    return Array.from(this.userStatus.entries())
+      .filter(([_, status]) => status.online)
+      .map(([userId]) => userId);
   }
 
-  getConnectedUsers() {
-    return Array.from(this.userSockets.keys());
-  }
-
+  /**
+   * الحصول على غرف المستخدم
+   */
   getUserRooms(userId) {
-    return this.userRooms.has(userId.toString()) 
-      ? Array.from(this.userRooms.get(userId.toString())) 
+    return this.userRooms.has(userId?.toString()) 
+      ? Array.from(this.userRooms.get(userId.toString()))
       : [];
   }
 
-  // ====== Chat Service Integration ======
-  
+  // ====== Chat Services ======
+
+  /**
+   * تهيئة خدمات الدردشة
+   */
   initializeChatServices() {
     try {
       if (!this.io) {
-        console.warn("⚠️ Socket.io not initialized yet, chat service will be delayed");
+        businessLogger.warn("Socket.io not ready for chat services");
         return null;
       }
 
       const ChatSocketService = require("./chat.socket.service");
       
-      const chatSocketService = ChatSocketService;
-      
-      if (chatSocketService.initializeWithIO) {
-        chatSocketService.initializeWithIO(this.io);
+      if (ChatSocketService.initializeWithIO) {
+        ChatSocketService.initializeWithIO(this.io);
       }
       
-      this.chatSocketService = chatSocketService;
+      this.chatSocketService = ChatSocketService;
       
-      console.log("✅ Chat socket service initialized");
-      return chatSocketService;
+      businessLogger.info("Chat socket service initialized");
+      return ChatSocketService;
     } catch (error) {
-      console.error("❌ Chat service initialization failed:", error.message);
+      businessLogger.error("Chat service initialization failed:", error);
       return null;
     }
   }
 
   // ====== Utility Methods ======
-  
+
   getIO() {
-    if (!this.io) {
-      console.warn("⚠️ Socket.io not initialized yet");
-    }
     return this.io;
   }
 
@@ -612,35 +568,46 @@ class SocketService {
   }
 
   getSocketInfo(socketId) {
-    const userId = this.getUserIdBySocket(socketId);
+    const userId = this.socketUser.get(socketId);
     return {
       socketId,
       userId,
       isConnected: !!userId,
-      rooms: userId ? this.getUserRooms(userId) : [],
+      rooms: userId ? this.getUserRooms(userId) : []
     };
   }
 
   getAllConnectionsInfo() {
     const connections = [];
     
-    for (const [userId, socketId] of this.userSockets.entries()) {
+    for (const [userId, sockets] of this.userSockets.entries()) {
       connections.push({
         userId,
-        socketId,
-        rooms: this.getUserRooms(userId),
-        connectedAt: new Date().toISOString(), // يمكن إضافة وقت الاتصال الفعلي
+        sockets: Array.from(sockets),
+        status: this.getUserStatus(userId),
+        rooms: this.getUserRooms(userId)
       });
     }
     
     return connections;
+  }
+
+  /**
+   * إحصائيات Socket.io
+   */
+  getStats() {
+    return {
+      totalSockets: this.socketUser.size,
+      onlineUsers: this.userSockets.size,
+      totalRooms: this.io?.sockets?.adapter?.rooms?.size || 0,
+      connections: this.getAllConnectionsInfo().length
+    };
   }
 }
 
 const socketServiceInstance = new SocketService();
 
 module.exports = {
-  // الأساسية
   initialize: (server) => socketServiceInstance.initialize(server),
   
   // إرسال الإشعارات
@@ -650,18 +617,20 @@ module.exports = {
   broadcast: (data, excludeSocketId) => socketServiceInstance.broadcast(data, excludeSocketId),
   
   // معلومات الاتصال
-  isUserConnected: (userId) => socketServiceInstance.isUserConnected(userId),
-  getConnectedUsers: () => socketServiceInstance.getConnectedUsers(),
-  getConnectedUsersCount: () => socketServiceInstance.getConnectedUsersCount(),
+  isUserOnline: (userId) => socketServiceInstance.isUserOnline(userId),
+  getUserStatus: (userId) => socketServiceInstance.getUserStatus(userId),
+  getOnlineUsersCount: () => socketServiceInstance.getOnlineUsersCount(),
+  getOnlineUsers: () => socketServiceInstance.getOnlineUsers(),
   getUserRooms: (userId) => socketServiceInstance.getUserRooms(userId),
   getSocketInfo: (socketId) => socketServiceInstance.getSocketInfo(socketId),
   getAllConnectionsInfo: () => socketServiceInstance.getAllConnectionsInfo(),
+  getStats: () => socketServiceInstance.getStats(),
   
   // الخدمات
   initializeChatServices: () => socketServiceInstance.initializeChatServices(),
   getIO: () => socketServiceInstance.getIO(),
   isInitialized: () => socketServiceInstance.isInitialized(),
   
-  // Instance للاستخدام المباشر إذا لزم الأمر
+  // Instance للاستخدام المباشر
   instance: socketServiceInstance
 };

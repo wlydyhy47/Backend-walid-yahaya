@@ -1,78 +1,1084 @@
-2026-02-06 14:16:38 [info]: HTTP Request
+2026-03-12 02:30:01 [info]: Business Action: Email service initialized
 {
-  "method": "GET",
-  "url": "/",
-  "status": 200,
-  "duration": "22ms",
-  "ip": "::1",
-  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
-  "userId": "guest"
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
 }
-2026-02-06 14:16:38 [error]: Unhandled Error Can't find /favicon.ico on this server!
-Error: Can't find /favicon.ico on this server!
-    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:50:17)
+2026-03-12 02:30:01 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 02:30:01 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 02:30:01 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 02:30:02 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 02:30:02 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 02:30:02 [info]: Business Action: Chat socket service initialized
+2026-03-12 02:30:03 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 02:30:03 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 02:30:41 [warn]: Business Warning: Route not found: POST /api/v1/auth/register
+{
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0"
+}
+2026-03-12 02:30:41 [error]: Unhandled Error لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
     at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
     at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
     at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
     at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
     at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
-    at cacheMiddleware (C:\project\Backend-walid-yahaya\src\middlewares\cache.middleware.js:59:3)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:942:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:825:5
+{
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-12 02:30:41 [error]: Business Error: Error caught: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
     at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
     at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
     at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:942:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:825:5
 {
-  "url": "/favicon.ico",
-  "method": "GET",
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/api/v1/auth/register",
+  "method": "POST",
   "ip": "::1",
   "userId": "guest"
 }
-2026-02-06 14:16:38 [error]: HTTP Request Error
+2026-03-12 02:30:41 [error]: HTTP Request Error
 {
-  "method": "GET",
-  "url": "/favicon.ico",
+  "method": "POST",
+  "url": "/api/v1/auth/register",
   "status": 404,
-  "duration": "11ms",
+  "duration": "61ms",
   "ip": "::1",
-  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+  "userAgent": "PostmanRuntime/7.52.0",
   "userId": "guest"
 }
-2026-02-06 14:17:56 [info]: HTTP Request
+2026-03-12 02:49:04 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 02:49:04 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 02:49:04 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 02:49:05 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 02:49:05 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 02:49:05 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 02:49:05 [info]: Business Action: Chat socket service initialized
+2026-03-12 02:49:06 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 02:49:07 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 02:49:27 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 02:49:27 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 02:49:27 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 02:49:28 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 02:49:28 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 02:49:28 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 02:49:28 [info]: Business Action: Chat socket service initialized
+2026-03-12 02:49:29 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 02:49:29 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 02:58:08 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 02:58:08 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 02:58:09 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 02:58:11 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 02:58:11 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 02:58:11 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 02:58:11 [info]: Business Action: Chat socket service initialized
+2026-03-12 02:58:13 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 02:58:13 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 02:59:42 [info]: HTTP Request
 {
   "method": "GET",
   "url": "/",
   "status": 200,
-  "duration": "2ms",
+  "duration": "131ms",
   "ip": "::1",
-  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+  "userAgent": "PostmanRuntime/7.52.0",
   "userId": "guest"
 }
-2026-02-06 14:17:58 [info]: HTTP Request
+2026-03-12 16:12:48 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 16:12:49 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 16:12:49 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 16:12:49 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:12:49 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 16:12:49 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 16:12:49 [info]: Business Action: Chat socket service initialized
+2026-03-12 16:12:55 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 16:12:56 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 16:14:14 [info]: HTTP Request
 {
   "method": "GET",
-  "url": "/",
+  "url": "//api/v1",
   "status": 200,
-  "duration": "1ms",
+  "duration": "124ms",
   "ip": "::1",
-  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
+  "userAgent": "PostmanRuntime/7.52.0",
   "userId": "guest"
 }
-2026-02-07 01:07:30 [error]: HTTP Request Error
+2026-03-12 16:15:12 [warn]: Business Warning: Route not found: POST /api/v1/auth/register
 {
-  "method": "POST",
-  "url": "/api/complete/auth/register/complete",
-  "status": 500,
-  "duration": "10008ms",
   "ip": "::1",
-  "userAgent": "PostmanRuntime/7.51.1",
+  "userAgent": "PostmanRuntime/7.52.0"
+}
+2026-03-12 16:15:12 [error]: Unhandled Error لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:942:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:825:5
+{
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
   "userId": "guest"
 }
-2026-02-07 01:28:55 [error]: HTTP Request Error
+2026-03-12 16:15:13 [error]: Business Error: Error caught: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:942:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:825:5
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-12 16:15:13 [error]: HTTP Request Error
 {
   "method": "POST",
-  "url": "/api/complete/auth/register/complete",
-  "status": 500,
-  "duration": "10177ms",
+  "url": "/api/v1/auth/register",
+  "status": 404,
+  "duration": "42ms",
   "ip": "::1",
-  "userAgent": "PostmanRuntime/7.51.1",
+  "userAgent": "PostmanRuntime/7.52.0",
   "userId": "guest"
+}
+2026-03-12 16:16:25 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 16:16:26 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 16:16:26 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 16:16:26 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:16:26 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 16:16:26 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 16:16:26 [info]: Business Action: Chat socket service initialized
+2026-03-12 16:16:30 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 16:16:30 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 16:16:37 [warn]: Business Warning: Route not found: POST /api/v1/auth/register
+{
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0"
+}
+2026-03-12 16:16:37 [error]: Unhandled Error لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:942:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:825:5
+{
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-12 16:16:37 [error]: Business Error: Error caught: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:942:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:825:5
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-12 16:16:37 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 404,
+  "duration": "14ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 16:16:39 [warn]: Business Warning: Route not found: POST /api/v1/auth/register
+{
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0"
+}
+2026-03-12 16:16:39 [error]: Unhandled Error لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:942:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:825:5
+{
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-12 16:16:39 [error]: Business Error: Error caught: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:942:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:825:5
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-12 16:16:39 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 404,
+  "duration": "3ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 16:16:56 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 16:16:56 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 16:16:56 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 16:16:56 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:16:56 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 16:16:56 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 16:16:56 [info]: Business Action: Chat socket service initialized
+2026-03-12 16:17:00 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 16:17:00 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 16:35:05 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 16:35:05 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 16:35:05 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 16:35:06 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:35:06 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 16:35:06 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 16:35:06 [info]: Business Action: Chat socket service initialized
+2026-03-12 16:35:11 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1100:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async connectDB (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-12 16:35:11 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-03-12 16:35:16 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:35:21 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1100:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-12 16:35:21 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-03-12 16:35:26 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:35:28 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 16:35:31 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1100:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-12 16:35:31 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-03-12 16:35:36 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:35:41 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1100:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-12 16:35:41 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-03-12 16:35:46 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:35:51 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1100:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-12 16:35:51 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-03-12 16:35:56 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:36:01 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Server selection timed out after 5000 ms
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1100:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Server selection timed out after 5000 ms"
+}
+2026-03-12 16:36:01 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-03-12 16:36:06 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:36:09 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 16:36:22 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 16:36:22 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 16:36:22 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 16:36:23 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:36:23 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 16:36:23 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 16:36:23 [info]: Business Action: Chat socket service initialized
+2026-03-12 16:36:27 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 16:36:27 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 16:36:27 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 16:36:27 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:36:27 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 16:36:27 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 16:36:27 [info]: Business Action: Chat socket service initialized
+2026-03-12 16:36:29 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 16:36:29 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 16:36:29 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 16:36:30 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:36:30 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 16:36:30 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 16:36:30 [info]: Business Action: Chat socket service initialized
+2026-03-12 16:36:33 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 16:36:33 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 16:36:52 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 16:36:52 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 16:36:52 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 16:36:53 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:36:53 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 16:36:53 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 16:36:53 [info]: Business Action: Chat socket service initialized
+2026-03-12 16:36:57 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 16:36:57 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 16:37:35 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 16:37:35 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 16:37:35 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 16:37:36 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:37:36 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 16:37:36 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 16:37:36 [info]: Business Action: Chat socket service initialized
+2026-03-12 16:37:39 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 16:37:40 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 16:46:10 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 16:46:10 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 16:46:10 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 16:46:11 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 16:46:11 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 16:46:11 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 16:46:11 [info]: Business Action: Chat socket service initialized
+2026-03-12 16:46:14 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 16:46:18 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 16:46:30 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 201,
+  "duration": "13271ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 16:46:30 [warn]: Business Warning: Slow request detected
+{
+  "requestId": "1773323177489-nf49sn",
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "duration": "13285.13ms",
+  "status": 201
+}
+2026-03-12 16:48:30 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 400,
+  "duration": "279ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 19:35:11 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 19:35:11 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 19:35:11 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 19:35:12 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 19:35:12 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 19:35:12 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 19:35:12 [info]: Business Action: Chat socket service initialized
+2026-03-12 19:35:13 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 19:35:15 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 19:36:01 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 19:36:02 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 19:36:02 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 19:36:02 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 19:36:02 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 19:36:02 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 19:36:02 [info]: Business Action: Chat socket service initialized
+2026-03-12 19:36:07 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1100:11)
+    at async connectDB (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-12 19:36:07 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-03-12 19:36:12 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 19:36:17 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1100:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-12 19:36:17 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-03-12 19:36:18 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 19:36:22 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 19:36:27 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1100:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-12 19:36:27 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-03-12 19:36:32 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 19:36:37 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 19:37:10 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-12 19:37:10 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-12 19:37:10 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-12 19:37:11 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 19:37:11 [info]: Business Action: Socket.io initialized successfully
+2026-03-12 19:37:11 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-12 19:37:11 [info]: Business Action: Chat socket service initialized
+2026-03-12 19:37:16 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1169:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1100:11)
+    at async connectDB (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-12 19:37:16 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-03-12 19:37:21 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-12 19:37:27 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-12 19:37:31 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-12 19:37:51 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 201,
+  "duration": "5928ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 19:37:51 [warn]: Business Warning: Slow request detected
+{
+  "requestId": "1773333465590-5ausyc",
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "duration": "5932.13ms",
+  "status": 201
+}
+2026-03-12 19:38:30 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "3916ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 19:38:30 [warn]: Business Warning: Slow request detected
+{
+  "requestId": "1773333506804-imnvof",
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "duration": "3930.06ms",
+  "status": 200
+}
+2026-03-12 19:43:50 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/logout",
+  "status": 200,
+  "duration": "428ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69b2ebdc23fb2e90cebad43b"
+}
+2026-03-12 19:53:22 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/logout",
+  "status": 401,
+  "duration": "56ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 19:53:36 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "658ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 19:55:13 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/refresh",
+  "status": 401,
+  "duration": "109ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 19:56:28 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/refresh",
+  "status": 403,
+  "duration": "1228ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 19:56:29 [info]: Business Action: Slow request detected
+{
+  "requestId": "1773334587727-yma2go",
+  "method": "POST",
+  "url": "/api/v1/auth/refresh",
+  "duration": "1309.94ms",
+  "status": 403
+}
+2026-03-12 19:57:12 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "921ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 19:57:23 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "1249ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 19:57:23 [info]: Business Action: Slow request detected
+{
+  "requestId": "1773334642621-hssuxs",
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "duration": "1250.06ms",
+  "status": 200
+}
+2026-03-12 19:57:48 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/refresh",
+  "status": 403,
+  "duration": "2004ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 19:57:48 [info]: Business Action: Slow request detected
+{
+  "requestId": "1773334666398-tz3r1k",
+  "method": "POST",
+  "url": "/api/v1/auth/refresh",
+  "duration": "2022.38ms",
+  "status": 403
+}
+2026-03-12 19:59:31 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/refresh",
+  "status": 403,
+  "duration": "1248ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 19:59:31 [info]: Business Action: Slow request detected
+{
+  "requestId": "1773334770644-r9m5jd",
+  "method": "POST",
+  "url": "/api/v1/auth/refresh",
+  "duration": "1268.04ms",
+  "status": 403
+}
+2026-03-12 20:00:28 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/auth/validate",
+  "status": 200,
+  "duration": "652ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69b2ebdc23fb2e90cebad43b"
+}
+2026-03-12 20:02:46 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/verify",
+  "status": 400,
+  "duration": "88ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 20:03:37 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/resend-verification",
+  "status": 200,
+  "duration": "369ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 20:03:59 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/resend-verification",
+  "status": 200,
+  "duration": "128ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 20:04:01 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/resend-verification",
+  "status": 200,
+  "duration": "187ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 20:04:39 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/verify",
+  "status": 200,
+  "duration": "10209ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 20:04:40 [warn]: Business Warning: Slow request detected
+{
+  "requestId": "1773335069763-lbboau",
+  "method": "POST",
+  "url": "/api/v1/auth/verify",
+  "duration": "10410.15ms",
+  "status": 200
+}
+2026-03-12 20:06:35 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/auth/validate",
+  "status": 401,
+  "duration": "337ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 20:09:24 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/forgot-password",
+  "status": 200,
+  "duration": "640ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-12 20:10:47 [error]: Unhandled Error Cannot read properties of undefined (reading 'validate')
+TypeError: Cannot read properties of undefined (reading 'validate')
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:11:37
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at module.exports (C:\project\Backend-walid-yahaya\src\middlewares\auth.middleware.js:272:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+{
+  "url": "/api/v1/auth/change-password",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69b2ebdc23fb2e90cebad43b"
+}
+2026-03-12 20:10:47 [error]: Business Error: Error caught: Cannot read properties of undefined (reading 'validate')
+TypeError: Cannot read properties of undefined (reading 'validate')
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:11:37
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at module.exports (C:\project\Backend-walid-yahaya\src\middlewares\auth.middleware.js:272:5)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+{
+  "statusCode": 500,
+  "url": "/api/v1/auth/change-password",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69b2ebdc23fb2e90cebad43b"
+}
+2026-03-12 20:10:47 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/change-password",
+  "status": 500,
+  "duration": "767ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69b2ebdc23fb2e90cebad43b"
+}
+2026-03-12 20:11:48 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/revoke-all-sessions",
+  "status": 200,
+  "duration": "7640ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69b2ebdc23fb2e90cebad43b"
+}
+2026-03-12 20:11:48 [warn]: Business Warning: Slow request detected
+{
+  "requestId": "1773335500829-bk976e",
+  "method": "POST",
+  "url": "/api/v1/auth/revoke-all-sessions",
+  "duration": "7672.34ms",
+  "status": 200
+}
+2026-03-12 20:13:11 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/auth/validate",
+  "status": 200,
+  "duration": "42420ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69b2ebdc23fb2e90cebad43b"
+}
+2026-03-12 20:13:11 [warn]: Business Warning: Slow request detected
+{
+  "requestId": "1773335549540-vminza",
+  "method": "GET",
+  "url": "/api/v1/auth/validate",
+  "duration": "42447.42ms",
+  "status": 200
+}
+2026-03-12 20:15:13 [warn]: Business Warning: Access denied - insufficient permissions
+{
+  "userId": "69b2ebdc23fb2e90cebad43b",
+  "userRole": "client",
+  "requiredRoles": [
+    "admin"
+  ],
+  "path": "/api/v1/users/me"
+}
+2026-03-12 20:15:13 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/users/me",
+  "status": 403,
+  "duration": "4881ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69b2ebdc23fb2e90cebad43b"
+}
+2026-03-12 20:15:13 [warn]: Business Warning: Slow request detected
+{
+  "requestId": "1773335709067-0jphqv",
+  "method": "GET",
+  "url": "/api/v1/users/me",
+  "duration": "4900.61ms",
+  "status": 403
 }

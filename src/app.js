@@ -12,7 +12,7 @@ const compression = require('compression');
 const apiConfig = require('./config/api.config');
 
 // ✅ استيراد المسارات المجمعة
-const apiRoutes = require('./routes');
+const apiRoutes = require('./routes/api'); // بدلاً من './routes/index'
 
 // ✅ استيراد باقي الملفات
 const rateLimiters = require('./middlewares/rateLimit.middleware');
@@ -177,9 +177,42 @@ if (process.env.NODE_ENV !== 'production') {
   }, 60 * 60 * 1000);
 }
 
+
+// طباعة المسارات بعد التأكد من وجودها (آمن للاختبارات)
+if (process.env.NODE_ENV !== 'test' && app._router && app._router.stack) {
+  console.log('📋 المسارات المسجلة:');
+  app._router.stack.forEach(layer => {
+    if (layer.route) {
+      console.log(`${Object.keys(layer.route.methods)} ${layer.route.path}`);
+    }
+  });
+}
+
 // ========== 13. Error Handling ==========
+
+
 app.use(notFoundHandler);
 app.use(errorLogger);
 app.use(errorHandler);
+
+
+
+
+// ========== مسار اختبار بسيط ==========
+app.get('/test-routes', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Test route is working',
+    routes: {
+      root: '/',
+      api: '/api',
+      apiV1: '/api/v1',
+      auth: '/api/v1/auth',
+      authTest: '/api/v1/auth/test'
+    }
+  });
+});
+
+
 
 module.exports = app;

@@ -8,12 +8,13 @@ const app = require("./app");
 const connectDB = require("./config/db");
 const socketService = require("./services/socket.service");
 const apiConfig = require("./config/api.config");
+const routeDebugger = require("./utils/routeDebugger.util"); // ✅ أضف هذا
 
 const PORT = process.env.PORT || 3000;
 
 console.log(`
 ╔════════════════════════════════════════╗
-║    🚀 Food Delivery API Server         ║
+║    🚀 Food Delivery API Server        ║
 ╠════════════════════════════════════════╣
 ║  Starting with configuration...        ║
 ╚════════════════════════════════════════╝
@@ -27,6 +28,12 @@ const server = http.createServer(app);
 
 // تهيئة Socket.io
 socketService.initialize(server);
+
+// ✅ تأخير طباعة المسارات قليلاً للتأكد من تهيئة الـ Router
+setTimeout(() => {
+  routeDebugger.printAllRoutes(app);
+  routeDebugger.debugRouterStructure(app);
+}, 1000);
 
 // start server
 server.listen(PORT, () => {

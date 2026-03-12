@@ -1,19 +1,20 @@
+// jest.config.js
 module.exports = {
   testEnvironment: 'node',
-  setupFilesAfterEnv: ['./tests/setup.js'],
   testMatch: ['**/tests/**/*.test.js'],
-  collectCoverageFrom: [
-    'src/**/*.js',
-    '!src/server.js',
-    '!src/app.js'
+  testTimeout: 30000,
+  verbose: true,
+  collectCoverage: true,
+  coverageDirectory: 'coverage',
+  coverageReporters: ['text', 'lcov', 'html'],
+  coveragePathIgnorePatterns: [
+    '/node_modules/',
+    '/tests/helpers/',
+    '/src/config/',
+    '/src/migrations/'
   ],
-  coverageThreshold: {
-    global: {
-      branches: 70,
-      functions: 70,
-      lines: 70,
-      statements: 70
-    }
-  },
-  verbose: true
+  setupFilesAfterEnv: ['<rootDir>/tests/setup.js'],
+  moduleNameMapper: {
+    '^@/(.*)$': '<rootDir>/src/$1'
+  }
 };

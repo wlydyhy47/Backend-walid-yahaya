@@ -1,177 +1,80 @@
+// ============================================
+// ملف: src/routes/chat.routes.js (محدث)
+// ============================================
+
 const express = require("express");
 const router = express.Router();
-const chatController = require("../controllers/chat.controller");
+
+// ✅ استيراد موحد
+const { chatController } = require('../controllers');
+
+// الـ middlewares
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
 const upload = require("../middlewares/upload");
-// في routes/chat.routes.js - إضافة في الأعلى
-const Conversation = require("../models/conversation.model");
-const Message = require("../models/message.model");
+const PaginationUtils = require('../utils/pagination.util');
 
-/**
- * 💬 المحادثات
- */
+// جميع المسارات تحتاج توثيق
+router.use(auth);
 
-// الحصول على محادثات المستخدم
-router.get("/conversations", auth, chatController.getUserConversations);
+// ========== 1. إدارة المحادثات ==========
+router.get("/conversations", PaginationUtils.validatePaginationParams, chatController.getUserConversations);
+router.post("/conversations/direct/:userId", chatController.createDirectChat);
+router.post("/conversations/order/:orderId", chatController.createOrderChat);
+router.post("/conversations/support", chatController.createSupportChat);
+router.post("/conversations/group", chatController.createGroupChat);
+router.get("/conversations/:id", chatController.getConversation);
+router.put("/conversations/:id", chatController.updateConversation);
+router.delete("/conversations/:id", chatController.deleteConversation);
+router.put("/conversations/:id/archive", chatController.archiveConversation);
+router.put("/conversations/:id/mute", chatController.muteConversation);
+router.put("/conversations/:id/unmute", chatController.unmuteConversation);
 
-// إنشاء محادثة جديدة
-router.post("/conversations", auth, chatController.createConversation);
+// ========== 2. إدارة المشاركين ==========
+router.post("/conversations/:id/participants", chatController.addParticipant);
+router.delete("/conversations/:id/participants/:participantId", chatController.removeParticipant);
+router.get("/conversations/:id/participants", chatController.getParticipants);
+router.put("/conversations/:id/participants/:participantId/admin", chatController.makeAdmin);
+router.delete("/conversations/:id/participants/:participantId/admin", chatController.removeAdmin);
 
-// الحصول على محادثة معينة
-router.get("/conversations/:id", auth, chatController.getConversation);
+// ========== 3. إدارة الرسائل ==========
+router.get("/conversations/:id/messages", PaginationUtils.validatePaginationParams, chatController.getConversationMessages);
+router.post("/conversations/:id/messages/text", chatController.sendTextMessage);
+router.post("/conversations/:id/messages/media", upload("chat/media").single("file"), chatController.sendMediaMessage);
+router.post("/conversations/:id/messages/location", chatController.sendLocationMessage);
+router.post("/conversations/:id/messages/contact", chatController.sendContactMessage);
+router.put("/conversations/:conversationId/messages/:messageId", chatController.updateMessage);
+router.delete("/conversations/:conversationId/messages/:messageId", chatController.deleteMessage);
+router.put("/conversations/:conversationId/messages/:messageId/forward/:toConversationId", chatController.forwardMessage);
 
-// تحديث محادثة
-router.put("/conversations/:id", auth, chatController.updateConversation);
+// ========== 4. التفاعلات ==========
+router.post("/conversations/:conversationId/messages/:messageId/reactions", chatController.addReaction);
+router.delete("/conversations/:conversationId/messages/:messageId/reactions", chatController.removeReaction);
+router.post("/conversations/:conversationId/messages/:messageId/pin", chatController.pinMessage);
+router.post("/conversations/:conversationId/messages/:messageId/unpin", chatController.unpinMessage);
+router.post("/conversations/:conversationId/messages/:messageId/star", chatController.starMessage);
+router.post("/conversations/:conversationId/messages/:messageId/unstar", chatController.unstarMessage);
 
-// إضافة مشارك للمحادثة
-router.post("/conversations/:id/participants", auth, chatController.addParticipant);
+// ========== 5. البحث والوسائط ==========
+router.get("/conversations/:id/search", chatController.searchMessages);
+router.get("/search", chatController.globalSearch);
+router.get("/conversations/:id/media", chatController.getConversationMedia);
+router.get("/conversations/:id/files", chatController.getConversationFiles);
+router.get("/conversations/:id/links", chatController.getConversationLinks);
 
-// إزالة مشارك من المحادثة
-router.delete("/conversations/:id/participants/:participantId", auth, chatController.removeParticipant);
+// ========== 6. الإحصائيات ==========
+router.get("/stats", chatController.getChatStats);
+router.get("/conversations/:id/stats", chatController.getConversationStats);
+router.get("/conversations/:id/online", chatController.getOnlineParticipants);
+router.get("/unread/total", chatController.getTotalUnreadCount);
 
-/**
- * 💬 الرسائل
- */
-
-// الحصول على رسائل المحادثة
-router.get("/conversations/:id/messages", auth, chatController.getConversationMessages);
-
-// إرسال رسالة نصية
-router.post("/conversations/:id/messages", auth, chatController.sendMessage);
-
-// تحديث رسالة
-router.put("/conversations/:conversationId/messages/:messageId", auth, chatController.updateMessage);
-
-// حذف رسالة
-router.delete("/conversations/:conversationId/messages/:messageId", auth, chatController.deleteMessage);
-
-// البحث في رسائل المحادثة
-router.get("/conversations/:id/search", auth, chatController.searchMessages);
-
-// رفع ملف للمحادثة
-router.post(
-  "/conversations/:id/upload",
-  auth,
-  upload("chat/files").single("file"),
-  chatController.uploadFile
-);
-
-/**
- * 💬 التفاعلات
- */
-
-// إضافة رد فعل على رسالة
-router.post("/conversations/:conversationId/messages/:messageId/reactions", auth, chatController.addReaction);
-
-// إزالة رد فعل من رسالة
-router.delete("/conversations/:conversationId/messages/:messageId/reactions", auth, chatController.removeReaction);
-
-// تثبيت رسالة
-router.post("/conversations/:conversationId/messages/:messageId/pin", auth, chatController.pinMessage);
-
-/**
- * 📊 الإحصائيات والإدارة
- */
-
-// إحصائيات الدردشة
-router.get("/stats", auth, chatController.getChatStats);
-
-// دعم الدردشات (للأدمن فقط)
-router.get("/admin/support-conversations", auth, role("admin"), async (req, res) => {
-  try {
-    const { status, department, assignedTo } = req.query;
-    
-    const query = {
-      type: "support",
-      deletedAt: null,
-    };
-    
-    if (status) query["metadata.support.status"] = status;
-    if (department) query["metadata.support.department"] = department;
-    if (assignedTo) query["metadata.support.assignedTo"] = assignedTo;
-
-    const conversations = await Conversation.find(query)
-      .populate("participants", "name image")
-      .populate("metadata.support.assignedTo", "name image")
-      .sort({ lastActivity: -1 })
-      .limit(50)
-      .lean();
-
-    // إحصائيات الدعم
-    const stats = await Conversation.aggregate([
-      { $match: { type: "support", deletedAt: null } },
-      {
-        $group: {
-          _id: {
-            status: "$metadata.support.status",
-            department: "$metadata.support.department",
-          },
-          count: { $sum: 1 },
-          avgResponseTime: { $avg: "$stats.avgResponseTime" },
-        },
-      },
-    ]);
-
-    res.json({
-      success: true,
-      data: {
-        conversations,
-        stats: stats.reduce((acc, item) => {
-          if (!acc[item._id.department]) {
-            acc[item._id.department] = {};
-          }
-          acc[item._id.department][item._id.status] = item.count;
-          return acc;
-        }, {}),
-      },
-    });
-  } catch (error) {
-    console.error("Support conversations error:", error);
-    res.status(500).json({ message: "Failed to get support conversations" });
-  }
-});
-
-// تعيين محادثة دعم (للأدمن فقط)
-router.put("/admin/conversations/:id/assign", auth, role("admin"), async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { assignedTo } = req.body;
-
-    const conversation = await Conversation.findByIdAndUpdate(
-      id,
-      {
-        "metadata.support.assignedTo": assignedTo,
-        "metadata.support.status": "pending",
-      },
-      { new: true }
-    )
-      .populate("metadata.support.assignedTo", "name image")
-      .populate("participants", "name image");
-
-    if (!conversation) {
-      return res.status(404).json({ message: "Conversation not found" });
-    }
-
-    // إرسال رسالة نظام
-    await Message.createSystemMessage(
-      conversation._id,
-      "support_assigned",
-      {
-        assignedTo: conversation.metadata.support.assignedTo,
-        assignedBy: req.user.id,
-      }
-    );
-
-    res.json({
-      success: true,
-      message: "Conversation assigned successfully",
-      data: { conversation },
-    });
-  } catch (error) {
-    console.error("Assign conversation error:", error);
-    res.status(500).json({ message: "Failed to assign conversation" });
-  }
-});
+// ========== 7. مسارات الأدمن ==========
+router.get("/admin/support-conversations", role("admin"), chatController.getSupportConversations);
+router.put("/admin/conversations/:id/assign", role("admin"), chatController.assignSupportAgent);
+router.put("/admin/conversations/:id/resolve", role("admin"), chatController.resolveSupportChat);
+router.get("/admin/support-stats", role("admin"), chatController.getSupportStats);
+router.get("/admin/all-conversations", role("admin"), chatController.getAllConversations);
+router.delete("/admin/conversations/:id", role("admin"), chatController.adminDeleteConversation);
+router.post("/admin/broadcast", role("admin"), chatController.broadcastMessage);
 
 module.exports = router;

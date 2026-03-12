@@ -1,8 +1,12 @@
+// ============================================
+// ملف: src/models/message.model.js (محدث)
+// الوصف: نموذج الرسائل مع ميزات متقدمة
+// ============================================
+
 const mongoose = require("mongoose");
 
 const messageSchema = new mongoose.Schema(
   {
-    // المحادثة التي تنتمي إليها الرسالة
     conversation: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Conversation",
@@ -10,7 +14,6 @@ const messageSchema = new mongoose.Schema(
       index: true,
     },
     
-    // المرسل
     sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -18,27 +21,17 @@ const messageSchema = new mongoose.Schema(
       index: true,
     },
     
-    // نوع الرسالة
     type: {
       type: String,
       required: true,
       enum: [
-        "text",         // نص
-        "image",        // صورة
-        "video",        // فيديو
-        "audio",        // صوت
-        "file",         // ملف
-        "location",     // موقع
-        "contact",      // جهة اتصال
-        "sticker",      // ملصق
-        "system",       // رسالة نظام
-        "order_update", // تحديث طلب
-        "delivery",     // تحديث توصيل
+        "text", "image", "video", "audio", "file",
+        "location", "contact", "sticker", "system",
+        "order_update", "delivery", "payment",
       ],
       default: "text",
     },
     
-    // محتوى الرسالة
     content: {
       text: {
         type: String,
@@ -51,7 +44,7 @@ const messageSchema = new mongoose.Schema(
         filename: String,
         size: Number,
         mimeType: String,
-        duration: Number, // للملفات الصوتية/المرئية
+        duration: Number,
         dimensions: {
           width: Number,
           height: Number,
@@ -61,37 +54,86 @@ const messageSchema = new mongoose.Schema(
         latitude: Number,
         longitude: Number,
         address: String,
+        name: String,
       },
       contact: {
         name: String,
         phone: String,
         email: String,
+        photo: String,
       },
       system: {
         action: String,
         data: mongoose.Schema.Types.Mixed,
       },
+      payment: {
+        amount: Number,
+        method: String,
+        status: String,
+        transactionId: String,
+      },
     },
     
-    // رد على رسالة سابقة
+    // ========== 🔥 إضافات جديدة ==========
+    
+    /**
+     * معرف الرسالة المؤقت (للعميل)
+     */
+    tempId: String,
+    
+    /**
+     * معرف الرسالة الأصلية (للرسائل المحولة)
+     */
+    originalMessageId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Message",
+    },
+    
+    /**
+     * إيصال القراءة
+     */
+    readReceipts: [{
+      user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      readAt: {
+        type: Date,
+        default: Date.now,
+      },
+    }],
+    
+    /**
+     * إيصال التسليم
+     */
+    deliveryReceipts: [{
+      user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+      deliveredAt: {
+        type: Date,
+        default: Date.now,
+      },
+    }],
+    
+    // ========== نهاية الإضافات ==========
+    
     replyTo: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Message",
     },
     
-    // إشارات للأعضاء (Mentions)
     mentions: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     }],
     
-    // الوسوم (للتنظيم)
     tags: [{
       type: String,
       trim: true,
     }],
     
-    // معلومات التسليم والقراءة
     delivery: {
       sentAt: {
         type: Date,
@@ -118,7 +160,6 @@ const messageSchema = new mongoose.Schema(
       }],
     },
     
-    // معلومات التحرير
     edited: {
       isEdited: {
         type: Boolean,
@@ -135,7 +176,6 @@ const messageSchema = new mongoose.Schema(
       }],
     },
     
-    // معلومات الحذف
     deleted: {
       isDeleted: {
         type: Boolean,
@@ -152,7 +192,6 @@ const messageSchema = new mongoose.Schema(
       },
     },
     
-    // ردود الفعل (Reactions)
     reactions: [{
       user: {
         type: mongoose.Schema.Types.ObjectId,
@@ -168,13 +207,11 @@ const messageSchema = new mongoose.Schema(
       },
     }],
     
-    // للرسائل المهمة (Starred)
     starredBy: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     }],
     
-    // للرسائل المثبتة
     pinned: {
       isPinned: {
         type: Boolean,
@@ -187,7 +224,6 @@ const messageSchema = new mongoose.Schema(
       },
     },
     
-    // الرسائل المحولة (Forwarded)
     forwarded: {
       isForwarded: {
         type: Boolean,
@@ -203,13 +239,11 @@ const messageSchema = new mongoose.Schema(
       },
     },
     
-    // ميتاداتا إضافية
     metadata: {
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
     
-    // النسخ الإضافية (للرسائل المنقولة)
     copies: [{
       conversation: {
         type: mongoose.Schema.Types.ObjectId,
@@ -227,80 +261,21 @@ const messageSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
+// ========== Indexes ==========
 messageSchema.index({ conversation: 1, "delivery.sentAt": -1 });
 messageSchema.index({ sender: 1, "delivery.sentAt": -1 });
 messageSchema.index({ "delivery.readBy.user": 1 });
 messageSchema.index({ type: 1, "delivery.sentAt": -1 });
+messageSchema.index({ tempId: 1 });
 
-// Middleware
-messageSchema.pre("save", function(next) {
-  // إذا كانت رسالة نصية وتحتوي على mentions
-  if (this.type === "text" && this.content.text) {
-    // استخراج الـ mentions من النص (@username)
-    const mentionRegex = /@([\w\u0600-\u06FF]+)/g;
-    const mentions = [...this.content.text.matchAll(mentionRegex)].map(m => m[1]);
-    
-    if (mentions.length > 0) {
-      // TODO: تحويل usernames إلى user IDs
-    }
-  }
-  
-  // إذا تم التعديل
-  if (this.isModified("content") && !this.isNew) {
-    this.edited.isEdited = true;
-    this.edited.editCount += 1;
-    this.edited.lastEditedAt = new Date();
-    
-    // حفظ التاريخ
-    this.edited.history.push({
-      content: this._previousContent || this.content,
-      editedAt: new Date(),
-    });
-    
-    // الحفاظ على آخر 10 تعديلات فقط
-    if (this.edited.history.length > 10) {
-      this.edited.history = this.edited.history.slice(-10);
-    }
-  }
-  
-  next();
-});
+// ========== Virtuals ==========
 
-messageSchema.pre("save", async function(next) {
-  if (this.isNew) {
-    // تحديث آخر رسالة في المحادثة
-    const Conversation = require("./conversation.model");
-    await Conversation.findByIdAndUpdate(
-      this.conversation,
-      {
-        lastMessage: this._id,
-        lastActivity: new Date(),
-        $inc: { "stats.messageCount": 1 },
-      }
-    );
-    
-    // تحديث وقت آخر رسالة
-    if (!this.conversation.stats?.firstMessageAt) {
-      await Conversation.findByIdAndUpdate(
-        this.conversation,
-        {
-          "stats.firstMessageAt": new Date(),
-          "stats.lastMessageAt": new Date(),
-        }
-      );
-    }
-  }
-  next();
-});
-
-// Virtuals
 messageSchema.virtual("isRead").get(function() {
-  return this.delivery.readBy.length > 0;
+  return this.readReceipts?.length > 0 || this.delivery.readBy.length > 0;
 });
 
 messageSchema.virtual("isDelivered").get(function() {
-  return this.delivery.deliveredTo.length > 0;
+  return this.deliveryReceipts?.length > 0 || this.delivery.deliveredTo.length > 0;
 });
 
 messageSchema.virtual("timeAgo").get(function() {
@@ -319,26 +294,14 @@ messageSchema.virtual("timeAgo").get(function() {
   return `منذ ${Math.floor(diffDays / 30)} شهر`;
 });
 
-// Methods
-messageSchema.methods.markAsDelivered = async function(userId) {
-  if (!this.delivery.deliveredTo.some(d => d.user.toString() === userId.toString())) {
-    this.delivery.deliveredTo.push({
-      user: userId,
-      deliveredAt: new Date(),
-    });
-    
-    if (!this.delivery.deliveredAt) {
-      this.delivery.deliveredAt = new Date();
-    }
-    
-    await this.save();
-  }
-  return this;
-};
+// ========== Methods ==========
 
-messageSchema.methods.markAsRead = async function(userId) {
-  if (!this.delivery.readBy.some(r => r.user.toString() === userId.toString())) {
-    this.delivery.readBy.push({
+/**
+ * إضافة إيصال قراءة
+ */
+messageSchema.methods.addReadReceipt = async function(userId) {
+  if (!this.readReceipts.some(r => r.user.toString() === userId.toString())) {
+    this.readReceipts.push({
       user: userId,
       readAt: new Date(),
     });
@@ -347,157 +310,73 @@ messageSchema.methods.markAsRead = async function(userId) {
   return this;
 };
 
-messageSchema.methods.addReaction = async function(userId, emoji) {
-  // إزالة رد الفعل السابق لنفس المستخدم
-  this.reactions = this.reactions.filter(
-    reaction => reaction.user.toString() !== userId.toString()
-  );
-  
-  // إضافة رد الفعل الجديد
-  this.reactions.push({
-    user: userId,
-    emoji,
-    reactedAt: new Date(),
-  });
-  
-  await this.save();
-  return this;
-};
-
-messageSchema.methods.removeReaction = async function(userId) {
-  this.reactions = this.reactions.filter(
-    reaction => reaction.user.toString() !== userId.toString()
-  );
-  
-  await this.save();
-  return this;
-};
-
-messageSchema.methods.toggleStar = async function(userId) {
-  const index = this.starredBy.findIndex(
-    id => id.toString() === userId.toString()
-  );
-  
-  if (index === -1) {
-    this.starredBy.push(userId);
-  } else {
-    this.starredBy.splice(index, 1);
+/**
+ * إضافة إيصال تسليم
+ */
+messageSchema.methods.addDeliveryReceipt = async function(userId) {
+  if (!this.deliveryReceipts.some(r => r.user.toString() === userId.toString())) {
+    this.deliveryReceipts.push({
+      user: userId,
+      deliveredAt: new Date(),
+    });
+    await this.save();
   }
-  
-  await this.save();
   return this;
 };
 
-messageSchema.methods.pin = async function(userId) {
-  this.pinned.isPinned = true;
-  this.pinned.pinnedAt = new Date();
-  this.pinned.pinnedBy = userId;
+/**
+* الحصول على إحصائيات القراءة
+*/
+messageSchema.methods.getReadStats = function() {
+  const totalParticipants = this.conversation?.participants?.length || 0;
+  const readCount = this.readReceipts?.length || 0;
   
-  await this.save();
-  return this;
+  return {
+    read: readCount,
+    total: totalParticipants,
+    percentage: totalParticipants > 0 ? (readCount / totalParticipants) * 100 : 0,
+    readBy: this.readReceipts
+  };
 };
 
-messageSchema.methods.unpin = async function() {
-  this.pinned.isPinned = false;
-  this.pinned.pinnedAt = null;
-  this.pinned.pinnedBy = null;
-  
-  await this.save();
-  return this;
-};
+// ========== Static Methods ==========
 
-messageSchema.methods.softDelete = async function(userId, deleteType = "sender") {
-  this.deleted.isDeleted = true;
-  this.deleted.deletedAt = new Date();
-  this.deleted.deletedBy = userId;
-  this.deleted.deleteType = deleteType;
-  
-  await this.save();
-  return this;
-};
-
-messageSchema.methods.edit = async function(newContent) {
-  const oldContent = { ...this.content };
-  
-  this.content = newContent;
-  await this.save();
-  
-  return { oldContent, newContent };
-};
-
-// Static Methods
-messageSchema.statics.createTextMessage = async function(conversationId, senderId, text, replyTo = null) {
+/**
+ * إنشاء رسالة نصية
+ */
+messageSchema.statics.createTextMessage = async function(conversationId, senderId, text, replyTo = null, tempId = null) {
   const message = await this.create({
     conversation: conversationId,
     sender: senderId,
     type: "text",
-    content: {
-      text: text.trim(),
-    },
+    content: { text: text.trim() },
     replyTo,
-    delivery: {
-      sentAt: new Date(),
-    },
+    tempId,
+    delivery: { sentAt: new Date() },
   });
   
   return message;
 };
 
-messageSchema.statics.createMediaMessage = async function(conversationId, senderId, mediaData, type = "image") {
+/**
+ * إنشاء رسالة وسائط
+ */
+messageSchema.statics.createMediaMessage = async function(conversationId, senderId, mediaData, type = "image", tempId = null) {
   const message = await this.create({
     conversation: conversationId,
     sender: senderId,
     type,
-    content: {
-      media: mediaData,
-    },
-    delivery: {
-      sentAt: new Date(),
-    },
+    content: { media: mediaData },
+    tempId,
+    delivery: { sentAt: new Date() },
   });
   
   return message;
 };
 
-messageSchema.statics.createSystemMessage = async function(conversationId, action, data = {}) {
-  const message = await this.create({
-    conversation: conversationId,
-    sender: null, // النظام
-    type: "system",
-    content: {
-      system: {
-        action,
-        data,
-      },
-    },
-    delivery: {
-      sentAt: new Date(),
-    },
-  });
-  
-  return message;
-};
-
-messageSchema.statics.createOrderUpdateMessage = async function(conversationId, orderData) {
-  const message = await this.create({
-    conversation: conversationId,
-    sender: null,
-    type: "order_update",
-    content: {
-      text: `تحديث على الطلب: ${orderData.status}`,
-      system: {
-        action: "order_update",
-        data: orderData,
-      },
-    },
-    delivery: {
-      sentAt: new Date(),
-    },
-  });
-  
-  return message;
-};
-
+/**
+ * الحصول على رسائل المحادثة
+ */
 messageSchema.statics.getConversationMessages = async function(conversationId, options = {}) {
   const {
     page = 1,
@@ -511,9 +390,7 @@ messageSchema.statics.getConversationMessages = async function(conversationId, o
   
   const skip = (page - 1) * limit;
   
-  const query = {
-    conversation: conversationId,
-  };
+  const query = { conversation: conversationId };
   
   if (!includeDeleted) {
     query["deleted.isDeleted"] = false;
@@ -563,6 +440,9 @@ messageSchema.statics.getConversationMessages = async function(conversationId, o
   };
 };
 
+/**
+ * البحث في الرسائل
+ */
 messageSchema.statics.searchMessages = async function(conversationId, searchTerm, options = {}) {
   const {
     page = 1,
@@ -619,6 +499,9 @@ messageSchema.statics.searchMessages = async function(conversationId, searchTerm
   };
 };
 
+/**
+* تحديد الكل كمقروء
+*/
 messageSchema.statics.markAllAsRead = async function(conversationId, userId) {
   const result = await this.updateMany(
     {
@@ -639,6 +522,9 @@ messageSchema.statics.markAllAsRead = async function(conversationId, userId) {
   return result.modifiedCount;
 };
 
+/**
+ * الحصول على عدد الرسائل غير المقروءة
+ */
 messageSchema.statics.getUnreadCount = async function(conversationId, userId) {
   return await this.countDocuments({
     conversation: conversationId,

@@ -6,7 +6,7 @@
 module.exports = {
   // إعدادات API الأساسية
   api: {
-    prefix: '/api',
+    prefix: 'api',
     versions: ['v1', 'v2'],
     defaultVersion: 'v1',
     

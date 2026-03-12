@@ -1,3 +1,9 @@
+// ============================================
+// ملف: src/controllers/aggregate.controller.js
+// الوصف: التحكم في عمليات التجميع والتحليلات
+// الإصدار: 2.0 (محدث)
+// ============================================
+
 const User = require('../models/user.model');
 const Address = require('../models/address.model');
 const Order = require('../models/order.model');
@@ -881,8 +887,1069 @@ exports.getCacheStats = async (req, res) => {
   }
 };
 
+/**
+ * @desc    مسح الكاش بنمط محدد
+ * @route   POST /api/aggregate/cache/clear/:pattern
+ * @access  Admin
+ */
+exports.clearCachePattern = async (req, res) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Access denied. Admin only.'
+      });
+    }
+
+    const { pattern } = req.params;
+
+    if (!pattern) {
+      return res.status(400).json({
+        success: false,
+        message: 'Pattern is required'
+      });
+    }
+
+    // فك ترميز pattern إذا كان مشفراً
+    const decodedPattern = decodeURIComponent(pattern);
+    
+    const clearedCount = cache.invalidatePattern(decodedPattern);
+
+    res.json({
+      success: true,
+      message: 'Cache cleared successfully',
+      data: {
+        action: 'clear_pattern',
+        pattern: decodedPattern,
+        clearedCount
+      },
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error('❌ Cache clear pattern error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to clear cache pattern',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+/**
+ * @desc    لوحة تحكم الأدمن
+ * @route   GET /api/aggregate/admin/dashboard
+ * @access  Admin
+ */
+exports.getAdminDashboard = async (req, res) => {
+  try {
+    const [
+      totalUsers,
+      totalOrders,
+      totalRestaurants,
+      totalDrivers,
+      pendingOrders,
+      recentOrders,
+      revenueToday,
+      usersByRole
+    ] = await Promise.all([
+      User.countDocuments(),
+      Order.countDocuments(),
+      Restaurant.countDocuments(),
+      User.countDocuments({ role: 'driver' }),
+      Order.countDocuments({ status: 'pending' }),
+      Order.find()
+        .populate('user', 'name')
+        .populate('restaurant', 'name')
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean(),
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: new Date(new Date().setHours(0,0,0,0)) },
+            status: 'delivered'
+          }
+        },
+        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+      ]),
+      User.aggregate([
+        { $group: { _id: '$role', count: { $sum: 1 } } }
+      ])
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        stats: {
+          totalUsers,
+          totalOrders,
+          totalRestaurants,
+          totalDrivers,
+          pendingOrders,
+          revenueToday: revenueToday[0]?.total || 0
+        },
+        usersByRole,
+        recentOrders,
+        timestamp: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('❌ Admin dashboard error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to load admin dashboard'
+    });
+  }
+};
+
+/**
+ * @desc    إحصائيات الأدمن العامة
+ * @route   GET /api/aggregate/admin/stats
+ * @access  Admin
+ */
+exports.getAdminStats = async (req, res) => {
+  try {
+    const { period = 'week' } = req.query;
+
+    const startDate = new Date();
+    switch (period) {
+      case 'day':
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'week':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case 'month':
+        startDate.setMonth(startDate.getMonth() - 1);
+        break;
+      case 'year':
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+    }
+
+    const [
+      ordersByDay,
+      topRestaurants,
+      topUsers,
+      revenueStats
+    ] = await Promise.all([
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            count: { $sum: 1 },
+            revenue: { $sum: '$totalPrice' }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate },
+            status: 'delivered'
+          }
+        },
+        {
+          $group: {
+            _id: '$restaurant',
+            orders: { $sum: 1 },
+            revenue: { $sum: '$totalPrice' }
+          }
+        },
+        { $sort: { revenue: -1 } },
+        { $limit: 5 },
+        {
+          $lookup: {
+            from: 'restaurants',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'restaurantInfo'
+          }
+        }
+      ]),
+
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate },
+            status: 'delivered'
+          }
+        },
+        {
+          $group: {
+            _id: '$user',
+            orders: { $sum: 1 },
+            spent: { $sum: '$totalPrice' }
+          }
+        },
+        { $sort: { spent: -1 } },
+        { $limit: 5 },
+        {
+          $lookup: {
+            from: 'users',
+            localField: '_id',
+            foreignField: '_id',
+            as: 'userInfo'
+          }
+        }
+      ]),
+
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate },
+            status: 'delivered'
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalRevenue: { $sum: '$totalPrice' },
+            totalOrders: { $sum: 1 },
+            avgOrderValue: { $avg: '$totalPrice' }
+          }
+        }
+      ])
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        period,
+        ordersByDay,
+        topRestaurants: topRestaurants.map(r => ({
+          ...r,
+          name: r.restaurantInfo[0]?.name || 'Unknown'
+        })),
+        topUsers: topUsers.map(u => ({
+          ...u,
+          name: u.userInfo[0]?.name || 'Unknown'
+        })),
+        revenue: revenueStats[0] || { totalRevenue: 0, totalOrders: 0, avgOrderValue: 0 },
+        timestamp: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('❌ Admin stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to load admin statistics'
+    });
+  }
+};
+
+/**
+ * @desc    إحصائيات المستخدمين للأدمن
+ * @route   GET /api/aggregate/admin/stats/users
+ * @access  Admin
+ */
+exports.getAdminUserStats = async (req, res) => {
+  try {
+    const stats = await User.aggregate([
+      {
+        $facet: {
+          total: [{ $count: 'count' }],
+          byRole: [
+            { $group: { _id: '$role', count: { $sum: 1 } } }
+          ],
+          byStatus: [
+            {
+              $group: {
+                _id: null,
+                active: { $sum: { $cond: [{ $eq: ['$isActive', true] }, 1, 0] } },
+                inactive: { $sum: { $cond: [{ $eq: ['$isActive', false] }, 1, 0] } },
+                verified: { $sum: { $cond: [{ $eq: ['$isVerified', true] }, 1, 0] } },
+                unverified: { $sum: { $cond: [{ $eq: ['$isVerified', false] }, 1, 0] } }
+              }
+            }
+          ],
+          byMonth: [
+            {
+              $group: {
+                _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+                count: { $sum: 1 }
+              }
+            },
+            { $sort: { _id: 1 } },
+            { $limit: 12 }
+          ]
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        total: stats[0]?.total[0]?.count || 0,
+        byRole: stats[0]?.byRole || [],
+        byStatus: stats[0]?.byStatus[0] || { active: 0, inactive: 0, verified: 0, unverified: 0 },
+        byMonth: stats[0]?.byMonth || []
+      }
+    });
+  } catch (error) {
+    console.error('❌ Admin user stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to load user statistics'
+    });
+  }
+};
+
+/**
+ * @desc    إحصائيات الطلبات للأدمن
+ * @route   GET /api/aggregate/admin/stats/orders
+ * @access  Admin
+ */
+exports.getAdminOrderStats = async (req, res) => {
+  try {
+    const stats = await Order.aggregate([
+      {
+        $facet: {
+          total: [{ $count: 'count' }],
+          byStatus: [
+            { $group: { _id: '$status', count: { $sum: 1 } } }
+          ],
+          revenue: [
+            {
+              $group: {
+                _id: null,
+                total: { $sum: '$totalPrice' },
+                avg: { $avg: '$totalPrice' },
+                min: { $min: '$totalPrice' },
+                max: { $max: '$totalPrice' }
+              }
+            }
+          ],
+          byDay: [
+            {
+              $group: {
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                count: { $sum: 1 },
+                revenue: { $sum: '$totalPrice' }
+              }
+            },
+            { $sort: { _id: -1 } },
+            { $limit: 30 }
+          ]
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        total: stats[0]?.total[0]?.count || 0,
+        byStatus: stats[0]?.byStatus || [],
+        revenue: stats[0]?.revenue[0] || { total: 0, avg: 0, min: 0, max: 0 },
+        byDay: stats[0]?.byDay || []
+      }
+    });
+  } catch (error) {
+    console.error('❌ Admin order stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to load order statistics'
+    });
+  }
+};
+
+/**
+ * @desc    إحصائيات الإيرادات للأدمن
+ * @route   GET /api/aggregate/admin/stats/revenue
+ * @access  Admin
+ */
+exports.getAdminRevenueStats = async (req, res) => {
+  try {
+    const { period = 'month' } = req.query;
+
+    const startDate = new Date();
+    switch (period) {
+      case 'week':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case 'month':
+        startDate.setMonth(startDate.getMonth() - 1);
+        break;
+      case 'quarter':
+        startDate.setMonth(startDate.getMonth() - 3);
+        break;
+      case 'year':
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+    }
+
+    const revenue = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate },
+          status: 'delivered'
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$createdAt' },
+            month: { $month: '$createdAt' },
+            day: { $dayOfMonth: '$createdAt' }
+          },
+          revenue: { $sum: '$totalPrice' },
+          orders: { $sum: 1 }
+        }
+      },
+      { $sort: { '_id.year': 1, '_id.month': 1, '_id.day': 1 } }
+    ]);
+
+    const total = await Order.aggregate([
+      {
+        $match: {
+          status: 'delivered'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$totalPrice' },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        period,
+        revenue,
+        total: total[0] || { total: 0, count: 0 },
+        timestamp: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('❌ Admin revenue stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to load revenue statistics'
+    });
+  }
+};
+
+/**
+ * @desc    تحليلات المستخدمين
+ * @route   GET /api/aggregate/admin/analytics/users
+ * @access  Admin
+ */
+exports.getUserAnalytics = async (req, res) => {
+  try {
+    const { period = 'month' } = req.query;
+
+    const startDate = new Date();
+    if (period === 'month') startDate.setMonth(startDate.getMonth() - 1);
+    else if (period === 'year') startDate.setFullYear(startDate.getFullYear() - 1);
+    else startDate.setDate(startDate.getDate() - 30);
+
+    const [growth, retention, byLocation] = await Promise.all([
+      // نمو المستخدمين
+      User.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+            },
+            newUsers: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+
+      // الاحتفاظ بالمستخدمين
+      User.aggregate([
+        {
+          $facet: {
+            active: [
+              {
+                $match: {
+                  lastLogin: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+                }
+              },
+              { $count: 'count' }
+            ],
+            returning: [
+              {
+                $match: {
+                  createdAt: { $lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+                  lastLogin: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+                }
+              },
+              { $count: 'count' }
+            ]
+          }
+        }
+      ]),
+
+      // المستخدمين حسب المدينة
+      User.aggregate([
+        {
+          $group: {
+            _id: '$city',
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { count: -1 } },
+        { $limit: 10 }
+      ])
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        growth: {
+          labels: growth.map(g => g._id),
+          data: growth.map(g => g.newUsers)
+        },
+        retention: {
+          active: retention[0]?.active[0]?.count || 0,
+          returning: retention[0]?.returning[0]?.count || 0,
+          rate: retention[0]?.active[0]?.count ? 
+            ((retention[0]?.returning[0]?.count || 0) / retention[0]?.active[0]?.count * 100).toFixed(1) : 0
+        },
+        byLocation
+      }
+    });
+  } catch (error) {
+    console.error('❌ Get user analytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get user analytics'
+    });
+  }
+};
+
+/**
+ * @desc    تحليلات الطلبات
+ * @route   GET /api/aggregate/admin/analytics/orders
+ * @access  Admin
+ */
+exports.getOrderAnalytics = async (req, res) => {
+  try {
+    const { period = 'month' } = req.query;
+
+    const startDate = new Date();
+    if (period === 'month') startDate.setMonth(startDate.getMonth() - 1);
+    else if (period === 'year') startDate.setFullYear(startDate.getFullYear() - 1);
+    else startDate.setDate(startDate.getDate() - 30);
+
+    const [trends, byHour, completionRate] = await Promise.all([
+      // اتجاهات الطلبات
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate }
+          }
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+            },
+            orders: { $sum: 1 },
+            revenue: { $sum: '$totalPrice' }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+
+      // الطلبات حسب الساعة
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate }
+          }
+        },
+        {
+          $group: {
+            _id: { $hour: '$createdAt' },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+
+      // معدل الإكمال
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: 1 },
+            completed: {
+              $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] }
+            },
+            cancelled: {
+              $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] }
+            }
+          }
+        }
+      ])
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        trends: {
+          labels: trends.map(t => t._id),
+          orders: trends.map(t => t.orders),
+          revenue: trends.map(t => t.revenue)
+        },
+        byHour: {
+          labels: byHour.map(h => `${h._id}:00`),
+          data: byHour.map(h => h.count)
+        },
+        completion: {
+          rate: completionRate[0] ? 
+            ((completionRate[0].completed / completionRate[0].total) * 100).toFixed(1) : 0,
+          total: completionRate[0]?.total || 0,
+          completed: completionRate[0]?.completed || 0,
+          cancelled: completionRate[0]?.cancelled || 0
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Get order analytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get order analytics'
+    });
+  }
+};
+
+/**
+ * @desc    تحليلات الإيرادات
+ * @route   GET /api/aggregate/admin/analytics/revenue
+ * @access  Admin
+ */
+exports.getRevenueAnalytics = async (req, res) => {
+  try {
+    const { period = 'month' } = req.query;
+
+    const startDate = new Date();
+    if (period === 'month') startDate.setMonth(startDate.getMonth() - 1);
+    else if (period === 'year') startDate.setFullYear(startDate.getFullYear() - 1);
+    else startDate.setDate(startDate.getDate() - 30);
+
+    const previousStartDate = new Date(startDate);
+    previousStartDate.setMonth(previousStartDate.getMonth() - 1);
+
+    const [current, previous, byDay, byCategory] = await Promise.all([
+      // الإيرادات الحالية
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate },
+            status: 'delivered'
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$totalPrice' },
+            avg: { $avg: '$totalPrice' },
+            count: { $sum: 1 }
+          }
+        }
+      ]),
+
+      // الإيرادات السابقة للمقارنة
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: previousStartDate, $lt: startDate },
+            status: 'delivered'
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$totalPrice' }
+          }
+        }
+      ]),
+
+      // الإيرادات اليومية
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate },
+            status: 'delivered'
+          }
+        },
+        {
+          $group: {
+            _id: {
+              $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+            },
+            revenue: { $sum: '$totalPrice' },
+            orders: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+
+      // الإيرادات حسب الفئة
+      Order.aggregate([
+        {
+          $match: {
+            createdAt: { $gte: startDate },
+            status: 'delivered'
+          }
+        },
+        { $unwind: '$items' },
+        {
+          $group: {
+            _id: '$items.category',
+            revenue: { $sum: { $multiply: ['$items.price', '$items.qty'] } },
+            quantity: { $sum: '$items.qty' }
+          }
+        },
+        { $sort: { revenue: -1 } }
+      ])
+    ]);
+
+    const currentTotal = current[0]?.total || 0;
+    const previousTotal = previous[0]?.total || 0;
+    const change = calculateChange(currentTotal, previousTotal);
+
+    res.json({
+      success: true,
+      data: {
+        summary: {
+          total: currentTotal,
+          average: current[0]?.avg || 0,
+          orderCount: current[0]?.count || 0,
+          change
+        },
+        daily: {
+          labels: byDay.map(d => d._id),
+          revenue: byDay.map(d => d.revenue),
+          orders: byDay.map(d => d.orders)
+        },
+        byCategory: byCategory.map(c => ({
+          category: c._id || 'other',
+          revenue: c.revenue,
+          quantity: c.quantity
+        }))
+      }
+    });
+  } catch (error) {
+    console.error('❌ Get revenue analytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get revenue analytics'
+    });
+  }
+};
+
+/**
+ * @desc    بحث موحد في جميع المحتويات
+ * @route   GET /api/aggregate/search
+ * @access  Public
+ */
+exports.unifiedSearch = async (req, res) => {
+  try {
+    const { q: searchTerm, type, limit = 10 } = req.query;
+
+    if (!searchTerm) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search term is required'
+      });
+    }
+
+    const results = {};
+
+    // البحث في المطاعم
+    if (!type || type === 'restaurants') {
+      const restaurants = await Restaurant.find({
+        $or: [
+          { name: { $regex: searchTerm, $options: 'i' } },
+          { description: { $regex: searchTerm, $options: 'i' } },
+          { tags: { $regex: searchTerm, $options: 'i' } }
+        ],
+        isOpen: true
+      })
+        .select('name image description type averageRating deliveryFee')
+        .limit(limit)
+        .lean();
+
+      results.restaurants = restaurants;
+    }
+
+    // البحث في الأصناف
+    if (!type || type === 'items') {
+      const items = await Item.find({
+        name: { $regex: searchTerm, $options: 'i' },
+        isAvailable: true
+      })
+        .populate('restaurant', 'name image')
+        .select('name price image description category')
+        .limit(limit)
+        .lean();
+
+      results.items = items;
+    }
+
+    // البحث في المستخدمين (للمسجلين فقط)
+    if (req.user && (!type || type === 'users')) {
+      const users = await User.find({
+        $or: [
+          { name: { $regex: searchTerm, $options: 'i' } },
+          { email: { $regex: searchTerm, $options: 'i' } }
+        ],
+        isActive: true
+      })
+        .select('name image role')
+        .limit(limit)
+        .lean();
+
+      results.users = users;
+    }
+
+    // البحث في الطلبات (للمستخدم نفسه فقط)
+    if (req.user && (!type || type === 'orders')) {
+      const orders = await Order.find({
+        user: req.user.id,
+        'items.name': { $regex: searchTerm, $options: 'i' }
+      })
+        .populate('restaurant', 'name')
+        .select('status totalPrice createdAt')
+        .limit(limit)
+        .lean();
+
+      results.orders = orders;
+    }
+
+    res.json({
+      success: true,
+      data: results,
+      searchTerm,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error('❌ Unified search error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Search failed'
+    });
+  }
+};
+
+/**
+ * @desc    إحصائيات عامة للتطبيق
+ * @route   GET /api/aggregate/stats
+ * @access  Public
+ */
+exports.getPublicStats = async (req, res) => {
+  try {
+    const cacheKey = 'public:stats';
+    const cachedData = cache.get(cacheKey);
+
+    if (cachedData) {
+      return res.json({
+        success: true,
+        data: cachedData,
+        cached: true
+      });
+    }
+
+    const [
+      totalRestaurants,
+      totalItems,
+      totalOrders,
+      totalReviews,
+      averageRating,
+      topCategories,
+      topCities
+    ] = await Promise.all([
+      // إجمالي المطاعم
+      Restaurant.countDocuments({ isOpen: true }),
+      
+      // إجمالي الأصناف المتاحة
+      Item.countDocuments({ isAvailable: true }),
+      
+      // إجمالي الطلبات المكتملة
+      Order.countDocuments({ status: 'delivered' }),
+      
+      // إجمالي التقييمات
+      Review.countDocuments(),
+      
+      // متوسط التقييم العام
+      Review.aggregate([
+        { $group: { _id: null, avg: { $avg: '$rating' } } }
+      ]),
+      
+      // أفضل الفئات
+      Item.aggregate([
+        { $match: { isAvailable: true } },
+        { $group: { _id: '$category', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 5 }
+      ]),
+      
+      // أفضل المدن
+      RestaurantAddress.aggregate([
+        { $group: { _id: '$city', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 5 }
+      ])
+    ]);
+
+    const stats = {
+      restaurants: totalRestaurants,
+      items: totalItems,
+      orders: totalOrders,
+      reviews: totalReviews,
+      averageRating: averageRating[0]?.avg?.toFixed(1) || 0,
+      topCategories: topCategories.map(c => ({
+        name: c._id || 'other',
+        count: c.count
+      })),
+      topCities: topCities.map(c => ({
+        name: c._id || 'Niamey',
+        count: c.count
+      })),
+      timestamp: new Date()
+    };
+
+    cache.set(cacheKey, stats, 600); // 10 دقائق
+
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('❌ Public stats error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to get statistics'
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على طلبات المستخدم مع Pagination
+ * @route   GET /api/aggregate/orders/me
+ * @access  Authenticated
+ */
+exports.getMyOrdersPaginated = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    const { skip, limit, sort, filters } = paginationOptions;
+
+    let query = { user: userId };
+
+    if (filters.status) {
+      query.status = filters.status;
+    }
+
+    if (filters.restaurant) {
+      query.restaurant = filters.restaurant;
+    }
+
+    if (filters.minDate || filters.maxDate) {
+      query.createdAt = {};
+      if (filters.minDate) query.createdAt.$gte = new Date(filters.minDate);
+      if (filters.maxDate) query.createdAt.$lte = new Date(filters.maxDate);
+    }
+
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .populate('driver', 'name phone image')
+        .populate('restaurant', 'name image')
+        .populate('pickupAddress', 'label addressLine city')
+        .populate('deliveryAddress', 'label addressLine city')
+        .select('status totalPrice createdAt items estimatedDeliveryTime')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      Order.countDocuments(query)
+    ]);
+
+    // إضافة معلومات إضافية لكل طلب
+    const ordersWithDetails = orders.map(order => ({
+      ...order,
+      statusText: getStatusText(order.status),
+      estimatedDelivery: calculateETA(order),
+      itemCount: order.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0
+    }));
+
+    // إحصائيات الطلبات
+    const orderStats = await Order.aggregate([
+      { $match: { user: userId } },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          totalAmount: { $sum: '$totalPrice' }
+        }
+      }
+    ]);
+
+    const stats = orderStats.reduce((acc, stat) => {
+      acc[stat._id] = {
+        count: stat.count,
+        amount: stat.totalAmount
+      };
+      return acc;
+    }, {});
+
+    const totalSpent = orderStats.reduce((sum, stat) => sum + stat.totalAmount, 0);
+
+    const response = PaginationUtils.createPaginationResponse(
+      ordersWithDetails,
+      total,
+      paginationOptions,
+      {
+        stats,
+        summary: {
+          totalOrders: total,
+          totalSpent,
+          averageOrderValue: total > 0 ? totalSpent / total : 0
+        }
+      }
+    );
+
+    res.json(response);
+  } catch (error) {
+    console.error('❌ Get my orders error:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب الطلبات'
+    });
+  }
+};
+
 // ====== دوال مساعدة ======
 
+/**
+ * حساب وقت التوصيل المتوقع
+ */
 exports.calculateETA = (order) => {
   const statusTimes = {
     pending: '15-25 دقيقة',
@@ -895,6 +1962,9 @@ exports.calculateETA = (order) => {
   return statusTimes[order.status] || 'غير معروف';
 };
 
+/**
+ * الحصول على نص الحالة
+ */
 exports.getStatusText = (status) => {
   const statusTexts = {
     pending: 'قيد الانتظار',
@@ -906,3 +1976,13 @@ exports.getStatusText = (status) => {
   
   return statusTexts[status] || 'غير معروف';
 };
+
+// دالة مساعدة لحساب التغير (للاستخدام الداخلي)
+function calculateChange(current, previous) {
+  if (!previous || previous === 0) return { percentage: 100, trend: 'up' };
+  const change = ((current - previous) / previous) * 100;
+  return {
+    percentage: Math.abs(change).toFixed(1),
+    trend: change >= 0 ? 'up' : 'down'
+  };
+}

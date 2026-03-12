@@ -1,45 +1,38 @@
+// ============================================
+// ملف: src/routes/notification.routes.js (محدث)
+// ============================================
+
 const express = require("express");
 const router = express.Router();
-const notificationController = require("../controllers/notification.controller");
+
+// ✅ استيراد موحد
+const { notificationController } = require('../controllers');
+
+// الـ middlewares
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
+const PaginationUtils = require('../utils/pagination.util');
 
-/**
- * 🔔 الإشعارات الشخصية (للمستخدم الحالي)
- */
+// ========== جميع المسارات تحتاج توثيق ==========
+router.use(auth);
 
-// الحصول على إشعارات المستخدم
-router.get("/", auth, notificationController.getUserNotifications);
+// ========== 1. مسارات المستخدم العادي ==========
+router.get("/", PaginationUtils.validatePaginationParams, notificationController.getUserNotifications);
+router.get("/stats", notificationController.getNotificationStats);
+router.get("/unread-count", notificationController.getUnreadCount);
+router.put("/:id/read", notificationController.markAsRead);
+router.put("/:id/unread", notificationController.markAsUnread);
+router.put("/:id/archive", notificationController.archive);
+router.delete("/:id", notificationController.deleteNotification);
+router.put("/mark-all-read", notificationController.markAllAsRead);
+router.delete("/read/cleanup", notificationController.deleteReadNotifications);
+router.put("/preferences", notificationController.updateNotificationPreferences);
+router.post("/devices", notificationController.registerDevice);
+router.delete("/devices/:deviceId", notificationController.unregisterDevice);
 
-// الحصول على إحصائيات الإشعارات
-router.get("/stats", auth, notificationController.getNotificationStats);
-
-// تحديث حالة إشعار معين
-router.put("/:id/status", auth, notificationController.updateNotificationStatus);
-
-// تحديد جميع الإشعارات كمقروءة
-router.put("/mark-all-read", auth, notificationController.markAllAsRead);
-
-// حذف إشعار معين
-router.delete("/:id", auth, notificationController.deleteNotification);
-
-// حذف جميع الإشعارات المقروءة
-router.delete("/read/cleanup", auth, notificationController.deleteReadNotifications);
-
-// تحديث تفضيلات الإشعارات
-router.put("/preferences", auth, notificationController.updateNotificationPreferences);
-
-// تسجيل جهاز لـ Push Notifications
-router.post("/devices", auth, notificationController.registerDevice);
-
-/**
- * 👑 إدارة الإشعارات (للأدمن فقط)
- */
-
-// إرسال إشعار مخصص
-router.post("/send", auth, role("admin"), notificationController.sendCustomNotification);
-
-// الحصول على إحصائيات الحملة
-router.get("/campaign/:campaignId/stats", auth, role("admin"), notificationController.getCampaignStats);
+// ========== 2. مسارات الأدمن ==========
+router.post("/send", role("admin"), notificationController.sendCustomNotification);
+router.get("/campaign/:campaignId/stats", role("admin"), notificationController.getCampaignStats);
+router.get("/all/stats", role("admin"), notificationController.getAllNotificationsStats);
 
 module.exports = router;

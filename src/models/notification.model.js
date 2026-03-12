@@ -1,8 +1,12 @@
+// ============================================
+// ملف: src/models/notification.model.js (محدث)
+// الوصف: نموذج الإشعارات مع ميزات متقدمة
+// ============================================
+
 const mongoose = require("mongoose");
 
 const notificationSchema = new mongoose.Schema(
   {
-    // المستخدم المستهدف
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -10,31 +14,21 @@ const notificationSchema = new mongoose.Schema(
       index: true,
     },
     
-    // نوع الإشعار
     type: {
       type: String,
       required: true,
       enum: [
-        "system",           // إشعارات النظام
-        "order_created",    // طلب جديد
-        "order_accepted",   // تم قبول الطلب
-        "order_picked",     // تم استلام الطلب
-        "order_delivered",  // تم التوصيل
-        "order_cancelled",  // طلب ملغي
-        "driver_assigned",  // تم تعيين مندوب
-        "driver_arrived",   // المندوب وصل
-        "payment_success",  // دفع ناجح
-        "payment_failed",   // دفع فاشل
-        "review_reminder",  // تذكير بالتقييم
-        "promotion",        // عروض ترويجية
-        "announcement",     // إعلانات
-        "security",         // إشعارات أمنية
-        "support",          // ردود الدعم
+        "system", "order_created", "order_accepted", "order_picked",
+        "order_delivered", "order_cancelled", "driver_assigned",
+        "driver_arrived", "payment_success", "payment_failed",
+        "review_reminder", "promotion", "announcement", "security",
+        "support", "welcome", "password_changed", "profile_updated",
+        "new_message", "loyalty_points_earned", "loyalty_points_redeemed",
+        "reward_available", "reward_expiring"
       ],
       index: true,
     },
     
-    // العنوان
     title: {
       type: String,
       required: true,
@@ -42,7 +36,6 @@ const notificationSchema = new mongoose.Schema(
       maxlength: 200,
     },
     
-    // المحتوى
     content: {
       type: String,
       required: true,
@@ -50,31 +43,66 @@ const notificationSchema = new mongoose.Schema(
       maxlength: 1000,
     },
     
-    // البيانات الإضافية
+    // ========== 🔥 إضافات جديدة ==========
+    
+    /**
+     * بيانات إضافية منظمة
+     */
     data: {
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
     
-    // الصورة أو الأيقونة
-    icon: {
+    /**
+     * روابط للإجراءات
+     */
+    actions: [{
+      label: String,
+      url: String,
+      type: {
+        type: String,
+        enum: ["primary", "secondary", "danger"],
+      }
+    }],
+    
+    /**
+     * صورة مصغرة
+     */
+    image: String,
+    
+    /**
+     * لون الإشعار
+     */
+    color: String,
+    
+    /**
+     * مجموعة الإشعار (للتجميع)
+     */
+    group: {
       type: String,
+      index: true,
     },
     
-    // الرابط المرتبط
-    link: {
+    /**
+     * معرف الحملة التسويقية
+     */
+    campaignId: {
       type: String,
-      trim: true,
+      index: true,
     },
     
-    // أولوية الإشعار
+    // ========== نهاية الإضافات ==========
+    
+    icon: String,
+    
+    link: String,
+    
     priority: {
       type: String,
       enum: ["low", "medium", "high", "urgent"],
       default: "medium",
     },
     
-    // حالة الإشعار
     status: {
       type: String,
       enum: ["unread", "read", "archived", "deleted"],
@@ -82,32 +110,23 @@ const notificationSchema = new mongoose.Schema(
       index: true,
     },
     
-    // وقت الإرسال
     sentAt: {
       type: Date,
       default: Date.now,
       index: true,
     },
     
-    // وقت القراءة
-    readAt: {
-      type: Date,
-    },
+    readAt: Date,
     
-    // تاريخ انتهاء الصلاحية
-    expiresAt: {
-      type: Date,
-    },
+    expiresAt: Date,
     
-    // الإعدادات
     settings: {
-      push: { type: Boolean, default: true },       // إرسال push notification
-      email: { type: Boolean, default: false },     // إرسال email
-      sms: { type: Boolean, default: false },       // إرسال SMS
-      inApp: { type: Boolean, default: true },      // عرض في التطبيق
+      push: { type: Boolean, default: true },
+      email: { type: Boolean, default: false },
+      sms: { type: Boolean, default: false },
+      inApp: { type: Boolean, default: true },
     },
     
-    // تفاصيل الإرسال
     delivery: {
       pushSent: { type: Boolean, default: false },
       emailSent: { type: Boolean, default: false },
@@ -118,19 +137,6 @@ const notificationSchema = new mongoose.Schema(
       retryCount: { type: Number, default: 0 },
     },
     
-    // تتبع الحملة
-    campaignId: {
-      type: String,
-      index: true,
-    },
-    
-    // المجموعة
-    group: {
-      type: String,
-      index: true,
-    },
-    
-    // الوسوم
     tags: [{
       type: String,
       trim: true,
@@ -144,34 +150,14 @@ const notificationSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
+// ========== Indexes ==========
 notificationSchema.index({ user: 1, status: 1, sentAt: -1 });
 notificationSchema.index({ type: 1, sentAt: -1 });
-notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 }); // لحذف المنتهية تلقائياً
+notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+notificationSchema.index({ campaignId: 1, status: 1 });
 
-// Middleware
-notificationSchema.pre("save", function(next) {
-  if (this.isModified("status") && this.status === "read" && !this.readAt) {
-    this.readAt = new Date();
-  }
-  
-  // تعيين تاريخ انتهاء الصلاحية إذا لم يكن موجوداً
-  if (!this.expiresAt) {
-    const expiryDays = {
-      urgent: 7,     // 7 أيام للإشعارات العاجلة
-      high: 14,      // 14 يوم للإشعارات المهمة
-      medium: 30,    // 30 يوم للإشعارات العادية
-      low: 60,       // 60 يوم للإشعارات المنخفضة
-    };
-    
-    this.expiresAt = new Date();
-    this.expiresAt.setDate(this.expiresAt.getDate() + (expiryDays[this.priority] || 30));
-  }
-  
-  next();
-});
+// ========== Virtuals ==========
 
-// Virtuals
 notificationSchema.virtual("isExpired").get(function() {
   return this.expiresAt && this.expiresAt < new Date();
 });
@@ -193,52 +179,87 @@ notificationSchema.virtual("timeAgo").get(function() {
   return `منذ ${Math.floor(diffDays / 365)} سنة`;
 });
 
-// Static Methods
+// ========== Middleware ==========
+
+notificationSchema.pre('save', function(next) {
+  if (this.isModified("status") && this.status === "read" && !this.readAt) {
+    this.readAt = new Date();
+  }
+  
+  if (!this.expiresAt) {
+    const expiryDays = {
+      urgent: 7,
+      high: 14,
+      medium: 30,
+      low: 60,
+    };
+    
+    this.expiresAt = new Date();
+    this.expiresAt.setDate(this.expiresAt.getDate() + (expiryDays[this.priority] || 30));
+  }
+  
+  // تأكد من أن next هي دالة قبل استدعائها
+  if (typeof next === 'function') {
+    next();
+  }
+});
+// ========== Static Methods ==========
+
+/**
+ * إنشاء إشعار لطلب
+ */
 notificationSchema.statics.createForOrder = async function(order, type, additionalData = {}) {
   const Notification = this;
   
-  let title, content, priority = "medium";
+  let title, content, priority = "medium", icon;
   
   switch (type) {
     case "order_created":
       title = "تم إنشاء طلب جديد";
       content = `تم إنشاء طلبك #${order._id.toString().slice(-6)} بنجاح.`;
       priority = "high";
+      icon = "🛒";
       break;
       
     case "order_accepted":
       title = "تم قبول طلبك";
       content = `تم قبول طلبك #${order._id.toString().slice(-6)} وجاري تجهيزه.`;
       priority = "high";
+      icon = "✅";
       break;
       
     case "driver_assigned":
       title = "تم تعيين مندوب";
       content = `تم تعيين مندوب لتوصيل طلبك #${order._id.toString().slice(-6)}.`;
       priority = "high";
+      icon = "🚗";
       break;
       
     case "order_picked":
       title = "تم استلام الطلب";
       content = `تم استلام طلبك #${order._id.toString().slice(-6)} من المطعم.`;
       priority = "medium";
+      icon = "📦";
       break;
       
     case "order_delivered":
       title = "تم توصيل الطلب";
       content = `تم توصيل طلبك #${order._id.toString().slice(-6)} بنجاح.`;
       priority = "high";
+      icon = "🚚";
       break;
       
     case "order_cancelled":
       title = "تم إلغاء الطلب";
       content = `تم إلغاء طلبك #${order._id.toString().slice(-6)}.`;
       priority = "urgent";
+      icon = "❌";
       break;
       
     default:
       title = "تحديث على طلبك";
       content = `هناك تحديث على طلبك #${order._id.toString().slice(-6)}.`;
+      icon = "🔔";
   }
   
   const notification = await Notification.create({
@@ -247,6 +268,7 @@ notificationSchema.statics.createForOrder = async function(order, type, addition
     title,
     content,
     priority,
+    icon,
     data: {
       orderId: order._id,
       orderNumber: order._id.toString().slice(-6),
@@ -257,115 +279,55 @@ notificationSchema.statics.createForOrder = async function(order, type, addition
       ...additionalData,
     },
     link: `/orders/${order._id}`,
-    icon: this.getIconByType(type),
     tags: ["order", type, `order_${order._id}`],
+    actions: [
+      {
+        label: "عرض الطلب",
+        url: `/orders/${order._id}`,
+        type: "primary"
+      }
+    ]
   });
   
   return notification;
 };
 
-notificationSchema.statics.createForUser = async function(userId, type, data = {}) {
+/**
+ * إنشاء إشعار نقاط الولاء
+ */
+notificationSchema.statics.createLoyaltyNotification = async function(userId, points, reason, type = "earn") {
   const Notification = this;
   
-  const templates = {
-    welcome: {
-      title: "مرحباً بك!",
-      content: "شكراً لانضمامك إلينا. نتمنى لك تجربة ممتعة.",
-      priority: "medium",
-    },
-    password_changed: {
-      title: "تم تغيير كلمة المرور",
-      content: "تم تغيير كلمة مرور حسابك بنجاح.",
-      priority: "high",
-    },
-    profile_updated: {
-      title: "تم تحديث الملف الشخصي",
-      content: "تم تحديث معلومات ملفك الشخصي بنجاح.",
-      priority: "low",
-    },
-    new_message: {
-      title: "رسالة جديدة",
-      content: data.message || "لديك رسالة جديدة.",
-      priority: "medium",
-    },
-    review_reminder: {
-      title: "كيف كانت تجربتك؟",
-      content: "شاركنا تجربتك مع المطعم لتساعد الآخرين.",
-      priority: "low",
-    },
-  };
+  let title, content, icon;
   
-  const template = templates[type] || {
-    title: "إشعار جديد",
-    content: data.content || "لديك إشعار جديد.",
+  if (type === "earn") {
+    title = "🎉 نقاط ولاء جديدة!";
+    content = `لقد حصلت على ${points} نقطة ولاء ${reason ? `بسبب ${reason}` : ''}.`;
+    icon = "⭐";
+  } else {
+    title = "🔄 تم استبدال النقاط";
+    content = `لقد استبدلت ${points} نقطة ولاء ${reason ? `مقابل ${reason}` : ''}.`;
+    icon = "🎁";
+  }
+  
+  const notification = await Notification.create({
+    user: userId,
+    type: `loyalty_points_${type}`,
+    title,
+    content,
     priority: "medium",
-  };
-  
-  const notification = await Notification.create({
-    user: userId,
-    type: "system",
-    title: template.title,
-    content: template.content,
-    priority: template.priority,
-    data,
-    icon: this.getIconByType(type),
-    tags: ["user", type, `user_${userId}`],
+    icon,
+    data: { points, reason },
+    link: "/loyalty",
+    tags: ["loyalty", `points_${type}`],
   });
   
   return notification;
 };
 
-notificationSchema.statics.createPromotional = async function(userId, data) {
-  const Notification = this;
-  
-  const notification = await Notification.create({
-    user: userId,
-    type: "promotion",
-    title: data.title || "عرض خاص!",
-    content: data.content || "استمتع بعروضنا الخاصة والمميزة.",
-    priority: data.priority || "medium",
-    data: {
-      promotionId: data.promotionId,
-      discount: data.discount,
-      validUntil: data.validUntil,
-      ...data,
-    },
-    link: data.link,
-    icon: data.icon || "🎁",
-    campaignId: data.campaignId,
-    group: data.group,
-    tags: ["promotion", "marketing", ...(data.tags || [])],
-  });
-  
-  return notification;
-};
-
-notificationSchema.statics.getIconByType = function(type) {
-  const icons = {
-    system: "🔔",
-    order_created: "🛒",
-    order_accepted: "✅",
-    order_picked: "📦",
-    order_delivered: "🚚",
-    order_cancelled: "❌",
-    driver_assigned: "🚗",
-    driver_arrived: "📍",
-    payment_success: "💳",
-    payment_failed: "⚠️",
-    review_reminder: "⭐",
-    promotion: "🎁",
-    announcement: "📢",
-    security: "🔒",
-    support: "💬",
-    welcome: "👋",
-    password_changed: "🔑",
-    profile_updated: "👤",
-    new_message: "💬",
-  };
-  
-  return icons[type] || "🔔";
-};
-
+/**
+ * الحصول على الإشعارات غير المقروءة
+ */
 notificationSchema.statics.getUnreadCount = async function(userId) {
   return await this.countDocuments({
     user: userId,
@@ -374,6 +336,9 @@ notificationSchema.statics.getUnreadCount = async function(userId) {
   });
 };
 
+/**
+ * تحديد الكل كمقروء
+ */
 notificationSchema.statics.markAllAsRead = async function(userId) {
   return await this.updateMany(
     {
@@ -387,13 +352,17 @@ notificationSchema.statics.markAllAsRead = async function(userId) {
   );
 };
 
+/**
+ * تنظيف الإشعارات المنتهية
+ */
 notificationSchema.statics.cleanupExpired = async function() {
   return await this.deleteMany({
     expiresAt: { $lt: new Date() },
   });
 };
 
-// Instance Methods
+// ========== Methods ==========
+
 notificationSchema.methods.markAsRead = async function() {
   this.status = "read";
   this.readAt = new Date();
@@ -422,8 +391,6 @@ notificationSchema.methods.retryDelivery = async function() {
   this.delivery.smsSent = false;
   
   await this.save();
-  
-  // TODO: إعادة محاولة الإرسال
   return this;
 };
 

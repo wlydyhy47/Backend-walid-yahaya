@@ -1,13 +1,25 @@
+// ============================================
+// ملف: src/controllers/order.controller.js
+// الوصف: التحكم الكامل في عمليات الطلبات
+// الإصدار: 3.0 (نهائي - جميع الدوال)
+// ============================================
+
 const Order = require("../models/order.model");
+const User = require("../models/user.model");
 const Address = require("../models/address.model");
+const Restaurant = require("../models/restaurant.model");
 const DriverLocation = require("../models/driverLocation.model");
-const cache = require('../utils/cache.util');
+const Review = require("../models/review.model");
+const Notification = require("../models/notification.model");
+const cache = require("../utils/cache.util");
 const PaginationUtils = require('../utils/pagination.util');
 const notificationService = require("../services/notification.service");
-const User = require("../models/user.model");
+const { AppError } = require('../middlewares/errorHandler.middleware');
+
+// ========== 1. دوال مساعدة (Helpers) ==========
 
 /**
- * 🏎️ دالة مساعدة: تعيين أقرب سائق متاح
+ * تعيين أقرب سائق متاح للطلب
  */
 const assignClosestDriver = async (orderId, pickupCoordinates) => {
   try {
@@ -21,7 +33,7 @@ const assignClosestDriver = async (orderId, pickupCoordinates) => {
       },
       maxDistance: 5000, // 5 كم
       spherical: true
-    }).populate('driver', 'name phone image');
+    }).populate('driver', 'name phone image rating');
 
     if (!nearestDriver) {
       console.log('🚫 No available drivers found near pickup location');
@@ -48,23 +60,23 @@ const assignClosestDriver = async (orderId, pickupCoordinates) => {
 };
 
 /**
- * 🧹 دالة مساعدة: إبطال الكاش عند تحديث الطلب
+ * إبطال الكاش عند تحديث الطلب
  */
 const invalidateOrderCache = async (orderId, userId) => {
   try {
-    // إبطال كاش لوحة التحكم للمستخدم
+    // كاش المستخدم
     cache.del(`dashboard:${userId}`);
-
-    // إبطال كاش تتبع الطلب
+    cache.del(`user:complete:${userId}`);
+    cache.del(`user:stats:${userId}`);
+    
+    // كاش الطلب
     cache.del(`order:tracking:${orderId}:${userId}`);
-
-    // إبطال كاش لوحة تحكم الأدمن
-    cache.invalidatePattern('admin:dashboard:*');
+    cache.del(`order:full:${orderId}`);
+    
+    // كاش عام
+    cache.invalidatePattern('orders:user:*');
     cache.invalidatePattern('orders:admin:*');
-
-    // إبطال كاش الطلبات العامة
-    cache.invalidatePattern('orders:*');
-    cache.invalidatePattern('user:complete:*');
+    cache.invalidatePattern('dashboard:*');
 
     console.log(`🗑️ Invalidated cache for order ${orderId}`);
   } catch (error) {
@@ -73,12 +85,138 @@ const invalidateOrderCache = async (orderId, userId) => {
 };
 
 /**
- * 📝 إنشاء طلب جديد
- * POST /api/orders
+ * حساب الوقت المقدر للتوصيل
+ */
+const calculateETA = (order) => {
+  if (!order) return 'غير معروف';
+  
+  const now = new Date();
+  const created = new Date(order.createdAt);
+  const elapsedMinutes = Math.floor((now - created) / 60000);
+  
+  const baseTime = order.estimatedDeliveryTime || 30;
+  const remaining = Math.max(0, baseTime - elapsedMinutes);
+  
+  const statusTimes = {
+    pending: `${baseTime} دقيقة`,
+    accepted: `${Math.max(5, remaining)} دقيقة`,
+    picked: `${Math.max(2, remaining - 10)} دقيقة`,
+    ready: `${Math.max(2, remaining - 5)} دقيقة`,
+    delivered: 'تم التوصيل',
+    cancelled: 'ملغي'
+  };
+  
+  return statusTimes[order.status] || 'قيد الحساب';
+};
+
+/**
+ * الحصول على نص الحالة
+ */
+const getStatusText = (status) => {
+  const statusTexts = {
+    pending: 'قيد الانتظار',
+    accepted: 'تم القبول',
+    picked: 'تم الاستلام',
+    ready: 'جاهز',
+    delivered: 'تم التوصيل',
+    cancelled: 'ملغي'
+  };
+  return statusTexts[status] || 'غير معروف';
+};
+
+/**
+ * التحقق من صحة تغيير الحالة
+ */
+const isValidStatusTransition = (oldStatus, newStatus, userRole) => {
+  const validTransitions = {
+    admin: {
+      pending: ['accepted', 'cancelled', 'ready'],
+      accepted: ['picked', 'cancelled', 'ready'],
+      picked: ['delivered', 'cancelled'],
+      ready: ['picked', 'cancelled'],
+      delivered: [],
+      cancelled: ['pending'] // يمكن إعادة فتح الطلب الملغي
+    },
+    driver: {
+      pending: [],
+      accepted: ['picked'],
+      picked: ['delivered'],
+      ready: ['picked'],
+      delivered: [],
+      cancelled: []
+    },
+    client: {
+      pending: ['cancelled'],
+      accepted: ['cancelled'],
+      picked: [],
+      ready: [],
+      delivered: [],
+      cancelled: []
+    }
+  };
+
+  const roleTransitions = validTransitions[userRole] || validTransitions.client;
+  return roleTransitions[oldStatus]?.includes(newStatus) || false;
+};
+
+/**
+ * إنشاء Timeline للطلب
+ */
+const createOrderTimeline = (order) => {
+  return [
+    {
+      status: 'created',
+      title: 'تم إنشاء الطلب',
+      description: 'تم استلام طلبك بنجاح',
+      timestamp: order.createdAt,
+      completed: true,
+      icon: '🛒'
+    },
+    {
+      status: 'accepted',
+      title: 'تم قبول الطلب',
+      description: order.driver ? 'تم تعيين مندوب' : 'بانتظار قبول المطعم',
+      timestamp: order.status !== 'pending' ? order.updatedAt : null,
+      completed: ['accepted', 'ready', 'picked', 'delivered'].includes(order.status),
+      icon: '✅'
+    },
+    {
+      status: 'ready',
+      title: 'الطلب جاهز',
+      description: 'الطلب جاهز للاستلام من المطعم',
+      timestamp: order.status === 'ready' ? order.updatedAt : null,
+      completed: ['ready', 'picked', 'delivered'].includes(order.status),
+      icon: '🍽️'
+    },
+    {
+      status: 'picked',
+      title: 'تم الاستلام من المطعم',
+      description: 'المندوب في طريقه إليك',
+      timestamp: ['picked', 'delivered'].includes(order.status) ? order.updatedAt : null,
+      completed: ['picked', 'delivered'].includes(order.status),
+      icon: '📦'
+    },
+    {
+      status: 'delivered',
+      title: 'تم التوصيل',
+      description: 'تم توصيل طلبك بنجاح',
+      timestamp: order.status === 'delivered' ? order.updatedAt : null,
+      completed: order.status === 'delivered',
+      icon: '🚚'
+    }
+  ];
+};
+
+// ========== 2. دوال إنشاء الطلبات ==========
+
+/**
+ * @desc    إنشاء طلب جديد
+ * @route   POST /api/orders
+ * @access  Client
  */
 exports.createOrder = async (req, res) => {
   try {
-    const { items, totalPrice, pickupAddress, deliveryAddress, restaurant } = req.body;
+    const { items, totalPrice, pickupAddress, deliveryAddress, restaurant, notes } = req.body;
     const userId = req.user.id;
 
     // التحقق من البيانات
@@ -111,20 +249,24 @@ exports.createOrder = async (req, res) => {
     }
 
     // التحقق من ملكية العميل للعناوين
-    const pickup = await Address.findOne({ 
-      _id: pickupAddress, 
-      user: userId 
-    });
-
-    const delivery = await Address.findOne({ 
-      _id: deliveryAddress, 
-      user: userId 
-    });
+    const [pickup, delivery] = await Promise.all([
+      Address.findOne({ _id: pickupAddress, user: userId }),
+      Address.findOne({ _id: deliveryAddress, user: userId })
+    ]);
 
     if (!pickup || !delivery) {
       return res.status(400).json({ 
         success: false,
         message: "العناوين غير صالحة أو لا تملك صلاحية الوصول إليها" 
+      });
+    }
+
+    // التحقق من أن المطعم مفتوح
+    const restaurantInfo = await Restaurant.findById(restaurant);
+    if (!restaurantInfo || !restaurantInfo.isOpen) {
+      return res.status(400).json({
+        success: false,
+        message: "المطعم مغلق حالياً"
       });
     }
 
@@ -137,6 +279,8 @@ exports.createOrder = async (req, res) => {
       deliveryAddress,
       restaurant,
       status: "pending",
+      notes: notes?.trim(),
+      estimatedDeliveryTime: restaurantInfo.estimatedDeliveryTime || 30
     });
 
     // محاولة تعيين أقرب سائق تلقائيًا
@@ -153,14 +297,19 @@ exports.createOrder = async (req, res) => {
       await notificationService.createOrderNotifications(order);
     } catch (notificationError) {
       console.error('❌ Notification error:', notificationError.message);
-      // لا نوقف العملية إذا فشلت الإشعارات
     }
+
+    // تحديث إحصائيات المستخدم
+    await User.findByIdAndUpdate(userId, {
+      $inc: { 'stats.totalOrders': 1 },
+      $set: { 'stats.lastOrderDate': new Date() }
+    });
 
     // جلب الطلب مع البيانات المرتبطة
     const populatedOrder = await Order.findById(order._id)
       .populate("user", "name phone image")
-      .populate("driver", "name phone image")
-      .populate("restaurant", "name image phone")
+      .populate("driver", "name phone image rating")
+      .populate("restaurant", "name image phone estimatedDeliveryTime")
       .populate("pickupAddress")
       .populate("deliveryAddress")
       .lean();
@@ -176,8 +325,11 @@ exports.createOrder = async (req, res) => {
         assignedDriver: assignedDriver ? {
           id: assignedDriver._id,
           name: assignedDriver.name,
-          phone: assignedDriver.phone
+          phone: assignedDriver.phone,
+          rating: assignedDriver.rating
         } : null,
+        timeline: createOrderTimeline(populatedOrder),
+        estimatedDelivery: calculateETA(populatedOrder),
         nextSteps: assignedDriver ? "جاري تجهيز الطلب" : "بانتظار تعيين مندوب"
       },
       timestamp: new Date()
@@ -193,132 +345,135 @@ exports.createOrder = async (req, res) => {
       });
     }
     
-    if (error.code === 11000) {
-      return res.status(400).json({
-        success: false,
-        message: "حدث خطأ في إنشاء الطلب"
-      });
-    }
-    
     res.status(500).json({ 
       success: false,
-      message: "فشل إنشاء الطلب",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "فشل إنشاء الطلب"
     });
   }
 };
 
-/**
- * 🔄 إعادة تعيين المندوب (للأدمن)
- * PUT /api/orders/:orderId/reassign
- */
-exports.reassignDriver = async (req, res) => {
-  try {
-    const { orderId } = req.params;
-    const userId = req.user.id;
+// ========== 3. دوال جلب الطلبات ==========
 
-    // التحقق من صلاحية الأدمن
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({ 
-        success: false,
-        message: "غير مصرح لك بهذا الإجراء" 
+/**
+ * @desc    الحصول على تفاصيل الطلب (موحد)
+ * @route   GET /api/orders/:id
+ * @access  Authenticated (Owner, Driver, Admin)
+ */
+exports.getOrderDetails = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    const cacheKey = `order:full:${id}`;
+    const cachedData = cache.get(cacheKey);
+    
+    if (cachedData && cachedData.userId === userId) {
+      console.log(`📦 Serving order ${id} from cache`);
+      return res.json({
+        ...cachedData,
+        cached: true
       });
     }
 
-    const order = await Order.findById(orderId)
-      .populate("pickupAddress")
-      .populate("user", "id");
+    const order = await Order.findById(id)
+      .populate('user', 'name phone email image')
+      .populate('driver', 'name phone email image rating totalDeliveries')
+      .populate('restaurant', 'name image phone addressLine')
+      .populate('pickupAddress')
+      .populate('deliveryAddress')
+      .populate('items.item')
+      .lean();
 
     if (!order) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "الطلب غير موجود" 
+        message: 'الطلب غير موجود'
       });
     }
 
-    // إعادة تعيين السائق
-    order.driver = null;
-    order.status = "pending";
-    await order.save();
+    // التحقق من الصلاحيات
+    const isOwner = order.user && order.user._id.toString() === userId;
+    const isDriver = order.driver && order.driver._id.toString() === userId;
+    const isAdmin = userRole === 'admin';
 
-    // إبطال كاش المندوب القديم
-    if (order.driver) {
-      await DriverLocation.findOneAndUpdate(
-        { driver: order.driver._id, order: orderId },
-        { order: null }
-      );
+    if (!isOwner && !isDriver && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'غير مصرح لك بالوصول إلى هذا الطلب'
+      });
     }
 
-    // محاولة تعيين سائق جديد
-    let newDriver = null;
-    if (order.pickupAddress && order.pickupAddress.latitude && order.pickupAddress.longitude) {
-      newDriver = await assignClosestDriver(order._id, [
-        order.pickupAddress.longitude,
-        order.pickupAddress.latitude,
+    // جلب موقع المندوب إذا كان موجود
+    let driverLocation = null;
+    let locationHistory = [];
+    
+    if (order.driver && ['accepted', 'ready', 'picked'].includes(order.status)) {
+      [driverLocation, locationHistory] = await Promise.all([
+        DriverLocation.findOne({
+          driver: order.driver._id,
+          order: order._id
+        }).lean(),
+        
+        DriverLocation.find({
+          driver: order.driver._id,
+          order: order._id,
+          createdAt: { $gte: new Date(Date.now() - 30 * 60 * 1000) }
+        })
+        .select('location createdAt')
+        .sort({ createdAt: 1 })
+        .limit(20)
+        .lean()
       ]);
     }
 
-    // إبطال الكاش
-    await invalidateOrderCache(order._id, order.user._id);
+    // إنشاء timeline
+    const timeline = createOrderTimeline(order);
 
-    res.json({
+    const responseData = {
       success: true,
-      message: newDriver ? "تم إعادة تعيين المندوب بنجاح" : "لا يوجد مناديب متاحين حالياً",
       data: {
-        orderId: order._id,
-        newDriver: newDriver ? {
-          id: newDriver._id,
-          name: newDriver.name,
-          phone: newDriver.phone
-        } : null,
-        status: order.status
+        order,
+        tracking: {
+          currentLocation: driverLocation ? {
+            latitude: driverLocation.location.coordinates[1],
+            longitude: driverLocation.location.coordinates[0]
+          } : null,
+          locationHistory: locationHistory.map(loc => ({
+            latitude: loc.location.coordinates[1],
+            longitude: loc.location.coordinates[0],
+            timestamp: loc.createdAt
+          })),
+          lastUpdated: driverLocation?.createdAt || null,
+          estimatedDelivery: calculateETA(order)
+        },
+        timeline,
+        permissions: {
+          canCancel: ['pending', 'accepted'].includes(order.status) && (isOwner || isAdmin),
+          canUpdateStatus: (isDriver && ['accepted', 'ready', 'picked'].includes(order.status)) || isAdmin,
+          canContactDriver: !!order.driver && ['accepted', 'ready', 'picked'].includes(order.status),
+          canReassign: isAdmin
+        }
       },
+      userId,
       timestamp: new Date()
-    });
+    };
+
+    cache.set(cacheKey, responseData, 30); // 30 ثانية فقط
+    res.json(responseData);
   } catch (error) {
-    console.error('❌ Reassign driver error:', error.message);
-    res.status(500).json({ 
+    console.error('❌ Get order error:', error);
+    res.status(500).json({
       success: false,
-      message: "فشل إعادة تعيين المندوب",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'فشل جلب بيانات الطلب'
     });
   }
 };
 
-// controllers/order.controller.js - دالة جديدة
-exports.getDashboardStats = async (req, res) => {
-  const stats = await Order.aggregate([
-    {
-      $facet: {
-        totalStats: [{
-          $group: {
-            _id: null,
-            totalOrders: { $sum: 1 },
-            totalRevenue: { $sum: '$totalPrice' },
-            avgOrderValue: { $avg: '$totalPrice' }
-          }
-        }],
-        byStatus: [{
-          $group: { _id: '$status', count: { $sum: 1 } }
-        }],
-        last7Days: [{
-          $match: { createdAt: { $gte: new Date(Date.now() - 7*24*60*60*1000) } }
-        }, {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            orders: { $sum: 1 }
-          }
-        }]
-      }
-    }
-  ]);
-  
-  res.json(stats[0]);
-};
-
 /**
- * 📋 الحصول على طلباتي مع Pagination
- * GET /api/orders/me
+ * @desc    الحصول على طلبات المستخدم الحالي
+ * @route   GET /api/orders/me
+ * @access  Client
  */
 exports.getMyOrdersPaginated = async (req, res) => {
   try {
@@ -349,7 +504,7 @@ exports.getMyOrdersPaginated = async (req, res) => {
       console.log(`📦 Serving user orders from cache for user ${userId}`);
       return res.json({
         ...cachedData,
-        cached: true,
+        cached: true
       });
     }
 
@@ -359,14 +514,22 @@ exports.getMyOrdersPaginated = async (req, res) => {
         .populate('restaurant', 'name image')
         .populate('pickupAddress', 'label addressLine city')
         .populate('deliveryAddress', 'label addressLine city')
-        .select('status totalPrice createdAt items')
+        .select('status totalPrice createdAt items estimatedDeliveryTime')
         .sort(sort)
         .skip(skip)
         .limit(limit)
         .lean(),
       
-      Order.countDocuments(query),
+      Order.countDocuments(query)
     ]);
+
+    // إضافة معلومات إضافية لكل طلب
+    const ordersWithDetails = orders.map(order => ({
+      ...order,
+      statusText: getStatusText(order.status),
+      estimatedDelivery: calculateETA(order),
+      itemCount: order.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0
+    }));
 
     // إحصائيات الطلبات
     const orderStats = await Order.aggregate([
@@ -388,40 +551,140 @@ exports.getMyOrdersPaginated = async (req, res) => {
       return acc;
     }, {});
 
+    const totalSpent = orderStats.reduce((sum, stat) => sum + stat.totalAmount, 0);
+
     const response = PaginationUtils.createPaginationResponse(
-      orders,
+      ordersWithDetails,
       total,
       paginationOptions,
       {
         stats,
         summary: {
           totalOrders: total,
-          totalSpent: orderStats.reduce((sum, stat) => sum + stat.totalAmount, 0),
-          averageOrderValue: total > 0 ? orderStats.reduce((sum, stat) => sum + stat.totalAmount, 0) / total : 0
+          totalSpent,
+          averageOrderValue: total > 0 ? totalSpent / total : 0
         }
       }
     );
     
-    cache.set(cacheKey, response, 60);
+    cache.set(cacheKey, response, 60); // دقيقة واحدة
     
     res.json(response);
   } catch (error) {
-    console.error('❌ Get my orders paginated error:', error.message);
+    console.error('❌ Get my orders error:', error.message);
     res.status(500).json({ 
       success: false,
-      message: 'فشل جلب الطلبات',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'فشل جلب الطلبات'
     });
   }
 };
 
 /**
- * 📋 الحصول على جميع الطلبات مع Pagination (للأدمن)
- * GET /api/orders
+ * @desc    الحصول على طلبات المندوب
+ * @route   GET /api/orders/driver/me
+ * @access  Driver
+ */
+exports.getDriverOrders = async (req, res) => {
+  try {
+    if (req.user.role !== 'driver') {
+      return res.status(403).json({
+        success: false,
+        message: 'غير مصرح لك بالوصول إلى هذه البيانات'
+      });
+    }
+
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    const { skip, limit, sort, filters } = paginationOptions;
+    const driverId = req.user.id;
+    
+    let query = { driver: driverId };
+    
+    if (filters.status) {
+      query.status = filters.status;
+    }
+    
+    if (filters.minDate || filters.maxDate) {
+      query.createdAt = {};
+      if (filters.minDate) query.createdAt.$gte = new Date(filters.minDate);
+      if (filters.maxDate) query.createdAt.$lte = new Date(filters.maxDate);
+    }
+
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .populate('user', 'name phone image')
+        .populate('restaurant', 'name image addressLine phone')
+        .populate('pickupAddress', 'label addressLine city latitude longitude')
+        .populate('deliveryAddress', 'label addressLine city latitude longitude')
+        .select('status totalPrice createdAt items notes')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      
+      Order.countDocuments(query)
+    ]);
+
+    // إحصائيات المندوب
+    const driverStats = await Order.aggregate([
+      { $match: { driver: driverId } },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 },
+          totalEarnings: { $sum: { $multiply: ['$totalPrice', 0.8] } }
+        }
+      }
+    ]);
+
+    const totalDelivered = driverStats
+      .filter(stat => stat._id === 'delivered')
+      .reduce((sum, stat) => sum + stat.count, 0);
+
+    const totalEarnings = driverStats
+      .reduce((sum, stat) => sum + stat.totalEarnings, 0);
+
+    const currentActive = await Order.countDocuments({ 
+      driver: driverId, 
+      status: { $in: ['accepted', 'ready', 'picked'] } 
+    });
+
+    const response = PaginationUtils.createPaginationResponse(
+      orders,
+      total,
+      paginationOptions,
+      {
+        stats: {
+          totalDelivered,
+          totalEarnings,
+          currentActive,
+          byStatus: driverStats.reduce((acc, stat) => {
+            acc[stat._id] = {
+              count: stat.count,
+              earnings: stat.totalEarnings
+            };
+            return acc;
+          }, {})
+        }
+      }
+    );
+    
+    res.json(response);
+  } catch (error) {
+    console.error('❌ Get driver orders error:', error.message);
+    res.status(500).json({ 
+      success: false,
+      message: 'فشل جلب طلبات المندوب'
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على جميع الطلبات (للأدمن)
+ * @route   GET /api/orders
+ * @access  Admin
  */
 exports.getAllOrdersPaginated = async (req, res) => {
   try {
-    // التحقق من صلاحية الأدمن
     if (req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
@@ -463,7 +726,7 @@ exports.getAllOrdersPaginated = async (req, res) => {
       console.log('📦 Serving admin orders from cache');
       return res.json({
         ...cachedData,
-        cached: true,
+        cached: true
       });
     }
 
@@ -479,7 +742,7 @@ exports.getAllOrdersPaginated = async (req, res) => {
         .limit(limit)
         .lean(),
       
-      Order.countDocuments(query),
+      Order.countDocuments(query)
     ]);
 
     const stats = await Order.aggregate([
@@ -496,6 +759,9 @@ exports.getAllOrdersPaginated = async (req, res) => {
 
     const totalRevenue = stats.reduce((sum, stat) => sum + stat.totalRevenue, 0);
     const totalOrders = stats.reduce((sum, stat) => sum + stat.count, 0);
+
+    // إيرادات اليوم
+    const todayRevenue = await exports.getTodayRevenue(query);
 
     const response = PaginationUtils.createPaginationResponse(
       orders,
@@ -514,35 +780,718 @@ exports.getAllOrdersPaginated = async (req, res) => {
           totalRevenue,
           totalOrders,
           avgOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
-          revenueToday: await this.getTodayRevenue(query)
+          todayRevenue: todayRevenue.totalRevenue,
+          todayOrders: todayRevenue.orderCount
         }
       }
     );
 
-    cache.set(cacheKey, response, 30);
+    cache.set(cacheKey, response, 30); // 30 ثانية
     
     res.json(response);
   } catch (error) {
-    console.error('❌ Get all orders paginated error:', error.message);
+    console.error('❌ Get all orders error:', error.message);
     res.status(500).json({ 
       success: false,
-      message: 'فشل جلب الطلبات',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'فشل جلب الطلبات'
+    });
+  }
+};
+
+// ========== 4. دوال أصحاب المطاعم (Restaurant Owner) ==========
+
+/**
+ * @desc    قبول الطلب (لصاحب المطعم)
+ * @route   PUT /api/orders/:id/accept
+ * @access  Restaurant Owner
+ */
+exports.acceptOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { estimatedTime } = req.body;
+    const restaurantId = req.restaurantId;
+
+    const order = await Order.findOne({
+      _id: id,
+      restaurant: restaurantId,
+      status: "pending"
+    }).populate('user', 'name phone');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "الطلب غير موجود أو تم التعامل معه مسبقاً"
+      });
+    }
+
+    order.status = "accepted";
+    if (estimatedTime) {
+      order.estimatedPreparationTime = estimatedTime;
+    }
+    await order.save();
+
+    // إرسال إشعار للعميل
+    await notificationService.sendNotification({
+      user: order.user._id,
+      type: "order_accepted",
+      title: "✅ تم قبول طلبك",
+      content: `تم قبول طلبك، الوقت المتوقع: ${estimatedTime || order.estimatedPreparationTime} دقيقة`,
+      data: { orderId: order._id },
+      priority: "high",
+      link: `/orders/${order._id}`,
+      icon: "✅"
+    });
+
+    // إبطال الكاش
+    await invalidateOrderCache(order._id, order.user._id);
+
+    res.json({
+      success: true,
+      message: "تم قبول الطلب بنجاح",
+      data: {
+        orderId: order._id,
+        status: order.status,
+        estimatedTime: estimatedTime || order.estimatedPreparationTime
+      }
+    });
+  } catch (error) {
+    console.error("❌ Accept order error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل قبول الطلب"
     });
   }
 };
 
 /**
- * 🔧 تعيين مندوب يدوياً (للأدمن)
- * PUT /api/orders/:id/assign
+ * @desc    رفض الطلب (لصاحب المطعم)
+ * @route   PUT /api/orders/:id/reject
+ * @access  Restaurant Owner
+ */
+exports.rejectOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const restaurantId = req.restaurantId;
+    const userId = req.user.id;
+
+    if (!reason || reason.trim().length < 5) {
+      return res.status(400).json({
+        success: false,
+        message: "يرجى تقديم سبب الرفض (5 أحرف على الأقل)"
+      });
+    }
+
+    const order = await Order.findOne({
+      _id: id,
+      restaurant: restaurantId,
+      status: "pending"
+    }).populate('user', 'name phone');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "الطلب غير موجود أو تم التعامل معه مسبقاً"
+      });
+    }
+
+    order.status = "cancelled";
+    order.rejectionReason = reason.trim();
+    order.cancelledBy = userId;
+    order.cancelledAt = new Date();
+    await order.save();
+
+    // إرسال إشعار للعميل
+    await notificationService.sendNotification({
+      user: order.user._id,
+      type: "order_cancelled",
+      title: "❌ تم رفض طلبك",
+      content: `تم رفض طلبك: ${reason}`,
+      data: { orderId: order._id },
+      priority: "high",
+      link: `/orders/${order._id}`,
+      icon: "❌"
+    });
+
+    // إبطال الكاش
+    await invalidateOrderCache(order._id, order.user._id);
+
+    res.json({
+      success: true,
+      message: "تم رفض الطلب",
+      data: {
+        orderId: order._id,
+        reason: reason
+      }
+    });
+  } catch (error) {
+    console.error("❌ Reject order error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل رفض الطلب"
+    });
+  }
+};
+
+/**
+ * @desc    طلب جاهز (لصاحب المطعم)
+ * @route   PUT /api/orders/:id/mark-ready
+ * @access  Restaurant Owner
+ */
+exports.markOrderReady = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const restaurantId = req.restaurantId;
+
+    const order = await Order.findOne({
+      _id: id,
+      restaurant: restaurantId,
+      status: "accepted"
+    }).populate('user', 'name phone').populate('driver', 'name phone');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "الطلب غير موجود أو ليس في حالة قبول"
+      });
+    }
+
+    order.status = "ready";
+    await order.save();
+
+    // إرسال إشعار للمندوب إذا كان موجود
+    if (order.driver) {
+      await notificationService.sendNotification({
+        user: order.driver._id,
+        type: "order_ready",
+        title: "📦 الطلب جاهز",
+        content: `الطلب #${order._id.toString().slice(-6)} جاهز للاستلام`,
+        data: { orderId: order._id },
+        priority: "high",
+        link: `/driver/orders/${order._id}`,
+        icon: "📦"
+      });
+    }
+
+    // إرسال إشعار للعميل
+    await notificationService.sendNotification({
+      user: order.user._id,
+      type: "order_ready",
+      title: "🍽️ طلبك جاهز",
+      content: `طلبك #${order._id.toString().slice(-6)} جاهز للاستلام من المطعم`,
+      data: { orderId: order._id },
+      priority: "high",
+      link: `/orders/${order._id}`,
+      icon: "🍽️"
+    });
+
+    // إبطال الكاش
+    await invalidateOrderCache(order._id, order.user._id);
+
+    res.json({
+      success: true,
+      message: "تم تحديث حالة الطلب إلى جاهز",
+      data: {
+        orderId: order._id,
+        status: order.status
+      }
+    });
+  } catch (error) {
+    console.error("❌ Mark order ready error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث حالة الطلب"
+    });
+  }
+};
+
+/**
+ * @desc    طلبات المطعم الحالية (لصاحب المطعم)
+ * @route   GET /api/orders/restaurant/me
+ * @access  Restaurant Owner
+ */
+exports.getRestaurantOrders = async (req, res) => {
+  try {
+    const restaurantId = req.restaurantId;
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    const { skip, limit, sort, filters } = paginationOptions;
+
+    let query = { restaurant: restaurantId };
+
+    if (filters.status) {
+      query.status = filters.status;
+    }
+
+    if (filters.minDate || filters.maxDate) {
+      query.createdAt = {};
+      if (filters.minDate) query.createdAt.$gte = new Date(filters.minDate);
+      if (filters.maxDate) query.createdAt.$lte = new Date(filters.maxDate);
+    }
+
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .populate('user', 'name phone')
+        .populate('driver', 'name phone')
+        .populate('items.item')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      
+      Order.countDocuments(query)
+    ]);
+
+    // إحصائيات سريعة
+    const stats = {
+      pending: await Order.countDocuments({ restaurant: restaurantId, status: 'pending' }),
+      accepted: await Order.countDocuments({ restaurant: restaurantId, status: 'accepted' }),
+      ready: await Order.countDocuments({ restaurant: restaurantId, status: 'ready' }),
+      completed: await Order.countDocuments({ restaurant: restaurantId, status: 'delivered' })
+    };
+
+    const response = PaginationUtils.createPaginationResponse(
+      orders,
+      total,
+      paginationOptions,
+      { stats }
+    );
+
+    res.json(response);
+  } catch (error) {
+    console.error("❌ Get restaurant orders error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب طلبات المطعم"
+    });
+  }
+};
+
+/**
+ * @desc    إحصائيات طلبات المطعم
+ * @route   GET /api/orders/restaurant/stats
+ * @access  Restaurant Owner
+ */
+exports.getRestaurantOrderStats = async (req, res) => {
+  try {
+    const restaurantId = req.restaurantId;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+
+    const [todayStats, weekStats, totalStats, byStatus] = await Promise.all([
+      // إحصائيات اليوم
+      Order.aggregate([
+        { $match: { restaurant: restaurantId, createdAt: { $gte: today } } },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            revenue: { $sum: '$totalPrice' }
+          }
+        }
+      ]),
+
+      // إحصائيات الأسبوع
+      Order.aggregate([
+        { $match: { restaurant: restaurantId, createdAt: { $gte: weekAgo } } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            orders: { $sum: 1 },
+            revenue: { $sum: '$totalPrice' }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+
+      // الإحصائيات الكلية
+      Order.aggregate([
+        { $match: { restaurant: restaurantId } },
+        {
+          $group: {
+            _id: null,
+            totalOrders: { $sum: 1 },
+            totalRevenue: { $sum: '$totalPrice' },
+            avgOrderValue: { $avg: '$totalPrice' }
+          }
+        }
+      ]),
+
+      // الطلبات حسب الحالة
+      Order.aggregate([
+        { $match: { restaurant: restaurantId } },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ])
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        today: todayStats[0] || { orders: 0, revenue: 0 },
+        weekly: weekStats,
+        total: totalStats[0] || { totalOrders: 0, totalRevenue: 0, avgOrderValue: 0 },
+        byStatus: byStatus.reduce((acc, curr) => {
+          acc[curr._id] = curr.count;
+          return acc;
+        }, {})
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get restaurant order stats error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب إحصائيات الطلبات"
+    });
+  }
+};
+
+/**
+ * @desc    بدء تحضير الطلب (لصاحب المطعم)
+ * @route   PUT /api/orders/:id/start-preparing
+ * @access  Restaurant Owner
+ */
+exports.startPreparing = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const restaurantId = req.restaurantId;
+
+    const order = await Order.findOne({
+      _id: id,
+      restaurant: restaurantId,
+      status: "accepted"
+    }).populate('user', 'name phone');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "الطلب غير موجود أو ليس في حالة قبول"
+      });
+    }
+
+    // إذا كان هناك وقت تقديري محدد
+    const estimatedTime = req.body.estimatedTime || order.estimatedPreparationTime || 15;
+    order.estimatedPreparationTime = estimatedTime;
+    await order.save();
+
+    // إرسال إشعار للعميل
+    await notificationService.sendNotification({
+      user: order.user._id,
+      type: "order_preparing",
+      title: "👨‍🍳 جاري تحضير طلبك",
+      content: `بدأنا تحضير طلبك، الوقت المتوقع: ${estimatedTime} دقيقة`,
+      data: { orderId: order._id, estimatedTime },
+      priority: "medium",
+      link: `/orders/${order._id}`,
+      icon: "👨‍🍳"
+    });
+
+    res.json({
+      success: true,
+      message: "تم بدء تحضير الطلب",
+      data: {
+        orderId: order._id,
+        status: order.status,
+        estimatedTime
+      }
+    });
+  } catch (error) {
+    console.error("❌ Start preparing error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل بدء تحضير الطلب"
+    });
+  }
+};
+
+/**
+ * @desc    طلبات اليوم (لصاحب المطعم)
+ * @route   GET /api/orders/restaurant/today
+ * @access  Restaurant Owner
+ */
+exports.getTodayOrders = async (req, res) => {
+  try {
+    const restaurantId = req.restaurantId;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const orders = await Order.find({
+      restaurant: restaurantId,
+      createdAt: { $gte: today }
+    })
+      .populate('user', 'name phone')
+      .populate('driver', 'name phone')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const stats = {
+      total: orders.length,
+      pending: orders.filter(o => o.status === 'pending').length,
+      accepted: orders.filter(o => o.status === 'accepted').length,
+      ready: orders.filter(o => o.status === 'ready').length,
+      picked: orders.filter(o => o.status === 'picked').length,
+      delivered: orders.filter(o => o.status === 'delivered').length,
+      cancelled: orders.filter(o => o.status === 'cancelled').length,
+      revenue: orders
+        .filter(o => o.status === 'delivered')
+        .reduce((sum, o) => sum + o.totalPrice, 0)
+    };
+
+    res.json({
+      success: true,
+      data: {
+        orders,
+        stats,
+        date: today
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get today orders error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب طلبات اليوم"
+    });
+  }
+};
+
+// ========== 5. دوال تحديث الطلبات ==========
+
+/**
+ * @desc    تحديث حالة الطلب
+ * @route   PUT /api/orders/:id/status
+ * @access  Driver / Admin
+ */
+exports.updateStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // التحقق من الحالة
+    const validStatuses = ["pending", "accepted", "ready", "picked", "delivered", "cancelled"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ 
+        success: false,
+        message: "حالة الطلب غير صالحة" 
+      });
+    }
+
+    // جلب الطلب القديم
+    const oldOrder = await Order.findById(id)
+      .populate('user', 'id name phone')
+      .populate('driver', 'id name')
+      .populate('restaurant', 'name');
+    
+    if (!oldOrder) {
+      return res.status(404).json({ 
+        success: false,
+        message: "الطلب غير موجود" 
+      });
+    }
+
+    // التحقق من الصلاحية
+    const isDriver = userRole === 'driver' && oldOrder.driver?._id.toString() === userId;
+    const isAdmin = userRole === 'admin';
+
+    if (!isDriver && !isAdmin) {
+      return res.status(403).json({ 
+        success: false,
+        message: "غير مصرح لك بتحديث هذا الطلب" 
+      });
+    }
+
+    // التحقق من تسلسل الحالات
+    if (!isValidStatusTransition(oldOrder.status, status, userRole)) {
+      return res.status(400).json({ 
+        success: false,
+        message: "تغيير الحالة غير مسموح به" 
+      });
+    }
+
+    // تحديث حالة الطلب
+    const order = await Order.findByIdAndUpdate(
+      id, 
+      { 
+        status,
+        ...(status === 'delivered' ? { deliveredAt: new Date() } : {})
+      }, 
+      { new: true }
+    )
+      .populate('user', 'name phone')
+      .populate('driver', 'name phone')
+      .populate('restaurant', 'name')
+      .populate('pickupAddress')
+      .populate('deliveryAddress');
+
+    // تحديث إحصائيات السائق إذا تم التوصيل
+    if (status === 'delivered' && order.driver) {
+      await User.findByIdAndUpdate(order.driver._id, {
+        $inc: { 
+          'driverInfo.totalDeliveries': 1,
+          'driverInfo.earnings': order.totalPrice * 0.8
+        }
+      });
+    }
+
+    // إرسال إشعارات تحديث الحالة
+    try {
+      await notificationService.updateOrderStatusNotifications(
+        order, 
+        oldOrder.status, 
+        status
+      );
+    } catch (notificationError) {
+      console.error('❌ Notification error:', notificationError.message);
+    }
+
+    // إبطال الكاش
+    await invalidateOrderCache(order._id, order.user._id);
+
+    res.json({
+      success: true,
+      message: `تم تحديث حالة الطلب إلى ${getStatusText(status)}`,
+      data: {
+        order,
+        statusChange: {
+          from: oldOrder.status,
+          to: status,
+          fromText: getStatusText(oldOrder.status),
+          toText: getStatusText(status)
+        },
+        timeline: createOrderTimeline(order)
+      },
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error('❌ Update status error:', error.message);
+    res.status(500).json({ 
+      success: false,
+      message: "فشل تحديث حالة الطلب"
+    });
+  }
+};
+
+/**
+ * @desc    إلغاء الطلب
+ * @route   PUT /api/orders/:id/cancel
+ * @access  Client / Admin
+ */
+exports.cancelOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    // جلب الطلب
+    const order = await Order.findOne({ _id: id })
+      .populate('user', 'id name phone')
+      .populate('driver', 'id name');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'الطلب غير موجود'
+      });
+    }
+
+    // التحقق من الصلاحية
+    const isOwner = order.user._id.toString() === userId;
+    const isAdmin = userRole === 'admin';
+
+    if (!isOwner && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'غير مصرح لك بإلغاء هذا الطلب'
+      });
+    }
+
+    // التحقق من إمكانية الإلغاء
+    if (!['pending', 'accepted'].includes(order.status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'لا يمكن إلغاء الطلب في هذه المرحلة'
+      });
+    }
+
+    // التحقق من سبب الإلغاء
+    if (!reason || reason.trim().length < 5) {
+      return res.status(400).json({
+        success: false,
+        message: 'يرجى تقديم سبب للإلغاء (5 أحرف على الأقل)'
+      });
+    }
+
+    // تحديث حالة الطلب
+    order.status = 'cancelled';
+    order.cancellationReason = reason.trim();
+    order.cancelledAt = new Date();
+    order.cancelledBy = userId;
+    await order.save();
+
+    // إذا كان هناك سائق معين، تحريره
+    if (order.driver) {
+      await DriverLocation.findOneAndUpdate(
+        { driver: order.driver._id, order: id },
+        { order: null }
+      );
+    }
+
+    // إرسال إشعارات الإلغاء
+    try {
+      await notificationService.updateOrderStatusNotifications(
+        order, 
+        order.status, 
+        'cancelled'
+      );
+    } catch (notificationError) {
+      console.error('❌ Notification error:', notificationError.message);
+    }
+
+    // تحديث إحصائيات المستخدم
+    await User.findByIdAndUpdate(userId, {
+      $inc: { 'stats.cancelledOrders': 1 }
+    });
+
+    // إبطال الكاش
+    await invalidateOrderCache(order._id, userId);
+
+    res.json({
+      success: true,
+      message: 'تم إلغاء الطلب بنجاح',
+      data: {
+        orderId: order._id,
+        status: order.status,
+        cancelledAt: order.cancelledAt,
+        reason: reason
+      },
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error('❌ Cancel order error:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'فشل إلغاء الطلب'
+    });
+  }
+};
+
+// ========== 6. دوال تعيين المندوبين ==========
+
+/**
+ * @desc    تعيين مندوب للطلب
+ * @route   PUT /api/orders/:id/assign
+ * @access  Admin
  */
 exports.assignDriver = async (req, res) => {
   try {
     const { id } = req.params;
     const { driverId } = req.body;
-    const userId = req.user.id;
 
-    // التحقق من صلاحية الأدمن
     if (req.user.role !== 'admin') {
       return res.status(403).json({ 
         success: false,
@@ -583,6 +1532,14 @@ exports.assignDriver = async (req, res) => {
       });
     }
 
+    // تحرير السائق القديم إذا وجد
+    if (oldOrder.driver) {
+      await DriverLocation.findOneAndUpdate(
+        { driver: oldOrder.driver, order: id },
+        { order: null }
+      );
+    }
+
     // تحديث الطلب
     const order = await Order.findByIdAndUpdate(
       id,
@@ -601,61 +1558,39 @@ exports.assignDriver = async (req, res) => {
     // تحديث موقع السائق
     await DriverLocation.findOneAndUpdate(
       { driver: driverId },
-      { order: id },
+      { 
+        driver: driverId,
+        order: id,
+        location: order.pickupAddress?.location || {
+          type: 'Point',
+          coordinates: [2.1098, 13.5126]
+        }
+      },
       { upsert: true, new: true }
     );
 
-    // إرسال إشعارات تعيين المندوب
+    // إرسال إشعارات
     try {
-      // إشعار للعميل
       await notificationService.sendNotification({
         user: order.user._id,
         type: "driver_assigned",
         title: "تم تعيين مندوب",
-        content: `تم تعيين مندوب ${order.driver.name} لتوصيل طلبك #${order._id.toString().slice(-6)}.`,
-        data: {
-          orderId: order._id,
-          orderNumber: order._id.toString().slice(-6),
-          driver: {
-            id: order.driver._id,
-            name: order.driver.name,
-            phone: order.driver.phone,
-            rating: order.driver.rating
-          },
-          restaurant: order.restaurant.name
-        },
+        content: `تم تعيين مندوب ${order.driver.name} لتوصيل طلبك`,
+        data: { orderId: order._id, driver: order.driver },
         priority: "high",
         link: `/orders/${order._id}`,
-        icon: "🚗",
-        tags: ["order", "driver_assigned", `order_${order._id}`],
+        icon: "🚗"
       });
 
-      // إشعار للمندوب
       await notificationService.sendNotification({
         user: order.driver._id,
         type: "order_assigned",
         title: "طلب جديد معين لك",
-        content: `تم تعيين طلب #${order._id.toString().slice(-6)} من ${order.restaurant.name} لك للتوصيل.`,
-        data: {
-          orderId: order._id,
-          orderNumber: order._id.toString().slice(-6),
-          customer: {
-            id: order.user._id,
-            name: order.user.name,
-            phone: order.user.phone
-          },
-          restaurant: {
-            id: order.restaurant._id,
-            name: order.restaurant.name
-          },
-          pickupAddress: order.pickupAddress,
-          deliveryAddress: order.deliveryAddress,
-          totalPrice: order.totalPrice
-        },
+        content: `تم تعيين طلب #${order._id.toString().slice(-6)} لك للتوصيل`,
+        data: { orderId: order._id, customer: order.user },
         priority: "high",
         link: `/driver/orders/${order._id}`,
-        icon: "🛒",
-        tags: ["order", "driver", `order_${order._id}`],
+        icon: "🛒"
       });
     } catch (notificationError) {
       console.error('❌ Notification error:', notificationError.message);
@@ -682,99 +1617,58 @@ exports.assignDriver = async (req, res) => {
     console.error('❌ Assign driver error:', error.message);
     res.status(500).json({ 
       success: false,
-      message: "فشل تعيين المندوب",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "فشل تعيين المندوب"
     });
   }
 };
 
 /**
- * 🚚 تحديث حالة الطلب (للمندوب)
- * PUT /api/orders/:id/status
+ * @desc    إعادة تعيين المندوب (تلقائي)
+ * @route   PUT /api/orders/:orderId/reassign
+ * @access  Admin
  */
-exports.updateStatus = async (req, res) => {
+exports.reassignDriver = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { status } = req.body;
-    const userId = req.user.id;
+    const { orderId } = req.params;
 
-    // التحقق من الصلاحية (مندوب أو أدمن)
-    if (req.user.role !== 'driver' && req.user.role !== 'admin') {
+    if (req.user.role !== 'admin') {
       return res.status(403).json({ 
         success: false,
         message: "غير مصرح لك بهذا الإجراء" 
       });
     }
 
-    // التحقق من الحالة
-    const validStatuses = ["pending", "accepted", "picked", "delivered", "cancelled"];
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ 
-        success: false,
-        message: "حالة الطلب غير صالحة" 
-      });
-    }
+    const order = await Order.findById(orderId)
+      .populate("pickupAddress")
+      .populate("user", "id");
 
-    // جلب الطلب القديم
-    const oldOrder = await Order.findById(id)
-      .populate('user', 'id name phone')
-      .populate('driver', 'id name')
-      .populate('restaurant', 'name');
-    
-    if (!oldOrder) {
+    if (!order) {
       return res.status(404).json({ 
         success: false,
         message: "الطلب غير موجود" 
       });
     }
 
-    // إذا كان مندوباً، التحقق من أنه المندوب المعين
-    if (req.user.role === 'driver' && oldOrder.driver?._id.toString() !== userId) {
-      return res.status(403).json({ 
-        success: false,
-        message: "هذا الطلب غير معين لك" 
-      });
-    }
-
-    // التحقق من تسلسل الحالات
-    if (!this.isValidStatusTransition(oldOrder.status, status, req.user.role)) {
-      return res.status(400).json({ 
-        success: false,
-        message: "تغيير الحالة غير مسموح به" 
-      });
-    }
-
-    // تحديث حالة الطلب
-    const order = await Order.findByIdAndUpdate(
-      id, 
-      { status }, 
-      { new: true }
-    )
-      .populate('user', 'name phone')
-      .populate('driver', 'name phone')
-      .populate('restaurant', 'name')
-      .populate('pickupAddress')
-      .populate('deliveryAddress');
-
-    // إذا كانت الحالة delivered، تحديث إحصائيات السائق
-    if (status === 'delivered' && order.driver) {
-      await User.findByIdAndUpdate(order.driver._id, {
-        $inc: { 
-          'driverInfo.totalDeliveries': 1,
-          'driverInfo.earnings': order.totalPrice * 0.8 // مثال: 80% للسائق
-        }
-      });
-    }
-
-    // إرسال إشعارات تحديث الحالة
-    try {
-      await notificationService.updateOrderStatusNotifications(
-        order, 
-        oldOrder.status, 
-        status
+    // تحرير السائق القديم
+    if (order.driver) {
+      await DriverLocation.findOneAndUpdate(
+        { driver: order.driver, order: orderId },
+        { order: null }
       );
-    } catch (notificationError) {
-      console.error('❌ Notification error:', notificationError.message);
+    }
+
+    // إعادة تعيين السائق
+    order.driver = null;
+    order.status = "pending";
+    await order.save();
+
+    // محاولة تعيين سائق جديد
+    let newDriver = null;
+    if (order.pickupAddress && order.pickupAddress.latitude && order.pickupAddress.longitude) {
+      newDriver = await assignClosestDriver(order._id, [
+        order.pickupAddress.longitude,
+        order.pickupAddress.latitude
+      ]);
     }
 
     // إبطال الكاش
@@ -782,240 +1676,191 @@ exports.updateStatus = async (req, res) => {
 
     res.json({
       success: true,
-      message: `تم تحديث حالة الطلب إلى ${this.getStatusText(status)}`,
+      message: newDriver ? "تم إعادة تعيين المندوب بنجاح" : "لا يوجد مناديب متاحين حالياً",
       data: {
-        order,
-        statusChange: {
-          from: oldOrder.status,
-          to: status,
-          text: this.getStatusText(status)
-        }
+        orderId: order._id,
+        newDriver: newDriver ? {
+          id: newDriver._id,
+          name: newDriver.name,
+          phone: newDriver.phone
+        } : null,
+        status: order.status
       },
       timestamp: new Date()
     });
   } catch (error) {
-    console.error('❌ Update status error:', error.message);
+    console.error('❌ Reassign driver error:', error.message);
     res.status(500).json({ 
       success: false,
-      message: "فشل تحديث حالة الطلب",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "فشل إعادة تعيين المندوب"
     });
   }
 };
 
+// ========== 7. دوال تتبع الموقع والتقييم ==========
+
 /**
- * 📊 الحصول على طلبات المندوب
- * GET /api/orders/driver/me
+ * @desc    تتبع الطلب (مبسط)
+ * @route   GET /api/orders/:id/track
+ * @access  Authenticated (Owner, Driver, Admin)
  */
-exports.getDriverOrders = async (req, res) => {
+exports.trackOrder = async (req, res) => {
   try {
-    if (req.user.role !== 'driver') {
-      return res.status(403).json({
+    const { id } = req.params;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    const order = await Order.findById(id)
+      .populate('driver', 'name phone image rating')
+      .populate('restaurant', 'name image phone addressLine')
+      .populate('pickupAddress')
+      .populate('deliveryAddress')
+      .lean();
+
+    if (!order) {
+      return res.status(404).json({
         success: false,
-        message: 'غير مصرح لك بالوصول إلى هذه البيانات'
+        message: "الطلب غير موجود"
       });
     }
 
-    const paginationOptions = PaginationUtils.getPaginationOptions(req);
-    const { skip, limit, sort, filters } = paginationOptions;
-    const driverId = req.user.id;
-    
-    let query = { driver: driverId };
-    
-    if (filters.status) {
-      query.status = filters.status;
-    }
-    
-    if (filters.minDate || filters.maxDate) {
-      query.createdAt = {};
-      if (filters.minDate) query.createdAt.$gte = new Date(filters.minDate);
-      if (filters.maxDate) query.createdAt.$lte = new Date(filters.maxDate);
+    // التحقق من الصلاحيات
+    const isOwner = order.user.toString() === userId;
+    const isDriver = order.driver && order.driver._id.toString() === userId;
+    const isAdmin = userRole === 'admin';
+
+    if (!isOwner && !isDriver && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "غير مصرح لك بتتبع هذا الطلب"
+      });
     }
 
-    const [orders, total] = await Promise.all([
-      Order.find(query)
-        .populate('user', 'name phone image')
-        .populate('restaurant', 'name image addressLine')
-        .populate('pickupAddress', 'label addressLine city latitude longitude')
-        .populate('deliveryAddress', 'label addressLine city latitude longitude')
-        .select('status totalPrice createdAt items')
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
+    // جلب موقع المندوب إذا كان موجود
+    let driverLocation = null;
+    if (order.driver && ['accepted', 'ready', 'picked'].includes(order.status)) {
+      const location = await DriverLocation.findOne({
+        driver: order.driver._id,
+        order: order._id
+      }).lean();
       
-      Order.countDocuments(query),
-    ]);
-
-    // إحصائيات المندوب
-    const driverStats = await Order.aggregate([
-      { $match: { driver: req.user.id } },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 },
-          totalEarnings: { 
-            $sum: { $multiply: ['$totalPrice', 0.8] } // 80% للسائق
-          }
-        }
+      if (location) {
+        driverLocation = {
+          latitude: location.location.coordinates[1],
+          longitude: location.location.coordinates[0],
+          updatedAt: location.createdAt
+        };
       }
-    ]);
+    }
 
-    const totalDelivered = driverStats
-      .filter(stat => stat._id === 'delivered')
-      .reduce((sum, stat) => sum + stat.count, 0);
-
-    const totalEarnings = driverStats
-      .reduce((sum, stat) => sum + stat.totalEarnings, 0);
-
-    const response = PaginationUtils.createPaginationResponse(
-      orders,
-      total,
-      paginationOptions,
-      {
-        stats: {
-          totalDelivered,
-          totalEarnings,
-          currentActive: await Order.countDocuments({ 
-            driver: driverId, 
-            status: { $in: ['accepted', 'picked'] } 
-          }),
-          byStatus: driverStats.reduce((acc, stat) => {
-            acc[stat._id] = {
-              count: stat.count,
-              earnings: stat.totalEarnings
-            };
-            return acc;
-          }, {})
-        }
-      }
-    );
+    // حساب وقت التوصيل المتبقي
+    const estimatedRemaining = calculateETA(order);
     
-    res.json(response);
+    // إنشاء نقاط المسار
+    const trackingPoints = [
+      {
+        status: 'order_placed',
+        title: 'تم تقديم الطلب',
+        description: 'تم استلام طلبك بنجاح',
+        timestamp: order.createdAt,
+        completed: true
+      },
+      {
+        status: 'order_confirmed',
+        title: 'تم تأكيد الطلب',
+        description: order.status === 'pending' ? 'في انتظار التأكيد' : 'تم تأكيد الطلب من قبل المطعم',
+        timestamp: order.status !== 'pending' ? order.updatedAt : null,
+        completed: order.status !== 'pending'
+      },
+      {
+        status: 'preparing',
+        title: 'جاري التحضير',
+        description: order.status === 'accepted' ? 'المطعم يحضر طلبك' : 'لم يبدأ التحضير بعد',
+        timestamp: order.status === 'accepted' ? order.updatedAt : null,
+        completed: order.status === 'accepted' || order.status === 'ready' || order.status === 'picked' || order.status === 'delivered'
+      },
+      {
+        status: 'ready',
+        title: 'الطلب جاهز',
+        description: 'الطلب جاهز للاستلام من المطعم',
+        timestamp: order.status === 'ready' ? order.updatedAt : null,
+        completed: order.status === 'ready' || order.status === 'picked' || order.status === 'delivered'
+      },
+      {
+        status: 'picked_up',
+        title: 'تم الاستلام',
+        description: order.driver ? 'تم استلام الطلب من المطعم' : 'في انتظار المندوب',
+        timestamp: order.status === 'picked' || order.status === 'delivered' ? order.updatedAt : null,
+        completed: order.status === 'picked' || order.status === 'delivered'
+      },
+      {
+        status: 'on_the_way',
+        title: 'في الطريق إليك',
+        description: order.driver ? 'المندوب في طريقه إليك' : 'سيتم تعيين مندوب قريباً',
+        timestamp: order.status === 'picked' || order.status === 'delivered' ? order.updatedAt : null,
+        completed: order.status === 'picked' || order.status === 'delivered'
+      },
+      {
+        status: 'delivered',
+        title: 'تم التوصيل',
+        description: 'تم توصيل طلبك بنجاح',
+        timestamp: order.status === 'delivered' ? order.updatedAt : null,
+        completed: order.status === 'delivered'
+      }
+    ];
+
+    // معلومات المندوب للتتبع
+    let driverInfo = null;
+    if (order.driver) {
+      driverInfo = {
+        id: order.driver._id,
+        name: order.driver.name,
+        phone: order.driver.phone,
+        rating: order.driver.rating,
+        location: driverLocation
+      };
+    }
+
+    res.json({
+      success: true,
+      data: {
+        orderId: order._id,
+        status: order.status,
+        statusText: getStatusText(order.status),
+        estimatedDelivery: estimatedRemaining,
+        trackingPoints,
+        driver: driverInfo,
+        restaurant: {
+          name: order.restaurant.name,
+          address: order.restaurant.addressLine,
+          phone: order.restaurant.phone
+        },
+        pickupAddress: order.pickupAddress,
+        deliveryAddress: order.deliveryAddress,
+        items: order.items?.map(item => ({
+          name: item.name,
+          quantity: item.qty,
+          price: item.price
+        })),
+        totalPrice: order.totalPrice,
+        canCancel: ['pending', 'accepted'].includes(order.status) && (isOwner || isAdmin),
+        canContactDriver: !!order.driver && ['accepted', 'ready', 'picked'].includes(order.status)
+      }
+    });
+
   } catch (error) {
-    console.error('❌ Get driver orders error:', error.message);
-    res.status(500).json({ 
+    console.error("❌ Track order error:", error.message);
+    res.status(500).json({
       success: false,
-      message: 'فشل جلب طلبات المندوب',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "فشل تتبع الطلب"
     });
   }
 };
 
 /**
- * 📈 الحصول على إيرادات اليوم
- */
-exports.getTodayRevenue = async (query = {}) => {
-  try {
-    const startOfDay = new Date();
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date();
-    endOfDay.setHours(23, 59, 59, 999);
-
-    const result = await Order.aggregate([
-      {
-        $match: {
-          ...query,
-          createdAt: { $gte: startOfDay, $lte: endOfDay },
-          status: 'delivered'
-        }
-      },
-      {
-        $group: {
-          _id: null,
-          totalRevenue: { $sum: '$totalPrice' },
-          orderCount: { $sum: 1 }
-        }
-      }
-    ]);
-
-    return result[0] || { totalRevenue: 0, orderCount: 0 };
-  } catch (error) {
-    console.error('❌ Get today revenue error:', error.message);
-    return { totalRevenue: 0, orderCount: 0 };
-  }
-};
-
-/**
- * 🔄 التحقق من صحة تغيير الحالة
- */
-exports.isValidStatusTransition = (oldStatus, newStatus, userRole) => {
-  const validTransitions = {
-    admin: {
-      pending: ['accepted', 'cancelled'],
-      accepted: ['picked', 'cancelled'],
-      picked: ['delivered', 'cancelled'],
-      delivered: [],
-      cancelled: []
-    },
-    driver: {
-      pending: [],
-      accepted: ['picked'],
-      picked: ['delivered'],
-      delivered: [],
-      cancelled: []
-    },
-    client: {
-      pending: ['cancelled'],
-      accepted: ['cancelled'],
-      picked: [],
-      delivered: [],
-      cancelled: []
-    }
-  };
-
-  const roleTransitions = validTransitions[userRole] || validTransitions.client;
-  return roleTransitions[oldStatus]?.includes(newStatus) || false;
-};
-
-/**
- * 📝 الحصول على نص الحالة
- */
-exports.getStatusText = (status) => {
-  const statusTexts = {
-    pending: 'قيد الانتظار',
-    accepted: 'تم القبول',
-    picked: 'تم الاستلام',
-    delivered: 'تم التوصيل',
-    cancelled: 'ملغي'
-  };
-  
-  return statusTexts[status] || 'غير معروف';
-};
-
-/**
- * 📊 الحصول على إحصائيات الطلبات للمستخدم
- */
-exports.getUserOrderStats = async (userId) => {
-  try {
-    const stats = await Order.aggregate([
-      { $match: { user: userId } },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 },
-          totalAmount: { $sum: '$totalPrice' }
-        }
-      }
-    ]);
-
-    return stats.reduce((acc, stat) => {
-      acc[stat._id] = {
-        count: stat.count,
-        amount: stat.totalAmount
-      };
-      return acc;
-    }, {});
-  } catch (error) {
-    console.error('❌ Get user order stats error:', error.message);
-    return {};
-  }
-};
-
-/**
- * 📍 تحديث موقع المندوب
- * POST /api/orders/:id/location
+ * @desc    تحديث موقع المندوب
+ * @route   POST /api/orders/:id/location
+ * @access  Driver
  */
 exports.updateDriverLocation = async (req, res) => {
   try {
@@ -1043,15 +1888,15 @@ exports.updateDriverLocation = async (req, res) => {
     }
 
     // التحقق من الإحداثيات
-    if (!latitude || !longitude) {
+    if (!latitude || !longitude || isNaN(latitude) || isNaN(longitude)) {
       return res.status(400).json({
         success: false,
-        message: 'إحداثيات الموقع مطلوبة'
+        message: 'إحداثيات الموقع غير صالحة'
       });
     }
 
     // تحديث أو إنشاء موقع السائق
-    await DriverLocation.findOneAndUpdate(
+    const driverLocation = await DriverLocation.findOneAndUpdate(
       { driver: req.user.id, order: id },
       {
         driver: req.user.id,
@@ -1077,7 +1922,8 @@ exports.updateDriverLocation = async (req, res) => {
     }
 
     // إبطال الكاش
-    await invalidateOrderCache(id, order.user);
+    cache.del(`order:full:${id}`);
+    cache.del(`order:tracking:${id}:${order.user}`);
 
     res.json({
       success: true,
@@ -1085,118 +1931,22 @@ exports.updateDriverLocation = async (req, res) => {
       data: {
         orderId: id,
         location: { latitude, longitude },
-        timestamp: new Date()
+        timestamp: driverLocation.createdAt
       }
     });
   } catch (error) {
     console.error('❌ Update driver location error:', error.message);
     res.status(500).json({
       success: false,
-      message: 'فشل تحديث الموقع',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'فشل تحديث الموقع'
     });
   }
 };
 
 /**
- * ❌ إلغاء الطلب
- * PUT /api/orders/:id/cancel
- */
-exports.cancelOrder = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { reason } = req.body;
-    const userId = req.user.id;
-
-    // جلب الطلب
-    const order = await Order.findOne({ 
-      _id: id, 
-      user: userId 
-    }).populate('user', 'name phone');
-
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: 'الطلب غير موجود أو لا تملك صلاحية إلغائه'
-      });
-    }
-
-    // التحقق من إمكانية الإلغاء
-    if (!['pending', 'accepted'].includes(order.status)) {
-      return res.status(400).json({
-        success: false,
-        message: 'لا يمكن إلغاء الطلب في هذه المرحلة'
-      });
-    }
-
-    // التحقق من سبب الإلغاء
-    if (!reason || reason.trim().length < 5) {
-      return res.status(400).json({
-        success: false,
-        message: 'يرجى تقديم سبب للإلغاء (5 أحرف على الأقل)'
-      });
-    }
-
-    // تحديث حالة الطلب
-    order.status = 'cancelled';
-    order.cancellationReason = reason.trim();
-    order.cancelledAt = new Date();
-    order.cancelledBy = userId;
-    await order.save();
-
-    // إذا كان هناك سائق معين، تحريره
-    if (order.driver) {
-      await DriverLocation.findOneAndUpdate(
-        { driver: order.driver, order: id },
-        { order: null }
-      );
-    }
-
-    // إرسال إشعارات الإلغاء
-    try {
-      await notificationService.updateOrderStatusNotifications(
-        order, 
-        order.status, 
-        'cancelled'
-      );
-    } catch (notificationError) {
-      console.error('❌ Notification error:', notificationError.message);
-    }
-
-    // تحديث إحصائيات المستخدم
-    const user = await User.findById(userId);
-    if (user && user.stats) {
-      user.stats.cancelledOrders = (user.stats.cancelledOrders || 0) + 1;
-      await user.save();
-    }
-
-    // إبطال الكاش
-    await invalidateOrderCache(order._id, userId);
-
-    res.json({
-      success: true,
-      message: 'تم إلغاء الطلب بنجاح',
-      data: {
-        orderId: order._id,
-        status: order.status,
-        cancelledAt: order.cancelledAt,
-        reason: reason
-      },
-      timestamp: new Date()
-    });
-  } catch (error) {
-    console.error('❌ Cancel order error:', error.message);
-    res.status(500).json({
-      success: false,
-      message: 'فشل إلغاء الطلب',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-
-/**
- * 📍 الحصول على موقع المندوب
- * GET /api/orders/:id/location
+ * @desc    الحصول على موقع المندوب
+ * @route   GET /api/orders/:id/location
+ * @access  Client / Admin
  */
 exports.getDriverLocation = async (req, res) => {
   try {
@@ -1236,36 +1986,230 @@ exports.getDriverLocation = async (req, res) => {
       });
     }
 
+    // الحصول على معلومات السائق
+    const driverInfo = await User.findById(order.driver).select('name phone image rating');
+
     res.json({
       success: true,
       data: {
         orderId: id,
-        driverId: order.driver,
+        driver: driverInfo,
         location: {
           latitude: driverLocation.location.coordinates[1],
           longitude: driverLocation.location.coordinates[0]
         },
-        updatedAt: driverLocation.updatedAt,
-        driverInfo: await User.findById(order.driver).select('name phone image')
+        updatedAt: driverLocation.createdAt
       }
     });
   } catch (error) {
     console.error('❌ Get driver location error:', error.message);
     res.status(500).json({
       success: false,
-      message: 'فشل جلب موقع المندوب',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'فشل جلب موقع المندوب'
     });
   }
 };
 
 /**
- * 📊 الحصول على إحصائيات الطلبات (للأدمن)
- * GET /api/orders/stats
+ * @desc    الجدول الزمني للطلب
+ * @route   GET /api/orders/:id/timeline
+ * @access  Authenticated
+ */
+exports.getOrderTimeline = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+
+    const order = await Order.findById(id)
+      .populate('driver', 'name')
+      .populate('restaurant', 'name')
+      .lean();
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "الطلب غير موجود"
+      });
+    }
+
+    // التحقق من الصلاحيات
+    const isOwner = order.user.toString() === userId;
+    const isDriver = order.driver && order.driver._id.toString() === userId;
+    const isAdmin = req.user.role === 'admin';
+
+    if (!isOwner && !isDriver && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: "غير مصرح لك بالوصول"
+      });
+    }
+
+    const timeline = createOrderTimeline(order);
+
+    res.json({
+      success: true,
+      data: {
+        orderId: order._id,
+        status: order.status,
+        timeline
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get order timeline error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب الجدول الزمني"
+    });
+  }
+};
+
+/**
+ * @desc    أرباح المندوب
+ * @route   GET /api/orders/driver/earnings
+ * @access  Driver
+ */
+exports.getDriverEarnings = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { period = 'week' } = req.query;
+
+    let startDate = new Date();
+    switch (period) {
+      case 'day':
+        startDate.setHours(0, 0, 0, 0);
+        break;
+      case 'week':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case 'month':
+        startDate.setMonth(startDate.getMonth() - 1);
+        break;
+      case 'year':
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+    }
+
+    const earnings = await Order.aggregate([
+      {
+        $match: {
+          driver: driverId,
+          status: 'delivered',
+          deliveredAt: { $gte: startDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$deliveredAt' }
+          },
+          orders: { $sum: 1 },
+          totalEarnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
+          averageEarning: { $avg: { $multiply: ['$totalPrice', 0.8] } }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const totals = await Order.aggregate([
+      {
+        $match: {
+          driver: driverId,
+          status: 'delivered'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalEarnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
+          averageEarning: { $avg: { $multiply: ['$totalPrice', 0.8] } }
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        period,
+        earnings,
+        totals: totals[0] || { totalOrders: 0, totalEarnings: 0, averageEarning: 0 },
+        currency: 'XOF'
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get driver earnings error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب أرباح المندوب"
+    });
+  }
+};
+
+/**
+ * @desc    التوصيلة الحالية للمندوب
+ * @route   GET /api/orders/driver/current
+ * @access  Driver
+ */
+exports.getCurrentDelivery = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+
+    const currentOrder = await Order.findOne({
+      driver: driverId,
+      status: { $in: ['accepted', 'ready', 'picked'] }
+    })
+      .populate('user', 'name phone image')
+      .populate('restaurant', 'name image phone addressLine')
+      .populate('pickupAddress')
+      .populate('deliveryAddress')
+      .populate('items.item')
+      .lean();
+
+    if (!currentOrder) {
+      return res.json({
+        success: true,
+        data: null,
+        message: "لا يوجد توصيلة حالية"
+      });
+    }
+
+    // جلب آخر موقع
+    const driverLocation = await DriverLocation.findOne({
+      driver: driverId,
+      order: currentOrder._id
+    }).lean();
+
+    res.json({
+      success: true,
+      data: {
+        order: currentOrder,
+        driverLocation: driverLocation ? {
+          latitude: driverLocation.location.coordinates[1],
+          longitude: driverLocation.location.coordinates[0],
+          updatedAt: driverLocation.createdAt
+        } : null,
+        estimatedDelivery: calculateETA(currentOrder),
+        timeline: createOrderTimeline(currentOrder)
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get current delivery error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب التوصيلة الحالية"
+    });
+  }
+};
+
+// ========== 8. دوال الإحصائيات ==========
+
+/**
+ * @desc    الحصول على إحصائيات الطلبات
+ * @route   GET /api/orders/stats/overview
+ * @access  Admin
  */
 exports.getOrderStats = async (req, res) => {
   try {
-    // التحقق من صلاحية الأدمن
     if (req.user.role !== 'admin') {
       return res.status(403).json({
         success: false,
@@ -1295,6 +2239,122 @@ exports.getOrderStats = async (req, res) => {
     const stats = await Order.aggregate([
       { $match: filter },
       {
+        $facet: {
+          overview: [
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $sum: 1 },
+                totalRevenue: { $sum: '$totalPrice' },
+                avgOrderValue: { $avg: '$totalPrice' },
+                minOrderValue: { $min: '$totalPrice' },
+                maxOrderValue: { $max: '$totalPrice' }
+              }
+            }
+          ],
+          byStatus: [
+            {
+              $group: {
+                _id: '$status',
+                count: { $sum: 1 },
+                totalAmount: { $sum: '$totalPrice' }
+              }
+            }
+          ],
+          byDay: [
+            {
+              $group: {
+                _id: {
+                  $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+                },
+                orders: { $sum: 1 },
+                revenue: { $sum: '$totalPrice' }
+              }
+            },
+            { $sort: { _id: -1 } },
+            { $limit: 30 }
+          ],
+          byHour: [
+            {
+              $group: {
+                _id: { $hour: '$createdAt' },
+                orders: { $sum: 1 }
+              }
+            },
+            { $sort: { _id: 1 } }
+          ],
+          topRestaurants: [
+            {
+              $group: {
+                _id: '$restaurant',
+                orders: { $sum: 1 },
+                revenue: { $sum: '$totalPrice' }
+              }
+            },
+            { $sort: { orders: -1 } },
+            { $limit: 5 },
+            {
+              $lookup: {
+                from: 'restaurants',
+                localField: '_id',
+                foreignField: '_id',
+                as: 'restaurantInfo'
+              }
+            }
+          ]
+        }
+      }
+    ]);
+
+    const response = {
+      success: true,
+      data: {
+        overview: stats[0]?.overview[0] || {
+          totalOrders: 0,
+          totalRevenue: 0,
+          avgOrderValue: 0
+        },
+        byStatus: stats[0]?.byStatus || [],
+        byDay: stats[0]?.byDay || [],
+        byHour: stats[0]?.byHour || [],
+        topRestaurants: stats[0]?.topRestaurants.map(item => ({
+          ...item,
+          name: item.restaurantInfo[0]?.name || 'مطعم محذوف'
+        })) || []
+      },
+      filters: { startDate, endDate },
+      timestamp: new Date()
+    };
+
+    cache.set(cacheKey, response, 300); // 5 دقائق
+    
+    res.json(response);
+  } catch (error) {
+    console.error('❌ Get order stats error:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب إحصائيات الطلبات'
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على إحصائيات يومية
+ * @route   GET /api/orders/stats/daily
+ * @access  Admin
+ */
+exports.getDailyStats = async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const stats = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: today }
+        }
+      },
+      {
         $group: {
           _id: null,
           totalOrders: { $sum: 1 },
@@ -1302,67 +2362,587 @@ exports.getOrderStats = async (req, res) => {
           completedOrders: {
             $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] }
           },
-          pendingOrders: {
-            $sum: { $cond: [{ $in: ['$status', ['pending', 'accepted', 'picked']] }, 1, 0] }
-          },
           cancelledOrders: {
             $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] }
-          }
-        }
-      },
-      {
-        $project: {
-          _id: 0,
-          totalOrders: 1,
-          totalRevenue: 1,
-          completedOrders: 1,
-          pendingOrders: 1,
-          cancelledOrders: 1,
-          completionRate: {
-            $cond: [
-              { $eq: ['$totalOrders', 0] },
-              0,
-              { $multiply: [{ $divide: ['$completedOrders', '$totalOrders'] }, 100] }
-            ]
-          },
-          avgOrderValue: {
-            $cond: [
-              { $eq: ['$totalOrders', 0] },
-              0,
-              { $divide: ['$totalRevenue', '$totalOrders'] }
-            ]
           }
         }
       }
     ]);
 
-    const response = {
+    res.json({
       success: true,
       data: stats[0] || {
         totalOrders: 0,
         totalRevenue: 0,
         completedOrders: 0,
-        pendingOrders: 0,
-        cancelledOrders: 0,
-        completionRate: 0,
-        avgOrderValue: 0
+        cancelledOrders: 0
       },
-      timestamp: new Date(),
-      filters: {
-        startDate,
-        endDate
-      }
-    };
-
-    cache.set(cacheKey, response, 60);
-    
-    res.json(response);
+      date: today
+    });
   } catch (error) {
-    console.error('❌ Get order stats error:', error.message);
+    console.error('❌ Get daily stats error:', error.message);
     res.status(500).json({
       success: false,
-      message: 'فشل جلب إحصائيات الطلبات',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: 'فشل جلب الإحصائيات اليومية'
     });
   }
 };
+
+/**
+ * @desc    الحصول على إحصائيات شهرية
+ * @route   GET /api/orders/stats/monthly
+ * @access  Admin
+ */
+exports.getMonthlyStats = async (req, res) => {
+  try {
+    const { year, month } = req.query;
+    
+    let startDate = new Date();
+    if (year && month) {
+      startDate = new Date(year, month - 1, 1);
+    } else {
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+    }
+    
+    const endDate = new Date(startDate);
+    endDate.setMonth(endDate.getMonth() + 1);
+
+    const stats = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate, $lt: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: { format: '%Y-%m-%d', date: '$createdAt' }
+          },
+          orders: { $sum: 1 },
+          revenue: { $sum: '$totalPrice' },
+          completed: {
+            $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] }
+          }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const totals = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate, $lt: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalRevenue: { $sum: '$totalPrice' },
+          avgOrderValue: { $avg: '$totalPrice' },
+          completedOrders: {
+            $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        period: {
+          year: startDate.getFullYear(),
+          month: startDate.getMonth() + 1,
+          monthName: startDate.toLocaleString('ar-SA', { month: 'long' })
+        },
+        daily: stats,
+        totals: totals[0] || { totalOrders: 0, totalRevenue: 0, avgOrderValue: 0, completedOrders: 0 }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Get monthly stats error:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب الإحصائيات الشهرية'
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على إيرادات اليوم
+ */
+exports.getTodayRevenue = async (query = {}) => {
+  try {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const result = await Order.aggregate([
+      {
+        $match: {
+          ...query,
+          createdAt: { $gte: startOfDay, $lte: endOfDay },
+          status: 'delivered'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$totalPrice' },
+          orderCount: { $sum: 1 }
+        }
+      }
+    ]);
+
+    return result[0] || { totalRevenue: 0, orderCount: 0 };
+  } catch (error) {
+    console.error('❌ Get today revenue error:', error.message);
+    return { totalRevenue: 0, orderCount: 0 };
+  }
+};
+
+// ========== 9. دوال الأدمن الإضافية ==========
+
+/**
+ * @desc    إلغاء قسري للطلب (لأدمن فقط)
+ * @route   PUT /api/orders/:id/force-cancel
+ * @access  Admin
+ */
+exports.forceCancelOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const order = await Order.findById(id)
+      .populate('user', 'name phone')
+      .populate('driver', 'name phone');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "الطلب غير موجود"
+      });
+    }
+
+    const oldStatus = order.status;
+    
+    order.status = "cancelled";
+    order.cancellationReason = reason || "إلغاء قسري بواسطة الأدمن";
+    order.cancelledAt = new Date();
+    order.cancelledBy = req.user.id;
+    await order.save();
+
+    // إرسال إشعار للعميل
+    if (order.user) {
+      await notificationService.sendNotification({
+        user: order.user._id,
+        type: "order_cancelled",
+        title: "❌ تم إلغاء طلبك",
+        content: `تم إلغاء طلبك #${order._id.toString().slice(-6)}: ${reason || "إلغاء قسري"}`,
+        data: { orderId: order._id },
+        priority: "urgent",
+        link: `/orders/${order._id}`,
+        icon: "❌"
+      });
+    }
+
+    // إرسال إشعار للمندوب إذا كان موجود
+    if (order.driver) {
+      await notificationService.sendNotification({
+        user: order.driver._id,
+        type: "order_cancelled",
+        title: "❌ تم إلغاء الطلب",
+        content: `تم إلغاء الطلب #${order._id.toString().slice(-6)} الذي كنت ستوصله`,
+        data: { orderId: order._id },
+        priority: "urgent",
+        link: `/driver/orders/${order._id}`,
+        icon: "❌"
+      });
+    }
+
+    // تحرير المندوب من الطلب
+    if (order.driver) {
+      await DriverLocation.findOneAndUpdate(
+        { driver: order.driver._id, order: id },
+        { order: null }
+      );
+    }
+
+    // إبطال الكاش
+    await invalidateOrderCache(order._id, order.user?._id);
+
+    res.json({
+      success: true,
+      message: "تم إلغاء الطلب قسرياً بنجاح",
+      data: {
+        orderId: order._id,
+        oldStatus,
+        newStatus: "cancelled",
+        reason: order.cancellationReason
+      }
+    });
+  } catch (error) {
+    console.error("❌ Force cancel order error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل إلغاء الطلب قسرياً"
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على طلبات مندوب معين (لأدمن)
+ * @route   GET /api/orders/driver/:driverId/orders
+ * @access  Admin
+ */
+exports.getDriverOrdersById = async (req, res) => {
+  try {
+    const { driverId } = req.params;
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    const { skip, limit, sort, filters } = paginationOptions;
+
+    let query = { driver: driverId };
+
+    if (filters.status) {
+      query.status = filters.status;
+    }
+
+    if (filters.minDate || filters.maxDate) {
+      query.createdAt = {};
+      if (filters.minDate) query.createdAt.$gte = new Date(filters.minDate);
+      if (filters.maxDate) query.createdAt.$lte = new Date(filters.maxDate);
+    }
+
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .populate('user', 'name phone image')
+        .populate('restaurant', 'name image')
+        .populate('pickupAddress')
+        .populate('deliveryAddress')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      
+      Order.countDocuments(query)
+    ]);
+
+    // إحصائيات المندوب
+    const driverStats = await Order.aggregate([
+      { $match: { driver: driverId } },
+      {
+        $group: {
+          _id: null,
+          totalDelivered: {
+            $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] }
+          },
+          totalEarnings: {
+            $sum: { $cond: [{ $eq: ["$status", "delivered"] }, { $multiply: ["$totalPrice", 0.8] }, 0] }
+          }
+        }
+      }
+    ]);
+
+    const response = PaginationUtils.createPaginationResponse(
+      orders,
+      total,
+      paginationOptions,
+      {
+        driverStats: driverStats[0] || { totalDelivered: 0, totalEarnings: 0 }
+      }
+    );
+
+    res.json(response);
+  } catch (error) {
+    console.error("❌ Get driver orders by id error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب طلبات المندوب"
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على طلبات مطعم معين (لأدمن)
+ * @route   GET /api/orders/restaurant/:restaurantId/orders
+ * @access  Admin
+ */
+exports.getRestaurantOrdersById = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    const { skip, limit, sort, filters } = paginationOptions;
+
+    let query = { restaurant: restaurantId };
+
+    if (filters.status) {
+      query.status = filters.status;
+    }
+
+    if (filters.minDate || filters.maxDate) {
+      query.createdAt = {};
+      if (filters.minDate) query.createdAt.$gte = new Date(filters.minDate);
+      if (filters.maxDate) query.createdAt.$lte = new Date(filters.maxDate);
+    }
+
+    const [orders, total] = await Promise.all([
+      Order.find(query)
+        .populate('user', 'name phone')
+        .populate('driver', 'name phone')
+        .populate('items.item')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      
+      Order.countDocuments(query)
+    ]);
+
+    // إحصائيات المطعم
+    const restaurantStats = await Order.aggregate([
+      { $match: { restaurant: restaurantId } },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalRevenue: { $sum: "$totalPrice" },
+          completedOrders: {
+            $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] }
+          },
+          cancelledOrders: {
+            $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] }
+          }
+        }
+      }
+    ]);
+
+    const response = PaginationUtils.createPaginationResponse(
+      orders,
+      total,
+      paginationOptions,
+      {
+        restaurantStats: restaurantStats[0] || { 
+          totalOrders: 0, 
+          totalRevenue: 0, 
+          completedOrders: 0, 
+          cancelledOrders: 0 
+        }
+      }
+    );
+
+    res.json(response);
+  } catch (error) {
+    console.error("❌ Get restaurant orders by id error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب طلبات المطعم"
+    });
+  }
+};
+
+// ========== 10. دوال التقييم والإبلاغ ==========
+
+/**
+ * @desc    تقييم الطلب
+ * @route   POST /api/orders/:id/rate
+ * @access  Client
+ */
+exports.rateOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rating, comment, rateDriver, rateRestaurant } = req.body;
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        success: false,
+        message: "التقييم يجب أن يكون بين 1 و 5"
+      });
+    }
+
+    const order = await Order.findOne({ 
+      _id: id, 
+      user: req.user.id,
+      status: "delivered"
+    }).populate('driver').populate('restaurant');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "الطلب غير موجود أو لم يتم توصيله بعد"
+      });
+    }
+
+    // التحقق من عدم وجود تقييم سابق
+    const existingReview = await Review.findOne({
+      user: req.user.id,
+      order: id
+    });
+
+    if (existingReview) {
+      return res.status(400).json({
+        success: false,
+        message: "لقد قيمت هذا الطلب مسبقاً"
+      });
+    }
+
+    // إنشاء تقييم للطلب
+    const review = await Review.create({
+      user: req.user.id,
+      restaurant: order.restaurant._id,
+      order: id,
+      rating,
+      comment: comment?.trim()
+    });
+
+    // تحديث متوسط تقييم المطعم
+    if (order.restaurant) {
+      const restaurantStats = await Review.aggregate([
+        { $match: { restaurant: order.restaurant._id } },
+        {
+          $group: {
+            _id: null,
+            avgRating: { $avg: "$rating" },
+            count: { $sum: 1 }
+          }
+        }
+      ]);
+
+      await Restaurant.findByIdAndUpdate(order.restaurant._id, {
+        averageRating: restaurantStats[0]?.avgRating || rating,
+        ratingsCount: restaurantStats[0]?.count || 1
+      });
+    }
+
+    // تقييم المندوب إذا طلب
+    if (rateDriver && order.driver) {
+      const driverRating = typeof rateDriver === 'number' ? rateDriver : rating;
+      
+      await User.findByIdAndUpdate(order.driver._id, {
+        $inc: { 'driverInfo.totalRatings': 1 },
+        $set: { 'driverInfo.rating': driverRating }
+      });
+    }
+
+    // إرسال إشعار للمطعم
+    await notificationService.sendNotification({
+      user: order.restaurant.owner || order.restaurant.createdBy,
+      type: "new_review",
+      title: "⭐ تقييم جديد",
+      content: `حصلت على تقييم ${rating} نجوم على طلب #${order._id.toString().slice(-6)}`,
+      data: { orderId: order._id, rating, comment },
+      priority: "medium",
+      link: `/restaurant/reviews`,
+      icon: "⭐"
+    });
+
+    // إبطال الكاش
+    await invalidateOrderCache(order._id, req.user.id);
+    cache.del(`restaurant:complete:${order.restaurant._id}`);
+
+    res.json({
+      success: true,
+      message: "تم تقييم الطلب بنجاح",
+      data: {
+        review,
+        rating,
+        comment
+      }
+    });
+  } catch (error) {
+    console.error("❌ Rate order error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل تقييم الطلب"
+    });
+  }
+};
+
+/**
+ * @desc    الإبلاغ عن مشكلة في الطلب
+ * @route   POST /api/orders/:id/report-issue
+ * @access  Client
+ */
+exports.reportOrderIssue = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { issue, description } = req.body;
+
+    if (!issue || !description) {
+      return res.status(400).json({
+        success: false,
+        message: "نوع المشكلة ووصفها مطلوبان"
+      });
+    }
+
+    const order = await Order.findOne({ 
+      _id: id, 
+      user: req.user.id 
+    }).populate('restaurant');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "الطلب غير موجود"
+      });
+    }
+
+    // إنشاء تذكرة دعم
+    const supportTicket = {
+      orderId: order._id,
+      userId: req.user.id,
+      issueType: issue,
+      description,
+      status: "open",
+      createdAt: new Date()
+    };
+
+    // إرسال إشعار للمشرفين
+    const admins = await User.find({ role: 'admin' }).select('_id');
+    
+    for (const admin of admins) {
+      await notificationService.sendNotification({
+        user: admin._id,
+        type: "support_ticket",
+        title: "⚠️ بلاغ مشكلة جديد",
+        content: `مشكلة ${issue} في الطلب #${order._id.toString().slice(-6)}: ${description.substring(0, 50)}...`,
+        data: { 
+          orderId: order._id, 
+          userId: req.user.id,
+          issue,
+          description 
+        },
+        priority: "high",
+        link: `/admin/support/orders/${order._id}`,
+        icon: "⚠️"
+      });
+    }
+
+    // إضافة ملاحظة للطلب
+    order.notes = order.notes 
+      ? `${order.notes}\n[مشكلة] ${issue}: ${description}`
+      : `[مشكلة] ${issue}: ${description}`;
+    await order.save();
+
+    res.json({
+      success: true,
+      message: "تم الإبلاغ عن المشكلة بنجاح، سيتم التواصل معك قريباً",
+      data: {
+        ticketId: `TICKET-${Date.now()}`,
+        issue,
+        description,
+        status: "open"
+      }
+    });
+  } catch (error) {
+    console.error("❌ Report order issue error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل الإبلاغ عن المشكلة"
+    });
+  }
+};
+
+module.exports = exports;

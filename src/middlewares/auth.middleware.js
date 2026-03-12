@@ -1,11 +1,15 @@
+// ============================================
+// ملف: src/middlewares/auth.middleware.js (محدث)
+// الوصف: التحقق من صحة التوكن والمصادقة
+// ============================================
+
 const jwt = require("jsonwebtoken");
 const cache = require("../utils/cache.util");
 const User = require("../models/user.model");
+const { businessLogger } = require("../utils/logger.util");
 
 /**
  * التحقق من صحة تنسيق JWT
- * @param {string} token - التوكن المراد التحقق منه
- * @returns {boolean} - هل التوكن صحيح التنسيق
  */
 const isValidJwtFormat = (token) => {
   if (!token || typeof token !== 'string') return false;
@@ -17,7 +21,6 @@ const isValidJwtFormat = (token) => {
   // التحقق أن كل جزء هو Base64 صالح
   try {
     parts.forEach(part => {
-      // إضافة padding إذا لزم
       const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
       const padding = '='.repeat((4 - (base64.length % 4)) % 4);
       Buffer.from(base64 + padding, 'base64');
@@ -30,8 +33,6 @@ const isValidJwtFormat = (token) => {
 
 /**
  * استخراج التوكن من الهيدر بأشكال مختلفة
- * @param {object} headers - هيدرات الطلب
- * @returns {string|null} - التوكن أو null
  */
 const extractToken = (headers) => {
   // 1. الطريقة القياسية: Bearer token
@@ -51,9 +52,101 @@ const extractToken = (headers) => {
     return headers.token;
   }
   
+  // 3. من الكوكيز (إذا كان مستخدماً)
+  if (headers.cookie) {
+    const cookies = headers.cookie.split(';').reduce((acc, cookie) => {
+      const [key, value] = cookie.trim().split('=');
+      acc[key] = value;
+      return acc;
+    }, {});
+    
+    if (cookies.token || cookies.access_token) {
+      return cookies.token || cookies.access_token;
+    }
+  }
+  
   return null;
 };
 
+/**
+ * التحقق من صلاحية التوكن
+ */
+const verifyToken = async (token) => {
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET, {
+      algorithms: ['HS256'],
+      complete: false
+    });
+
+    // التحقق من وجود الـ id
+    if (!decoded || !decoded.id) {
+      return { valid: false, reason: 'INVALID_PAYLOAD' };
+    }
+
+    // التحقق من انتهاء الصلاحية
+    if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
+      return { valid: false, reason: 'EXPIRED' };
+    }
+
+    return { valid: true, decoded };
+  } catch (error) {
+    if (error.name === 'JsonWebTokenError') {
+      if (error.message.includes('invalid signature')) {
+        return { valid: false, reason: 'INVALID_SIGNATURE' };
+      }
+      if (error.message.includes('invalid algorithm')) {
+        return { valid: false, reason: 'INVALID_ALGORITHM' };
+      }
+      if (error.message.includes('malformed')) {
+        return { valid: false, reason: 'MALFORMED' };
+      }
+      return { valid: false, reason: 'INVALID_TOKEN' };
+    }
+    
+    if (error.name === 'TokenExpiredError') {
+      return { 
+        valid: false, 
+        reason: 'EXPIRED',
+        expiredAt: error.expiredAt 
+      };
+    }
+
+    return { valid: false, reason: 'VERIFICATION_FAILED' };
+  }
+};
+
+/**
+ * التحقق من blacklist
+ */
+const isTokenBlacklisted = async (token) => {
+  try {
+    const blacklisted = await cache.get(`token:blacklist:${token}`);
+    return !!blacklisted;
+  } catch (error) {
+    businessLogger.error('Cache error checking blacklist:', error);
+    return false;
+  }
+};
+
+/**
+ * إضافة token إلى blacklist
+ */
+const blacklistToken = async (token, expiresIn = 3600) => {
+  try {
+    await cache.set(`token:blacklist:${token}`, true, expiresIn);
+    return true;
+  } catch (error) {
+    businessLogger.error('Error blacklisting token:', error);
+    return false;
+  }
+};
+
+// ========== Middleware الرئيسي ==========
+
+/**
+ * @desc    التحقق من صحة التوكن
+ * @access  يستخدم في المسارات المحمية
+ */
 module.exports = async (req, res, next) => {
   try {
     // استخراج التوكن
@@ -71,7 +164,11 @@ module.exports = async (req, res, next) => {
 
     // التحقق من تنسيق التوكن
     if (!isValidJwtFormat(token)) {
-      console.warn(`[Auth] Invalid JWT format detected: ${token.substring(0, 20)}...`);
+      businessLogger.warn(`Invalid JWT format detected`, {
+        ip: req.ip,
+        tokenPreview: token.substring(0, 20) + '...'
+      });
+
       return res.status(401).json({
         success: false,
         message: "Invalid token format",
@@ -81,109 +178,100 @@ module.exports = async (req, res, next) => {
     }
 
     // التحقق من blacklist
-    try {
-      const isBlacklisted = await cache.get(`token:blacklist:${token}`);
-      if (isBlacklisted) {
-        return res.status(401).json({
-          success: false,
-          message: "Token has been revoked",
-          code: "TOKEN_REVOKED"
-        });
-      }
-    } catch (cacheError) {
-      console.error("[Auth] Cache error:", cacheError.message);
-      // نكمل حتى لو فشل الكاش
+    const isBlacklisted = await isTokenBlacklisted(token);
+    if (isBlacklisted) {
+      return res.status(401).json({
+        success: false,
+        message: "Token has been revoked",
+        code: "TOKEN_REVOKED"
+      });
     }
 
     // التحقق من صلاحية Token
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET, {
-        algorithms: ['HS256'],
-        complete: false // نريد فقط الـ payload
-      });
-    } catch (jwtError) {
-      console.error(`[Auth] JWT verification failed: ${jwtError.message}`);
-      
-      // معالجة أنواع الأخطاء المختلفة
-      if (jwtError.name === "JsonWebTokenError") {
-        // تحسين رسالة الخطأ بناءً على السبب
-        let details = "Token is malformed or invalid";
-        let code = "JWT_MALFORMED";
-        
-        if (jwtError.message.includes('invalid signature')) {
-          details = "Token signature is invalid";
-          code = "INVALID_SIGNATURE";
-        } else if (jwtError.message.includes('invalid algorithm')) {
-          details = "Invalid token algorithm";
-          code = "INVALID_ALGORITHM";
-        } else if (jwtError.message.includes('jwt malformed')) {
-          details = "Token structure is corrupted";
-          code = "JWT_MALFORMED";
-        }
-        
-        return res.status(401).json({
-          success: false,
-          message: "Invalid token",
-          code,
-          details
-        });
+    const verification = await verifyToken(token);
+    
+    if (!verification.valid) {
+      const errorMessages = {
+        'EXPIRED': 'Token has expired',
+        'INVALID_SIGNATURE': 'Token signature is invalid',
+        'INVALID_ALGORITHM': 'Invalid token algorithm',
+        'MALFORMED': 'Token structure is corrupted',
+        'INVALID_PAYLOAD': 'Token missing required user ID',
+        'INVALID_TOKEN': 'Token is malformed or invalid',
+        'VERIFICATION_FAILED': 'Token verification failed'
+      };
+
+      const message = errorMessages[verification.reason] || 'Invalid token';
+      const code = verification.reason || 'TOKEN_INVALID';
+
+      const response = {
+        success: false,
+        message,
+        code
+      };
+
+      if (verification.reason === 'EXPIRED' && verification.expiredAt) {
+        response.expiredAt = verification.expiredAt;
       }
-      
-      if (jwtError.name === "TokenExpiredError") {
-        return res.status(401).json({
-          success: false,
-          message: "Token has expired",
-          code: "TOKEN_EXPIRED",
-          expiredAt: jwtError.expiredAt
-        });
-      }
-      
-      // أخطاء غير متوقعة
+
+      return res.status(401).json(response);
+    }
+
+    const decoded = verification.decoded;
+
+    // التحقق من وجود المستخدم في قاعدة البيانات
+    const user = await User.findById(decoded.id)
+      .select('isActive isVerified role name')
+      .lean();
+
+    if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Token verification failed",
-        code: "TOKEN_VERIFICATION_FAILED"
+        message: "User not found",
+        code: "USER_NOT_FOUND"
       });
     }
 
-    // التحقق من وجود الـ id في الـ decoded token
-    if (!decoded || !decoded.id) {
-      return res.status(401).json({
+    // التحقق من أن الحساب نشط
+    if (!user.isActive) {
+      return res.status(403).json({
         success: false,
-        message: "Invalid token payload",
-        code: "INVALID_PAYLOAD",
-        details: "Token missing required user ID"
+        message: "Account is deactivated",
+        code: "ACCOUNT_DEACTIVATED"
       });
     }
 
     // حفظ معلومات المستخدم في الطلب
-    req.user = decoded;
+    req.user = {
+      id: decoded.id,
+      role: user.role,
+      name: user.name,
+      isVerified: user.isVerified
+    };
 
-    // تحديث آخر نشاط للمستخدم (بشكل غير متزامن)
-    User.findById(decoded.id)
-      .then(user => {
-        if (user) {
-          user.lastActivity = new Date();
-          user.lastIp = req.ip || req.connection.remoteAddress;
-          user.lastUserAgent = req.headers['user-agent'];
-          
-          return user.save()
-            .catch(err => console.error("[Auth] Failed to update user activity:", err.message));
-        }
-      })
-      .catch(err => console.error("[Auth] Failed to find user for activity update:", err.message));
-
-    // إضافة معلومات إضافية للـ request
+    // إضافة معلومات إضافية
     req.auth = {
       authenticated: true,
       method: 'jwt',
-      token: token.substring(0, 20) + '...' // للـ logging فقط
+      tokenPreview: token.substring(0, 20) + '...'
     };
+
+    // تحديث آخر نشاط للمستخدم (بشكل غير متزامن)
+    User.findByIdAndUpdate(decoded.id, {
+      lastActivity: new Date(),
+      lastIp: req.ip || req.connection.remoteAddress,
+      lastUserAgent: req.headers['user-agent']
+    }).catch(err => businessLogger.error('Failed to update user activity:', err));
+
+    businessLogger.debug('Authentication successful', {
+      userId: decoded.id,
+      role: user.role,
+      path: req.originalUrl
+    });
 
     next();
   } catch (error) {
-    console.error("[Auth] Unexpected error in auth middleware:", error);
+    businessLogger.error("Unexpected error in auth middleware:", error);
     
     res.status(500).json({
       success: false,
@@ -194,7 +282,8 @@ module.exports = async (req, res, next) => {
 };
 
 /**
- * Middleware للتحقق من صحة التوكن دون إيقاع خطأ (للاستخدام في الـ public routes)
+ * @desc    التحقق الاختياري (لا يمنع الوصول)
+ * @access  يستخدم في المسارات العامة التي قد تحتوي بيانات مخصصة
  */
 module.exports.optional = async (req, res, next) => {
   try {
@@ -202,11 +291,32 @@ module.exports.optional = async (req, res, next) => {
     
     if (token && isValidJwtFormat(token)) {
       try {
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        req.user = decoded;
-        req.auth = { authenticated: true, method: 'jwt' };
+        const verification = await verifyToken(token);
+        
+        if (verification.valid) {
+          const decoded = verification.decoded;
+          
+          // التحقق من وجود المستخدم
+          const user = await User.findById(decoded.id)
+            .select('isActive role name')
+            .lean();
+
+          if (user && user.isActive) {
+            req.user = {
+              id: decoded.id,
+              role: user.role,
+              name: user.name
+            };
+            req.auth = { authenticated: true, method: 'jwt' };
+          } else {
+            req.user = null;
+            req.auth = { authenticated: false, method: 'none' };
+          }
+        } else {
+          req.user = null;
+          req.auth = { authenticated: false, method: 'none' };
+        }
       } catch (e) {
-        // تجاهل أخطاء التوكن في الـ optional auth
         req.user = null;
         req.auth = { authenticated: false, method: 'none' };
       }
@@ -222,3 +332,10 @@ module.exports.optional = async (req, res, next) => {
     next();
   }
 };
+
+/**
+ * @desc    وظائف مساعدة
+ */
+module.exports.blacklistToken = blacklistToken;
+module.exports.verifyToken = verifyToken;
+module.exports.extractToken = extractToken;

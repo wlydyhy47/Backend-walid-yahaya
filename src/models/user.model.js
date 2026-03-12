@@ -1,8 +1,13 @@
+// ============================================
+// ملف: src/models/user.model.js (محدث)
+// الوصف: نموذج المستخدم مع دعم Loyalty Points
+// ============================================
+
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
-    // المعلومات الأساسية
+    // المعلومات الأساسية (موجودة مسبقاً)
     name: {
       type: String,
       required: true,
@@ -24,7 +29,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       trim: true,
       lowercase: true,
-      sparse: true, // يسمح بقيم null فريدة
+      sparse: true,
       match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"],
     },
 
@@ -32,7 +37,7 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
       minlength: 6,
-      select: false, // لا تعرض عند الاستعلام
+      select: false,
     },
 
     image: {
@@ -48,7 +53,7 @@ const userSchema = new mongoose.Schema(
     // الأدوار والصلاحيات
     role: {
       type: String,
-      enum: ["client", "driver", "admin", "restaurant_owner"], // ✅ إضافة جديدة
+      enum: ["client", "driver", "admin", "restaurant_owner"],
       default: "client",
       index: true,
     },
@@ -67,6 +72,11 @@ const userSchema = new mongoose.Schema(
     isOnline: {
       type: Boolean,
       default: false,
+    },
+
+    lastSeen: {
+      type: Date,
+      default: Date.now,
     },
 
     // معلومات إضافية
@@ -94,8 +104,8 @@ const userSchema = new mongoose.Schema(
         default: "Point",
       },
       coordinates: {
-        type: [Number], // [longitude, latitude]
-        default: [2.1098, 13.5126], // Niamey
+        type: [Number],
+        default: [2.1098, 13.5126],
       },
     },
 
@@ -107,6 +117,66 @@ const userSchema = new mongoose.Schema(
       type: String,
       enum: ["male", "female", "other", "prefer-not-to-say"],
     },
+
+    // ========== 🔥 إضافات جديدة ==========
+
+    /**
+     * نقاط الولاء
+     */
+    loyaltyPoints: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
+    /**
+     * سجل معاملات الولاء
+     */
+    loyaltyTransactions: [{
+      type: {
+        type: String,
+        enum: ['earn', 'redeem'],
+        required: true
+      },
+      amount: {
+        type: Number,
+        required: true,
+        min: 0
+      },
+      reason: String,
+      orderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Order'
+      },
+      rewardId: String,
+      balance: {
+        type: Number,
+        required: true
+      },
+      timestamp: {
+        type: Date,
+        default: Date.now
+      }
+    }],
+
+    /**
+     * محاولات تسجيل الدخول الفاشلة (للأمان)
+     */
+    loginAttempts: {
+      type: Number,
+      default: 0,
+      select: false
+    },
+
+    /**
+     * وقت قفل الحساب (للأمان)
+     */
+    lockUntil: {
+      type: Date,
+      select: false
+    },
+
+    // ========== نهاية الإضافات ==========
 
     // إعدادات المستخدم
     preferences: {
@@ -163,76 +233,9 @@ const userSchema = new mongoose.Schema(
         },
         coordinates: {
           type: [Number],
-          default: [2.1098, 13.5126] // نفس إحداثيات location
+          default: [2.1098, 13.5126]
         }
       },
-
-        // ✅ حقول خاصة بصاحب المطعم
-  restaurantOwnerInfo: {
-    // المطعم الذي يملكه
-    restaurant: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Restaurant",
-      default: null,
-    },
-    
-    // حالة الاشتراك
-    subscription: {
-      plan: {
-        type: String,
-        enum: ["free", "basic", "premium", "enterprise"],
-        default: "free",
-      },
-      expiresAt: Date,
-      isActive: { type: Boolean, default: true },
-    },
-    
-    // إعدادات الإشعارات
-    notificationSettings: {
-      newOrders: { type: Boolean, default: true },
-      orderUpdates: { type: Boolean, default: true },
-      lowStock: { type: Boolean, default: true },
-      dailyReport: { type: Boolean, default: true },
-      sound: { type: Boolean, default: true },
-      push: { type: Boolean, default: true },
-      email: { type: Boolean, default: true },
-    },
-    
-    // ساعات العمل
-    workingHours: {
-      monday: { open: String, close: String, isOpen: Boolean },
-      tuesday: { open: String, close: String, isOpen: Boolean },
-      wednesday: { open: String, close: String, isOpen: Boolean },
-      thursday: { open: String, close: String, isOpen: Boolean },
-      friday: { open: String, close: String, isOpen: Boolean },
-      saturday: { open: String, close: String, isOpen: Boolean },
-      sunday: { open: String, close: String, isOpen: Boolean },
-    },
-    
-    // إحصائيات المطعم
-    stats: {
-      totalOrders: { type: Number, default: 0 },
-      totalRevenue: { type: Number, default: 0 },
-      averageOrderValue: { type: Number, default: 0 },
-      rating: { type: Number, default: 0 },
-      totalCustomers: { type: Number, default: 0 },
-      cancellationRate: { type: Number, default: 0 },
-    },
-    
-    // حالة المطعم
-    isRestaurantOpen: { type: Boolean, default: true },
-    
-    // الموظفين (إذا كان لديهم صلاحيات محدودة)
-    staff: [{
-      user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-      role: { type: String, enum: ["manager", "chef", "cashier"] },
-      permissions: [String],
-      addedAt: { type: Date, default: Date.now },
-    }],
-  },
-
-
-      
       rating: { type: Number, default: 0 },
       totalDeliveries: { type: Number, default: 0 },
       earnings: { type: Number, default: 0 },
@@ -241,6 +244,57 @@ const userSchema = new mongoose.Schema(
         url: String,
         verified: { type: Boolean, default: false },
         verifiedAt: Date,
+      }],
+    },
+
+    // لصاحب المطعم
+    restaurantOwnerInfo: {
+      restaurant: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Restaurant",
+        default: null,
+      },
+      subscription: {
+        plan: {
+          type: String,
+          enum: ["free", "basic", "premium", "enterprise"],
+          default: "free",
+        },
+        expiresAt: Date,
+        isActive: { type: Boolean, default: true },
+      },
+      notificationSettings: {
+        newOrders: { type: Boolean, default: true },
+        orderUpdates: { type: Boolean, default: true },
+        lowStock: { type: Boolean, default: true },
+        dailyReport: { type: Boolean, default: true },
+        sound: { type: Boolean, default: true },
+        push: { type: Boolean, default: true },
+        email: { type: Boolean, default: true },
+      },
+      workingHours: {
+        monday: { open: String, close: String, isOpen: Boolean },
+        tuesday: { open: String, close: String, isOpen: Boolean },
+        wednesday: { open: String, close: String, isOpen: Boolean },
+        thursday: { open: String, close: String, isOpen: Boolean },
+        friday: { open: String, close: String, isOpen: Boolean },
+        saturday: { open: String, close: String, isOpen: Boolean },
+        sunday: { open: String, close: String, isOpen: Boolean },
+      },
+      stats: {
+        totalOrders: { type: Number, default: 0 },
+        totalRevenue: { type: Number, default: 0 },
+        averageOrderValue: { type: Number, default: 0 },
+        rating: { type: Number, default: 0 },
+        totalCustomers: { type: Number, default: 0 },
+        cancellationRate: { type: Number, default: 0 },
+      },
+      isRestaurantOpen: { type: Boolean, default: true },
+      staff: [{
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        role: { type: String, enum: ["manager", "chef", "cashier"] },
+        permissions: [String],
+        addedAt: { type: Date, default: Date.now },
       }],
     },
 
@@ -282,13 +336,14 @@ const userSchema = new mongoose.Schema(
   }
 );
 
-// Indexes
+// ========== Indexes ==========
 userSchema.index({ location: "2dsphere" });
 userSchema.index({ "driverInfo.currentLocation": "2dsphere" });
 userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ createdAt: -1 });
+userSchema.index({ loyaltyPoints: -1 }); // للبحث حسب النقاط
 
-// Virtuals
+// ========== Virtuals ==========
 userSchema.virtual("age").get(function () {
   if (!this.dateOfBirth) return null;
   const today = new Date();
@@ -301,29 +356,30 @@ userSchema.virtual("age").get(function () {
   return age;
 });
 
-userSchema.virtual("fullProfile").get(function () {
-  return {
-    id: this._id,
-    name: this.name,
-    email: this.email,
-    phone: this.phone,
-    role: this.role,
-    image: this.image,
-    isVerified: this.isVerified,
-    stats: this.stats,
-  };
+userSchema.virtual("loyaltyTier").get(function () {
+  const points = this.loyaltyPoints || 0;
+  if (points >= 5000) return 'platinum';
+  if (points >= 2000) return 'gold';
+  if (points >= 500) return 'silver';
+  return 'bronze';
 });
 
-// Middleware
-// Middleware - الحل الآمن
+userSchema.virtual("isLocked").get(function () {
+  return !!(this.lockUntil && this.lockUntil > new Date());
+});
+
+// ========== Middleware ==========
 userSchema.pre("save", async function () {
   if (this.isModified("password")) {
     this.passwordChangedAt = Date.now();
   }
-  // لا تستخدم next() - دع async يتولى الأمر
 });
-// Methods
-// في user.model.js، استبدل دالة logActivity:
+
+// ========== Methods ==========
+
+/**
+ * تسجيل النشاط
+ */
 userSchema.methods.logActivity = async function (action, details = {}) {
   try {
     await this.model('User').updateOne(
@@ -344,8 +400,6 @@ userSchema.methods.logActivity = async function (action, details = {}) {
         $set: { lastActivity: new Date() }
       }
     );
-
-    // تحديث محلي فقط
     this.lastActivity = new Date();
     return this;
   } catch (error) {
@@ -354,13 +408,106 @@ userSchema.methods.logActivity = async function (action, details = {}) {
   }
 };
 
-// في user.model.js - تحديث دالة updateStats
+/**
+ * إضافة نقاط ولاء
+ */
+userSchema.methods.addLoyaltyPoints = async function (amount, reason, orderId = null) {
+  try {
+    this.loyaltyPoints = (this.loyaltyPoints || 0) + amount;
+    
+    if (!this.loyaltyTransactions) {
+      this.loyaltyTransactions = [];
+    }
+    
+    this.loyaltyTransactions.push({
+      type: 'earn',
+      amount,
+      reason,
+      orderId,
+      balance: this.loyaltyPoints,
+      timestamp: new Date()
+    });
+    
+    await this.save();
+    return this.loyaltyPoints;
+  } catch (error) {
+    console.error('❌ Error adding loyalty points:', error);
+    throw error;
+  }
+};
+
+/**
+ * استبدال نقاط ولاء
+ */
+userSchema.methods.redeemLoyaltyPoints = async function (amount, reason, rewardId = null) {
+  try {
+    if ((this.loyaltyPoints || 0) < amount) {
+      throw new Error('Insufficient points');
+    }
+    
+    this.loyaltyPoints -= amount;
+    
+    if (!this.loyaltyTransactions) {
+      this.loyaltyTransactions = [];
+    }
+    
+    this.loyaltyTransactions.push({
+      type: 'redeem',
+      amount,
+      reason,
+      rewardId,
+      balance: this.loyaltyPoints,
+      timestamp: new Date()
+    });
+    
+    await this.save();
+    return this.loyaltyPoints;
+  } catch (error) {
+    console.error('❌ Error redeeming loyalty points:', error);
+    throw error;
+  }
+};
+
+/**
+ * تسجيل محاولة دخول فاشلة
+ */
+userSchema.methods.incLoginAttempts = async function () {
+  // إعادة تعيين بعد 2 ساعة
+  if (this.lockUntil && this.lockUntil < new Date()) {
+    return this.updateOne({
+      $set: { loginAttempts: 1 },
+      $unset: { lockUntil: 1 }
+    });
+  }
+  
+  const updates = { $inc: { loginAttempts: 1 } };
+  
+  // قفل الحساب بعد 5 محاولات فاشلة
+  if (this.loginAttempts + 1 >= 5 && !this.isLocked) {
+    updates.$set = { lockUntil: new Date(Date.now() + 2 * 60 * 60 * 1000) };
+  }
+  
+  return this.updateOne(updates);
+};
+
+/**
+ * إعادة تعيين محاولات الدخول
+ */
+userSchema.methods.resetLoginAttempts = async function () {
+  return this.updateOne({
+    $set: { loginAttempts: 0 },
+    $unset: { lockUntil: 1 }
+  });
+};
+
+/**
+ * تحديث الإحصائيات
+ */
 userSchema.methods.updateStats = async function () {
   try {
     const Order = require("./order.model");
     const Review = require("./review.model");
 
-    // استخدم aggregate مباشرة
     const [orderStats, reviewStats] = await Promise.all([
       Order.aggregate([
         { $match: { user: this._id } },
@@ -391,7 +538,6 @@ userSchema.methods.updateStats = async function () {
       ])
     ]);
 
-    // تحديث مباشر بدون save()
     const updateData = {
       'stats.lastOrderDate': orderStats[0]?.lastOrderDate || null
     };
@@ -414,23 +560,9 @@ userSchema.methods.updateStats = async function () {
       { runValidators: false }
     );
 
-    // تحديث object محلياً
-    if (orderStats.length > 0) {
-      this.stats.totalOrders = orderStats[0].totalOrders || 0;
-      this.stats.completedOrders = orderStats[0].completedOrders || 0;
-      this.stats.cancelledOrders = orderStats[0].cancelledOrders || 0;
-      this.stats.totalSpent = orderStats[0].totalSpent || 0;
-      this.stats.lastOrderDate = orderStats[0].lastOrderDate || null;
-    }
-
-    if (reviewStats.length > 0) {
-      this.stats.averageRating = reviewStats[0].averageRating || 0;
-      this.stats.ratingCount = reviewStats[0].ratingCount || 0;
-    }
-
     return this;
   } catch (error) {
-    console.error("Error updating user stats:", error.message);
+    console.error("❌ Error updating user stats:", error.message);
     return this;
   }
 };

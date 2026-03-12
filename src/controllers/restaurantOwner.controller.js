@@ -1,13 +1,54 @@
+// ============================================
+// ملف: src/controllers/restaurantOwner.controller.js
+// الوصف: لوحة تحكم صاحب المطعم
+// الإصدار: 2.0 (محدث)
+// ============================================
+
 const Order = require("../models/order.model");
 const Restaurant = require("../models/restaurant.model");
 const Item = require("../models/item.model");
 const User = require("../models/user.model");
+const Review = require("../models/review.model");
 const cache = require("../utils/cache.util");
 const PaginationUtils = require("../utils/pagination.util");
+const notificationService = require("../services/notification.service");
+const { AppError } = require('../middlewares/errorHandler.middleware');
+
+// ========== 1. دوال مساعدة ==========
 
 /**
- * 📊 لوحة تحكم صاحب المطعم
- * GET /api/restaurant-owner/dashboard
+ * إبطال كاش صاحب المطعم
+ */
+const invalidateOwnerCache = (restaurantId, ownerId) => {
+  cache.del(`restaurant_owner:dashboard:${restaurantId}`);
+  cache.del(`restaurant_owner:stats:${restaurantId}`);
+  cache.invalidatePattern(`restaurant_owner:orders:${restaurantId}:*`);
+  cache.del(`user:complete:${ownerId}`);
+};
+
+/**
+ * التحقق من ملكية المطعم
+ */
+const checkOwnership = async (restaurantId, ownerId) => {
+  const restaurant = await Restaurant.findById(restaurantId);
+  if (!restaurant) {
+    throw new AppError('المطعم غير موجود', 404);
+  }
+
+  const owner = await User.findById(ownerId);
+  if (!owner || owner.restaurantOwnerInfo?.restaurant?.toString() !== restaurantId) {
+    throw new AppError('غير مصرح لك بالوصول إلى هذا المطعم', 403);
+  }
+
+  return { restaurant, owner };
+};
+
+// ========== 2. لوحة التحكم ==========
+
+/**
+ * @desc    لوحة تحكم صاحب المطعم
+ * @route   GET /api/restaurant-owner/dashboard
+ * @access  Restaurant Owner
  */
 exports.getDashboard = async (req, res) => {
   try {
@@ -16,46 +57,47 @@ exports.getDashboard = async (req, res) => {
 
     const cachedData = cache.get(cacheKey);
     if (cachedData) {
-      return res.json({ ...cachedData, cached: true });
+      return res.json({ 
+        success: true,
+        data: cachedData,
+        cached: true 
+      });
     }
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const [
-      // إحصائيات اليوم
       todayStats,
-      // الطلبات المعلقة
       pendingOrders,
-      // آخر الطلبات
       recentOrders,
-      // الأصناف الأكثر مبيعاً
       topItems,
-      // التقييمات
-      reviews,
+      recentReviews,
+      weeklyStats,
+      monthlyStats
     ] = await Promise.all([
       // إحصائيات اليوم
       Order.aggregate([
         {
           $match: {
             restaurant: restaurantId,
-            createdAt: { $gte: today },
-          },
+            createdAt: { $gte: today }
+          }
         },
         {
           $group: {
             _id: null,
             totalOrders: { $sum: 1 },
             totalRevenue: { $sum: "$totalPrice" },
-            avgOrderValue: { $avg: "$totalPrice" },
-          },
-        },
+            avgOrderValue: { $avg: "$totalPrice" }
+          }
+        }
       ]),
 
       // الطلبات المعلقة
       Order.countDocuments({
         restaurant: restaurantId,
-        status: { $in: ["pending", "accepted", "preparing"] },
+        status: { $in: ["pending", "accepted"] }
       }),
 
       // آخر 10 طلبات
@@ -74,52 +116,105 @@ exports.getDashboard = async (req, res) => {
           $group: {
             _id: "$items.name",
             totalSold: { $sum: "$items.qty" },
-            totalRevenue: { $sum: { $multiply: ["$items.price", "$items.qty"] } },
-          },
+            totalRevenue: { $sum: { $multiply: ["$items.price", "$items.qty"] } }
+          }
         },
         { $sort: { totalSold: -1 } },
-        { $limit: 5 },
+        { $limit: 5 }
       ]),
 
-      // التقييمات
+      // آخر التقييمات
       Review.find({ restaurant: restaurantId })
-        .populate("user", "name")
+        .populate("user", "name image")
         .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
+
+      // إحصائيات آخر 7 أيام
+      Order.aggregate([
+        {
+          $match: {
+            restaurant: restaurantId,
+            createdAt: { $gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+            orders: { $sum: 1 },
+            revenue: { $sum: "$totalPrice" }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+
+      // إحصائيات الشهر
+      Order.aggregate([
+        {
+          $match: {
+            restaurant: restaurantId,
+            createdAt: { $gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalOrders: { $sum: 1 },
+            totalRevenue: { $sum: "$totalPrice" },
+            completedOrders: {
+              $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] }
+            }
+          }
+        }
+      ])
     ]);
 
-    const responseData = {
-      success: true,
-      data: {
-        today: todayStats[0] || { totalOrders: 0, totalRevenue: 0, avgOrderValue: 0 },
-        pendingOrders,
-        recentOrders,
-        topItems,
-        reviews,
-        quickActions: {
-          canAcceptOrders: true,
-          hasPendingOrders: pendingOrders > 0,
-        },
-      },
-      timestamp: new Date(),
+    // تحضير بيانات الرسم البياني
+    const chartData = {
+      labels: weeklyStats.map(day => day._id),
+      orders: weeklyStats.map(day => day.orders),
+      revenue: weeklyStats.map(day => day.revenue)
     };
 
-    cache.set(cacheKey, responseData, 60); // كاش دقيقة واحدة فقط (بيانات حية)
+    const responseData = {
+      summary: {
+        today: todayStats[0] || { totalOrders: 0, totalRevenue: 0, avgOrderValue: 0 },
+        pending: pendingOrders,
+        monthly: monthlyStats[0] || { totalOrders: 0, totalRevenue: 0, completedOrders: 0 }
+      },
+      recentOrders,
+      topItems,
+      recentReviews,
+      charts: chartData,
+      quickActions: {
+        canAcceptOrders: true,
+        hasPendingOrders: pendingOrders > 0,
+        isOpen: true // سيتم جلبها من بيانات المطعم
+      },
+      timestamp: new Date()
+    };
 
-    res.json(responseData);
+    cache.set(cacheKey, responseData, 60); // دقيقة واحدة
+
+    res.json({
+      success: true,
+      data: responseData
+    });
   } catch (error) {
     console.error("❌ Restaurant owner dashboard error:", error.message);
     res.status(500).json({
       success: false,
-      message: "فشل تحميل لوحة التحكم",
+      message: "فشل تحميل لوحة التحكم"
     });
   }
 };
 
+// ========== 3. إدارة الطلبات ==========
+
 /**
- * 📋 عرض طلبات المطعم مع Pagination
- * GET /api/restaurant-owner/orders
+ * @desc    عرض طلبات المطعم مع Pagination
+ * @route   GET /api/restaurant-owner/orders
+ * @access  Restaurant Owner
  */
 exports.getOrders = async (req, res) => {
   try {
@@ -141,6 +236,21 @@ exports.getOrders = async (req, res) => {
       if (filters.dateTo) query.createdAt.$lte = new Date(filters.dateTo);
     }
 
+    // فلترة حسب العميل
+    if (filters.customer) {
+      query.user = filters.customer;
+    }
+
+    const cacheKey = `restaurant_owner:orders:${restaurantId}:${JSON.stringify(query)}:${skip}:${limit}`;
+    const cachedData = cache.get(cacheKey);
+    
+    if (cachedData) {
+      return res.json({
+        ...cachedData,
+        cached: true
+      });
+    }
+
     const [orders, total] = await Promise.all([
       Order.find(query)
         .populate("user", "name phone image")
@@ -152,52 +262,56 @@ exports.getOrders = async (req, res) => {
         .limit(limit)
         .lean(),
 
-      Order.countDocuments(query),
+      Order.countDocuments(query)
     ]);
 
-    // إحصائيات سريعة
+    // إحصائيات الطلبات
     const stats = await Order.aggregate([
       { $match: { restaurant: restaurantId } },
       {
         $group: {
           _id: "$status",
           count: { $sum: 1 },
-          revenue: { $sum: "$totalPrice" },
-        },
-      },
+          revenue: { $sum: "$totalPrice" }
+        }
+      }
     ]);
+
+    const statsByStatus = stats.reduce((acc, curr) => {
+      acc[curr._id] = { count: curr.count, revenue: curr.revenue };
+      return acc;
+    }, {});
 
     const response = PaginationUtils.createPaginationResponse(
       orders,
       total,
       paginationOptions,
-      {
-        stats: stats.reduce((acc, curr) => {
-          acc[curr._id] = { count: curr.count, revenue: curr.revenue };
-          return acc;
-        }, {}),
-      }
+      { stats: statsByStatus }
     );
+
+    cache.set(cacheKey, response, 30); // 30 ثانية
 
     res.json(response);
   } catch (error) {
     console.error("❌ Get restaurant orders error:", error.message);
     res.status(500).json({
       success: false,
-      message: "فشل جلب الطلبات",
+      message: "فشل جلب الطلبات"
     });
   }
 };
 
 /**
- * ✅ قبول/رفض طلب (من قبل صاحب المطعم)
- * PUT /api/restaurant-owner/orders/:orderId/status
+ * @desc    تحديث حالة الطلب
+ * @route   PUT /api/restaurant-owner/orders/:orderId/status
+ * @access  Restaurant Owner
  */
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { orderId } = req.params;
     const { status, estimatedTime, rejectionReason } = req.body;
     const restaurantId = req.restaurantId;
+    const userId = req.user.id;
 
     const validStatuses = ["accepted", "rejected", "preparing", "ready"];
     
@@ -205,19 +319,19 @@ exports.updateOrderStatus = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "حالة غير صالحة",
-        validStatuses,
+        validStatuses
       });
     }
 
     const order = await Order.findOne({
       _id: orderId,
-      restaurant: restaurantId,
-    });
+      restaurant: restaurantId
+    }).populate('user', 'name phone');
 
     if (!order) {
       return res.status(404).json({
         success: false,
-        message: "الطلب غير موجود",
+        message: "الطلب غير موجود"
       });
     }
 
@@ -225,9 +339,12 @@ exports.updateOrderStatus = async (req, res) => {
     if (order.status === "cancelled" || order.status === "delivered") {
       return res.status(400).json({
         success: false,
-        message: "لا يمكن تغيير حالة هذا الطلب",
+        message: "لا يمكن تغيير حالة هذا الطلب"
       });
     }
+
+    // حفظ الحالة القديمة للإشعارات
+    const oldStatus = order.status;
 
     // تحديث الحالة
     order.status = status;
@@ -238,56 +355,210 @@ exports.updateOrderStatus = async (req, res) => {
     
     if (status === "rejected" && rejectionReason) {
       order.rejectionReason = rejectionReason;
+      order.cancelledBy = userId;
+      order.cancelledAt = new Date();
     }
 
     await order.save();
 
-    // إشعار العميل بالتحديث
-    const notificationService = require("../services/notification.service");
+    // إرسال إشعار للعميل
     await notificationService.sendNotification({
-      user: order.user,
+      user: order.user._id,
       type: `order_${status}`,
-      title: status === "accepted" ? "✅ تم قبول طلبك" : "❌ تم رفض طلبك",
+      title: status === "accepted" ? "✅ تم قبول طلبك" : 
+             status === "rejected" ? "❌ تم رفض طلبك" : 
+             "📦 تحديث على طلبك",
       content: status === "accepted" 
-        ? `تم قبول طلبك من المطعم، الوقت المتوقع: ${estimatedTime} دقيقة`
-        : `تم رفض طلبك: ${rejectionReason}`,
+        ? `تم قبول طلبك، الوقت المتوقع: ${estimatedTime || order.estimatedPreparationTime} دقيقة`
+        : status === "rejected"
+        ? `تم رفض طلبك: ${rejectionReason}`
+        : status === "preparing"
+        ? "جاري تحضير طلبك"
+        : "طلبك جاهز للتسليم",
       data: { orderId: order._id, status },
       priority: "high",
       link: `/orders/${order._id}`,
+      icon: status === "accepted" ? "✅" : status === "rejected" ? "❌" : "📦",
+      tags: ["order", `order_${order._id}`]
     });
+
+    // إبطال الكاش
+    cache.del(`restaurant_owner:dashboard:${restaurantId}`);
+    cache.invalidatePattern(`restaurant_owner:orders:${restaurantId}:*`);
+    cache.del(`order:full:${orderId}`);
 
     res.json({
       success: true,
       message: "تم تحديث حالة الطلب",
       data: {
         orderId: order._id,
-        status: order.status,
-        updatedAt: new Date(),
-      },
+        oldStatus,
+        newStatus: status,
+        updatedAt: new Date()
+      }
     });
   } catch (error) {
     console.error("❌ Update order status error:", error.message);
     res.status(500).json({
       success: false,
-      message: "فشل تحديث حالة الطلب",
+      message: "فشل تحديث حالة الطلب"
     });
   }
 };
 
 /**
- * 🔔 تبديل حالة المطعم (مفتوح/مغلق)
- * PUT /api/restaurant-owner/toggle-status
+ * @desc    قبول طلب
+ * @route   PUT /api/restaurant-owner/orders/:orderId/accept
+ * @access  Restaurant Owner
+ */
+exports.acceptOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { estimatedTime } = req.body;
+    const restaurantId = req.restaurantId;
+
+    const order = await Order.findOne({
+      _id: orderId,
+      restaurant: restaurantId,
+      status: "pending"
+    }).populate('user', 'name phone');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "الطلب غير موجود أو تم التعامل معه مسبقاً"
+      });
+    }
+
+    order.status = "accepted";
+    if (estimatedTime) {
+      order.estimatedPreparationTime = estimatedTime;
+    }
+    await order.save();
+
+    // إرسال إشعار للعميل
+    await notificationService.sendNotification({
+      user: order.user._id,
+      type: "order_accepted",
+      title: "✅ تم قبول طلبك",
+      content: `تم قبول طلبك، الوقت المتوقع: ${estimatedTime || order.estimatedPreparationTime} دقيقة`,
+      data: { orderId: order._id },
+      priority: "high",
+      link: `/orders/${order._id}`,
+      icon: "✅"
+    });
+
+    // إبطال الكاش
+    cache.del(`restaurant_owner:dashboard:${restaurantId}`);
+    cache.invalidatePattern(`restaurant_owner:orders:${restaurantId}:*`);
+
+    res.json({
+      success: true,
+      message: "تم قبول الطلب بنجاح",
+      data: {
+        orderId: order._id,
+        status: order.status,
+        estimatedTime: estimatedTime || order.estimatedPreparationTime
+      }
+    });
+  } catch (error) {
+    console.error("❌ Accept order error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل قبول الطلب"
+    });
+  }
+};
+
+/**
+ * @desc    رفض طلب
+ * @route   PUT /api/restaurant-owner/orders/:orderId/reject
+ * @access  Restaurant Owner
+ */
+exports.rejectOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { reason } = req.body;
+    const restaurantId = req.restaurantId;
+    const userId = req.user.id;
+
+    if (!reason || reason.trim().length < 5) {
+      return res.status(400).json({
+        success: false,
+        message: "يرجى تقديم سبب الرفض (5 أحرف على الأقل)"
+      });
+    }
+
+    const order = await Order.findOne({
+      _id: orderId,
+      restaurant: restaurantId,
+      status: "pending"
+    }).populate('user', 'name phone');
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "الطلب غير موجود أو تم التعامل معه مسبقاً"
+      });
+    }
+
+    order.status = "cancelled";
+    order.rejectionReason = reason.trim();
+    order.cancelledBy = userId;
+    order.cancelledAt = new Date();
+    await order.save();
+
+    // إرسال إشعار للعميل
+    await notificationService.sendNotification({
+      user: order.user._id,
+      type: "order_cancelled",
+      title: "❌ تم رفض طلبك",
+      content: `تم رفض طلبك: ${reason}`,
+      data: { orderId: order._id },
+      priority: "high",
+      link: `/orders/${order._id}`,
+      icon: "❌"
+    });
+
+    // إبطال الكاش
+    cache.del(`restaurant_owner:dashboard:${restaurantId}`);
+    cache.invalidatePattern(`restaurant_owner:orders:${restaurantId}:*`);
+
+    res.json({
+      success: true,
+      message: "تم رفض الطلب",
+      data: {
+        orderId: order._id,
+        reason: reason
+      }
+    });
+  } catch (error) {
+    console.error("❌ Reject order error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل رفض الطلب"
+    });
+  }
+};
+
+// ========== 4. إدارة المطعم ==========
+
+/**
+ * @desc    تبديل حالة المطعم (مفتوح/مغلق)
+ * @route   PUT /api/restaurant-owner/toggle-status
+ * @access  Restaurant Owner
  */
 exports.toggleRestaurantStatus = async (req, res) => {
   try {
     const restaurantId = req.restaurantId;
+    const userId = req.user.id;
     
     const restaurant = await Restaurant.findById(restaurantId);
     
     if (!restaurant) {
       return res.status(404).json({
         success: false,
-        message: "المطعم غير موجود",
+        message: "المطعم غير موجود"
       });
     }
 
@@ -296,30 +567,81 @@ exports.toggleRestaurantStatus = async (req, res) => {
     await restaurant.save();
 
     // تحديث حالة المستخدم أيضاً
-    await User.findByIdAndUpdate(req.user.id, {
-      "restaurantOwnerInfo.isRestaurantOpen": restaurant.isOpen,
+    await User.findByIdAndUpdate(userId, {
+      "restaurantOwnerInfo.isRestaurantOpen": restaurant.isOpen
     });
+
+    // إبطال الكاش
+    cache.del(`restaurant_owner:dashboard:${restaurantId}`);
+    cache.del(`restaurant:full:${restaurantId}`);
+    cache.invalidatePattern('restaurants:*');
 
     res.json({
       success: true,
       message: restaurant.isOpen ? "المطعم الآن مفتوح" : "المطعم الآن مغلق",
       data: {
         isOpen: restaurant.isOpen,
-        updatedAt: new Date(),
-      },
+        updatedAt: new Date()
+      }
     });
   } catch (error) {
     console.error("❌ Toggle status error:", error.message);
     res.status(500).json({
       success: false,
-      message: "فشل تغيير حالة المطعم",
+      message: "فشل تغيير حالة المطعم"
     });
   }
 };
 
 /**
- * 📊 تقرير مالي مفصل
- * GET /api/restaurant-owner/reports/financial
+ * @desc    تحديث وقت التحضير التقديري
+ * @route   PUT /api/restaurant-owner/preparation-time
+ * @access  Restaurant Owner
+ */
+exports.updatePreparationTime = async (req, res) => {
+  try {
+    const { time } = req.body;
+    const restaurantId = req.restaurantId;
+
+    if (!time || time < 5 || time > 120) {
+      return res.status(400).json({
+        success: false,
+        message: "وقت التحضير يجب أن يكون بين 5 و 120 دقيقة"
+      });
+    }
+
+    const restaurant = await Restaurant.findByIdAndUpdate(
+      restaurantId,
+      { estimatedDeliveryTime: time },
+      { new: true }
+    );
+
+    // إبطال الكاش
+    cache.del(`restaurant:full:${restaurantId}`);
+    cache.invalidatePattern('restaurants:*');
+
+    res.json({
+      success: true,
+      message: "تم تحديث وقت التحضير",
+      data: {
+        estimatedDeliveryTime: restaurant.estimatedDeliveryTime
+      }
+    });
+  } catch (error) {
+    console.error("❌ Update preparation time error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث وقت التحضير"
+    });
+  }
+};
+
+// ========== 5. التقارير ==========
+
+/**
+ * @desc    تقرير مالي مفصل
+ * @route   GET /api/restaurant-owner/reports/financial
+ * @access  Restaurant Owner
  */
 exports.getFinancialReport = async (req, res) => {
   try {
@@ -341,6 +663,19 @@ exports.getFinancialReport = async (req, res) => {
       case "year":
         startDate.setFullYear(startDate.getFullYear() - 1);
         break;
+      default:
+        startDate.setMonth(startDate.getMonth() - 1);
+    }
+
+    const cacheKey = `restaurant_owner:financial:${restaurantId}:${period}`;
+    const cachedData = cache.get(cacheKey);
+    
+    if (cachedData) {
+      return res.json({
+        success: true,
+        data: cachedData,
+        cached: true
+      });
     }
 
     const report = await Order.aggregate([
@@ -348,53 +683,264 @@ exports.getFinancialReport = async (req, res) => {
         $match: {
           restaurant: restaurantId,
           createdAt: { $gte: startDate },
-          status: { $in: ["delivered", "accepted"] },
-        },
+          status: { $in: ["delivered", "accepted"] }
+        }
       },
       {
-        $group: {
-          _id: {
-            $dateToString: { format: "%Y-%m-%d", date: "$createdAt" },
-          },
-          orders: { $sum: 1 },
-          revenue: { $sum: "$totalPrice" },
-          avgOrderValue: { $avg: "$totalPrice" },
-        },
-      },
-      { $sort: { _id: 1 } },
+        $facet: {
+          daily: [
+            {
+              $group: {
+                _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } },
+                orders: { $sum: 1 },
+                revenue: { $sum: "$totalPrice" },
+                avgOrderValue: { $avg: "$totalPrice" }
+              }
+            },
+            { $sort: { _id: 1 } }
+          ],
+          summary: [
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $sum: 1 },
+                totalRevenue: { $sum: "$totalPrice" },
+                avgOrderValue: { $avg: "$totalPrice" },
+                minOrder: { $min: "$totalPrice" },
+                maxOrder: { $max: "$totalPrice" }
+              }
+            }
+          ],
+          byStatus: [
+            {
+              $group: {
+                _id: "$status",
+                count: { $sum: 1 },
+                revenue: { $sum: "$totalPrice" }
+              }
+            }
+          ],
+          popularItems: [
+            { $unwind: "$items" },
+            {
+              $group: {
+                _id: "$items.name",
+                quantity: { $sum: "$items.qty" },
+                revenue: { $sum: { $multiply: ["$items.price", "$items.qty"] } }
+              }
+            },
+            { $sort: { quantity: -1 } },
+            { $limit: 10 }
+          ]
+        }
+      }
     ]);
 
-    const summary = await Order.aggregate([
-      {
-        $match: {
-          restaurant: restaurantId,
-          createdAt: { $gte: startDate },
-          status: { $in: ["delivered", "accepted"] },
-        },
+    const responseData = {
+      period,
+      dateRange: {
+        from: startDate,
+        to: new Date()
       },
-      {
-        $group: {
-          _id: null,
-          totalOrders: { $sum: 1 },
-          totalRevenue: { $sum: "$totalPrice" },
-          avgOrderValue: { $avg: "$totalPrice" },
-        },
-      },
-    ]);
+      summary: report[0]?.summary[0] || { totalOrders: 0, totalRevenue: 0, avgOrderValue: 0 },
+      daily: report[0]?.daily || [],
+      byStatus: report[0]?.byStatus || [],
+      popularItems: report[0]?.popularItems || []
+    };
+
+    cache.set(cacheKey, responseData, 600); // 10 دقائق
 
     res.json({
       success: true,
-      data: {
-        period,
-        summary: summary[0] || { totalOrders: 0, totalRevenue: 0, avgOrderValue: 0 },
-        dailyBreakdown: report,
-      },
+      data: responseData
     });
   } catch (error) {
     console.error("❌ Financial report error:", error.message);
     res.status(500).json({
       success: false,
-      message: "فشل إنشاء التقرير",
+      message: "فشل إنشاء التقرير"
     });
   }
 };
+
+/**
+ * @desc    تقرير الأداء
+ * @route   GET /api/restaurant-owner/reports/performance
+ * @access  Restaurant Owner
+ */
+exports.getPerformanceReport = async (req, res) => {
+  try {
+    const restaurantId = req.restaurantId;
+
+    const report = await Order.aggregate([
+      { $match: { restaurant: restaurantId } },
+      {
+        $facet: {
+          completionRate: [
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                completed: {
+                  $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] }
+                },
+                cancelled: {
+                  $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] }
+                }
+              }
+            },
+            {
+              $project: {
+                completionRate: { $multiply: [{ $divide: ["$completed", "$total"] }, 100] },
+                cancellationRate: { $multiply: [{ $divide: ["$cancelled", "$total"] }, 100] }
+              }
+            }
+          ],
+          avgPreparationTime: [
+            {
+              $match: { status: "delivered" }
+            },
+            {
+              $group: {
+                _id: null,
+                avgTime: { $avg: "$estimatedPreparationTime" }
+              }
+            }
+          ],
+          customerSatisfaction: [
+            {
+              $lookup: {
+                from: "reviews",
+                localField: "_id",
+                foreignField: "order",
+                as: "review"
+              }
+            },
+            { $unwind: "$review" },
+            {
+              $group: {
+                _id: null,
+                avgRating: { $avg: "$review.rating" },
+                totalReviews: { $sum: 1 }
+              }
+            }
+          ]
+        }
+      }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        completionRate: report[0]?.completionRate[0] || { completionRate: 0, cancellationRate: 0 },
+        avgPreparationTime: report[0]?.avgPreparationTime[0]?.avgTime || 0,
+        customerSatisfaction: report[0]?.customerSatisfaction[0] || { avgRating: 0, totalReviews: 0 }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Performance report error:", error.message);
+    res.status(500).json({
+      success: false,
+      message: "فشل إنشاء تقرير الأداء"
+    });
+  }
+};
+
+// ========== 6. الإعدادات ==========
+
+/**
+ * @desc    الحصول على الإعدادات
+ * @route   GET /api/restaurant-owner/settings
+ * @access  Restaurant Owner
+ */
+exports.getSettings = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id)
+      .select("restaurantOwnerInfo.notificationSettings restaurantOwnerInfo.workingHours")
+      .lean();
+    
+    const restaurant = await Restaurant.findById(req.restaurantId)
+      .select("isOpen estimatedDeliveryTime minOrderAmount deliveryFee")
+      .lean();
+
+    res.json({
+      success: true,
+      data: {
+        notifications: user?.restaurantOwnerInfo?.notificationSettings || {},
+        workingHours: user?.restaurantOwnerInfo?.workingHours || {},
+        restaurant: {
+          isOpen: restaurant?.isOpen,
+          estimatedDeliveryTime: restaurant?.estimatedDeliveryTime,
+          minOrderAmount: restaurant?.minOrderAmount,
+          deliveryFee: restaurant?.deliveryFee
+        }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get settings error:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "فشل جلب الإعدادات" 
+    });
+  }
+};
+
+/**
+ * @desc    تحديث إعدادات الإشعارات
+ * @route   PUT /api/restaurant-owner/settings/notifications
+ * @access  Restaurant Owner
+ */
+exports.updateNotificationSettings = async (req, res) => {
+  try {
+    const { notificationSettings } = req.body;
+    
+    await User.findByIdAndUpdate(req.user.id, {
+      "restaurantOwnerInfo.notificationSettings": notificationSettings
+    });
+
+    // إبطال الكاش
+    cache.del(`user:complete:${req.user.id}`);
+
+    res.json({
+      success: true,
+      message: "تم تحديث إعدادات الإشعارات"
+    });
+  } catch (error) {
+    console.error("❌ Update notification settings error:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "فشل تحديث الإعدادات" 
+    });
+  }
+};
+
+/**
+ * @desc    تحديث ساعات العمل
+ * @route   PUT /api/restaurant-owner/settings/working-hours
+ * @access  Restaurant Owner
+ */
+exports.updateWorkingHours = async (req, res) => {
+  try {
+    const { workingHours } = req.body;
+    
+    await User.findByIdAndUpdate(req.user.id, {
+      "restaurantOwnerInfo.workingHours": workingHours
+    });
+
+    // إبطال الكاش
+    cache.del(`user:complete:${req.user.id}`);
+
+    res.json({
+      success: true,
+      message: "تم تحديث ساعات العمل"
+    });
+  } catch (error) {
+    console.error("❌ Update working hours error:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "فشل تحديث ساعات العمل" 
+    });
+  }
+};
+
+module.exports = exports;
