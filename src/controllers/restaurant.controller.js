@@ -1,7 +1,7 @@
 // ============================================
 // ملف: src/controllers/restaurant.controller.js
 // الوصف: التحكم الكامل في عمليات المطاعم
-// الإصدار: 2.0 (موحد)
+// الإصدار: 3.0 (موحد - بدون تكرار)
 // ============================================
 
 const Restaurant = require("../models/restaurant.model");
@@ -17,6 +17,7 @@ const fileService = require('../services/file.service');
 const PaginationUtils = require('../utils/pagination.util');
 const QueryBuilder = require('../utils/queryBuilder.util');
 const { AppError } = require('../middlewares/errorHandler.middleware');
+const upload = require("../middlewares/upload");
 
 // ========== 1. دوال البحث والتصفح العامة ==========
 
@@ -32,7 +33,6 @@ exports.getRestaurantsPaginated = async (req, res) => {
     
     let query = { isOpen: true };
     
-    // بحث نصي
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -41,7 +41,6 @@ exports.getRestaurantsPaginated = async (req, res) => {
       ];
     }
     
-    // فلاتر
     if (filters.type) {
       query.type = filters.type;
     }
@@ -83,16 +82,13 @@ exports.getRestaurantsPaginated = async (req, res) => {
       Restaurant.countDocuments(query)
     ]);
 
-    // إضافة معلومات إضافية لكل مطعم
     const restaurantsWithDetails = await Promise.all(
       restaurants.map(async (restaurant) => {
-        // جلب عدد العناصر المتاحة
         const itemsCount = await Item.countDocuments({
           restaurant: restaurant._id,
           isAvailable: true
         });
         
-        // جلب أول 3 عناوين
         const addresses = await RestaurantAddress.find({
           restaurant: restaurant._id
         })
@@ -100,13 +96,11 @@ exports.getRestaurantsPaginated = async (req, res) => {
         .limit(3)
         .lean();
         
-        // التحقق إذا كان في المفضلة (للمستخدم المسجل)
         let isFavorite = false;
         if (req.user) {
           isFavorite = await Favorite.isFavorite(req.user.id, restaurant._id);
         }
 
-        // إضافة صور محسنة
         const optimizedImages = {};
         if (restaurant.image) {
           const publicId = fileService.extractPublicIdFromUrl(restaurant.image);
@@ -132,7 +126,6 @@ exports.getRestaurantsPaginated = async (req, res) => {
       })
     );
 
-    // إحصائيات إضافية
     const stats = {
       totalCount: await Restaurant.countDocuments({ isOpen: true }),
       byType: await Restaurant.aggregate([
@@ -155,7 +148,7 @@ exports.getRestaurantsPaginated = async (req, res) => {
       }
     );
 
-    cache.set(cacheKey, responseData, 300); // 5 دقائق
+    cache.set(cacheKey, responseData, 300);
     
     res.json(responseData);
   } catch (error) {
@@ -231,7 +224,6 @@ exports.searchRestaurants = async (req, res) => {
       .limit(20)
       .lean();
 
-    // فلترة حسب المدينة إذا طلب (من العناوين)
     let results = restaurants;
     if (city) {
       const restaurantIds = await RestaurantAddress.find({ 
@@ -243,7 +235,6 @@ exports.searchRestaurants = async (req, res) => {
       );
     }
 
-    // إضافة حالة المفضلة للمستخدم المسجل
     if (req.user) {
       const favorites = await Favorite.find({ 
         user: req.user.id,
@@ -281,7 +272,6 @@ exports.advancedSearch = async (req, res) => {
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, filters } = paginationOptions;
     
-    // بناء استعلام متقدم
     let query = { isOpen: true };
     
     if (filters.name) {
@@ -328,7 +318,6 @@ exports.advancedSearch = async (req, res) => {
       Restaurant.countDocuments(query)
     ]);
 
-    // إضافة معلومات إضافية
     let restaurantsWithDetails = restaurants;
     
     if (req.user) {
@@ -351,7 +340,6 @@ exports.advancedSearch = async (req, res) => {
       }));
     }
 
-    // إحصائيات البحث
     const stats = {
       types: await Restaurant.distinct('type', query),
       averageRating: await Restaurant.aggregate([
@@ -418,20 +406,17 @@ exports.getRestaurantWithAddress = async (req, res) => {
       restaurant: restaurantId
     }).lean();
 
-    // إضافة حالة المفضلة
     let isFavorite = false;
     if (req.user) {
       isFavorite = await Favorite.isFavorite(req.user.id, restaurantId);
     }
 
-    // جلب إحصائيات سريعة
     const [itemsCount, reviewsCount, ordersCount] = await Promise.all([
       Item.countDocuments({ restaurant: restaurantId, isAvailable: true }),
       Review.countDocuments({ restaurant: restaurantId }),
       Order.countDocuments({ restaurant: restaurantId, status: 'delivered' })
     ]);
 
-    // إضافة صور محسنة
     const optimizedImages = {};
     if (restaurant.image) {
       const publicId = fileService.extractPublicIdFromUrl(restaurant.image);
@@ -477,8 +462,8 @@ exports.getRestaurantWithAddress = async (req, res) => {
 };
 
 /**
- * @desc    الحصول على تفاصيل مطعم كاملة (من aggregate.controller)
- * @route   GET /api/restaurants/:id/full
+ * @desc    الحصول على تفاصيل مطعم كاملة
+ * @route   GET /api/restaurants/:id
  * @access  Public
  */
 exports.getRestaurantCompleteDetails = async (req, res) => {
@@ -498,7 +483,6 @@ exports.getRestaurantCompleteDetails = async (req, res) => {
 
     console.log(`🔄 Fetching complete restaurant ${id} from database`);
     
-    // جلب كل البيانات بالتوازي
     const [
       restaurant,
       addresses,
@@ -529,7 +513,7 @@ exports.getRestaurantCompleteDetails = async (req, res) => {
       
       Item.distinct('category', { restaurant: id, isAvailable: true }),
       
-      RestaurantController.getRestaurantStats(id)
+      exports.getRestaurantStats(id)
     ]);
 
     if (!restaurant) {
@@ -539,7 +523,6 @@ exports.getRestaurantCompleteDetails = async (req, res) => {
       });
     }
 
-    // إضافة صور محسنة
     if (restaurant.image) {
       const publicId = fileService.extractPublicIdFromUrl(restaurant.image);
       if (publicId) {
@@ -547,13 +530,11 @@ exports.getRestaurantCompleteDetails = async (req, res) => {
       }
     }
 
-    // إضافة حالة المفضلة للمستخدم المسجل
     let isFavorite = false;
     if (req.user) {
       isFavorite = await Favorite.isFavorite(req.user.id, id);
     }
 
-    // تحضير التقييمات مع إحصائياتها
     const reviewStats = await Review.aggregate([
       { $match: { restaurant: id } },
       {
@@ -601,7 +582,7 @@ exports.getRestaurantCompleteDetails = async (req, res) => {
       timestamp: new Date()
     };
 
-    cache.set(cacheKey, responseData, 300); // 5 دقائق
+    cache.set(cacheKey, responseData, 300);
     
     res.json(responseData);
   } catch (error) {
@@ -612,7 +593,6 @@ exports.getRestaurantCompleteDetails = async (req, res) => {
     });
   }
 };
-
 
 /**
  * @desc    الحصول على عناصر المطعم
@@ -634,7 +614,6 @@ exports.getRestaurantItems = async (req, res) => {
       .sort({ category: 1, name: 1 })
       .lean();
 
-    // تجميع حسب الفئة
     const groupedByCategory = items.reduce((acc, item) => {
       const cat = item.category || 'other';
       if (!acc[cat]) acc[cat] = [];
@@ -677,7 +656,6 @@ exports.createMenuItem = async (req, res) => {
       });
     }
 
-    // التحقق من وجود المطعم
     const restaurant = await Restaurant.findById(id);
     if (!restaurant) {
       return res.status(404).json({
@@ -700,7 +678,6 @@ exports.createMenuItem = async (req, res) => {
       isVegan: isVegan === 'true'
     });
 
-    // إبطال الكاش
     cache.del(`restaurant:complete:${id}`);
     cache.invalidatePattern(`restaurants:*`);
 
@@ -737,7 +714,6 @@ exports.updateMenuItem = async (req, res) => {
       });
     }
 
-    // تحديث الحقول
     if (name) item.name = name.trim();
     if (price) item.price = Number(price);
     if (description !== undefined) item.description = description?.trim();
@@ -754,7 +730,6 @@ exports.updateMenuItem = async (req, res) => {
 
     await item.save();
 
-    // إبطال الكاش
     cache.del(`restaurant:complete:${id}`);
     cache.invalidatePattern(`restaurants:*`);
 
@@ -790,7 +765,6 @@ exports.deleteMenuItem = async (req, res) => {
       });
     }
 
-    // حذف الصورة من Cloudinary إذا وجدت
     if (item.image) {
       const publicId = fileService.extractPublicIdFromUrl(item.image);
       if (publicId) {
@@ -800,7 +774,6 @@ exports.deleteMenuItem = async (req, res) => {
       }
     }
 
-    // إبطال الكاش
     cache.del(`restaurant:complete:${id}`);
     cache.invalidatePattern(`restaurants:*`);
 
@@ -817,79 +790,7 @@ exports.deleteMenuItem = async (req, res) => {
   }
 };
 
-
-
-
-/**
- * @desc    الحصول على إحصائيات المطعم
- * @route   GET /api/restaurants/:id/stats
- * @access  Public
- */
-exports.getRestaurantStats = async (restaurantId) => {
-  try {
-    const [
-      itemsCount,
-      reviewsCount,
-      ordersCount,
-      ratingDistribution,
-      popularItems
-    ] = await Promise.all([
-      Item.countDocuments({ restaurant: restaurantId, isAvailable: true }),
-      
-      Review.countDocuments({ restaurant: restaurantId }),
-      
-      Order.countDocuments({ restaurant: restaurantId, status: 'delivered' }),
-      
-      Review.aggregate([
-        { $match: { restaurant: restaurantId } },
-        {
-          $group: {
-            _id: "$rating",
-            count: { $sum: 1 }
-          }
-        },
-        { $sort: { _id: 1 } }
-      ]),
-      
-      Order.aggregate([
-        { $match: { restaurant: restaurantId, status: 'delivered' } },
-        { $unwind: "$items" },
-        {
-          $group: {
-            _id: "$items.name",
-            totalSold: { $sum: "$items.qty" },
-            totalRevenue: { $sum: { $multiply: ["$items.price", "$items.qty"] } }
-          }
-        },
-        { $sort: { totalSold: -1 } },
-        { $limit: 5 }
-      ])
-    ]);
-
-    return {
-      items: itemsCount,
-      reviews: reviewsCount,
-      orders: ordersCount,
-      ratingDistribution: ratingDistribution.reduce((acc, curr) => {
-        acc[curr._id] = curr.count;
-        return acc;
-      }, {}),
-      popularItems,
-      lastUpdated: new Date()
-    };
-  } catch (error) {
-    console.error("❌ Error in getRestaurantStats:", error);
-    return {
-      items: 0,
-      reviews: 0,
-      orders: 0,
-      ratingDistribution: {},
-      popularItems: []
-    };
-  }
-};
-
-// ========== 3. دوال التقييمات (دمج review.controller.js) ==========
+// ========== 3. دوال التقييمات ==========
 
 /**
  * @desc    إضافة تقييم لمطعم
@@ -901,7 +802,6 @@ exports.addReview = async (req, res) => {
     const { rating, comment } = req.body;
     const restaurantId = req.params.id;
 
-    // التحقق من صحة التقييم
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({
         success: false,
@@ -909,7 +809,6 @@ exports.addReview = async (req, res) => {
       });
     }
 
-    // التحقق من أن المستخدم لم يقيم من قبل
     const existingReview = await Review.findOne({
       user: req.user.id,
       restaurant: restaurantId
@@ -922,7 +821,6 @@ exports.addReview = async (req, res) => {
       });
     }
 
-    // التحقق من أن المستخدم طلب من هذا المطعم (اختياري)
     const hasOrdered = await Order.findOne({
       user: req.user.id,
       restaurant: restaurantId,
@@ -936,7 +834,6 @@ exports.addReview = async (req, res) => {
       });
     }
 
-    // إنشاء التقييم
     const review = await Review.create({
       user: req.user.id,
       restaurant: restaurantId,
@@ -944,7 +841,6 @@ exports.addReview = async (req, res) => {
       comment: comment?.trim()
     });
 
-    // حساب المتوسط الجديد
     const stats = await Review.aggregate([
       { $match: { restaurant: restaurantId } },
       {
@@ -956,17 +852,14 @@ exports.addReview = async (req, res) => {
       }
     ]);
 
-    // تحديث المطعم
     await Restaurant.findByIdAndUpdate(restaurantId, {
       averageRating: stats[0]?.avgRating || rating,
       ratingsCount: stats[0]?.count || 1
     });
 
-    // إبطال الكاش
-    cache.del(`restaurant:full:${restaurantId}`);
+    cache.del(`restaurant:complete:${restaurantId}`);
     cache.invalidatePattern(`restaurants:*`);
 
-    // جلب التقييم مع بيانات المستخدم
     const populatedReview = await Review.findById(review._id)
       .populate('user', 'name image')
       .lean();
@@ -1016,7 +909,6 @@ exports.getRestaurantReviews = async (req, res) => {
       Review.countDocuments({ restaurant: restaurantId })
     ]);
 
-    // إحصائيات التقييمات
     const stats = await Review.aggregate([
       { $match: { restaurant: restaurantId } },
       {
@@ -1065,7 +957,7 @@ exports.getRestaurantReviews = async (req, res) => {
   }
 };
 
-// ========== 4. دوال العناوين (دمج restaurantAddress.controller.js) ==========
+// ========== 4. دوال العناوين ==========
 
 /**
  * @desc    إنشاء عنوان لمطعم
@@ -1076,7 +968,6 @@ exports.createAddress = async (req, res) => {
   try {
     const { restaurantId, addressLine, city, latitude, longitude } = req.body;
 
-    // تحقق أن المطعم موجود
     const restaurant = await Restaurant.findById(restaurantId);
     if (!restaurant) {
       return res.status(404).json({ 
@@ -1093,8 +984,7 @@ exports.createAddress = async (req, res) => {
       longitude
     });
 
-    // إبطال الكاش
-    cache.del(`restaurant:full:${restaurantId}`);
+    cache.del(`restaurant:complete:${restaurantId}`);
     cache.invalidatePattern(`restaurants:*`);
 
     res.status(201).json({
@@ -1160,8 +1050,7 @@ exports.updateAddress = async (req, res) => {
       });
     }
 
-    // إبطال الكاش
-    cache.del(`restaurant:full:${address.restaurant}`);
+    cache.del(`restaurant:complete:${address.restaurant}`);
     cache.invalidatePattern(`restaurants:*`);
 
     res.json({
@@ -1196,8 +1085,7 @@ exports.deleteAddress = async (req, res) => {
       });
     }
 
-    // إبطال الكاش
-    cache.del(`restaurant:full:${address.restaurant}`);
+    cache.del(`restaurant:complete:${address.restaurant}`);
     cache.invalidatePattern(`restaurants:*`);
 
     res.json({
@@ -1224,7 +1112,6 @@ exports.createRestaurant = async (req, res) => {
   try {
     const { name, description, type, phone, email, deliveryFee, minOrderAmount, estimatedDeliveryTime, tags, openingHours } = req.body;
 
-    // التحقق من البيانات المطلوبة
     if (!name || !name.trim()) {
       return res.status(400).json({
         success: false,
@@ -1232,20 +1119,15 @@ exports.createRestaurant = async (req, res) => {
       });
     }
 
-    // معالجة tags
     const tagsArray = tags 
       ? tags.split(',').map(tag => tag.trim()).filter(tag => tag)
       : [];
 
-    // معالجة ساعات العمل
     let openingHoursObj = {};
     try {
       openingHoursObj = openingHours ? JSON.parse(openingHours) : {};
-    } catch (e) {
-      // إذا لم يكن JSON صالح، استخدم كائن فارغ
-    }
+    } catch (e) {}
 
-    // إنشاء المطعم
     const restaurant = await Restaurant.create({
       name: name.trim(),
       description: description?.trim(),
@@ -1263,7 +1145,6 @@ exports.createRestaurant = async (req, res) => {
       isOpen: true
     });
 
-    // إضافة صور محسنة للرد
     const optimizedImages = {};
     if (restaurant.image) {
       const publicId = fileService.extractPublicIdFromUrl(restaurant.image);
@@ -1273,7 +1154,6 @@ exports.createRestaurant = async (req, res) => {
       }
     }
 
-    // إبطال الكاش
     cache.invalidatePattern('restaurants:*');
     cache.invalidatePattern('home:*');
 
@@ -1297,7 +1177,7 @@ exports.createRestaurant = async (req, res) => {
 };
 
 /**
- * @desc    إنشاء مطعم كامل (متقدم)
+ * @desc    إنشاء مطعم كامل (متقدم مع عناوين وعناصر)
  * @route   POST /api/restaurants/complete
  * @access  Admin
  */
@@ -1318,7 +1198,6 @@ exports.createCompleteRestaurant = async (req, res) => {
       });
     }
 
-    // تحويل JSON strings إلى objects
     let addressesArray = [], itemsArray = [], openingHoursObj = {};
     try {
       addressesArray = JSON.parse(addresses);
@@ -1336,7 +1215,6 @@ exports.createCompleteRestaurant = async (req, res) => {
 
     console.log(`📊 Processing: ${name} (${addressesArray.length} addresses, ${itemsArray.length} items)`);
 
-    // ========== رفع الصور إلى Cloudinary ==========
     let imageUrl = null, coverImageUrl = null;
 
     if (req.files?.image) {
@@ -1355,7 +1233,6 @@ exports.createCompleteRestaurant = async (req, res) => {
       coverImageUrl = coverResult.secure_url;
     }
 
-    // ========== إنشاء المطعم ==========
     const restaurant = await Restaurant.create({
       name: name.trim(),
       description: description?.trim(),
@@ -1375,7 +1252,6 @@ exports.createCompleteRestaurant = async (req, res) => {
 
     console.log("✅ Restaurant created with ID:", restaurant._id);
 
-    // ========== إنشاء العناوين ==========
     let createdAddresses = [];
     if (addressesArray.length > 0) {
       const addressPromises = addressesArray.map(async (addressData) => {
@@ -1391,7 +1267,6 @@ exports.createCompleteRestaurant = async (req, res) => {
       console.log(`✅ Created ${createdAddresses.length} addresses`);
     }
 
-    // ========== إنشاء العناصر ==========
     let createdItems = [];
     if (itemsArray.length > 0 && req.files?.itemImages) {
       const itemImages = req.files.itemImages || [];
@@ -1399,7 +1274,6 @@ exports.createCompleteRestaurant = async (req, res) => {
       const itemPromises = itemsArray.map(async (itemData, index) => {
         let itemImageUrl = null;
 
-        // البحث عن صورة العنصر
         const matchingImage = itemImages.find(img => 
           img.fieldname === `items[${index}][image]`
         );
@@ -1427,7 +1301,6 @@ exports.createCompleteRestaurant = async (req, res) => {
       console.log(`✅ Created ${createdItems.length} menu items`);
     }
 
-    // إبطال الكاش
     cache.invalidatePattern("restaurants:*");
     cache.invalidatePattern("home:*");
 
@@ -1484,9 +1357,7 @@ exports.updateRestaurant = async (req, res) => {
     if (openingHours) {
       try {
         updateData.openingHours = JSON.parse(openingHours);
-      } catch (e) {
-        // تجاهل إذا لم يكن JSON صالح
-      }
+      } catch (e) {}
     }
 
     const restaurant = await Restaurant.findByIdAndUpdate(
@@ -1502,8 +1373,7 @@ exports.updateRestaurant = async (req, res) => {
       });
     }
 
-    // إبطال الكاش
-    cache.del(`restaurant:full:${restaurantId}`);
+    cache.del(`restaurant:complete:${restaurantId}`);
     cache.invalidatePattern('restaurants:*');
     cache.invalidatePattern('home:*');
 
@@ -1538,7 +1408,6 @@ exports.updateCoverImage = async (req, res) => {
 
     const restaurantId = req.params.id;
 
-    // الحصول على الصورة القديمة
     const oldRestaurant = await Restaurant.findById(restaurantId).select('coverImage');
     if (oldRestaurant?.coverImage) {
       const oldPublicId = fileService.extractPublicIdFromUrl(oldRestaurant.coverImage);
@@ -1562,8 +1431,7 @@ exports.updateCoverImage = async (req, res) => {
       });
     }
 
-    // إبطال الكاش
-    cache.del(`restaurant:full:${restaurantId}`);
+    cache.del(`restaurant:complete:${restaurantId}`);
     cache.invalidatePattern('restaurants:*');
 
     res.json({
@@ -1592,7 +1460,6 @@ exports.deleteRestaurant = async (req, res) => {
   try {
     const restaurantId = req.params.id;
 
-    // حذف الصور من Cloudinary أولاً
     const restaurant = await Restaurant.findById(restaurantId);
     if (restaurant) {
       if (restaurant.image) {
@@ -1605,13 +1472,11 @@ exports.deleteRestaurant = async (req, res) => {
       }
     }
 
-    // حذف المطعم (سيتم حذف المرتبطات تلقائياً بسبب CASCADE في الموديلات)
     await Restaurant.findByIdAndDelete(restaurantId);
 
-    // إبطال الكاش
     cache.invalidatePattern('restaurants:*');
     cache.invalidatePattern('home:*');
-    cache.del(`restaurant:full:${restaurantId}`);
+    cache.del(`restaurant:complete:${restaurantId}`);
 
     res.json({ 
       success: true,
@@ -1647,8 +1512,7 @@ exports.toggleRestaurantStatus = async (req, res) => {
     restaurant.isOpen = !restaurant.isOpen;
     await restaurant.save();
 
-    // إبطال الكاش
-    cache.del(`restaurant:full:${restaurantId}`);
+    cache.del(`restaurant:complete:${restaurantId}`);
     cache.invalidatePattern('restaurants:*');
 
     res.json({
@@ -1666,6 +1530,117 @@ exports.toggleRestaurantStatus = async (req, res) => {
       message: "Failed to toggle restaurant status"
     });
   }
+};
+
+/**
+ * @desc    تحديث مطعم كامل (للتطوير المستقبلي)
+ * @route   PUT /api/restaurants/:id/complete
+ * @access  Admin
+ */
+exports.updateCompleteRestaurant = async (req, res) => {
+  try {
+    res.json({
+      success: true,
+      message: "Complete update endpoint will be implemented soon",
+      note: "Use separate endpoints for updating restaurant, addresses, and items"
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Update failed",
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على إحصائيات المطعم
+ * @access  Internal
+ */
+exports.getRestaurantStats = async (restaurantId) => {
+  try {
+    const [
+      itemsCount,
+      reviewsCount,
+      ordersCount,
+      ratingDistribution,
+      popularItems
+    ] = await Promise.all([
+      Item.countDocuments({ restaurant: restaurantId, isAvailable: true }),
+      
+      Review.countDocuments({ restaurant: restaurantId }),
+      
+      Order.countDocuments({ restaurant: restaurantId, status: 'delivered' }),
+      
+      Review.aggregate([
+        { $match: { restaurant: restaurantId } },
+        {
+          $group: {
+            _id: "$rating",
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      
+      Order.aggregate([
+        { $match: { restaurant: restaurantId, status: 'delivered' } },
+        { $unwind: "$items" },
+        {
+          $group: {
+            _id: "$items.name",
+            totalSold: { $sum: "$items.qty" },
+            totalRevenue: { $sum: { $multiply: ["$items.price", "$items.qty"] } }
+          }
+        },
+        { $sort: { totalSold: -1 } },
+        { $limit: 5 }
+      ])
+    ]);
+
+    return {
+      items: itemsCount,
+      reviews: reviewsCount,
+      orders: ordersCount,
+      ratingDistribution: ratingDistribution.reduce((acc, curr) => {
+        acc[curr._id] = curr.count;
+        return acc;
+      }, {}),
+      popularItems,
+      lastUpdated: new Date()
+    };
+  } catch (error) {
+    console.error("❌ Error in getRestaurantStats:", error);
+    return {
+      items: 0,
+      reviews: 0,
+      orders: 0,
+      ratingDistribution: {},
+      popularItems: []
+    };
+  }
+};
+
+/**
+ * @desc    Middleware لرفع ملفات المطعم
+ */
+exports.uploadRestaurantFiles = (req, res, next) => {
+  const uploadFields = upload("restaurants").fields([
+    { name: "image", maxCount: 1 },
+    { name: "coverImage", maxCount: 1 },
+    { name: "itemImages", maxCount: 20 }
+  ]);
+
+  uploadFields(req, res, function (err) {
+    if (err) {
+      console.error("❌ File upload error:", err);
+      return res.status(400).json({
+        success: false,
+        message: "File upload failed",
+        error: err.message,
+      });
+    }
+    next();
+  });
 };
 
 module.exports = exports;

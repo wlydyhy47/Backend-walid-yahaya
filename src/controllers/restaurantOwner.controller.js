@@ -1,11 +1,12 @@
 // ============================================
 // ملف: src/controllers/restaurantOwner.controller.js
-// الوصف: لوحة تحكم صاحب المطعم
-// الإصدار: 2.0 (محدث)
+// الوصف: لوحة تحكم صاحب المطعم (موحد مع العناوين)
+// الإصدار: 3.0 (موحد)
 // ============================================
 
 const Order = require("../models/order.model");
 const Restaurant = require("../models/restaurant.model");
+const RestaurantAddress = require("../models/restaurantAddress.model");
 const Item = require("../models/item.model");
 const User = require("../models/user.model");
 const Review = require("../models/review.model");
@@ -24,6 +25,8 @@ const invalidateOwnerCache = (restaurantId, ownerId) => {
   cache.del(`restaurant_owner:stats:${restaurantId}`);
   cache.invalidatePattern(`restaurant_owner:orders:${restaurantId}:*`);
   cache.del(`user:complete:${ownerId}`);
+  cache.del(`restaurant:complete:${restaurantId}`);
+  cache.invalidatePattern('restaurants:*');
 };
 
 /**
@@ -76,7 +79,6 @@ exports.getDashboard = async (req, res) => {
       weeklyStats,
       monthlyStats
     ] = await Promise.all([
-      // إحصائيات اليوم
       Order.aggregate([
         {
           $match: {
@@ -94,13 +96,11 @@ exports.getDashboard = async (req, res) => {
         }
       ]),
 
-      // الطلبات المعلقة
       Order.countDocuments({
         restaurant: restaurantId,
         status: { $in: ["pending", "accepted"] }
       }),
 
-      // آخر 10 طلبات
       Order.find({ restaurant: restaurantId })
         .populate("user", "name phone")
         .populate("driver", "name phone")
@@ -108,7 +108,6 @@ exports.getDashboard = async (req, res) => {
         .limit(10)
         .lean(),
 
-      // الأصناف الأكثر مبيعاً
       Order.aggregate([
         { $match: { restaurant: restaurantId, status: { $ne: "cancelled" } } },
         { $unwind: "$items" },
@@ -123,14 +122,12 @@ exports.getDashboard = async (req, res) => {
         { $limit: 5 }
       ]),
 
-      // آخر التقييمات
       Review.find({ restaurant: restaurantId })
         .populate("user", "name image")
         .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
 
-      // إحصائيات آخر 7 أيام
       Order.aggregate([
         {
           $match: {
@@ -148,7 +145,6 @@ exports.getDashboard = async (req, res) => {
         { $sort: { _id: 1 } }
       ]),
 
-      // إحصائيات الشهر
       Order.aggregate([
         {
           $match: {
@@ -169,7 +165,6 @@ exports.getDashboard = async (req, res) => {
       ])
     ]);
 
-    // تحضير بيانات الرسم البياني
     const chartData = {
       labels: weeklyStats.map(day => day._id),
       orders: weeklyStats.map(day => day.orders),
@@ -189,12 +184,12 @@ exports.getDashboard = async (req, res) => {
       quickActions: {
         canAcceptOrders: true,
         hasPendingOrders: pendingOrders > 0,
-        isOpen: true // سيتم جلبها من بيانات المطعم
+        isOpen: true
       },
       timestamp: new Date()
     };
 
-    cache.set(cacheKey, responseData, 60); // دقيقة واحدة
+    cache.set(cacheKey, responseData, 60);
 
     res.json({
       success: true,
@@ -224,19 +219,16 @@ exports.getOrders = async (req, res) => {
 
     let query = { restaurant: restaurantId };
 
-    // فلترة حسب الحالة
     if (filters.status) {
       query.status = filters.status;
     }
 
-    // فلترة حسب التاريخ
     if (filters.dateFrom || filters.dateTo) {
       query.createdAt = {};
       if (filters.dateFrom) query.createdAt.$gte = new Date(filters.dateFrom);
       if (filters.dateTo) query.createdAt.$lte = new Date(filters.dateTo);
     }
 
-    // فلترة حسب العميل
     if (filters.customer) {
       query.user = filters.customer;
     }
@@ -265,7 +257,6 @@ exports.getOrders = async (req, res) => {
       Order.countDocuments(query)
     ]);
 
-    // إحصائيات الطلبات
     const stats = await Order.aggregate([
       { $match: { restaurant: restaurantId } },
       {
@@ -289,7 +280,7 @@ exports.getOrders = async (req, res) => {
       { stats: statsByStatus }
     );
 
-    cache.set(cacheKey, response, 30); // 30 ثانية
+    cache.set(cacheKey, response, 30);
 
     res.json(response);
   } catch (error) {
@@ -335,7 +326,6 @@ exports.updateOrderStatus = async (req, res) => {
       });
     }
 
-    // التحقق من تسلسل الحالات
     if (order.status === "cancelled" || order.status === "delivered") {
       return res.status(400).json({
         success: false,
@@ -343,10 +333,8 @@ exports.updateOrderStatus = async (req, res) => {
       });
     }
 
-    // حفظ الحالة القديمة للإشعارات
     const oldStatus = order.status;
 
-    // تحديث الحالة
     order.status = status;
     
     if (estimatedTime) {
@@ -361,7 +349,6 @@ exports.updateOrderStatus = async (req, res) => {
 
     await order.save();
 
-    // إرسال إشعار للعميل
     await notificationService.sendNotification({
       user: order.user._id,
       type: `order_${status}`,
@@ -382,7 +369,6 @@ exports.updateOrderStatus = async (req, res) => {
       tags: ["order", `order_${order._id}`]
     });
 
-    // إبطال الكاش
     cache.del(`restaurant_owner:dashboard:${restaurantId}`);
     cache.invalidatePattern(`restaurant_owner:orders:${restaurantId}:*`);
     cache.del(`order:full:${orderId}`);
@@ -436,7 +422,6 @@ exports.acceptOrder = async (req, res) => {
     }
     await order.save();
 
-    // إرسال إشعار للعميل
     await notificationService.sendNotification({
       user: order.user._id,
       type: "order_accepted",
@@ -448,7 +433,6 @@ exports.acceptOrder = async (req, res) => {
       icon: "✅"
     });
 
-    // إبطال الكاش
     cache.del(`restaurant_owner:dashboard:${restaurantId}`);
     cache.invalidatePattern(`restaurant_owner:orders:${restaurantId}:*`);
 
@@ -508,7 +492,6 @@ exports.rejectOrder = async (req, res) => {
     order.cancelledAt = new Date();
     await order.save();
 
-    // إرسال إشعار للعميل
     await notificationService.sendNotification({
       user: order.user._id,
       type: "order_cancelled",
@@ -520,7 +503,6 @@ exports.rejectOrder = async (req, res) => {
       icon: "❌"
     });
 
-    // إبطال الكاش
     cache.del(`restaurant_owner:dashboard:${restaurantId}`);
     cache.invalidatePattern(`restaurant_owner:orders:${restaurantId}:*`);
 
@@ -562,18 +544,15 @@ exports.toggleRestaurantStatus = async (req, res) => {
       });
     }
 
-    // تبديل الحالة
     restaurant.isOpen = !restaurant.isOpen;
     await restaurant.save();
 
-    // تحديث حالة المستخدم أيضاً
     await User.findByIdAndUpdate(userId, {
       "restaurantOwnerInfo.isRestaurantOpen": restaurant.isOpen
     });
 
-    // إبطال الكاش
     cache.del(`restaurant_owner:dashboard:${restaurantId}`);
-    cache.del(`restaurant:full:${restaurantId}`);
+    cache.del(`restaurant:complete:${restaurantId}`);
     cache.invalidatePattern('restaurants:*');
 
     res.json({
@@ -616,8 +595,7 @@ exports.updatePreparationTime = async (req, res) => {
       { new: true }
     );
 
-    // إبطال الكاش
-    cache.del(`restaurant:full:${restaurantId}`);
+    cache.del(`restaurant:complete:${restaurantId}`);
     cache.invalidatePattern('restaurants:*');
 
     res.json({
@@ -646,7 +624,7 @@ exports.updatePreparationTime = async (req, res) => {
 exports.getFinancialReport = async (req, res) => {
   try {
     const restaurantId = req.restaurantId;
-    const { period = "month" } = req.query; // day, week, month, year
+    const { period = "month" } = req.query;
 
     let startDate = new Date();
     
@@ -748,7 +726,7 @@ exports.getFinancialReport = async (req, res) => {
       popularItems: report[0]?.popularItems || []
     };
 
-    cache.set(cacheKey, responseData, 600); // 10 دقائق
+    cache.set(cacheKey, responseData, 600);
 
     res.json({
       success: true,
@@ -898,7 +876,6 @@ exports.updateNotificationSettings = async (req, res) => {
       "restaurantOwnerInfo.notificationSettings": notificationSettings
     });
 
-    // إبطال الكاش
     cache.del(`user:complete:${req.user.id}`);
 
     res.json({
@@ -927,7 +904,6 @@ exports.updateWorkingHours = async (req, res) => {
       "restaurantOwnerInfo.workingHours": workingHours
     });
 
-    // إبطال الكاش
     cache.del(`user:complete:${req.user.id}`);
 
     res.json({
@@ -939,6 +915,347 @@ exports.updateWorkingHours = async (req, res) => {
     res.status(500).json({ 
       success: false,
       message: "فشل تحديث ساعات العمل" 
+    });
+  }
+};
+
+// ========== 7. دوال العناوين (من restaurantAddress.controller.js) ==========
+
+/**
+ * @desc    إنشاء عنوان مطعم
+ * @route   POST /api/restaurant-owner/addresses
+ * @access  Restaurant Owner / Admin
+ */
+exports.createAddress = async (req, res) => {
+  try {
+    const { restaurantId, addressLine, city, latitude, longitude } = req.body;
+    
+    const targetRestaurantId = restaurantId || req.restaurantId;
+
+    const restaurant = await Restaurant.findById(targetRestaurantId);
+    if (!restaurant) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Restaurant not found" 
+      });
+    }
+
+    if (req.user.role !== 'admin' && restaurant.createdBy?.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "غير مصرح لك بإضافة عنوان لهذا المطعم"
+      });
+    }
+
+    const address = await RestaurantAddress.create({
+      restaurant: targetRestaurantId,
+      addressLine,
+      city: city || "Niamey",
+      latitude,
+      longitude
+    });
+
+    invalidateOwnerCache(targetRestaurantId, req.user.id);
+
+    res.status(201).json({
+      success: true,
+      message: "Address created successfully",
+      data: address
+    });
+  } catch (error) {
+    console.error("❌ Error in createAddress:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to create restaurant address" 
+    });
+  }
+};
+
+/**
+ * @desc    جلب عناوين مطعم
+ * @route   GET /api/restaurant-owner/addresses
+ * @access  Restaurant Owner
+ */
+exports.getMyAddresses = async (req, res) => {
+  try {
+    const restaurantId = req.restaurantId;
+
+    const addresses = await RestaurantAddress.find({
+      restaurant: restaurantId
+    }).lean();
+
+    res.json({
+      success: true,
+      data: addresses
+    });
+  } catch (error) {
+    console.error("❌ Error in getAddresses:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to fetch restaurant addresses" 
+    });
+  }
+};
+
+/**
+ * @desc    تحديث عنوان مطعم
+ * @route   PUT /api/restaurant-owner/addresses/:id
+ * @access  Restaurant Owner
+ */
+exports.updateMyAddress = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { addressLine, city, latitude, longitude } = req.body;
+    const restaurantId = req.restaurantId;
+
+    const address = await RestaurantAddress.findOne({
+      _id: id,
+      restaurant: restaurantId
+    });
+    
+    if (!address) {
+      return res.status(404).json({
+        success: false,
+        message: "Address not found or not owned by you"
+      });
+    }
+
+    if (addressLine) address.addressLine = addressLine;
+    if (city) address.city = city;
+    if (latitude !== undefined) address.latitude = latitude;
+    if (longitude !== undefined) address.longitude = longitude;
+
+    await address.save();
+
+    invalidateOwnerCache(restaurantId, req.user.id);
+
+    res.json({
+      success: true,
+      message: "Address updated successfully",
+      data: address
+    });
+  } catch (error) {
+    console.error("❌ Error in updateAddress:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update address"
+    });
+  }
+};
+
+/**
+ * @desc    حذف عنوان مطعم
+ * @route   DELETE /api/restaurant-owner/addresses/:id
+ * @access  Restaurant Owner
+ */
+exports.deleteMyAddress = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const restaurantId = req.restaurantId;
+
+    const address = await RestaurantAddress.findOne({
+      _id: id,
+      restaurant: restaurantId
+    });
+
+    if (!address) {
+      return res.status(404).json({
+        success: false,
+        message: "Address not found or not owned by you"
+      });
+    }
+
+    await address.deleteOne();
+
+    invalidateOwnerCache(restaurantId, req.user.id);
+
+    res.json({
+      success: true,
+      message: "Address deleted successfully"
+    });
+  } catch (error) {
+    console.error("❌ Error in deleteAddress:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete address"
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على عنوان محدد
+ * @route   GET /api/restaurant-owner/addresses/:id
+ * @access  Restaurant Owner
+ */
+exports.getMyAddressById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const restaurantId = req.restaurantId;
+
+    const address = await RestaurantAddress.findOne({
+      _id: id,
+      restaurant: restaurantId
+    })
+      .populate('restaurant', 'name image')
+      .lean();
+
+    if (!address) {
+      return res.status(404).json({
+        success: false,
+        message: "Address not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      data: address
+    });
+  } catch (error) {
+    console.error("❌ Error in getAddressById:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch address"
+    });
+  }
+};
+
+// ========== 8. دوال إضافية للعناوين (للمسؤولين) ==========
+
+/**
+ * @desc    الحصول على عناوين مطعم (للمسؤولين)
+ * @route   GET /api/restaurants/:restaurantId/addresses
+ * @access  Admin
+ */
+exports.getAddresses = async (req, res) => {
+  try {
+    const { restaurantId } = req.params;
+
+    const addresses = await RestaurantAddress.find({
+      restaurant: restaurantId
+    }).lean();
+
+    res.json({
+      success: true,
+      data: addresses
+    });
+  } catch (error) {
+    console.error("❌ Error in getAddresses:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to fetch restaurant addresses" 
+    });
+  }
+};
+
+/**
+ * @desc    تحديث عنوان مطعم (للمسؤولين)
+ * @route   PUT /api/restaurants/addresses/:id
+ * @access  Admin
+ */
+exports.updateAddress = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { addressLine, city, latitude, longitude } = req.body;
+
+    const address = await RestaurantAddress.findById(id);
+    
+    if (!address) {
+      return res.status(404).json({
+        success: false,
+        message: "Address not found"
+      });
+    }
+
+    if (addressLine) address.addressLine = addressLine;
+    if (city) address.city = city;
+    if (latitude !== undefined) address.latitude = latitude;
+    if (longitude !== undefined) address.longitude = longitude;
+
+    await address.save();
+
+    cache.del(`restaurant:complete:${address.restaurant}`);
+    cache.invalidatePattern('restaurants:*');
+
+    res.json({
+      success: true,
+      message: "Address updated successfully",
+      data: address
+    });
+  } catch (error) {
+    console.error("❌ Error in updateAddress:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update address"
+    });
+  }
+};
+
+/**
+ * @desc    حذف عنوان مطعم (للمسؤولين)
+ * @route   DELETE /api/restaurants/addresses/:id
+ * @access  Admin
+ */
+exports.deleteAddress = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const address = await RestaurantAddress.findById(id);
+
+    if (!address) {
+      return res.status(404).json({
+        success: false,
+        message: "Address not found"
+      });
+    }
+
+    const restaurantId = address.restaurant;
+    await address.deleteOne();
+
+    cache.del(`restaurant:complete:${restaurantId}`);
+    cache.invalidatePattern('restaurants:*');
+
+    res.json({
+      success: true,
+      message: "Address deleted successfully"
+    });
+  } catch (error) {
+    console.error("❌ Error in deleteAddress:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete address"
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على عنوان محدد (للمسؤولين)
+ * @route   GET /api/restaurants/addresses/:id
+ * @access  Admin
+ */
+exports.getAddressById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const address = await RestaurantAddress.findById(id)
+      .populate('restaurant', 'name image')
+      .lean();
+
+    if (!address) {
+      return res.status(404).json({
+        success: false,
+        message: "Address not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      data: address
+    });
+  } catch (error) {
+    console.error("❌ Error in getAddressById:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch address"
     });
   }
 };

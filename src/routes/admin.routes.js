@@ -27,7 +27,7 @@ router.get('/dashboard', aggregateController.getAdminDashboard);
 router.get('/stats', aggregateController.getAdminStats);
 
 // ========== 2. إدارة المستخدمين ==========
-router.get('/users', userController.getAllUsers);
+router.get('/users', userController.getUsers); // استخدم getUsers بدلاً من getAllUsers
 router.get('/users/:id', userController.getUserById);
 router.put('/users/:id', userController.updateUserById);
 router.delete('/users/:id', userController.deleteUserById);

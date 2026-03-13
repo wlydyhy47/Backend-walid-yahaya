@@ -1,7 +1,7 @@
 // ============================================
 // ملف: src/controllers/user.controller.js
 // الوصف: التحكم الكامل في عمليات المستخدمين
-// الإصدار: 2.0 (موحد)
+// الإصدار: 3.0 (موحد - بدون تكرار)
 // ============================================
 
 const User = require("../models/user.model");
@@ -85,58 +85,61 @@ exports.getUsers = async (req, res) => {
 };
 
 /**
- * @desc    الحصول على مستخدم محدد
- * @route   GET /api/users/:id
+ * @desc    الحصول على مستخدم محدد (للأدمن)
+ * @route   GET /api/admin/users/:id
  * @access  Admin
  */
-exports.getUser = async (req, res) => {
+exports.getUserById = async (req, res) => {
   try {
     const userId = req.params.id;
     
     const user = await User.findById(userId)
-      .select("-password -verificationCode -resetPasswordToken")
-      .populate('favorites', 'name image type averageRating')
+      .select('-password -verificationCode -resetPasswordToken')
+      .populate('favorites', 'name image')
       .lean();
-
+    
     if (!user) {
       return res.status(404).json({ 
         success: false, 
-        message: "User not found" 
+        message: 'User not found' 
       });
     }
 
-    // جلب إحصائيات إضافية
+    // جلب بيانات إضافية
     const [orders, addresses, reviews] = await Promise.all([
-      Order.countDocuments({ user: userId }),
-      Address.countDocuments({ user: userId }),
-      Review.countDocuments({ user: userId })
+      Order.find({ user: userId })
+        .populate('restaurant', 'name')
+        .populate('driver', 'name')
+        .sort({ createdAt: -1 })
+        .limit(10),
+      
+      Address.find({ user: userId }),
+      
+      Review.find({ user: userId })
+        .populate('restaurant', 'name image')
+        .sort({ createdAt: -1 })
+        .limit(10)
     ]);
-
-    res.json({
-      success: true,
+    
+    res.json({ 
+      success: true, 
       data: {
-        ...user,
-        stats: {
-          ...user.stats,
-          ordersCount: orders,
-          addressesCount: addresses,
-          reviewsCount: reviews
+        user,
+        orders,
+        addresses,
+        reviews,
+        summary: {
+          totalOrders: orders.length,
+          totalAddresses: addresses.length,
+          totalReviews: reviews.length
         }
       }
     });
   } catch (error) {
-    console.error("❌ Error in getUser:", error);
-    
-    if (error.name === 'CastError') {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Invalid user ID format" 
-      });
-    }
-    
+    console.error('❌ Error in getUserById:', error);
     res.status(500).json({ 
       success: false, 
-      message: "Server error" 
+      message: 'Failed to fetch user' 
     });
   }
 };
@@ -150,7 +153,6 @@ exports.createUser = async (req, res) => {
   try {
     const { name, phone, password, email, role = "client" } = req.body;
 
-    // تحقق من البيانات المطلوبة
     if (!name || !phone || !password) {
       return res.status(400).json({ 
         success: false, 
@@ -158,7 +160,6 @@ exports.createUser = async (req, res) => {
       });
     }
 
-    // تحقق من عدم تكرار رقم الهاتف
     const existingUser = await User.findOne({ phone });
     if (existingUser) {
       return res.status(400).json({
@@ -167,21 +168,18 @@ exports.createUser = async (req, res) => {
       });
     }
 
-    // تشفير كلمة المرور
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // إنشاء المستخدم
     const user = await User.create({
       name,
       phone,
       email,
       password: hashedPassword,
       role,
-      isVerified: true, // المسؤول يمكنه إنشاء مستخدم موثق
+      isVerified: true,
       isActive: true
     });
 
-    // إزالة الحساسة من الرد
     const userResponse = user.toObject();
     delete userResponse.password;
     delete userResponse.verificationCode;
@@ -203,107 +201,84 @@ exports.createUser = async (req, res) => {
 };
 
 /**
- * @desc    تحديث مستخدم (للمسؤول)
- * @route   PUT /api/users/:id
+ * @desc    تحديث مستخدم (للأدمن)
+ * @route   PUT /api/admin/users/:id
  * @access  Admin
  */
-exports.updateUser = async (req, res) => {
+exports.updateUserById = async (req, res) => {
   try {
     const { name, email, role, isActive, isVerified } = req.body;
     const userId = req.params.id;
-
+    
     const user = await User.findByIdAndUpdate(
       userId,
       { name, email, role, isActive, isVerified },
       { new: true, runValidators: true }
-    ).select("-password -verificationCode -resetPasswordToken");
-
+    ).select('-password -verificationCode -resetPasswordToken');
+    
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found"
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
       });
     }
 
-    // إبطال الكاش
     cache.del(`user:complete:${userId}`);
-    cache.del(`dashboard:${userId}`);
     cache.invalidatePattern(`user:*:${userId}`);
-
-    res.json({
-      success: true,
-      message: "User updated successfully",
-      data: user
+    
+    res.json({ 
+      success: true, 
+      message: 'User updated successfully', 
+      data: user 
     });
-
   } catch (error) {
-    console.error("❌ Error in updateUser:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to update user"
+    console.error('❌ Error in updateUserById:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to update user' 
     });
   }
 };
 
 /**
- * @desc    حذف/تعطيل مستخدم (للمسؤول)
- * @route   DELETE /api/users/:id
+ * @desc    حذف/تعطيل مستخدم (للأدمن)
+ * @route   DELETE /api/admin/users/:id
  * @access  Admin
  */
-exports.deleteUser = async (req, res) => {
+exports.deleteUserById = async (req, res) => {
   try {
-    const userId = req.params.id;
-
-    // منع حذف المسؤول الرئيسي
-    if (userId === req.user.id) {
-      return res.status(400).json({
-        success: false,
-        message: "Cannot delete your own account"
+    if (req.params.id === req.user.id) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Cannot delete your own account' 
       });
     }
-
-    // التحقق إذا كان آخر أدمن
-    const user = await User.findById(userId);
-    if (user.role === 'admin') {
-      const adminCount = await User.countDocuments({ role: 'admin' });
-      if (adminCount <= 1) {
-        return res.status(400).json({
-          success: false,
-          message: "Cannot delete the only admin user"
-        });
-      }
-    }
-
-    // Soft delete - تعطيل الحساب
-    const updatedUser = await User.findByIdAndUpdate(
-      userId,
+    
+    const user = await User.findByIdAndUpdate(
+      req.params.id,
       { isActive: false },
       { new: true }
     );
-
-    if (!updatedUser) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found"
+    
+    if (!user) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'User not found' 
       });
     }
 
-    // تسجيل النشاط
-    await updatedUser.logActivity("account_deactivated", {
-      deactivatedBy: req.user.id,
-      reason: req.body.reason || "Administrative action"
-    }, req);
-
-    res.json({
-      success: true,
-      message: "User deactivated successfully"
+    cache.del(`user:complete:${req.params.id}`);
+    cache.invalidatePattern(`user:*:${req.params.id}`);
+    
+    res.json({ 
+      success: true, 
+      message: 'User deactivated successfully' 
     });
-
   } catch (error) {
-    console.error("❌ Error in deleteUser:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to delete user"
+    console.error('❌ Error in deleteUserById:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to delete user' 
     });
   }
 };
@@ -331,7 +306,6 @@ exports.getMyProfile = async (req, res) => {
       });
     }
 
-    // إضافة صور محسنة
     let profileData = { ...user };
     if (user.image) {
       const publicId = fileService.extractPublicIdFromUrl(user.image);
@@ -340,7 +314,6 @@ exports.getMyProfile = async (req, res) => {
       }
     }
 
-    // إحصائيات سريعة
     const [ordersCount, unreadNotifications] = await Promise.all([
       Order.countDocuments({ user: userId }),
       require("../models/notification.model").countDocuments({ 
@@ -378,7 +351,6 @@ exports.updateMyProfile = async (req, res) => {
     const { name, email, bio, city, dateOfBirth, gender } = req.body;
     const userId = req.user.id;
 
-    // الحقول المسموح بتحديثها
     const updateData = {};
     if (name) updateData.name = name;
     if (email) updateData.email = email;
@@ -400,11 +372,9 @@ exports.updateMyProfile = async (req, res) => {
       });
     }
 
-    // إبطال الكاش
     cache.del(`user:complete:${userId}`);
     cache.del(`dashboard:${userId}`);
 
-    // تسجيل النشاط
     await user.logActivity("profile_updated", {
       fields: Object.keys(updateData)
     }, req);
@@ -450,7 +420,6 @@ exports.getMyCompleteProfile = async (req, res) => {
     const userId = req.user.id;
     const cacheKey = `user:complete:${userId}`;
     
-    // محاولة جلب من الكاش
     const cachedData = cache.get(cacheKey);
     if (cachedData) {
       console.log(`📦 Serving complete profile from cache for user ${userId}`);
@@ -462,7 +431,6 @@ exports.getMyCompleteProfile = async (req, res) => {
 
     console.log(`🔄 Fetching complete profile for user ${userId}`);
     
-    // جلب جميع البيانات بالتوازي
     const [
       user,
       addresses,
@@ -497,7 +465,7 @@ exports.getMyCompleteProfile = async (req, res) => {
         .limit(5)
         .lean(),
       
-      this.getUserAdvancedStats(userId)
+      exports.getUserAdvancedStats(userId)
     ]);
 
     if (!user) {
@@ -507,7 +475,6 @@ exports.getMyCompleteProfile = async (req, res) => {
       });
     }
 
-    // إضافة صور محسنة
     if (user.image) {
       const publicId = fileService.extractPublicIdFromUrl(user.image);
       if (publicId) {
@@ -538,7 +505,6 @@ exports.getMyCompleteProfile = async (req, res) => {
       timestamp: new Date()
     };
 
-    // حفظ في الكاش لمدة 5 دقائق
     cache.set(cacheKey, responseData, 300);
     
     res.json(responseData);
@@ -563,13 +529,11 @@ exports.updateCompleteProfile = async (req, res) => {
     
     console.log(`🔄 Updating complete profile for user ${userId}`);
 
-    // الحقول المسموح بتحديثها
     const allowedFields = [
       "name", "email", "bio", "city", 
       "dateOfBirth", "gender", "preferences"
     ];
     
-    // فلترة البيانات
     const filteredData = {};
     Object.keys(updateData).forEach(key => {
       if (allowedFields.includes(key)) {
@@ -577,7 +541,6 @@ exports.updateCompleteProfile = async (req, res) => {
       }
     });
 
-    // تحديث الموقع إذا كان موجوداً
     if (updateData.latitude && updateData.longitude) {
       filteredData.location = {
         type: "Point",
@@ -588,7 +551,6 @@ exports.updateCompleteProfile = async (req, res) => {
       };
     }
 
-    // تحديث المستخدم
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $set: filteredData },
@@ -606,11 +568,9 @@ exports.updateCompleteProfile = async (req, res) => {
       });
     }
 
-    // إبطال الكاش
     cache.del(`user:complete:${userId}`);
     cache.invalidatePattern(`user:*:${userId}`);
 
-    // تسجيل النشاط
     await updatedUser.logActivity("profile_updated", {
       fields: Object.keys(filteredData)
     }, req);
@@ -663,10 +623,8 @@ exports.uploadAvatar = async (req, res) => {
       });
     }
 
-    // التحقق من صحة الملف
     fileService.validateFile(req.file, 'avatar');
 
-    // الحصول على الصورة القديمة لحذفها
     const oldUser = await User.findById(req.user.id).select('image metadata.avatar.publicId');
     let oldPublicId = null;
     
@@ -675,7 +633,6 @@ exports.uploadAvatar = async (req, res) => {
                     fileService.extractPublicIdFromUrl(oldUser.image);
     }
 
-    // تحديث المستخدم بالصورة الجديدة
     const user = await User.findByIdAndUpdate(
       req.user.id,
       { 
@@ -689,17 +646,14 @@ exports.uploadAvatar = async (req, res) => {
       { new: true }
     ).select("name email phone role image");
 
-    // حذف الصورة القديمة
     if (oldPublicId) {
       fileService.deleteFile(oldPublicId).catch(err => 
         console.error('Error deleting old avatar:', err)
       );
     }
 
-    // إنشاء روابط لصور محسنة
     const optimizedImages = req.file.allSizes || fileService.getAllSizes(req.file.publicId);
 
-    // إبطال الكاش
     cache.del(`user:complete:${req.user.id}`);
 
     res.json({
@@ -748,21 +702,17 @@ exports.deleteAvatar = async (req, res) => {
       });
     }
 
-    // استخراج publicId
     const publicId = user.metadata?.avatar?.publicId || 
                      fileService.extractPublicIdFromUrl(user.image);
 
-    // حذف من Cloudinary
     if (publicId) {
       await fileService.deleteFile(publicId);
     }
 
-    // تحديث المستخدم
     user.image = null;
     user.metadata = { ...user.metadata, avatar: undefined };
     await user.save();
 
-    // إبطال الكاش
     cache.del(`user:complete:${req.user.id}`);
 
     res.json({
@@ -805,7 +755,6 @@ exports.updateCoverImage = async (req, res) => {
       }
     );
 
-    // إبطال الكاش
     cache.del(`user:complete:${userId}`);
 
     res.json({
@@ -873,7 +822,6 @@ exports.addToFavorites = async (req, res) => {
       tags || []
     );
     
-    // إبطال الكاش
     cache.del(`user:complete:${req.user.id}`);
 
     res.status(201).json({
@@ -909,7 +857,6 @@ exports.removeFromFavorites = async (req, res) => {
     
     await Favorite.removeFromFavorites(req.user.id, restaurantId);
     
-    // إبطال الكاش
     cache.del(`user:complete:${req.user.id}`);
 
     res.json({
@@ -975,7 +922,6 @@ exports.updateFavorite = async (req, res) => {
       });
     }
     
-    // إبطال الكاش
     cache.del(`user:complete:${req.user.id}`);
 
     res.json({
@@ -1004,7 +950,6 @@ exports.changePassword = async (req, res) => {
     const { currentPassword, newPassword, confirmPassword } = req.body;
     const userId = req.user.id;
 
-    // التحقق من البيانات
     if (!currentPassword || !newPassword || !confirmPassword) {
       return res.status(400).json({
         success: false,
@@ -1026,7 +971,6 @@ exports.changePassword = async (req, res) => {
       });
     }
 
-    // جلب المستخدم مع كلمة المرور
     const user = await User.findById(userId).select("+password");
     
     if (!user) {
@@ -1036,7 +980,6 @@ exports.changePassword = async (req, res) => {
       });
     }
 
-    // التحقق من كلمة المرور الحالية
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     
     if (!isMatch) {
@@ -1046,15 +989,12 @@ exports.changePassword = async (req, res) => {
       });
     }
 
-    // تحديث كلمة المرور
     const hashedPassword = await bcrypt.hash(newPassword, 10);
     user.password = hashedPassword;
     await user.save();
 
-    // إبطال جميع الجلسات
     cache.invalidatePattern(`session:*:${userId}`);
 
-    // تسجيل النشاط
     await user.logActivity("password_changed", {}, req);
 
     res.json({
@@ -1091,7 +1031,7 @@ exports.getUserStats = async (req, res) => {
       });
     }
 
-    const stats = await this.getUserAdvancedStats(userId);
+    const stats = await exports.getUserAdvancedStats(userId);
 
     const responseData = {
       success: true,
@@ -1132,13 +1072,12 @@ exports.getActivityLog = async (req, res) => {
       });
     }
 
-    // تطبيق pagination على سجل النشاطات
     const total = user.activityLog.length;
     const activityLog = user.activityLog
       .slice(skip, skip + limit)
       .map(log => ({
         ...log,
-        relativeTime: this.getRelativeTime(log.timestamp)
+        relativeTime: exports.getRelativeTime(log.timestamp)
       }));
 
     const response = PaginationUtils.createPaginationResponse(
@@ -1181,7 +1120,6 @@ exports.updatePresence = async (req, res) => {
         coordinates: [location.longitude, location.latitude]
       };
       
-      // إذا كان المندوب، تحديث موقعه
       if (req.user.role === "driver") {
         updateData["driverInfo.currentLocation"] = updateData.location;
         updateData["driverInfo.isAvailable"] = isOnline;
@@ -1194,7 +1132,6 @@ exports.updatePresence = async (req, res) => {
       { new: true, select: "name role isOnline location" }
     );
 
-    // إرسال تحديث عبر Socket.io
     const io = req.app.get('io');
     if (io) {
       io.emit('user:presence', {
@@ -1231,7 +1168,6 @@ exports.updatePresence = async (req, res) => {
 exports.getUserAdvancedStats = async (userId) => {
   try {
     const [orderStats, reviewStats, spendingStats, categoryStats] = await Promise.all([
-      // إحصائيات الطلبات
       Order.aggregate([
         { $match: { user: userId } },
         {
@@ -1259,7 +1195,6 @@ exports.getUserAdvancedStats = async (userId) => {
         }
       ]),
       
-      // إحصائيات التقييمات
       Review.aggregate([
         { $match: { user: userId } },
         {
@@ -1271,7 +1206,6 @@ exports.getUserAdvancedStats = async (userId) => {
         }
       ]),
       
-      // إحصائيات الإنفاق الشهري
       Order.aggregate([
         { 
           $match: { 
@@ -1292,7 +1226,6 @@ exports.getUserAdvancedStats = async (userId) => {
         { $limit: 6 }
       ]),
       
-      // إحصائيات الفئات المفضلة
       Order.aggregate([
         { $match: { user: userId, status: "delivered" } },
         { $unwind: "$items" },
@@ -1308,7 +1241,6 @@ exports.getUserAdvancedStats = async (userId) => {
       ])
     ]);
 
-    // معالجة إحصائيات الطلبات
     const orderStatusStats = {};
     let totalOrders = 0;
     let totalSpent = 0;
@@ -1326,7 +1258,6 @@ exports.getUserAdvancedStats = async (userId) => {
 
     const totals = orderStats[0]?.total[0] || { totalOrders: 0, totalSpent: 0, avgOrderValue: 0 };
 
-    // معالجة إحصائيات التقييمات
     const reviewData = reviewStats[0] || {
       averageRating: 0,
       totalReviews: 0
@@ -1345,8 +1276,8 @@ exports.getUserAdvancedStats = async (userId) => {
         averageRating: reviewData.averageRating || 0,
         total: reviewData.totalReviews || 0
       },
-      memberSince: await this.getMemberSince(userId),
-      lastActive: await this.getLastActivity(userId)
+      memberSince: await exports.getMemberSince(userId),
+      lastActive: await exports.getLastActivity(userId)
     };
   } catch (error) {
     console.error("❌ Stats calculation error:", error);
@@ -1365,7 +1296,7 @@ exports.getMemberSince = async (userId) => {
     const user = await User.findById(userId).select("createdAt");
     return {
       date: user?.createdAt,
-      relativeTime: this.getRelativeTime(user?.createdAt)
+      relativeTime: exports.getRelativeTime(user?.createdAt)
     };
   } catch (error) {
     return null;
@@ -1393,7 +1324,7 @@ exports.getLastActivity = async (userId) => {
     return {
       type: latestActivity.type,
       date: latestActivity.date,
-      relativeTime: this.getRelativeTime(latestActivity.date)
+      relativeTime: exports.getRelativeTime(latestActivity.date)
     };
   } catch (error) {
     return null;
@@ -1422,169 +1353,237 @@ exports.getRelativeTime = (date) => {
   return `منذ ${Math.floor(diffDays / 365)} سنة`;
 };
 
-// ========== 8. دوال إضافية للمسؤول (من userComplete) ==========
+/**
+ * @desc    الحصول على إحصائيات الفئات المفضلة
+ * @access  Internal
+ */
+exports.getFavoriteCategories = async (userId) => {
+  try {
+    const favoriteCategories = await Order.aggregate([
+      { $match: { user: userId, status: "delivered" } },
+      { $unwind: "$items" },
+      {
+        $lookup: {
+          from: "items",
+          localField: "items.item",
+          foreignField: "_id",
+          as: "itemDetails",
+        },
+      },
+      { $unwind: "$itemDetails" },
+      {
+        $group: {
+          _id: "$itemDetails.category",
+          count: { $sum: 1 },
+          totalSpent: { $sum: "$items.price" },
+        },
+      },
+      { $sort: { count: -1 } },
+      { $limit: 5 },
+    ]);
+
+    return favoriteCategories.map(cat => ({
+      category: cat._id || "unknown",
+      orderCount: cat.count,
+      totalSpent: cat.totalSpent,
+    }));
+  } catch (error) {
+    console.error("Favorite categories error:", error);
+    return [];
+  }
+};
 
 /**
- * @desc    الحصول على جميع المستخدمين (للأدمن) - مع Pagination
+ * @desc    حساب المتوسط الشهري للإنفاق
+ * @access  Internal
+ */
+exports.calculateMonthlyAverage = async (userId) => {
+  try {
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const result = await Order.aggregate([
+      {
+        $match: {
+          user: userId,
+          status: "delivered",
+          createdAt: { $gte: sixMonthsAgo },
+        },
+      },
+      {
+        $group: {
+          _id: { $month: "$createdAt" },
+          totalSpent: { $sum: "$totalPrice" },
+          orderCount: { $sum: 1 },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          averageMonthlySpent: { $avg: "$totalSpent" },
+          averageMonthlyOrders: { $avg: "$orderCount" },
+        },
+      },
+    ]);
+
+    return result[0] || { averageMonthlySpent: 0, averageMonthlyOrders: 0 };
+  } catch (error) {
+    console.error("Monthly average error:", error);
+    return { averageMonthlySpent: 0, averageMonthlyOrders: 0 };
+  }
+};
+
+/**
+ * @desc    الوقت المفضل للطلب
+ * @access  Internal
+ */
+exports.getFavoriteTimeOfDay = async (userId) => {
+  try {
+    const result = await Order.aggregate([
+      { $match: { user: userId } },
+      {
+        $group: {
+          _id: { $hour: "$createdAt" },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { count: -1 } },
+      { $limit: 1 },
+    ]);
+
+    if (result.length === 0) return null;
+
+    const hour = result[0]._id;
+    let timeOfDay = "";
+    
+    if (hour < 6) timeOfDay = "ليل";
+    else if (hour < 12) timeOfDay = "صباح";
+    else if (hour < 18) timeOfDay = "ظهر";
+    else timeOfDay = "مساء";
+
+    return {
+      hour,
+      timeOfDay,
+      count: result[0].count,
+    };
+  } catch (error) {
+    console.error("Favorite time error:", error);
+    return null;
+  }
+};
+
+/**
+ * @desc    اليوم المفضل للطلب
+ * @access  Internal
+ */
+exports.getFavoriteDayOfWeek = async (userId) => {
+  try {
+    const days = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
+    
+    const result = await Order.aggregate([
+      { $match: { user: userId } },
+      {
+        $group: {
+          _id: { $dayOfWeek: "$createdAt" },
+          count: { $sum: 1 },
+        },
+      },
+      { $sort: { count: -1 } },
+      { $limit: 1 },
+    ]);
+
+    if (result.length === 0) return null;
+
+    const dayIndex = result[0]._id - 1;
+    return {
+      dayIndex,
+      dayName: days[dayIndex],
+      count: result[0].count,
+    };
+  } catch (error) {
+    console.error("Favorite day error:", error);
+    return null;
+  }
+};
+
+/**
+ * @desc    متوسط سرعة التوصيل
+ * @access  Internal
+ */
+exports.getAverageDeliverySpeed = async (userId) => {
+  try {
+    const result = await Order.aggregate([
+      {
+        $match: {
+          user: userId,
+          status: "delivered",
+          createdAt: { $exists: true },
+          updatedAt: { $exists: true },
+        },
+      },
+      {
+        $project: {
+          deliveryTime: {
+            $divide: [
+              { $subtract: ["$updatedAt", "$createdAt"] },
+              60000,
+            ],
+          },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          averageDeliveryTime: { $avg: "$deliveryTime" },
+          fastestDelivery: { $min: "$deliveryTime" },
+          slowestDelivery: { $max: "$deliveryTime" },
+        },
+      },
+    ]);
+
+    return result[0] || {
+      averageDeliveryTime: 0,
+      fastestDelivery: 0,
+      slowestDelivery: 0,
+    };
+  } catch (error) {
+    console.error("Delivery speed error:", error);
+    return {
+      averageDeliveryTime: 0,
+      fastestDelivery: 0,
+      slowestDelivery: 0,
+    };
+  }
+};
+
+// ========== 8. دوال مستخدم واحد (للأدمن) - معاد توجيهها للدوال الأساسية ==========
+
+/**
+ * @desc    الحصول على مستخدم محدد (للأدمن) - معاد توجيهها لـ getUserById
+ * @route   GET /api/users/:id
+ * @access  Admin
+ */
+exports.getUser = exports.getUserById;
+
+/**
+ * @desc    تحديث مستخدم (للأدمن) - معاد توجيهها لـ updateUserById
+ * @route   PUT /api/users/:id
+ * @access  Admin
+ */
+exports.updateUser = exports.updateUserById;
+
+/**
+ * @desc    حذف/تعطيل مستخدم (للأدمن) - معاد توجيهها لـ deleteUserById
+ * @route   DELETE /api/users/:id
+ * @access  Admin
+ */
+exports.deleteUser = exports.deleteUserById;
+
+/**
+ * @desc    الحصول على جميع المستخدمين (للأدمن) - معاد توجيهها لـ getUsers
  * @route   GET /api/admin/users
  * @access  Admin
  */
-exports.getAllUsers = async (req, res) => {
-  try {
-    return await this.getUsers(req, res);
-  } catch (error) {
-    console.error('❌ Error in getAllUsers:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch users' 
-    });
-  }
-};
-
-/**
- * @desc    الحصول على مستخدم معين (للأدمن)
- * @route   GET /api/admin/users/:id
- * @access  Admin
- */
-exports.getUserById = async (req, res) => {
-  try {
-    const userId = req.params.id;
-    
-    const user = await User.findById(userId)
-      .select('-password -verificationCode -resetPasswordToken')
-      .populate('favorites', 'name image')
-      .lean();
-    
-    if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
-      });
-    }
-
-    // جلب بيانات إضافية
-    const [orders, addresses, reviews] = await Promise.all([
-      Order.find({ user: userId })
-        .populate('restaurant', 'name')
-        .populate('driver', 'name')
-        .sort({ createdAt: -1 })
-        .limit(10),
-      
-      Address.find({ user: userId }),
-      
-      Review.find({ user: userId })
-        .populate('restaurant', 'name image')
-        .sort({ createdAt: -1 })
-        .limit(10)
-    ]);
-    
-    res.json({ 
-      success: true, 
-      data: {
-        user,
-        orders,
-        addresses,
-        reviews,
-        summary: {
-          totalOrders: orders.length,
-          totalAddresses: addresses.length,
-          totalReviews: reviews.length
-        }
-      }
-    });
-  } catch (error) {
-    console.error('❌ Error in getUserById:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch user' 
-    });
-  }
-};
-
-/**
- * @desc    تحديث مستخدم (للأدمن)
- * @route   PUT /api/admin/users/:id
- * @access  Admin
- */
-exports.updateUserById = async (req, res) => {
-  try {
-    const { name, email, role, isActive, isVerified } = req.body;
-    const userId = req.params.id;
-    
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { name, email, role, isActive, isVerified },
-      { new: true, runValidators: true }
-    ).select('-password -verificationCode -resetPasswordToken');
-    
-    if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
-      });
-    }
-
-    // إبطال الكاش
-    cache.del(`user:complete:${userId}`);
-    cache.invalidatePattern(`user:*:${userId}`);
-    
-    res.json({ 
-      success: true, 
-      message: 'User updated successfully', 
-      data: user 
-    });
-  } catch (error) {
-    console.error('❌ Error in updateUserById:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update user' 
-    });
-  }
-};
-
-/**
- * @desc    حذف/تعطيل مستخدم (للأدمن)
- * @route   DELETE /api/admin/users/:id
- * @access  Admin
- */
-exports.deleteUserById = async (req, res) => {
-  try {
-    // منع حذف النفس
-    if (req.params.id === req.user.id) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Cannot delete your own account' 
-      });
-    }
-    
-    const user = await User.findByIdAndUpdate(
-      req.params.id,
-      { isActive: false },
-      { new: true }
-    );
-    
-    if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
-      });
-    }
-
-    // إبطال الكاش
-    cache.del(`user:complete:${req.params.id}`);
-    cache.invalidatePattern(`user:*:${req.params.id}`);
-    
-    res.json({ 
-      success: true, 
-      message: 'User deactivated successfully' 
-    });
-  } catch (error) {
-    console.error('❌ Error in deleteUserById:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to delete user' 
-    });
-  }
-};
+exports.getAllUsers = exports.getUsers;
 
 module.exports = exports;

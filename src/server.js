@@ -1,5 +1,5 @@
 // ============================================
-// ملف: src/server.js (محدث)
+// ملف: src/server.js (محدث - بدون طباعة مسارات)
 // ============================================
 
 require("dotenv").config();
@@ -8,7 +8,9 @@ const app = require("./app");
 const connectDB = require("./config/db");
 const socketService = require("./services/socket.service");
 const apiConfig = require("./config/api.config");
-const routeDebugger = require("./utils/routeDebugger.util"); // ✅ أضف هذا
+
+// إزالة تحذير Deprecation
+process.env.NODE_NO_WARNINGS = '1';
 
 const PORT = process.env.PORT || 3000;
 
@@ -29,12 +31,6 @@ const server = http.createServer(app);
 // تهيئة Socket.io
 socketService.initialize(server);
 
-// ✅ تأخير طباعة المسارات قليلاً للتأكد من تهيئة الـ Router
-setTimeout(() => {
-  routeDebugger.printAllRoutes(app);
-  routeDebugger.debugRouterStructure(app);
-}, 1000);
-
 // start server
 server.listen(PORT, () => {
   console.log(`
@@ -42,7 +38,7 @@ server.listen(PORT, () => {
 ║    ✅ Server Started Successfully      ║
 ╠════════════════════════════════════════╣
 ║  📡 Port: ${PORT}
-║  📡 API: http://localhost:${PORT}${apiConfig.api.prefix}/${apiConfig.api.defaultVersion}
+║  📡 API: http://localhost:${PORT}/${apiConfig.api.prefix}/${apiConfig.api.defaultVersion}
 ║  📚 Docs: http://localhost:${PORT}/api-docs
 ║  📡 Socket: ${socketService.isInitialized() ? '✅ Ready' : '❌ Not ready'}
 ║  📦 Version: 1.0.0

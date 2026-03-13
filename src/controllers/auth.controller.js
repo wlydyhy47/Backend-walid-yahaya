@@ -1,3 +1,8 @@
+// ============================================
+// ملف: src/controllers/auth.controller.js
+// الوصف: عمليات المصادقة الموحدة - نسخة نهائية
+// ============================================
+
 const User = require("../models/user.model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -5,15 +10,86 @@ const crypto = require("crypto");
 const cache = require("../utils/cache.util");
 const RefreshToken = require("../models/refreshToken.model");
 const SecurityCheck = require('../utils/securityCheck.util');
+
+// ========== 1. دوال مساعدة ==========
+
 /**
- * 📝 تسجيل مستخدم جديد (بسيط)
- * POST /api/auth/register
+ * إنشاء Access Token
+ */
+const generateAccessToken = (user) => {
+  return jwt.sign(
+    {
+      id: user._id,
+      role: user.role,
+      phone: user.phone,
+      name: user.name,
+      email: user.email
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || "7d" }
+  );
+};
+
+/**
+ * إنشاء Refresh Token
+ */
+const generateRefreshToken = async (user, deviceInfo = {}) => {
+  const refreshToken = jwt.sign(
+    { id: user._id },
+    process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "30d" }
+  );
+
+  await RefreshToken.create({
+    token: refreshToken,
+    user: user._id,
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    deviceInfo: {
+      ip: deviceInfo.ip,
+      userAgent: deviceInfo.userAgent,
+      deviceId: deviceInfo.deviceId
+    }
+  });
+
+  return refreshToken;
+};
+
+/**
+ * إعداد بيانات المستخدم للرد
+ */
+const prepareUserResponse = (user) => {
+  const userResponse = user.toObject();
+  delete userResponse.password;
+  delete userResponse.verificationCode;
+  delete userResponse.resetPasswordToken;
+  delete userResponse.loginAttempts;
+  delete userResponse.lockUntil;
+  return userResponse;
+};
+
+/**
+ * إنشاء كود تحقق
+ */
+const generateVerificationCode = () => {
+  return crypto.randomBytes(3).toString("hex").toUpperCase();
+};
+
+// ========== 2. التسجيل (موحد) ==========
+
+/**
+ * @desc    تسجيل مستخدم جديد (يدعم البيانات البسيطة والكاملة)
+ * @route   POST /api/auth/register
+ * @access  Public
  */
 exports.register = async (req, res) => {
   try {
-    const { name, phone, password } = req.body;
+    const { 
+      name, phone, password, email, role = "client",
+      dateOfBirth, gender, city, preferences,
+      ...additionalData 
+    } = req.body;
 
-    // التحقق من البيانات
+    // التحقق من البيانات الأساسية
     if (!name || !phone || !password) {
       return res.status(400).json({
         success: false,
@@ -49,39 +125,85 @@ exports.register = async (req, res) => {
       });
     }
 
+    // التحقق من البريد الإلكتروني إذا وجد
+    if (email) {
+      const emailExists = await User.findOne({ email });
+      if (emailExists) {
+        return res.status(400).json({
+          success: false,
+          message: "البريد الإلكتروني مسجل بالفعل"
+        });
+      }
+    }
+
     // تشفير كلمة المرور
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // إنشاء المستخدم
-    const user = await User.create({
+    // تجهيز بيانات المستخدم
+    const userData = {
       name,
       phone,
       password: hashedPassword,
-      role: "client",
+      role,
       isVerified: false,
-      isActive: true
-    });
+      isActive: true,
+      stats: { joinedDate: new Date() },
+      preferences: preferences || {
+        notifications: { email: true, sms: true, push: true, orderUpdates: true, promotions: true },
+        language: "ar",
+        currency: "XOF",
+        theme: "light",
+      }
+    };
+
+    // إضافة البيانات الإضافية إذا وجدت
+    if (email) userData.email = email;
+    if (dateOfBirth) userData.dateOfBirth = new Date(dateOfBirth);
+    if (gender) userData.gender = gender;
+    if (city) userData.city = city;
+
+    // إنشاء المستخدم
+    const user = await User.create(userData);
 
     // إنشاء كود التحقق
-    const verificationCode = crypto.randomBytes(3).toString("hex").toUpperCase();
+    const verificationCode = generateVerificationCode();
     user.verificationCode = verificationCode;
     user.verificationCodeExpires = Date.now() + 24 * 60 * 60 * 1000;
     await user.save();
 
+    // إنشاء التوكنات
+    const accessToken = generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user, {
+      ip: req.ip,
+      userAgent: req.get("user-agent"),
+      deviceId: req.body.deviceId
+    });
+
     // تسجيل النشاط
     await user.logActivity("register", {
-      method: "simple",
+      method: email ? "complete" : "simple",
       ip: req.ip,
       userAgent: req.get("user-agent")
     });
 
+    // إعداد الرد
+    const userResponse = prepareUserResponse(user);
+
+    // تحديد الرسالة حسب ما إذا كان هناك بريد إلكتروني
+    const message = email 
+      ? "تم التسجيل بنجاح. يرجى تفعيل حسابك عبر البريد الإلكتروني"
+      : "تم التسجيل بنجاح. يرجى تفعيل حسابك";
+
     res.status(201).json({
       success: true,
-      message: "تم التسجيل بنجاح. الرجاء تفعيل الحساب",
+      message,
       data: {
-        userId: user._id,
-        phone: user.phone,
-        verificationCode // للتطوير فقط
+        user: userResponse,
+        accessToken,
+        refreshToken,
+        expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+        verificationCode: process.env.NODE_ENV === 'development' ? verificationCode : undefined,
+        nextStep: "verify_account"
       }
     });
 
@@ -94,29 +216,46 @@ exports.register = async (req, res) => {
   }
 };
 
+// ========== 3. تسجيل الدخول (موحد) ==========
+
 /**
- * 🔐 تسجيل الدخول (بسيط)
- * POST /api/auth/login
+ * @desc    تسجيل الدخول (يدعم الهاتف أو البريد الإلكتروني)
+ * @route   POST /api/auth/login
+ * @access  Public
  */
 exports.login = async (req, res) => {
   try {
-    const { phone, password } = req.body;
+    const { phone, email, password, deviceId } = req.body;
 
     // التحقق من البيانات
-    if (!phone || !password) {
+    if ((!phone && !email) || !password) {
       return res.status(400).json({
         success: false,
-        message: "رقم الهاتف وكلمة المرور مطلوبة"
+        message: "رقم الهاتف أو البريد الإلكتروني وكلمة المرور مطلوبة"
       });
     }
 
     // البحث عن المستخدم
-    const user = await User.findOne({ phone }).select('+password +isActive +isVerified');
+    let query = {};
+    if (phone) query.phone = phone;
+    if (email) query.email = email;
+
+    const user = await User.findOne(query).select('+password +isActive +isVerified +loginAttempts +lockUntil');
 
     if (!user) {
       return res.status(400).json({
         success: false,
-        message: "رقم الهاتف أو كلمة المرور غير صحيحة"
+        message: "بيانات الدخول غير صحيحة"
+      });
+    }
+
+    // تحقق من قفل الحساب
+    if (user.lockUntil && user.lockUntil > new Date()) {
+      const remainingTime = Math.ceil((user.lockUntil - new Date()) / 60000);
+      return res.status(403).json({
+        success: false,
+        message: `الحساب مقفل. حاول مرة أخرى بعد ${remainingTime} دقائق`,
+        code: "ACCOUNT_LOCKED"
       });
     }
 
@@ -131,46 +270,27 @@ exports.login = async (req, res) => {
     // تحقق من كلمة المرور
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
+      await user.incLoginAttempts();
       return res.status(400).json({
         success: false,
-        message: "رقم الهاتف أو كلمة المرور غير صحيحة"
+        message: "بيانات الدخول غير صحيحة"
       });
     }
 
-    // إنشاء Access Token
-    const accessToken = jwt.sign(
-      {
-        id: user._id,
-        role: user.role,
-        phone: user.phone,
-        name: user.name
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
-    );
+    // إعادة تعيين محاولات الدخول الفاشلة
+    await user.resetLoginAttempts();
 
-    // إنشاء Refresh Token
-    const refreshToken = jwt.sign(
-      { id: user._id },
-      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d" }
-    );
-
-    // حفظ Refresh Token في قاعدة البيانات
-    await RefreshToken.create({
-      token: refreshToken,
-      user: user._id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 أيام
-      deviceInfo: {
-        ip: req.ip,
-        userAgent: req.get("user-agent"),
-        deviceId: req.body.deviceId
-      }
+    // إنشاء التوكنات
+    const accessToken = generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user, {
+      ip: req.ip,
+      userAgent: req.get("user-agent"),
+      deviceId
     });
 
     // تسجيل نشاط الدخول
     await user.logActivity("login", {
-      method: "simple",
+      method: email ? "email" : "phone",
       ip: req.ip,
       userAgent: req.get("user-agent")
     });
@@ -180,11 +300,10 @@ exports.login = async (req, res) => {
     user.isOnline = true;
     await user.save({ validateBeforeSave: false });
 
-    // إعداد بيانات المستخدم للرد
-    const userResponse = user.toObject();
-    delete userResponse.password;
-    delete userResponse.verificationCode;
-    delete userResponse.resetPasswordToken;
+    const userResponse = prepareUserResponse(user);
+
+    // تحقق من حالة التوثيق
+    const verificationNeeded = !user.isVerified && process.env.REQUIRE_VERIFICATION === 'true';
 
     res.json({
       success: true,
@@ -192,8 +311,9 @@ exports.login = async (req, res) => {
       data: {
         accessToken,
         refreshToken,
-        expiresIn: process.env.JWT_EXPIRES_IN || "1h",
-        user: userResponse
+        expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+        user: userResponse,
+        verificationNeeded
       }
     });
 
@@ -206,9 +326,12 @@ exports.login = async (req, res) => {
   }
 };
 
+// ========== 4. دوال التوكنات ==========
+
 /**
- * 🔄 تجديد التوكن
- * POST /api/auth/refresh
+ * @desc    تجديد التوكن
+ * @route   POST /api/auth/refresh
+ * @access  Public
  */
 exports.refreshToken = async (req, res) => {
   try {
@@ -222,11 +345,10 @@ exports.refreshToken = async (req, res) => {
       });
     }
 
-    // التحقق من وجود التوكن في قاعدة البيانات
     const tokenDoc = await RefreshToken.findOne({
       token: refreshToken,
       revokedAt: null
-    }).populate('user', 'name phone image');
+    }).populate('user', 'name phone email role isActive');
 
     if (!tokenDoc) {
       return res.status(401).json({
@@ -236,7 +358,6 @@ exports.refreshToken = async (req, res) => {
       });
     }
 
-    // التحقق من صلاحية التوكن
     if (tokenDoc.expiresAt < new Date()) {
       await RefreshToken.deleteOne({ _id: tokenDoc._id });
       return res.status(401).json({
@@ -248,7 +369,6 @@ exports.refreshToken = async (req, res) => {
 
     const user = tokenDoc.user;
 
-    // التحقق من حالة المستخدم
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
@@ -257,39 +377,13 @@ exports.refreshToken = async (req, res) => {
       });
     }
 
-    // إنشاء Access Token جديد
-    const accessToken = jwt.sign(
-      {
-        id: user._id,
-        role: user.role,
-        phone: user.phone,
-        name: user.name
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
-    );
+    const accessToken = generateAccessToken(user);
+    const newRefreshToken = await generateRefreshToken(user, tokenDoc.deviceInfo);
 
-    // إنشاء Refresh Token جديد
-    const newRefreshToken = jwt.sign(
-      { id: user._id },
-      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d" }
-    );
-
-    // إبطال التوكن القديم
     tokenDoc.revokedAt = new Date();
     tokenDoc.replacedByToken = newRefreshToken;
     await tokenDoc.save();
 
-    // حفظ التوكن الجديد
-    await RefreshToken.create({
-      token: newRefreshToken,
-      user: user._id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      deviceInfo: tokenDoc.deviceInfo
-    });
-
-    // تسجيل النشاط
     await user.logActivity("token_refresh", {
       ip: req.ip,
       userAgent: req.get("user-agent")
@@ -301,7 +395,7 @@ exports.refreshToken = async (req, res) => {
       data: {
         accessToken,
         refreshToken: newRefreshToken,
-        expiresIn: process.env.JWT_EXPIRES_IN || "1h"
+        expiresIn: process.env.JWT_EXPIRES_IN || "7d"
       }
     });
 
@@ -316,8 +410,9 @@ exports.refreshToken = async (req, res) => {
 };
 
 /**
- * 🚪 تسجيل الخروج
- * POST /api/auth/logout
+ * @desc    تسجيل الخروج
+ * @route   POST /api/auth/logout
+ * @access  Authenticated
  */
 exports.logout = async (req, res) => {
   try {
@@ -330,14 +425,12 @@ exports.logout = async (req, res) => {
       user.lastActivity = new Date();
       await user.save();
 
-      // تسجيل النشاط
       await user.logActivity("logout", {
         ip: req.ip,
         userAgent: req.get("user-agent")
       });
     }
 
-    // إبطال Refresh Token
     if (refreshToken) {
       await RefreshToken.findOneAndUpdate(
         { token: refreshToken },
@@ -345,10 +438,9 @@ exports.logout = async (req, res) => {
       );
     }
 
-    // إبطال Access Token (إضافته للـ blacklist)
     const token = req.headers.authorization?.split(" ")[1];
     if (token) {
-      await cache.set(`token:blacklist:${token}`, true, 3600); // ساعة واحدة
+      await cache.set(`token:blacklist:${token}`, true, 3600);
     }
 
     res.json({
@@ -366,204 +458,19 @@ exports.logout = async (req, res) => {
 };
 
 /**
- * 🔐 تسجيل الدخول المتقدم
- * POST /api/auth/login/complete
- */
-exports.loginComplete = async (req, res) => {
-  try {
-    const { phone, password, email } = req.body;
-
-    let user;
-
-    // محاولة الدخول بالهاتف أولاً
-    if (phone) {
-      user = await User.findOne({ phone }).select("+password +isActive +isVerified");
-    }
-    // ثم محاولة الدخول بالبريد الإلكتروني
-    else if (email) {
-      user = await User.findOne({ email }).select("+password +isActive +isVerified");
-    } else {
-      return res.status(400).json({
-        success: false,
-        message: "الهاتف أو البريد الإلكتروني مطلوب"
-      });
-    }
-
-    if (!user) {
-      return res.status(400).json({
-        success: false,
-        message: "بيانات الدخول غير صحيحة"
-      });
-    }
-
-    // التحقق من كلمة المرور
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({
-        success: false,
-        message: "بيانات الدخول غير صحيحة"
-      });
-    }
-
-    // التحقق من حالة الحساب
-    if (!user.isActive) {
-      return res.status(403).json({
-        success: false,
-        message: "الحساب معطل، يرجى التواصل مع الدعم"
-      });
-    }
-
-    // إنشاء Access Token
-    const accessToken = jwt.sign(
-      {
-        id: user._id,
-        role: user.role,
-        phone: user.phone,
-        name: user.name
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "1h" }
-    );
-
-    // إنشاء Refresh Token
-    const refreshToken = jwt.sign(
-      { id: user._id },
-      process.env.JWT_REFRESH_SECRET || process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_REFRESH_EXPIRES_IN || "7d" }
-    );
-
-    // حفظ Refresh Token
-    await RefreshToken.create({
-      token: refreshToken,
-      user: user._id,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      deviceInfo: {
-        ip: req.ip,
-        userAgent: req.get("user-agent"),
-        deviceId: req.body.deviceId
-      }
-    });
-
-    // تحديث آخر تسجيل دخول
-    user.lastLogin = new Date();
-    user.isOnline = true;
-    await user.save();
-
-    // تسجيل النشاط
-    await user.logActivity("login", {
-      method: "complete",
-      ip: req.ip,
-      userAgent: req.get("user-agent")
-    });
-
-    // إعداد بيانات المستخدم
-    const userResponse = user.toObject();
-    delete userResponse.password;
-    delete userResponse.verificationCode;
-    delete userResponse.resetPasswordToken;
-
-    res.json({
-      success: true,
-      message: "تم تسجيل الدخول بنجاح",
-      data: {
-        accessToken,
-        refreshToken,
-        expiresIn: process.env.JWT_EXPIRES_IN || "1h",
-        user: userResponse
-      }
-    });
-
-  } catch (error) {
-    console.error("❌ Login complete error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تسجيل الدخول"
-    });
-  }
-};
-
-/**
- * 🔑 تغيير كلمة المرور
- * POST /api/auth/change-password
- */
-exports.changePassword = async (req, res) => {
-  try {
-    const { currentPassword, newPassword } = req.body;
-    const userId = req.user.id;
-
-    // 🔐 فحص قوة كلمة المرور الجديدة
-    const passwordCheck = SecurityCheck.isPasswordStrong(newPassword);
-    if (!passwordCheck.isValid) {
-      return res.status(400).json({
-        success: false,
-        message: 'كلمة المرور الجديدة ضعيفة',
-        requirements: passwordCheck.checks
-      });
-    }
-
-    const user = await User.findById(userId).select("+password");
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "المستخدم غير موجود"
-      });
-    }
-
-    // التحقق من كلمة المرور الحالية
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
-      return res.status(400).json({
-        success: false,
-        message: "كلمة المرور الحالية غير صحيحة"
-      });
-    }
-
-    // تحديث كلمة المرور
-    user.password = await bcrypt.hash(newPassword, 10);
-    user.passwordChangedAt = Date.now();
-    await user.save();
-
-    // إبطال جميع Refresh Tokens للمستخدم
-    await RefreshToken.updateMany(
-      { user: userId, revokedAt: null },
-      { revokedAt: new Date() }
-    );
-
-    // تسجيل النشاط
-    await user.logActivity("password_change", {
-      ip: req.ip,
-      userAgent: req.get("user-agent")
-    });
-
-    res.json({
-      success: true,
-      message: "تم تغيير كلمة المرور بنجاح"
-    });
-
-  } catch (error) {
-    console.error("❌ Change password error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تغيير كلمة المرور"
-    });
-  }
-};
-/**
- * 🚫 إبطال جميع جلسات المستخدم
- * POST /api/auth/revoke-all-sessions
+ * @desc    إبطال جميع جلسات المستخدم
+ * @route   POST /api/auth/revoke-all-sessions
+ * @access  Authenticated
  */
 exports.revokeAllSessions = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // إبطال جميع Refresh Tokens
     const result = await RefreshToken.updateMany(
       { user: userId, revokedAt: null },
       { revokedAt: new Date() }
     );
 
-    // تسجيل النشاط
     const user = await User.findById(userId);
     if (user) {
       await user.logActivity("revoke_all_sessions", {
@@ -590,8 +497,9 @@ exports.revokeAllSessions = async (req, res) => {
 };
 
 /**
- * 🔍 التحقق من صلاحية Token
- * GET /api/auth/validate
+ * @desc    التحقق من صلاحية Token
+ * @route   GET /api/auth/validate
+ * @access  Public
  */
 exports.validateToken = async (req, res) => {
   try {
@@ -604,7 +512,6 @@ exports.validateToken = async (req, res) => {
       });
     }
 
-    // التحقق من blacklist
     const isBlacklisted = await cache.get(`token:blacklist:${token}`);
     if (isBlacklisted) {
       return res.status(401).json({
@@ -613,10 +520,8 @@ exports.validateToken = async (req, res) => {
       });
     }
 
-    // التحقق من صلاحية Token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // جلب بيانات المستخدم
     const user = await User.findById(decoded.id)
       .select("-password -verificationCode -resetPasswordToken");
 
@@ -669,103 +574,14 @@ exports.validateToken = async (req, res) => {
   }
 };
 
-// ========== الدوال الموجودة مسبقاً (registerComplete, verifyAccount, etc) ==========
+// ========== 5. دوال التحقق والتوثيق ==========
 
 /**
- * 🔐 تسجيل مستخدم جديد متقدم
- * POST /api/auth/register/complete
- */
-exports.registerComplete = async (req, res) => {
-  // الكود الموجود مسبقاً - لم يتم تغييره
-  try {
-    const { name, phone, password, email, role = "client", ...additionalData } = req.body;
-
-    if (!name || !phone || !password) {
-      return res.status(400).json({
-        success: false,
-        message: "Name, phone, and password are required",
-      });
-    }
-
-    const exists = await User.findOne({ phone });
-    if (exists) {
-      return res.status(400).json({
-        success: false,
-        message: "User already exists",
-      });
-    }
-
-    const userData = {
-      name,
-      phone,
-      password: await bcrypt.hash(password, 10),
-      email,
-      role,
-      isVerified: false,
-      stats: { joinedDate: new Date() },
-      preferences: {
-        notifications: { email: true, sms: true, push: true, orderUpdates: true, promotions: true },
-        language: "ar",
-        currency: "XOF",
-        theme: "light",
-      },
-    };
-
-    if (additionalData.dateOfBirth) userData.dateOfBirth = new Date(additionalData.dateOfBirth);
-    if (additionalData.gender) userData.gender = additionalData.gender;
-    if (additionalData.city) userData.city = additionalData.city;
-
-    const user = await User.create(userData);
-
-    const verificationCode = crypto.randomBytes(3).toString("hex").toUpperCase();
-    user.verificationCode = verificationCode;
-    user.verificationCodeExpires = Date.now() + 24 * 60 * 60 * 1000;
-    await user.save();
-
-    await user.logActivity("registered", {
-      method: "email",
-      ip: req.ip,
-      userAgent: req.headers["user-agent"]
-    });
-
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    res.status(201).json({
-      success: true,
-      message: "Registration successful. Please verify your account.",
-      data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          phone: user.phone,
-          email: user.email,
-          role: user.role,
-          isVerified: user.isVerified,
-        },
-        token,
-        verificationCode,
-        nextStep: "verify_account",
-      },
-    });
-  } catch (error) {
-    console.error("❌ Registration error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Registration failed",
-    });
-  }
-};
-
-/**
- * 📧 تأكيد الحساب
- * POST /api/auth/verify
+ * @desc    تفعيل الحساب
+ * @route   POST /api/auth/verify
+ * @access  Public
  */
 exports.verifyAccount = async (req, res) => {
-  // الكود الموجود مسبقاً
   try {
     const { phone, verificationCode } = req.body;
 
@@ -778,7 +594,7 @@ exports.verifyAccount = async (req, res) => {
     if (!user) {
       return res.status(400).json({
         success: false,
-        message: "Invalid or expired verification code",
+        message: "رمز التحقق غير صالح أو منتهي الصلاحية",
       });
     }
 
@@ -792,40 +608,37 @@ exports.verifyAccount = async (req, res) => {
       ip: req.ip,
     });
 
-    const token = jwt.sign(
-      { id: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: "30d" }
-    );
+    const accessToken = generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user, {
+      ip: req.ip,
+      userAgent: req.get("user-agent")
+    });
 
     res.json({
       success: true,
-      message: "Account verified successfully",
+      message: "تم تفعيل الحساب بنجاح",
       data: {
-        user: {
-          id: user._id,
-          name: user.name,
-          phone: user.phone,
-          isVerified: user.isVerified,
-        },
-        token,
+        user: prepareUserResponse(user),
+        accessToken,
+        refreshToken,
+        expiresIn: process.env.JWT_EXPIRES_IN || "7d"
       },
     });
   } catch (error) {
     console.error("❌ Verification error:", error);
     res.status(500).json({
       success: false,
-      message: "Verification failed",
+      message: "فشل تفعيل الحساب",
     });
   }
 };
 
 /**
- * 🔄 إعادة إرسال كود التحقق
- * POST /api/auth/resend-verification
+ * @desc    إعادة إرسال كود التحقق
+ * @route   POST /api/auth/resend-verification
+ * @access  Public
  */
 exports.resendVerification = async (req, res) => {
-  // الكود الموجود مسبقاً
   try {
     const { phone } = req.body;
 
@@ -834,39 +647,105 @@ exports.resendVerification = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found or already verified",
+        message: "المستخدم غير موجود أو تم تفعيل الحساب مسبقاً",
       });
     }
 
-    const verificationCode = crypto.randomBytes(3).toString("hex").toUpperCase();
+    const verificationCode = generateVerificationCode();
     user.verificationCode = verificationCode;
     user.verificationCodeExpires = Date.now() + 24 * 60 * 60 * 1000;
     await user.save();
 
     res.json({
       success: true,
-      message: "Verification code sent successfully",
+      message: "تم إرسال رمز التحقق بنجاح",
       data: {
         phone: user.phone,
-        verificationCode,
-        expiresIn: "24 hours",
+        verificationCode: process.env.NODE_ENV === 'development' ? verificationCode : undefined,
+        expiresIn: "24 ساعة",
       },
     });
   } catch (error) {
     console.error("❌ Resend verification error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to resend verification",
+      message: "فشل إعادة إرسال رمز التحقق",
+    });
+  }
+};
+
+// ========== 6. دوال كلمة المرور ==========
+
+/**
+ * @desc    تغيير كلمة المرور
+ * @route   POST /api/auth/change-password
+ * @access  Authenticated
+ */
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const userId = req.user.id;
+
+    const passwordCheck = SecurityCheck.isPasswordStrong(newPassword);
+    if (!passwordCheck.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'كلمة المرور الجديدة ضعيفة',
+        requirements: passwordCheck.checks
+      });
+    }
+
+    const user = await User.findById(userId).select("+password");
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "المستخدم غير موجود"
+      });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "كلمة المرور الحالية غير صحيحة"
+      });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    user.passwordChangedAt = Date.now();
+    await user.save();
+
+    await RefreshToken.updateMany(
+      { user: userId, revokedAt: null },
+      { revokedAt: new Date() }
+    );
+
+    await user.logActivity("password_change", {
+      ip: req.ip,
+      userAgent: req.get("user-agent")
+    });
+
+    res.json({
+      success: true,
+      message: "تم تغيير كلمة المرور بنجاح"
+    });
+
+  } catch (error) {
+    console.error("❌ Change password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تغيير كلمة المرور"
     });
   }
 };
 
 /**
- * 🔑 نسيت كلمة المرور
- * POST /api/auth/forgot-password
+ * @desc    نسيت كلمة المرور
+ * @route   POST /api/auth/forgot-password
+ * @access  Public
  */
 exports.forgotPassword = async (req, res) => {
-  // الكود الموجود مسبقاً
   try {
     const { phone } = req.body;
 
@@ -875,7 +754,7 @@ exports.forgotPassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found",
+        message: "المستخدم غير موجود",
       });
     }
 
@@ -890,28 +769,28 @@ exports.forgotPassword = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Password reset instructions sent",
+      message: "تم إرسال تعليمات إعادة تعيين كلمة المرور",
       data: {
         phone: user.phone,
-        resetToken,
-        expiresIn: "10 minutes",
+        resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined,
+        expiresIn: "10 دقائق",
       },
     });
   } catch (error) {
     console.error("❌ Forgot password error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to process forgot password",
+      message: "فشل معالجة طلب إعادة تعيين كلمة المرور",
     });
   }
 };
 
 /**
- * 🔄 إعادة تعيين كلمة المرور
- * POST /api/auth/reset-password
+ * @desc    إعادة تعيين كلمة المرور
+ * @route   POST /api/auth/reset-password
+ * @access  Public
  */
 exports.resetPassword = async (req, res) => {
-  // الكود الموجود مسبقاً
   try {
     const { phone, resetToken, newPassword } = req.body;
 
@@ -929,7 +808,16 @@ exports.resetPassword = async (req, res) => {
     if (!user) {
       return res.status(400).json({
         success: false,
-        message: "Invalid or expired reset token",
+        message: "رمز إعادة التعيين غير صالح أو منتهي الصلاحية",
+      });
+    }
+
+    const passwordCheck = SecurityCheck.isPasswordStrong(newPassword);
+    if (!passwordCheck.isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'كلمة المرور ضعيفة',
+        requirements: passwordCheck.checks
       });
     }
 
@@ -938,6 +826,11 @@ exports.resetPassword = async (req, res) => {
     user.resetPasswordExpires = undefined;
     await user.save();
 
+    await RefreshToken.updateMany(
+      { user: user._id, revokedAt: null },
+      { revokedAt: new Date() }
+    );
+
     await user.logActivity("password_reset", {
       method: "reset_token",
       ip: req.ip,
@@ -945,15 +838,13 @@ exports.resetPassword = async (req, res) => {
 
     res.json({
       success: true,
-      message: "Password reset successfully",
+      message: "تم إعادة تعيين كلمة المرور بنجاح",
     });
   } catch (error) {
     console.error("❌ Reset password error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to reset password",
+      message: "فشل إعادة تعيين كلمة المرور",
     });
   }
 };
-
-module.exports = exports;

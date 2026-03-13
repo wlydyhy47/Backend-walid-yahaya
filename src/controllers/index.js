@@ -1,5 +1,5 @@
 // ============================================
-// ملف: src/controllers/index.js (محدث)
+// ملف: src/controllers/index.js (النسخة النهائية)
 // ============================================
 
 // ========== 1. استيراد جميع الـ Controllers ==========
@@ -21,15 +21,12 @@ const aggregateController = require('./aggregate.controller');
 
 // 👑 خاصة
 const restaurantOwnerController = require('./restaurantOwner.controller');
-const restaurantAddressController = require('./restaurantAddress.controller');
-const restaurantCompleteController = require('./restaurantComplete.controller');
-const userCompleteController = require('./userComplete.controller');
 
 // ⭐ إضافية
 const reviewController = require('./review.controller');
 const favoriteController = require('./favorite.controller');
 
-// 🚗 **جديدة**
+// 🚗 جديدة
 const driverController = require('./driver.controller');
 const loyaltyController = require('./loyalty.controller');
 const analyticsController = require('./analytics.controller');
@@ -57,9 +54,6 @@ module.exports = {
   
   // 👑 الخاصة
   restaurantOwnerController,
-  restaurantAddressController,
-  restaurantCompleteController,
-  userCompleteController,
   
   // ⭐ الإضافية
   reviewController,
@@ -90,9 +84,6 @@ module.exports = {
       notification: notificationController,
       aggregate: aggregateController,
       restaurantOwner: restaurantOwnerController,
-      restaurantAddress: restaurantAddressController,
-      restaurantComplete: restaurantCompleteController,
-      userComplete: userCompleteController,
       review: reviewController,
       favorite: favoriteController,
       driver: driverController,
@@ -120,9 +111,6 @@ module.exports = {
     'notificationController',
     'aggregateController',
     'restaurantOwnerController',
-    'restaurantAddressController',
-    'restaurantCompleteController',
-    'userCompleteController',
     'reviewController',
     'favoriteController',
     'driverController',
