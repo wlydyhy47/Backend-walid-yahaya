@@ -1,5 +1,5 @@
 // ============================================
-// ملف: src/routes/client.routes.js (مصحح)
+// ملف: src/routes/client.routes.js (المصحح بالكامل)
 // ============================================
 
 const express = require('express');
@@ -19,7 +19,7 @@ const {
 // ✅ استيراد الـ middlewares
 const auth = require('../middlewares/auth.middleware');
 const role = require('../middlewares/role.middleware');
-const upload = require('../middlewares/upload'); // ✅ تأكد من استيراد upload
+const upload = require('../middlewares/upload');
 const PaginationUtils = require('../utils/pagination.util');
 
 // جميع مسارات العميل تحتاج توثيق
@@ -31,9 +31,20 @@ router.get('/profile', userController.getMyProfile);
 router.get('/profile/complete', userController.getMyCompleteProfile);
 router.put('/profile', userController.updateMyProfile);
 router.put('/profile/complete', userController.updateCompleteProfile);
-// router.put('/profile/avatar', upload('users/avatars').single('image'), userController.uploadAvatar); // مؤقتاً نعطلها
-// router.put('/profile/cover', upload('users/covers').single('image'), userController.updateCoverImage); // مؤقتاً نعطلها
-// router.delete('/profile/avatar', userController.deleteAvatar); // مؤقتاً نعطلها
+
+// ✅ مسارات الصور - تم تفعيلها
+router.put('/profile/avatar', 
+  upload('users/avatars', ['image']).single('image'), 
+  userController.uploadAvatar
+);
+
+router.put('/profile/cover', 
+  upload('users/covers', ['image']).single('image'), 
+  userController.updateCoverImage
+);
+
+router.delete('/profile/avatar', userController.deleteAvatar);
+
 router.put('/profile/password', userController.changePassword);
 router.put('/profile/presence', userController.updatePresence);
 

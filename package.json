@@ -3,23 +3,20 @@
   "version": "1.0.0",
   "description": "Food Delivery Backend API",
   "main": "src/server.js",
-"scripts": {
-  "start": "node src/server.js",
-  "dev": "nodemon src/server.js",
-  
-  "test": "jest --runInBand --detectOpenHandles --forceExit",
-  "test:watch": "jest --watch --runInBand",
-  "test:coverage": "jest --coverage --runInBand",
-  "test:connection": "jest tests/01_connection.test.js --runInBand --forceExit",
-  "test:health": "jest tests/01_health.test.js --runInBand --forceExit",
-  
-  "test:win": "set NODE_ENV=test&& jest --runInBand --detectOpenHandles --forceExit",
-  "test:connection:win": "set NODE_ENV=test&& jest tests/01_connection.test.js --runInBand --forceExit",
-  
-  "migrate": "node src/migrations/migrate.js",
-  "migrate:status": "node src/migrations/migrate.js --status",
-  "rollback": "node src/migrations/rollback.js"
-},
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest --runInBand --detectOpenHandles --forceExit",
+    "test:watch": "jest --watch --runInBand",
+    "test:coverage": "jest --coverage --runInBand",
+    "test:connection": "jest tests/01_connection.test.js --runInBand --forceExit",
+    "test:health": "jest tests/01_health.test.js --runInBand --forceExit",
+    "test:win": "set NODE_ENV=test&& jest --runInBand --detectOpenHandles --forceExit",
+    "test:connection:win": "set NODE_ENV=test&& jest tests/01_connection.test.js --runInBand --forceExit",
+    "migrate": "node src/migrations/migrate.js",
+    "migrate:status": "node src/migrations/migrate.js --status",
+    "rollback": "node src/migrations/rollback.js"
+  },
   "keywords": [
     "food-delivery",
     "api",
@@ -36,7 +33,7 @@
     "cloudinary": "^1.41.3",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
-    "dotenv": "^17.2.3",
+    "dotenv": "17.3.1",
     "express": "^5.2.1",
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^8.2.1",
@@ -59,7 +56,7 @@
     "socket.io-client": "^4.8.3",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
-    "twilio": "^5.12.2",
+    "twilio": "5.13.0",
     "winston": "^3.19.0",
     "xss-clean": "^0.1.4"
   },

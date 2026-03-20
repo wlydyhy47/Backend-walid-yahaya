@@ -1,7 +1,5 @@
 // ============================================
-// ملف: src/routes/admin.routes.js (مصحح)
-// الوصف: مسارات المشرفين
-// الإصدار: 2.0
+// ملف: src/routes/admin.routes.js (المصحح بالكامل)
 // ============================================
 
 const express = require('express');
@@ -54,23 +52,51 @@ router.put('/vendors/:id/status', vendorController.toggleVendorStatus);
 // ========== 4. إدارة المتاجر ==========
 router.get('/stores', PaginationUtils.validatePaginationParams, storeController.getStoresPaginated);
 router.get('/stores/:id', storeController.getStoreDetails);
-// router.post('/stores', upload('stores').fields([...]), storeController.createStore); // مؤقتاً نعطلها
-// router.put('/stores/:id', storeController.updateStore); // مؤقتاً نعطلها
-// router.delete('/stores/:id', storeController.deleteStore); // مؤقتاً نعطلها
-// router.put('/stores/:id/verify', storeController.verifyStore); // مؤقتاً نعطلها
-// router.put('/stores/:id/toggle-status', storeController.toggleStoreStatus); // مؤقتاً نعطلها
+
+// ✅ تم تفعيل مسارات CRUD للمتاجر
+router.post('/stores', 
+  upload('stores', ['image']).fields([
+    { name: 'logo', maxCount: 1 },
+    { name: 'coverImage', maxCount: 1 }
+  ]), 
+  storeController.createStore
+);
+
+router.put('/stores/:id', storeController.updateStore);
+router.delete('/stores/:id', storeController.deleteStore);
+router.put('/stores/:id/verify', storeController.verifyStore);
+router.put('/stores/:id/toggle-status', storeController.toggleStoreStatus);
 
 // ========== 5. إدارة المنتجات ==========
 router.get('/products', PaginationUtils.validatePaginationParams, productController.getAllProducts);
 router.get('/products/:id', productController.getProductById);
-// router.put('/products/:id/feature', productController.toggleFeatured); // مؤقتاً نعطلها
+
+// ✅ تم تفعيل مسار تمييز المنتجات
+router.put('/products/:id/feature', productController.toggleFeatured);
 
 // ========== 6. إدارة الطلبات ==========
 router.get('/orders', PaginationUtils.validatePaginationParams, orderController.getAllOrdersPaginated);
 router.get('/orders/:id', orderController.getOrderDetails);
-// router.put('/orders/:id/assign', orderController.assignDriver); // مؤقتاً نعطلها
-// router.put('/orders/:orderId/reassign', orderController.reassignDriver); // مؤقتاً نعطلها
-// router.put('/orders/:id/force-cancel', orderController.forceCancelOrder); // مؤقتاً نعطلها
+
+// ✅ تم تفعيل مسارات تعيين المندوبين - مع التأكد من وجود الدوال
+if (orderController.assignDriver) {
+  router.put('/orders/:id/assign', orderController.assignDriver);
+} else {
+  console.warn('⚠️ orderController.assignDriver غير موجودة');
+}
+
+if (orderController.reassignDriver) {
+  router.put('/orders/:orderId/reassign', orderController.reassignDriver);
+} else {
+  console.warn('⚠️ orderController.reassignDriver غير موجودة');
+}
+
+if (orderController.forceCancelOrder) {
+  router.put('/orders/:id/force-cancel', orderController.forceCancelOrder);
+} else {
+  console.warn('⚠️ orderController.forceCancelOrder غير موجودة');
+}
+
 router.get('/orders/stats/overview', orderController.getOrderStats);
 router.get('/orders/stats/daily', orderController.getDailyStats);
 router.get('/orders/stats/monthly', orderController.getMonthlyStats);
@@ -80,9 +106,28 @@ router.get('/drivers', PaginationUtils.validatePaginationParams, driverControlle
 router.get('/drivers/:id', driverController.getDriverById);
 router.get('/drivers/:id/location', driverController.getDriverLocation);
 router.get('/drivers/:id/stats', driverController.getDriverStatsById);
-// router.get('/drivers/:id/orders', PaginationUtils.validatePaginationParams, orderController.getDriverOrdersById); // مؤقتاً نعطلها
-// router.put('/drivers/:id/verify', driverController.verifyDriver); // مؤقتاً نعطلها
-// router.put('/drivers/:id/status', driverController.toggleDriverStatus); // مؤقتاً نعطلها
+
+// ✅ تم تفعيل مسارات إضافية للمندوبين - مع التأكد من وجود الدوال
+if (orderController.getDriverOrdersById) {
+  router.get('/drivers/:driverId/orders', 
+    PaginationUtils.validatePaginationParams, 
+    orderController.getDriverOrdersById
+  );
+} else {
+  console.warn('⚠️ orderController.getDriverOrdersById غير موجودة');
+}
+
+if (driverController.verifyDriver) {
+  router.put('/drivers/:id/verify', driverController.verifyDriver);
+} else {
+  console.warn('⚠️ driverController.verifyDriver غير موجودة');
+}
+
+if (driverController.toggleDriverStatus) {
+  router.put('/drivers/:id/status', driverController.toggleDriverStatus);
+} else {
+  console.warn('⚠️ driverController.toggleDriverStatus غير موجودة');
+}
 
 // ========== 8. إدارة Rate Limiting ==========
 router.get('/rate-limit/stats', rateLimiter.getStats);
@@ -103,5 +148,92 @@ router.post('/cache/clear/:pattern', aggregateController.clearCachePattern);
 router.get('/analytics/users', analyticsController.getUserAnalytics);
 router.get('/analytics/orders', analyticsController.getOrderAnalytics);
 router.get('/analytics/revenue', analyticsController.getRevenueAnalytics);
+
+// ========== 12. تصدير التقارير (جديد) - مع التأكد من وجود الدوال ==========
+if (aggregateController.exportOrdersReport) {
+  router.get('/reports/orders', aggregateController.exportOrdersReport);
+} else {
+  console.warn('⚠️ aggregateController.exportOrdersReport غير موجودة');
+}
+
+if (aggregateController.exportUsersReport) {
+  router.get('/reports/users', aggregateController.exportUsersReport);
+} else {
+  console.warn('⚠️ aggregateController.exportUsersReport غير موجودة');
+}
+
+if (aggregateController.exportRevenueReport) {
+  router.get('/reports/revenue', aggregateController.exportRevenueReport);
+} else {
+  console.warn('⚠️ aggregateController.exportRevenueReport غير موجودة');
+}
+
+if (aggregateController.exportDriversReport) {
+  router.get('/reports/drivers', aggregateController.exportDriversReport);
+} else {
+  console.warn('⚠️ aggregateController.exportDriversReport غير موجودة');
+}
+
+if (aggregateController.exportStoresReport) {
+  router.get('/reports/stores', aggregateController.exportStoresReport);
+} else {
+  console.warn('⚠️ aggregateController.exportStoresReport غير موجودة');
+}
+
+// ========== 13. إدارة حملات الإشعارات (جديد) - مع التأكد من وجود الدوال ==========
+if (notificationController.createCampaign) {
+  router.post('/campaigns/notifications/create', notificationController.createCampaign);
+} else {
+  console.warn('⚠️ notificationController.createCampaign غير موجودة');
+}
+
+if (notificationController.getCampaigns) {
+  router.get('/campaigns/notifications/list', notificationController.getCampaigns);
+} else {
+  console.warn('⚠️ notificationController.getCampaigns غير موجودة');
+}
+
+if (notificationController.pauseCampaign) {
+  router.put('/campaigns/notifications/:id/pause', notificationController.pauseCampaign);
+} else {
+  console.warn('⚠️ notificationController.pauseCampaign غير موجودة');
+}
+
+if (notificationController.resumeCampaign) {
+  router.put('/campaigns/notifications/:id/resume', notificationController.resumeCampaign);
+} else {
+  console.warn('⚠️ notificationController.resumeCampaign غير موجودة');
+}
+
+if (notificationController.deleteCampaign) {
+  router.delete('/campaigns/notifications/:id', notificationController.deleteCampaign);
+} else {
+  console.warn('⚠️ notificationController.deleteCampaign غير موجودة');
+}
+
+// ========== 14. إحصائيات متقدمة (جديد) - مع التأكد من وجود الدوال ==========
+if (aggregateController.getDailyAdvancedStats) {
+  router.get('/advanced-stats/daily', aggregateController.getDailyAdvancedStats);
+} else {
+  console.warn('⚠️ aggregateController.getDailyAdvancedStats غير موجودة');
+}
+
+if (aggregateController.getWeeklyAdvancedStats) {
+  router.get('/advanced-stats/weekly', aggregateController.getWeeklyAdvancedStats);
+} else {
+  console.warn('⚠️ aggregateController.getWeeklyAdvancedStats غير موجودة');
+}
+
+if (aggregateController.getMonthlyAdvancedStats) {
+  router.get('/advanced-stats/monthly', aggregateController.getMonthlyAdvancedStats);
+} else {
+  console.warn('⚠️ aggregateController.getMonthlyAdvancedStats غير موجودة');
+}
+
+if (aggregateController.getCustomStats) {
+  router.get('/advanced-stats/custom', aggregateController.getCustomStats);
+} else {
+  console.warn('⚠️ aggregateController.getCustomStats غير موجودة');
+}
 
 module.exports = router;

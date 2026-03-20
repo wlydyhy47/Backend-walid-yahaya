@@ -184,3 +184,73 @@ MongooseServerSelectionError: Server selection timed out after 5000 ms
   "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
   "name": "test"
 }
+2026-03-20 07:44:17 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-20 07:44:17 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-20 07:44:18 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-20 07:44:18 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-20 07:44:18 [info]: Business Action: Socket.io initialized successfully
+2026-03-20 07:44:18 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-20 07:44:18 [info]: Business Action: Chat socket service initialized
+2026-03-20 07:44:22 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-20 07:44:23 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-20 07:48:20 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-20 07:48:21 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-20 07:48:21 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-20 07:48:22 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-20 07:48:22 [info]: Business Action: Socket.io initialized successfully
+2026-03-20 07:48:22 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-20 07:48:22 [info]: Business Action: Chat socket service initialized
+2026-03-20 07:48:27 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Server selection timed out after 5000 ms
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async connectDB (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Server selection timed out after 5000 ms"
+}
+2026-03-20 07:48:27 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-03-20 07:48:32 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-20 07:48:35 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-20 07:48:37 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Server selection timed out after 5000 ms
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Server selection timed out after 5000 ms"
+}
+2026-03-20 07:48:37 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-03-20 07:48:42 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-20 07:48:46 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}

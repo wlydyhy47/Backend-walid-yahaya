@@ -1,5 +1,5 @@
 // ============================================
-// ملف: src/routes/vendor.routes.js (مصحح)
+// ملف: src/routes/vendor.routes.js (المصحح بالكامل)
 // ============================================
 
 const express = require('express');
@@ -16,7 +16,7 @@ const {
 // ✅ استيراد الـ middlewares
 const auth = require('../middlewares/auth.middleware');
 const { storeOwnerMiddleware } = require('../middlewares/role.middleware');
-const upload = require('../middlewares/upload'); // ✅ تأكد من استيراد upload
+const upload = require('../middlewares/upload');
 const PaginationUtils = require('../utils/pagination.util');
 
 // جميع مسارات التاجر تحتاج توثيق وصلاحية صاحب متجر
@@ -26,13 +26,28 @@ router.use(storeOwnerMiddleware);
 // ========== 1. ملف التاجر الشخصي ==========
 router.get('/profile', vendorController.getMyProfile);
 router.put('/profile', vendorController.updateProfile);
-// router.put('/profile/avatar', upload('users/avatars').single('image'), vendorController.updateAvatar); // مؤقتاً نعطلها
+
+// ✅ تم تفعيل مسار رفع الصورة الشخصية
+router.put('/profile/avatar', 
+  upload('users/avatars', ['image']).single('image'), 
+  vendorController.updateAvatar
+);
 
 // ========== 2. إدارة المتجر ==========
 router.get('/store', vendorController.getMyStore);
 router.put('/store', vendorController.updateStore);
-// router.put('/store/logo', upload('stores').single('logo'), vendorController.updateStoreLogo); // مؤقتاً نعطلها
-// router.put('/store/cover', upload('stores').single('cover'), vendorController.updateStoreCover); // مؤقتاً نعطلها
+
+// ✅ تم تفعيل مسارات رفع صور المتجر
+router.put('/store/logo', 
+  upload('stores/logos', ['image']).single('logo'), 
+  vendorController.updateStoreLogo
+);
+
+router.put('/store/cover', 
+  upload('stores/covers', ['image']).single('cover'), 
+  vendorController.updateStoreCover
+);
+
 router.put('/store/toggle-status', vendorController.toggleStoreStatus);
 
 // ========== 3. عناوين المتجر ==========
@@ -44,10 +59,22 @@ router.get('/store/addresses/:id', vendorController.getAddressById);
 
 // ========== 4. المنتجات ==========
 router.get('/products', PaginationUtils.validatePaginationParams, productController.getVendorProducts);
-// router.post('/products', upload('products').single('image'), productController.createProduct); // مؤقتاً نعطلها
+
+// ✅ تم تفعيل مسار إنشاء المنتج مع رفع الصورة
+router.post('/products', 
+  upload('products', ['image']).single('image'), 
+  productController.createProduct
+);
+
 router.get('/products/:id', productController.getProductById);
 router.put('/products/:id', productController.updateProduct);
-// router.put('/products/:id/image', upload('products').single('image'), productController.updateProductImage); // مؤقتاً نعطلها
+
+// ✅ تم تفعيل مسار تحديث صورة المنتج
+router.put('/products/:id/image', 
+  upload('products', ['image']).single('image'), 
+  productController.updateProductImage
+);
+
 router.delete('/products/:id', productController.deleteProduct);
 router.put('/products/:id/toggle-availability', productController.toggleAvailability);
 router.put('/products/:id/inventory', productController.updateInventory);

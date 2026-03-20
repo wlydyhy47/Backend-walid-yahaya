@@ -692,4 +692,415 @@ exports.getDriverById = async (req, res) => {
   }
 };
 
+
+/**
+ * @desc    تحديث الصورة الشخصية للمندوب
+ * @route   PUT /api/v1/driver/profile/avatar
+ * @access  Driver
+ */
+exports.updateAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "لم يتم رفع أي صورة"
+      });
+    }
+
+    const driverId = req.user.id;
+
+    // حذف الصورة القديمة
+    const oldDriver = await User.findById(driverId).select('image');
+    if (oldDriver?.image) {
+      const oldPublicId = fileService.extractPublicIdFromUrl(oldDriver.image);
+      if (oldPublicId) {
+        fileService.deleteFile(oldPublicId).catch(err =>
+          console.error('Error deleting old avatar:', err)
+        );
+      }
+    }
+
+    // تحديث الصورة الجديدة
+    const driver = await User.findByIdAndUpdate(
+      driverId,
+      { image: req.file.path },
+      { new: true }
+    ).select('name phone image');
+
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+
+    // إبطال الكاش
+    invalidateDriverCache(driverId);
+
+    res.json({
+      success: true,
+      message: "تم تحديث الصورة الشخصية بنجاح",
+      data: {
+        image: driver.image,
+        optimized: req.file.thumbnail || null
+      }
+    });
+  } catch (error) {
+    console.error("❌ Update avatar error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث الصورة الشخصية"
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على سجل الأرباح
+ * @route   GET /api/v1/driver/earnings/history
+ * @access  Driver
+ */
+exports.getEarningsHistory = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { page = 1, limit = 20, from, to } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // بناء استعلام التاريخ
+    let dateQuery = {};
+    if (from || to) {
+      dateQuery = {};
+      if (from) dateQuery.$gte = new Date(from);
+      if (to) dateQuery.$lte = new Date(to);
+    }
+
+    // جلب الطلبات المكتملة مع الأرباح
+    const orders = await Order.find({
+      driver: driverId,
+      status: 'delivered',
+      ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
+    })
+      .select('totalPrice deliveredAt items store')
+      .populate('store', 'name')
+      .sort({ deliveredAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+
+    const total = await Order.countDocuments({
+      driver: driverId,
+      status: 'delivered',
+      ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
+    });
+
+    // حساب الأرباح (80% من قيمة الطلب)
+    const earnings = orders.map(order => ({
+      orderId: order._id,
+      storeName: order.store?.name || 'غير معروف',
+      date: order.deliveredAt,
+      amount: order.totalPrice,
+      commission: order.totalPrice * 0.2,
+      netEarnings: order.totalPrice * 0.8,
+      itemsCount: order.items?.reduce((sum, item) => sum + item.qty, 0) || 0
+    }));
+
+    // إحصائيات الفترة
+    const stats = {
+      totalEarnings: earnings.reduce((sum, e) => sum + e.netEarnings, 0),
+      totalOrders: earnings.length,
+      averagePerOrder: earnings.length > 0 
+        ? earnings.reduce((sum, e) => sum + e.netEarnings, 0) / earnings.length 
+        : 0,
+      totalCommission: earnings.reduce((sum, e) => sum + e.commission, 0)
+    };
+
+    // تجميع حسب الشهر للرسم البياني
+    const monthlyStats = await Order.aggregate([
+      {
+        $match: {
+          driver: driverId,
+          status: 'delivered',
+          ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$deliveredAt" },
+            month: { $month: "$deliveredAt" }
+          },
+          earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
+          orders: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": -1, "_id.month": -1 } },
+      { $limit: 12 }
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        earnings,
+        monthlyStats,
+        stats,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get earnings history error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب سجل الأرباح"
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على تقرير الأداء
+ * @route   GET /api/v1/driver/performance
+ * @access  Driver
+ */
+exports.getPerformanceReport = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+
+    // الفترات الزمنية
+    const now = new Date();
+    const today = new Date(now.setHours(0, 0, 0, 0));
+    const weekAgo = new Date(now.setDate(now.getDate() - 7));
+    const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
+
+    const [
+      dailyStats,
+      weeklyStats,
+      monthlyStats,
+      deliveryTimes,
+      ratings
+    ] = await Promise.all([
+      // إحصائيات اليوم
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveredAt: { $gte: today }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
+            totalDistance: { $sum: "$estimatedDistance" }
+          }
+        }
+      ]),
+
+      // إحصائيات الأسبوع
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveredAt: { $gte: weekAgo }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$deliveredAt" } },
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+
+      // إحصائيات الشهر
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveredAt: { $gte: monthAgo }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
+            avgOrderValue: { $avg: "$totalPrice" }
+          }
+        }
+      ]),
+
+      // أوقات التوصيل
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveryTime: { $exists: true }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            avgDeliveryTime: { $avg: "$deliveryTime" },
+            fastestDelivery: { $min: "$deliveryTime" },
+            slowestDelivery: { $max: "$deliveryTime" },
+            totalDeliveries: { $sum: 1 }
+          }
+        }
+      ]),
+
+      // التقييمات
+      User.findById(driverId).select('driverInfo.rating driverInfo.totalRatings')
+    ]);
+
+    // حساب معدل القبول
+    const acceptedOrders = await Order.countDocuments({
+      driver: driverId,
+      status: { $in: ['accepted', 'picked', 'delivered'] }
+    });
+    
+    const rejectedOrders = await Order.countDocuments({
+      driver: driverId,
+      status: 'cancelled',
+      cancelledBy: driverId
+    });
+
+    const acceptanceRate = acceptedOrders + rejectedOrders > 0
+      ? (acceptedOrders / (acceptedOrders + rejectedOrders)) * 100
+      : 100;
+
+    res.json({
+      success: true,
+      data: {
+        period: {
+          today: dailyStats[0] || { orders: 0, earnings: 0, totalDistance: 0 },
+          weekly: {
+            daily: weeklyStats,
+            total: weeklyStats.reduce((sum, day) => sum + day.orders, 0),
+            earnings: weeklyStats.reduce((sum, day) => sum + day.earnings, 0)
+          },
+          monthly: monthlyStats[0] || { orders: 0, earnings: 0, avgOrderValue: 0 }
+        },
+        performance: {
+          acceptanceRate: acceptanceRate.toFixed(1),
+          deliveryTime: deliveryTimes[0] || { 
+            avgDeliveryTime: 0, 
+            fastestDelivery: 0, 
+            slowestDelivery: 0 
+          },
+          rating: ratings?.driverInfo?.rating || 0,
+          totalRatings: ratings?.driverInfo?.totalRatings || 0
+        },
+        summary: {
+          totalDeliveries: acceptedOrders,
+          totalEarnings: monthlyStats[0]?.earnings || 0,
+          averagePerDay: weeklyStats.length > 0 
+            ? weeklyStats.reduce((sum, day) => sum + day.orders, 0) / weeklyStats.length 
+            : 0
+        }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get performance report error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب تقرير الأداء"
+    });
+  }
+};
+
+
+/**
+ * @desc    توثيق مندوب (للمشرفين)
+ * @route   PUT /api/v1/admin/drivers/:id/verify
+ * @access  Admin
+ */
+exports.verifyDriver = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const driver = await User.findByIdAndUpdate(
+      id,
+      { 
+        isVerified: true,
+        'driverInfo.documents.$[].verified': true 
+      },
+      { new: true }
+    ).select('name phone email driverInfo isVerified');
+
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: "تم توثيق المندوب بنجاح",
+      data: { 
+        id: driver._id,
+        isVerified: driver.isVerified,
+        driverInfo: driver.driverInfo
+      }
+    });
+  } catch (error) {
+    console.error("❌ Verify driver error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل توثيق المندوب"
+    });
+  }
+};
+
+/**
+ * @desc    تغيير حالة المندوب (تفعيل/تعطيل)
+ * @route   PUT /api/v1/admin/drivers/:id/status
+ * @access  Admin
+ */
+exports.toggleDriverStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+
+    const driver = await User.findByIdAndUpdate(
+      id,
+      { isActive },
+      { new: true }
+    ).select('name phone email isActive');
+
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+
+    res.json({
+      success: true,
+      message: `تم ${isActive ? 'تفعيل' : 'تعطيل'} المندوب بنجاح`,
+      data: { 
+        id: driver._id,
+        isActive: driver.isActive 
+      }
+    });
+  } catch (error) {
+    console.error("❌ Toggle driver status error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تغيير حالة المندوب"
+    });
+  }
+};
+
 module.exports = exports;

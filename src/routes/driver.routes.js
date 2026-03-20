@@ -1,6 +1,5 @@
 // ============================================
-// ملف: src/routes/driver.routes.js (مصحح)
-// الوصف: مسارات المندوبين
+// ملف: src/routes/driver.routes.js (المصحح بالكامل)
 // ============================================
 
 const express = require('express');
@@ -15,7 +14,7 @@ const {
 // ✅ استيراد الـ middlewares
 const auth = require('../middlewares/auth.middleware');
 const { driverMiddleware } = require('../middlewares/role.middleware');
-const upload = require('../middlewares/upload'); // ✅ تأكد من استيراد upload
+const upload = require('../middlewares/upload');
 const PaginationUtils = require('../utils/pagination.util');
 
 // جميع مسارات المندوب تحتاج توثيق
@@ -24,7 +23,13 @@ router.use(driverMiddleware);
 
 // ========== 1. ملف المندوب الشخصي ==========
 router.get('/profile', driverController.getMyProfile);
-// router.put('/profile/avatar', upload('users/avatars').single('image'), driverController.updateAvatar); // مؤقتاً نعطلها
+
+// ✅ تم تفعيل مسار رفع الصورة الشخصية
+router.put('/profile/avatar', 
+  upload('users/avatars', ['image']).single('image'), 
+  driverController.updateAvatar
+);
+
 router.put('/profile/availability', driverController.toggleAvailability);
 router.put('/profile/location', driverController.updateLocation);
 
@@ -39,10 +44,17 @@ router.get('/deliveries/:id/track', orderController.trackOrder);
 // ========== 3. الأرباح ==========
 router.get('/earnings', orderController.getDriverEarnings);
 router.get('/earnings/stats', driverController.getMyStats);
-// router.get('/earnings/history', PaginationUtils.validatePaginationParams, driverController.getEarningsHistory); // مؤقتاً نعطلها
+
+// ✅ تم تفعيل مسار سجل الأرباح
+router.get('/earnings/history', 
+  PaginationUtils.validatePaginationParams, 
+  driverController.getEarningsHistory
+);
 
 // ========== 4. إحصائيات ==========
 router.get('/stats', driverController.getMyStats);
-// router.get('/performance', driverController.getPerformanceReport); // مؤقتاً نعطلها
+
+// ✅ تم تفعيل مسار تقرير الأداء
+router.get('/performance', driverController.getPerformanceReport);
 
 module.exports = router;

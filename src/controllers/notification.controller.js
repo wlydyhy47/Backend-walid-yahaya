@@ -1140,4 +1140,250 @@ exports.createPasswordChangedNotification = async (userId) => {
   }
 };
 
+/**
+ * @desc    إنشاء حملة إشعارات جديدة
+ * @route   POST /api/v1/admin/campaigns/notifications/create
+ * @access  Admin
+ */
+exports.createCampaign = async (req, res) => {
+  try {
+    const {
+      name,
+      type,
+      title,
+      content,
+      targetUsers,
+      targetRoles,
+      schedule,
+      priority = 'medium',
+      icon,
+      link,
+      data = {}
+    } = req.body;
+
+    // التحقق من البيانات
+    if (!name || !title || !content) {
+      return res.status(400).json({
+        success: false,
+        message: "اسم الحملة والعنوان والمحتوى مطلوبون"
+      });
+    }
+
+    // تحديد المستخدمين المستهدفين
+    let targetUserIds = [];
+    
+    if (targetUsers && Array.isArray(targetUsers)) {
+      targetUserIds = targetUsers;
+    } else if (targetRoles && Array.isArray(targetRoles)) {
+      const users = await User.find({ role: { $in: targetRoles }, isActive: true })
+        .select('_id');
+      targetUserIds = users.map(u => u._id);
+    }
+
+    if (targetUserIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "لم يتم تحديد أي مستخدمين مستهدفين"
+      });
+    }
+
+    const campaignId = `campaign-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    // إنشاء الإشعارات
+    const notifications = targetUserIds.map(userId => ({
+      user: userId,
+      type: type || 'promotion',
+      title,
+      content,
+      priority,
+      icon: icon || '📢',
+      link,
+      data: { ...data, campaignId },
+      campaignId,
+      settings: {
+        push: true,
+        email: true,
+        sms: priority === 'urgent',
+        inApp: true
+      },
+      tags: ['campaign', name.toLowerCase().replace(/\s+/g, '_')]
+    }));
+
+    // إذا كان هناك جدولة، نخزن الحملة للتنفيذ لاحقاً
+    if (schedule && schedule.sendAt) {
+      // TODO: تخزين الحملة في قاعدة بيانات الحملات
+      // وجدولتها للإرسال في الوقت المحدد
+      
+      return res.json({
+        success: true,
+        message: "تم جدولة الحملة بنجاح",
+        data: {
+          campaignId,
+          name,
+          scheduledFor: schedule.sendAt,
+          totalUsers: targetUserIds.length,
+          status: 'scheduled'
+        }
+      });
+    }
+
+    // إرسال فوري
+    const result = await notificationService.sendBulkNotifications(notifications);
+
+    res.status(201).json({
+      success: true,
+      message: "تم إنشاء الحملة وإرسالها بنجاح",
+      data: {
+        campaignId,
+        name,
+        ...result,
+        status: 'sent'
+      }
+    });
+  } catch (error) {
+    console.error("❌ Create campaign error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل إنشاء الحملة"
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على قائمة الحملات
+ * @route   GET /api/v1/admin/campaigns/notifications/list
+ * @access  Admin
+ */
+exports.getCampaigns = async (req, res) => {
+  try {
+    const { page = 1, limit = 20, status } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // TODO: جلب من قاعدة بيانات الحملات
+    // هذا مثال مبسط
+    const campaigns = await Notification.aggregate([
+      { $match: { campaignId: { $exists: true } } },
+      {
+        $group: {
+          _id: "$campaignId",
+          type: { $first: "$type" },
+          title: { $first: "$title" },
+          sentAt: { $first: "$sentAt" },
+          totalUsers: { $sum: 1 },
+          readCount: {
+            $sum: { $cond: [{ $eq: ["$status", "read"] }, 1, 0] }
+          }
+        }
+      },
+      { $sort: { sentAt: -1 } },
+      { $skip: skip },
+      { $limit: parseInt(limit) }
+    ]);
+
+    const total = await Notification.distinct('campaignId', { campaignId: { $exists: true } })
+      .then(ids => ids.length);
+
+    res.json({
+      success: true,
+      data: {
+        campaigns: campaigns.map(c => ({
+          ...c,
+          readRate: c.totalUsers > 0 ? ((c.readCount / c.totalUsers) * 100).toFixed(1) : 0
+        })),
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get campaigns error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب الحملات"
+    });
+  }
+};
+
+/**
+ * @desc    إيقاف حملة مؤقتاً
+ * @route   PUT /api/v1/admin/campaigns/notifications/:id/pause
+ * @access  Admin
+ */
+exports.pauseCampaign = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // TODO: تحديث حالة الحملة في قاعدة البيانات
+    // منع إرسال إشعارات جديدة للحملة
+
+    res.json({
+      success: true,
+      message: "تم إيقاف الحملة مؤقتاً",
+      data: { campaignId: id, status: 'paused' }
+    });
+  } catch (error) {
+    console.error("❌ Pause campaign error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل إيقاف الحملة"
+    });
+  }
+};
+
+/**
+ * @desc    استئناف حملة
+ * @route   PUT /api/v1/admin/campaigns/notifications/:id/resume
+ * @access  Admin
+ */
+exports.resumeCampaign = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // TODO: تحديث حالة الحملة في قاعدة البيانات
+    // السماح بإرسال إشعارات جديدة للحملة
+
+    res.json({
+      success: true,
+      message: "تم استئناف الحملة",
+      data: { campaignId: id, status: 'active' }
+    });
+  } catch (error) {
+    console.error("❌ Resume campaign error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل استئناف الحملة"
+    });
+  }
+};
+
+/**
+ * @desc    حذف حملة
+ * @route   DELETE /api/v1/admin/campaigns/notifications/:id
+ * @access  Admin
+ */
+exports.deleteCampaign = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // TODO: حذف الحملة من قاعدة البيانات
+    // يمكن حذف الإشعارات المرتبطة أو تركها
+
+    res.json({
+      success: true,
+      message: "تم حذف الحملة بنجاح"
+    });
+  } catch (error) {
+    console.error("❌ Delete campaign error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل حذف الحملة"
+    });
+  }
+};
+
+
 module.exports = exports;

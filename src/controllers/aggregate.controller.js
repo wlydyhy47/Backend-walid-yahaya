@@ -1986,3 +1986,592 @@ function calculateChange(current, previous) {
     trend: change >= 0 ? 'up' : 'down'
   };
 }
+
+/**
+ * @desc    تصدير تقرير الطلبات
+ * @route   GET /api/v1/admin/reports/orders
+ * @access  Admin
+ */
+exports.exportOrdersReport = async (req, res) => {
+  try {
+    const { from, to, format = 'json' } = req.query;
+
+    let dateQuery = {};
+    if (from || to) {
+      dateQuery = {};
+      if (from) dateQuery.$gte = new Date(from);
+      if (to) dateQuery.$lte = new Date(to);
+    }
+
+    const orders = await Order.find(dateQuery)
+      .populate('user', 'name phone')
+      .populate('store', 'name')
+      .populate('driver', 'name phone')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (format === 'json') {
+      return res.json({
+        success: true,
+        data: orders,
+        count: orders.length,
+        generatedAt: new Date()
+      });
+    }
+
+    // يمكن إضافة تصدير CSV أو Excel هنا
+    res.json({
+      success: true,
+      data: orders,
+      count: orders.length
+    });
+  } catch (error) {
+    console.error("❌ Export orders error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تصدير التقرير"
+    });
+  }
+};
+
+/**
+ * @desc    تصدير تقرير المستخدمين
+ */
+exports.exportUsersReport = async (req, res) => {
+  try {
+    const users = await User.find({})
+      .select('-password -verificationCode -resetPasswordToken')
+      .lean();
+
+    res.json({
+      success: true,
+      data: users,
+      count: users.length,
+      generatedAt: new Date()
+    });
+  } catch (error) {
+    console.error("❌ Export users error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تصدير تقرير المستخدمين"
+    });
+  }
+};
+
+/**
+ * @desc    تصدير تقرير الإيرادات
+ */
+exports.exportRevenueReport = async (req, res) => {
+  try {
+    const { from, to } = req.query;
+
+    let dateQuery = {};
+    if (from || to) {
+      dateQuery = {};
+      if (from) dateQuery.$gte = new Date(from);
+      if (to) dateQuery.$lte = new Date(to);
+    }
+
+    const revenue = await Order.aggregate([
+      {
+        $match: {
+          status: 'delivered',
+          ...dateQuery
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+            day: { $dayOfMonth: "$createdAt" }
+          },
+          totalRevenue: { $sum: "$totalPrice" },
+          totalOrders: { $sum: 1 },
+          avgOrderValue: { $avg: "$totalPrice" }
+        }
+      },
+      { $sort: { "_id.year": -1, "_id.month": -1, "_id.day": -1 } }
+    ]);
+
+    res.json({
+      success: true,
+      data: revenue,
+      generatedAt: new Date()
+    });
+  } catch (error) {
+    console.error("❌ Export revenue error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تصدير تقرير الإيرادات"
+    });
+  }
+};
+
+/**
+ * @desc    تصدير تقرير المندوبين
+ */
+exports.exportDriversReport = async (req, res) => {
+  try {
+    const drivers = await User.find({ role: 'driver' })
+      .select('name phone email driverInfo stats.isOnline')
+      .lean();
+
+    const driversWithStats = await Promise.all(
+      drivers.map(async (driver) => {
+        const deliveries = await Order.countDocuments({
+          driver: driver._id,
+          status: 'delivered'
+        });
+
+        const earnings = await Order.aggregate([
+          {
+            $match: {
+              driver: driver._id,
+              status: 'delivered'
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: { $multiply: ["$totalPrice", 0.8] } }
+            }
+          }
+        ]);
+
+        return {
+          ...driver,
+          totalDeliveries: deliveries,
+          totalEarnings: earnings[0]?.total || 0
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: driversWithStats,
+      count: driversWithStats.length,
+      generatedAt: new Date()
+    });
+  } catch (error) {
+    console.error("❌ Export drivers error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تصدير تقرير المندوبين"
+    });
+  }
+};
+
+/**
+ * @desc    تصدير تقرير المتاجر
+ */
+exports.exportStoresReport = async (req, res) => {
+  try {
+    const stores = await Store.find({})
+      .populate('owner', 'name phone')
+      .lean();
+
+    const storesWithStats = await Promise.all(
+      stores.map(async (store) => {
+        const products = await Product.countDocuments({ store: store._id });
+        const orders = await Order.countDocuments({ store: store._id });
+        const revenue = await Order.aggregate([
+          {
+            $match: {
+              store: store._id,
+              status: 'delivered'
+            }
+          },
+          {
+            $group: {
+              _id: null,
+              total: { $sum: "$totalPrice" }
+            }
+          }
+        ]);
+
+        return {
+          ...store,
+          totalProducts: products,
+          totalOrders: orders,
+          totalRevenue: revenue[0]?.total || 0
+        };
+      })
+    );
+
+    res.json({
+      success: true,
+      data: storesWithStats,
+      count: storesWithStats.length,
+      generatedAt: new Date()
+    });
+  } catch (error) {
+    console.error("❌ Export stores error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تصدير تقرير المتاجر"
+    });
+  }
+};
+
+/**
+ * @desc    إحصائيات متقدمة يومية
+ * @route   GET /api/v1/admin/advanced-stats/daily
+ * @access  Admin
+ */
+exports.getDailyAdvancedStats = async (req, res) => {
+  try {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+
+    const stats = await Promise.all([
+      // الطلبات اليوم
+      Order.aggregate([
+        { 
+          $match: { 
+            createdAt: { $gte: today, $lt: tomorrow } 
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            totalOrders: { $sum: 1 },
+            totalRevenue: { $sum: '$totalPrice' },
+            pendingOrders: {
+              $sum: { $cond: [{ $eq: ['$status', 'pending'] }, 1, 0] }
+            },
+            completedOrders: {
+              $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] }
+            },
+            cancelledOrders: {
+              $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] }
+            }
+          }
+        }
+      ]),
+
+      // المستخدمين الجدد اليوم
+      User.countDocuments({ 
+        createdAt: { $gte: today, $lt: tomorrow } 
+      }),
+
+      // المتاجر الجديدة اليوم
+      Store.countDocuments({ 
+        createdAt: { $gte: today, $lt: tomorrow } 
+      }),
+
+      // الطلبات حسب الساعة
+      Order.aggregate([
+        { 
+          $match: { 
+            createdAt: { $gte: today, $lt: tomorrow } 
+          }
+        },
+        {
+          $group: {
+            _id: { $hour: '$createdAt' },
+            count: { $sum: 1 },
+            revenue: { $sum: '$totalPrice' }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ])
+    ]);
+
+    res.json({
+      success: true,
+      data: {
+        date: today,
+        orders: stats[0][0] || { 
+          totalOrders: 0, 
+          totalRevenue: 0, 
+          pendingOrders: 0,
+          completedOrders: 0,
+          cancelledOrders: 0 
+        },
+        newUsers: stats[1],
+        newStores: stats[2],
+        hourlyStats: stats[3]
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get daily advanced stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب الإحصائيات اليومية المتقدمة"
+    });
+  }
+};
+
+/**
+ * @desc    إحصائيات متقدمة أسبوعية
+ * @route   GET /api/v1/admin/advanced-stats/weekly
+ * @access  Admin
+ */
+exports.getWeeklyAdvancedStats = async (req, res) => {
+  try {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    weekAgo.setHours(0, 0, 0, 0);
+
+    const stats = await Order.aggregate([
+      { 
+        $match: { 
+          createdAt: { $gte: weekAgo } 
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          orders: { $sum: 1 },
+          revenue: { $sum: '$totalPrice' },
+          completed: {
+            $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] }
+          },
+          cancelled: {
+            $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] }
+          }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const userGrowth = await User.aggregate([
+      { 
+        $match: { 
+          createdAt: { $gte: weekAgo } 
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+          newUsers: { $sum: 1 }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const totalWeek = stats.reduce((sum, day) => sum + day.revenue, 0);
+    const avgDaily = stats.length > 0 ? totalWeek / stats.length : 0;
+
+    res.json({
+      success: true,
+      data: {
+        dailyStats: stats,
+        userGrowth,
+        summary: {
+          totalRevenue: totalWeek,
+          averageDailyRevenue: avgDaily,
+          bestDay: stats.reduce((best, day) => 
+            day.revenue > (best?.revenue || 0) ? day : best, null),
+          worstDay: stats.reduce((worst, day) => 
+            day.revenue < (worst?.revenue || Infinity) ? day : worst, stats[0])
+        }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get weekly advanced stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب الإحصائيات الأسبوعية المتقدمة"
+    });
+  }
+};
+
+/**
+ * @desc    إحصائيات متقدمة شهرية
+ * @route   GET /api/v1/admin/advanced-stats/monthly
+ * @access  Admin
+ */
+exports.getMonthlyAdvancedStats = async (req, res) => {
+  try {
+    const { year, month } = req.query;
+
+    let startDate, endDate;
+    
+    if (year && month) {
+      startDate = new Date(year, month - 1, 1);
+      endDate = new Date(year, month, 1);
+    } else {
+      startDate = new Date();
+      startDate.setDate(1);
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(startDate);
+      endDate.setMonth(endDate.getMonth() + 1);
+    }
+
+    const stats = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate, $lt: endDate }
+        }
+      },
+      {
+        $facet: {
+          daily: [
+            {
+              $group: {
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                orders: { $sum: 1 },
+                revenue: { $sum: '$totalPrice' }
+              }
+            },
+            { $sort: { _id: 1 } }
+          ],
+          byStatus: [
+            {
+              $group: {
+                _id: '$status',
+                count: { $sum: 1 },
+                revenue: { $sum: '$totalPrice' }
+              }
+            }
+          ],
+          totals: [
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $sum: 1 },
+                totalRevenue: { $sum: '$totalPrice' },
+                avgOrderValue: { $avg: '$totalPrice' }
+              }
+            }
+          ]
+        }
+      }
+    ]);
+
+    const usersThisMonth = await User.countDocuments({
+      createdAt: { $gte: startDate, $lt: endDate }
+    });
+
+    const storesThisMonth = await Store.countDocuments({
+      createdAt: { $gte: startDate, $lt: endDate }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        period: {
+          year: startDate.getFullYear(),
+          month: startDate.getMonth() + 1,
+          monthName: startDate.toLocaleString('ar-SA', { month: 'long' })
+        },
+        orders: stats[0]?.daily || [],
+        byStatus: stats[0]?.byStatus || [],
+        totals: stats[0]?.totals[0] || {
+          totalOrders: 0,
+          totalRevenue: 0,
+          avgOrderValue: 0
+        },
+        newUsers: usersThisMonth,
+        newStores: storesThisMonth,
+        projectedRevenue: (stats[0]?.totals[0]?.totalRevenue || 0) * 1.1
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get monthly advanced stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب الإحصائيات الشهرية المتقدمة"
+    });
+  }
+};
+
+/**
+ * @desc    إحصائيات مخصصة (فترة زمنية مخصصة)
+ * @route   GET /api/v1/admin/advanced-stats/custom
+ * @access  Admin
+ */
+exports.getCustomStats = async (req, res) => {
+  try {
+    const { from, to, groupBy = 'day' } = req.query;
+
+    if (!from || !to) {
+      return res.status(400).json({
+        success: false,
+        message: "تاريخ البداية والنهاية مطلوبان"
+      });
+    }
+
+    const startDate = new Date(from);
+    const endDate = new Date(to);
+    endDate.setHours(23, 59, 59, 999);
+
+    let groupFormat;
+    switch (groupBy) {
+      case 'hour':
+        groupFormat = '%Y-%m-%d %H:00';
+        break;
+      case 'day':
+        groupFormat = '%Y-%m-%d';
+        break;
+      case 'week':
+        groupFormat = '%Y-%U';
+        break;
+      case 'month':
+        groupFormat = '%Y-%m';
+        break;
+      default:
+        groupFormat = '%Y-%m-%d';
+    }
+
+    const orders = await Order.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: { $dateToString: { format: groupFormat, date: '$createdAt' } },
+          orders: { $sum: 1 },
+          revenue: { $sum: '$totalPrice' },
+          completed: {
+            $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] }
+          }
+        }
+      },
+      { $sort: { _id: 1 } }
+    ]);
+
+    const users = await User.countDocuments({
+      createdAt: { $gte: startDate, $lte: endDate }
+    });
+
+    const stores = await Store.countDocuments({
+      createdAt: { $gte: startDate, $lte: endDate }
+    });
+
+    const totalRevenue = orders.reduce((sum, period) => sum + period.revenue, 0);
+
+    res.json({
+      success: true,
+      data: {
+        period: {
+          from: startDate,
+          to: endDate,
+          groupBy
+        },
+        stats: orders,
+        summary: {
+          totalOrders: orders.reduce((sum, period) => sum + period.orders, 0),
+          totalRevenue,
+          averagePerPeriod: orders.length > 0 ? totalRevenue / orders.length : 0,
+          newUsers: users,
+          newStores: stores,
+          daysInPeriod: Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))
+        }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get custom stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب الإحصائيات المخصصة"
+    });
+  }
+};
