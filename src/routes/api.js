@@ -7,13 +7,13 @@ const express = require('express');
 const router = express.Router();
 
 // ========== الإصدار الأول ==========
-const v1Routes = require('./index'); // المسار الرئيسي
+const v1Routes = require('./index');
 
 // ========== استخدام الإصدارات ==========
 router.use('/v1', v1Routes);
 
 // ========== مسار للإصدار الافتراضي ==========
-router.use('/', v1Routes); // /api -> v1
+router.use('/', v1Routes);
 
 // ========== معلومات الإصدارات ==========
 router.get('/', (req, res) => {
@@ -24,7 +24,14 @@ router.get('/', (req, res) => {
       v1: {
         status: 'active',
         url: '/api/v1',
-        docs: '/api-docs'
+        docs: '/api-docs',
+        endpoints: {
+          public: '/api/v1/public',
+          client: '/api/v1/client',
+          vendor: '/api/v1/vendor',
+          driver: '/api/v1/driver',
+          admin: '/api/v1/admin'
+        }
       }
     },
     documentation: '/api-docs'

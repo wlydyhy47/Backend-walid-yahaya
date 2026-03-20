@@ -14,9 +14,9 @@ const orderSchema = new mongoose.Schema(
       index: true,
     },
     
-    restaurant: {
+    store: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Restaurant",
+      ref: "Store",
       required: true,
       index: true,
     },
@@ -163,7 +163,7 @@ const orderSchema = new mongoose.Schema(
 // ========== Indexes ==========
 orderSchema.index({ user: 1, createdAt: -1 });
 orderSchema.index({ driver: 1, status: 1 });
-orderSchema.index({ restaurant: 1, createdAt: -1 });
+orderSchema.index({ store: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 
 // ========== Virtuals ==========

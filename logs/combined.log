@@ -140,3 +140,47 @@ MongooseServerSelectionError: Server selection timed out after 5000 ms
   "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
   "name": "test"
 }
+2026-03-20 03:37:44 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-20 03:37:44 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-20 03:37:44 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-20 03:37:44 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-20 03:37:44 [info]: Business Action: Socket.io initialized successfully
+2026-03-20 03:37:44 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-20 03:37:44 [info]: Business Action: Chat socket service initialized
+2026-03-20 03:37:45 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-20 03:37:46 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-20 03:44:34 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-20 03:44:35 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-20 03:44:35 [warn]: Business Warning: Redis is disabled or URL not provided
+2026-03-20 03:44:35 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-20 03:44:35 [info]: Business Action: Socket.io initialized successfully
+2026-03-20 03:44:35 [info]: Business Action: ChatSocketService initialized with Socket.IO
+2026-03-20 03:44:35 [info]: Business Action: Chat socket service initialized
+2026-03-20 03:44:36 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-20 03:44:36 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}

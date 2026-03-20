@@ -1,13 +1,14 @@
 // ============================================
-// ملف: src/models/user.model.js (محدث)
+// ملف: src/models/user.model.js (مصحح)
 // الوصف: نموذج المستخدم مع دعم Loyalty Points
+// الإصدار: 4.0
 // ============================================
 
-const mongoose = require("mongoose");
+const mongoose = require("mongoose"); // ✅ إضافة هذا السطر في البداية
 
 const userSchema = new mongoose.Schema(
   {
-    // المعلومات الأساسية (موجودة مسبقاً)
+    // المعلومات الأساسية
     name: {
       type: String,
       required: true,
@@ -22,7 +23,6 @@ const userSchema = new mongoose.Schema(
       unique: true,
       trim: true,
       match: [/^\+?[\d\s\-\(\)]+$/, "Please enter a valid phone number"],
-      index: true,
     },
 
     email: {
@@ -53,9 +53,8 @@ const userSchema = new mongoose.Schema(
     // الأدوار والصلاحيات
     role: {
       type: String,
-      enum: ["client", "driver", "admin", "restaurant_owner"],
+      enum: ["client", "driver", "admin", "store_owner"],
       default: "client",
-      index: true,
     },
 
     // حالة الحساب
@@ -118,20 +117,13 @@ const userSchema = new mongoose.Schema(
       enum: ["male", "female", "other", "prefer-not-to-say"],
     },
 
-    // ========== 🔥 إضافات جديدة ==========
-
-    /**
-     * نقاط الولاء
-     */
+    // نقاط الولاء
     loyaltyPoints: {
       type: Number,
       default: 0,
       min: 0,
     },
 
-    /**
-     * سجل معاملات الولاء
-     */
     loyaltyTransactions: [{
       type: {
         type: String,
@@ -159,24 +151,17 @@ const userSchema = new mongoose.Schema(
       }
     }],
 
-    /**
-     * محاولات تسجيل الدخول الفاشلة (للأمان)
-     */
+    // محاولات تسجيل الدخول الفاشلة
     loginAttempts: {
       type: Number,
       default: 0,
       select: false
     },
 
-    /**
-     * وقت قفل الحساب (للأمان)
-     */
     lockUntil: {
       type: Date,
       select: false
     },
-
-    // ========== نهاية الإضافات ==========
 
     // إعدادات المستخدم
     preferences: {
@@ -247,11 +232,11 @@ const userSchema = new mongoose.Schema(
       }],
     },
 
-    // لصاحب المطعم
-    restaurantOwnerInfo: {
-      restaurant: {
+    // لصاحب المتجر
+    storeOwnerInfo: {
+      store: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Restaurant",
+        ref: "Store",
         default: null,
       },
       subscription: {
@@ -289,7 +274,7 @@ const userSchema = new mongoose.Schema(
         totalCustomers: { type: Number, default: 0 },
         cancellationRate: { type: Number, default: 0 },
       },
-      isRestaurantOpen: { type: Boolean, default: true },
+      isStoreOpen: { type: Boolean, default: true },
       staff: [{
         user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
         role: { type: String, enum: ["manager", "chef", "cashier"] },
@@ -317,7 +302,7 @@ const userSchema = new mongoose.Schema(
     // المفضلات
     favorites: [{
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Restaurant",
+      ref: "Store",
     }],
 
     // سجل النشاطات
@@ -341,7 +326,7 @@ userSchema.index({ location: "2dsphere" });
 userSchema.index({ "driverInfo.currentLocation": "2dsphere" });
 userSchema.index({ role: 1, isActive: 1 });
 userSchema.index({ createdAt: -1 });
-userSchema.index({ loyaltyPoints: -1 }); // للبحث حسب النقاط
+userSchema.index({ loyaltyPoints: -1 });
 
 // ========== Virtuals ==========
 userSchema.virtual("age").get(function () {
@@ -472,7 +457,6 @@ userSchema.methods.redeemLoyaltyPoints = async function (amount, reason, rewardI
  * تسجيل محاولة دخول فاشلة
  */
 userSchema.methods.incLoginAttempts = async function () {
-  // إعادة تعيين بعد 2 ساعة
   if (this.lockUntil && this.lockUntil < new Date()) {
     return this.updateOne({
       $set: { loginAttempts: 1 },
@@ -482,7 +466,6 @@ userSchema.methods.incLoginAttempts = async function () {
   
   const updates = { $inc: { loginAttempts: 1 } };
   
-  // قفل الحساب بعد 5 محاولات فاشلة
   if (this.loginAttempts + 1 >= 5 && !this.isLocked) {
     updates.$set = { lockUntil: new Date(Date.now() + 2 * 60 * 60 * 1000) };
   }

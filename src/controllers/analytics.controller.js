@@ -6,8 +6,8 @@
 
 const User = require("../models/user.model");
 const Order = require("../models/order.model");
-const Restaurant = require("../models/restaurant.model");
-const Item = require("../models/item.model");
+const Restaurant = require("../models/store.model");
+const Item = require("../models/product.model");
 const Review = require("../models/review.model");
 const cache = require("../utils/cache.util");
 const performanceService = require("../services/performance.service");
@@ -72,7 +72,7 @@ exports.trackEvent = async (req, res) => {
     if (!global.analyticsEvents) {
       global.analyticsEvents = [];
     }
-    
+
     global.analyticsEvents.push({
       eventName,
       category,
@@ -209,7 +209,7 @@ exports.getPerformanceStats = async (req, res) => {
       },
       events: {
         total: global.analyticsEvents?.length || 0,
-        lastHour: global.analyticsEvents?.filter(e => 
+        lastHour: global.analyticsEvents?.filter(e =>
           new Date(e.timestamp) > new Date(Date.now() - 60 * 60 * 1000)
         ).length || 0
       }
@@ -254,7 +254,7 @@ exports.getPerformanceReport = async (req, res) => {
 exports.resetPerformance = async (req, res) => {
   try {
     performanceService.reset();
-    
+
     // إعادة تعيين الأحداث أيضاً
     global.analyticsEvents = [];
 
@@ -304,7 +304,7 @@ exports.getDashboardOverview = async (req, res) => {
 
     const cacheKey = `analytics:dashboard:${period}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       return res.json({
         success: true,
@@ -590,7 +590,7 @@ exports.getUserAnalytics = async (req, res) => {
         retention: {
           active: retention[0]?.active[0]?.count || 0,
           returning: retention[0]?.returning[0]?.count || 0,
-          rate: retention[0]?.active[0]?.count ? 
+          rate: retention[0]?.active[0]?.count ?
             ((retention[0]?.returning[0]?.count || 0) / retention[0]?.active[0]?.count * 100).toFixed(1) : 0
         },
         byLocation
@@ -690,7 +690,7 @@ exports.getOrderAnalytics = async (req, res) => {
           data: byHour.map(h => h.count)
         },
         completion: {
-          rate: completionRate[0] ? 
+          rate: completionRate[0] ?
             ((completionRate[0].completed / completionRate[0].total) * 100).toFixed(1) : 0,
           total: completionRate[0]?.total || 0,
           completed: completionRate[0]?.completed || 0,

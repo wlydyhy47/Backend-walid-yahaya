@@ -1,6 +1,7 @@
 // ============================================
-// ملف: src/routes/user.routes.js
-// الوصف: مسارات المستخدمين - نسخة محدثة
+// ملف: src/routes/user.routes.js (مصحح)
+// الوصف: مسارات المستخدمين
+// الإصدار: 4.0
 // ============================================
 
 const express = require("express");
@@ -18,36 +19,156 @@ const upload = require("../middlewares/upload");
 const PaginationUtils = require('../utils/pagination.util');
 
 // ========== 1. مسارات المسؤول ==========
-router.get("/", auth, role("admin"), PaginationUtils.validatePaginationParams, userController.getUsers);
-router.get("/:id", auth, role("admin"), userController.getUserById);
-router.post("/", auth, role("admin"), userController.createUser);
-router.put("/:id", auth, role("admin"), userController.updateUserById);
-router.delete("/:id", auth, role("admin"), userController.deleteUserById);
+/**
+ * @route   GET /api/v1/admin/users
+ * @desc    الحصول على جميع المستخدمين
+ * @access  Admin
+ */
+router.get("/admin/users", auth, role("admin"), PaginationUtils.validatePaginationParams, userController.getUsers);
+
+/**
+ * @route   GET /api/v1/admin/users/:id
+ * @desc    الحصول على مستخدم محدد
+ * @access  Admin
+ */
+router.get("/admin/users/:id", auth, role("admin"), userController.getUserById);
+
+/**
+ * @route   POST /api/v1/admin/users
+ * @desc    إنشاء مستخدم جديد
+ * @access  Admin
+ */
+router.post("/admin/users", auth, role("admin"), userController.createUser);
+
+/**
+ * @route   PUT /api/v1/admin/users/:id
+ * @desc    تحديث مستخدم
+ * @access  Admin
+ */
+router.put("/admin/users/:id", auth, role("admin"), userController.updateUserById);
+
+/**
+ * @route   DELETE /api/v1/admin/users/:id
+ * @desc    حذف/تعطيل مستخدم
+ * @access  Admin
+ */
+router.delete("/admin/users/:id", auth, role("admin"), userController.deleteUserById);
 
 // ========== 2. مسارات المستخدم الحالي ==========
-router.get("/me", auth, userController.getMyProfile);
-router.get("/me/complete", auth, userController.getMyCompleteProfile);
-router.put("/me", auth, userController.updateMyProfile);
-router.put("/me/complete", auth, userController.updateCompleteProfile);
+/**
+ * @route   GET /api/v1/client/profile
+ * @desc    الملف الشخصي للمستخدم
+ * @access  Authenticated
+ */
+router.get("/client/profile", auth, userController.getMyProfile);
 
-// الصور
-router.put("/me/avatar", auth, upload("users/avatars").single("image"), userController.uploadAvatar);
-router.put("/me/cover", auth, upload("users/covers").single("image"), userController.updateCoverImage);
-router.delete("/me/avatar", auth, userController.deleteAvatar);
+/**
+ * @route   GET /api/v1/client/profile/complete
+ * @desc    الملف الشخصي الكامل
+ * @access  Authenticated
+ */
+router.get("/client/profile/complete", auth, userController.getMyCompleteProfile);
 
-// الأمان
-router.put("/me/password", auth, userController.changePassword);
+/**
+ * @route   PUT /api/v1/client/profile
+ * @desc    تحديث الملف الشخصي
+ * @access  Authenticated
+ */
+router.put("/client/profile", auth, userController.updateMyProfile);
 
-// ========== 3. المفضلة ==========
-router.get("/me/favorites", auth, userController.getMyFavorites);
-router.post("/me/favorites/:restaurantId", auth, userController.addToFavorites);
-router.delete("/me/favorites/:restaurantId", auth, userController.removeFromFavorites);
-router.get("/me/favorites/:restaurantId/status", auth, userController.checkFavoriteStatus);
-router.put("/me/favorites/:restaurantId", auth, userController.updateFavorite);
+/**
+ * @route   PUT /api/v1/client/profile/complete
+ * @desc    تحديث الملف الشخصي الكامل
+ * @access  Authenticated
+ */
+router.put("/client/profile/complete", auth, userController.updateCompleteProfile);
 
-// ========== 4. الإحصائيات ==========
-router.get("/me/stats", auth, userController.getUserStats);
-router.get("/me/activity", auth, PaginationUtils.validatePaginationParams, userController.getActivityLog);
-router.put("/me/presence", auth, userController.updatePresence);
+// ========== 3. الصور ==========
+/**
+ * @route   PUT /api/v1/client/profile/avatar
+ * @desc    رفع الصورة الشخصية
+ * @access  Authenticated
+ */
+router.put("/client/profile/avatar", auth, upload("users/avatars").single("image"), userController.uploadAvatar);
+
+/**
+ * @route   PUT /api/v1/client/profile/cover
+ * @desc    تحديث صورة الغلاف
+ * @access  Authenticated
+ */
+router.put("/client/profile/cover", auth, upload("users/covers").single("image"), userController.updateCoverImage);
+
+/**
+ * @route   DELETE /api/v1/client/profile/avatar
+ * @desc    حذف الصورة الشخصية
+ * @access  Authenticated
+ */
+router.delete("/client/profile/avatar", auth, userController.deleteAvatar);
+
+// ========== 4. الأمان ==========
+/**
+ * @route   PUT /api/v1/client/profile/password
+ * @desc    تغيير كلمة المرور
+ * @access  Authenticated
+ */
+router.put("/client/profile/password", auth, userController.changePassword);
+
+// ========== 5. المفضلة ==========
+/**
+ * @route   GET /api/v1/client/favorites
+ * @desc    الحصول على المفضلة
+ * @access  Authenticated
+ */
+router.get("/client/favorites", auth, userController.getMyFavorites);
+
+/**
+ * @route   POST /api/v1/client/favorites/:storeId
+ * @desc    إضافة للمفضلة
+ * @access  Authenticated
+ */
+router.post("/client/favorites/:storeId", auth, userController.addToFavorites);
+
+/**
+ * @route   DELETE /api/v1/client/favorites/:storeId
+ * @desc    إزالة من المفضلة
+ * @access  Authenticated
+ */
+router.delete("/client/favorites/:storeId", auth, userController.removeFromFavorites);
+
+/**
+ * @route   GET /api/v1/client/favorites/:storeId/status
+ * @desc    التحقق من حالة المفضلة
+ * @access  Authenticated
+ */
+router.get("/client/favorites/:storeId/status", auth, userController.checkFavoriteStatus);
+
+/**
+ * @route   PUT /api/v1/client/favorites/:storeId
+ * @desc    تحديث المفضلة
+ * @access  Authenticated
+ */
+router.put("/client/favorites/:storeId", auth, userController.updateFavorite);
+
+// ========== 6. الإحصائيات ==========
+/**
+ * @route   GET /api/v1/client/stats
+ * @desc    إحصائيات المستخدم
+ * @access  Authenticated
+ */
+router.get("/client/stats", auth, userController.getUserStats);
+
+/**
+ * @route   GET /api/v1/client/activity
+ * @desc    سجل النشاطات
+ * @access  Authenticated
+ */
+router.get("/client/activity", auth, PaginationUtils.validatePaginationParams, userController.getActivityLog);
+
+/**
+ * @route   PUT /api/v1/client/presence
+ * @desc    تحديث حالة التواجد
+ * @access  Authenticated
+ */
+router.put("/client/presence", auth, userController.updatePresence);
 
 module.exports = router;

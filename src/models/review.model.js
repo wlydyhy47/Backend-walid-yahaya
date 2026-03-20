@@ -7,9 +7,9 @@ const reviewSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    restaurant: {
+    store: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Restaurant",
+      ref: "Store",
       required: true,
     },
     rating: {
@@ -27,6 +27,6 @@ const reviewSchema = new mongoose.Schema(
 );
 
 // 🚫 منع نفس المستخدم من تقييم نفس المطعم مرتين
-reviewSchema.index({ user: 1, restaurant: 1 }, { unique: true });
+reviewSchema.index({ user: 1, store: 1 }, { unique: true });
 
 module.exports = mongoose.model("Review", reviewSchema);

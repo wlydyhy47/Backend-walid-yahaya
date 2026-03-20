@@ -1,13 +1,13 @@
 // ============================================
-// ملف: src/controllers/order.controller.js
+// ملف: src/controllers/order.controller.js (مصحح)
 // الوصف: التحكم الكامل في عمليات الطلبات
-// الإصدار: 3.0 (نهائي - جميع الدوال)
+// الإصدار: 4.0 (مصحح بالكامل)
 // ============================================
 
 const Order = require("../models/order.model");
 const User = require("../models/user.model");
 const Address = require("../models/address.model");
-const Restaurant = require("../models/restaurant.model");
+const Store = require("../models/store.model");
 const DriverLocation = require("../models/driverLocation.model");
 const Review = require("../models/review.model");
 const Notification = require("../models/notification.model");
@@ -24,8 +24,8 @@ const { AppError } = require('../middlewares/errorHandler.middleware');
 const assignClosestDriver = async (orderId, pickupCoordinates) => {
   try {
     // البحث عن سائق متاح بالقرب من موقع الاستلام
-    const nearestDriver = await DriverLocation.findOne({ 
-      order: null 
+    const nearestDriver = await DriverLocation.findOne({
+      order: null
     }).where('location').near({
       center: {
         type: 'Point',
@@ -68,11 +68,11 @@ const invalidateOrderCache = async (orderId, userId) => {
     cache.del(`dashboard:${userId}`);
     cache.del(`user:complete:${userId}`);
     cache.del(`user:stats:${userId}`);
-    
+
     // كاش الطلب
     cache.del(`order:tracking:${orderId}:${userId}`);
     cache.del(`order:full:${orderId}`);
-    
+
     // كاش عام
     cache.invalidatePattern('orders:user:*');
     cache.invalidatePattern('orders:admin:*');
@@ -89,14 +89,14 @@ const invalidateOrderCache = async (orderId, userId) => {
  */
 const calculateETA = (order) => {
   if (!order) return 'غير معروف';
-  
+
   const now = new Date();
   const created = new Date(order.createdAt);
   const elapsedMinutes = Math.floor((now - created) / 60000);
-  
+
   const baseTime = order.estimatedDeliveryTime || 30;
   const remaining = Math.max(0, baseTime - elapsedMinutes);
-  
+
   const statusTimes = {
     pending: `${baseTime} دقيقة`,
     accepted: `${Math.max(5, remaining)} دقيقة`,
@@ -105,7 +105,7 @@ const calculateETA = (order) => {
     delivered: 'تم التوصيل',
     cancelled: 'ملغي'
   };
-  
+
   return statusTimes[order.status] || 'قيد الحساب';
 };
 
@@ -175,7 +175,7 @@ const createOrderTimeline = (order) => {
     {
       status: 'accepted',
       title: 'تم قبول الطلب',
-      description: order.driver ? 'تم تعيين مندوب' : 'بانتظار قبول المطعم',
+      description: order.driver ? 'تم تعيين مندوب' : 'بانتظار قبول المتجر',
       timestamp: order.status !== 'pending' ? order.updatedAt : null,
       completed: ['accepted', 'ready', 'picked', 'delivered'].includes(order.status),
       icon: '✅'
@@ -183,14 +183,14 @@ const createOrderTimeline = (order) => {
     {
       status: 'ready',
       title: 'الطلب جاهز',
-      description: 'الطلب جاهز للاستلام من المطعم',
+      description: 'الطلب جاهز للاستلام من المتجر',
       timestamp: order.status === 'ready' ? order.updatedAt : null,
       completed: ['ready', 'picked', 'delivered'].includes(order.status),
       icon: '🍽️'
     },
     {
       status: 'picked',
-      title: 'تم الاستلام من المطعم',
+      title: 'تم الاستلام من المتجر',
       description: 'المندوب في طريقه إليك',
       timestamp: ['picked', 'delivered'].includes(order.status) ? order.updatedAt : null,
       completed: ['picked', 'delivered'].includes(order.status),
@@ -211,40 +211,40 @@ const createOrderTimeline = (order) => {
 
 /**
  * @desc    إنشاء طلب جديد
- * @route   POST /api/orders
+ * @route   POST /api/v1/client/orders
  * @access  Client
  */
 exports.createOrder = async (req, res) => {
   try {
-    const { items, totalPrice, pickupAddress, deliveryAddress, restaurant, notes } = req.body;
+    const { items, totalPrice, pickupAddress, deliveryAddress, store, notes } = req.body;
     const userId = req.user.id;
 
     // التحقق من البيانات
     if (!items || !Array.isArray(items) || items.length === 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "يجب إضافة عناصر للطلب" 
+        message: "يجب إضافة عناصر للطلب"
       });
     }
 
     if (!totalPrice || totalPrice <= 0) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "السعر الإجمالي غير صالح" 
+        message: "السعر الإجمالي غير صالح"
       });
     }
 
     if (!pickupAddress || !deliveryAddress) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "عنوان الاستلام والتوصيل مطلوبان" 
+        message: "عنوان الاستلام والتوصيل مطلوبان"
       });
     }
 
-    if (!restaurant) {
-      return res.status(400).json({ 
+    if (!store) {
+      return res.status(400).json({
         success: false,
-        message: "المطعم مطلوب" 
+        message: "المتجر مطلوب"
       });
     }
 
@@ -255,18 +255,18 @@ exports.createOrder = async (req, res) => {
     ]);
 
     if (!pickup || !delivery) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "العناوين غير صالحة أو لا تملك صلاحية الوصول إليها" 
+        message: "العناوين غير صالحة أو لا تملك صلاحية الوصول إليها"
       });
     }
 
-    // التحقق من أن المطعم مفتوح
-    const restaurantInfo = await Restaurant.findById(restaurant);
-    if (!restaurantInfo || !restaurantInfo.isOpen) {
+    // التحقق من أن المتجر مفتوح
+    const storeInfo = await Store.findById(store);
+    if (!storeInfo || !storeInfo.isOpen) {
       return res.status(400).json({
         success: false,
-        message: "المطعم مغلق حالياً"
+        message: "المتجر مغلق حالياً"
       });
     }
 
@@ -277,17 +277,17 @@ exports.createOrder = async (req, res) => {
       totalPrice,
       pickupAddress,
       deliveryAddress,
-      restaurant,
+      store,
       status: "pending",
       notes: notes?.trim(),
-      estimatedDeliveryTime: restaurantInfo.estimatedDeliveryTime || 30
+      estimatedDeliveryTime: storeInfo.deliveryInfo?.estimatedDeliveryTime || 30
     });
 
     // محاولة تعيين أقرب سائق تلقائيًا
     let assignedDriver = null;
     if (pickup.latitude && pickup.longitude) {
       assignedDriver = await assignClosestDriver(
-        order._id, 
+        order._id,
         [pickup.longitude, pickup.latitude]
       );
     }
@@ -309,7 +309,7 @@ exports.createOrder = async (req, res) => {
     const populatedOrder = await Order.findById(order._id)
       .populate("user", "name phone image")
       .populate("driver", "name phone image rating")
-      .populate("restaurant", "name image phone estimatedDeliveryTime")
+      .populate("store", "name image phone deliveryInfo")
       .populate("pickupAddress")
       .populate("deliveryAddress")
       .lean();
@@ -336,7 +336,7 @@ exports.createOrder = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Create order error:', error.message);
-    
+
     if (error.name === 'ValidationError') {
       return res.status(400).json({
         success: false,
@@ -344,8 +344,8 @@ exports.createOrder = async (req, res) => {
         errors: Object.values(error.errors).map(err => err.message)
       });
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       success: false,
       message: "فشل إنشاء الطلب"
     });
@@ -356,7 +356,7 @@ exports.createOrder = async (req, res) => {
 
 /**
  * @desc    الحصول على تفاصيل الطلب (موحد)
- * @route   GET /api/orders/:id
+ * @route   GET /api/v1/orders/:id
  * @access  Authenticated (Owner, Driver, Admin)
  */
 exports.getOrderDetails = async (req, res) => {
@@ -367,7 +367,7 @@ exports.getOrderDetails = async (req, res) => {
 
     const cacheKey = `order:full:${id}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData && cachedData.userId === userId) {
       console.log(`📦 Serving order ${id} from cache`);
       return res.json({
@@ -379,7 +379,7 @@ exports.getOrderDetails = async (req, res) => {
     const order = await Order.findById(id)
       .populate('user', 'name phone email image')
       .populate('driver', 'name phone email image rating totalDeliveries')
-      .populate('restaurant', 'name image phone addressLine')
+      .populate('store', 'name image phone addressLine')
       .populate('pickupAddress')
       .populate('deliveryAddress')
       .populate('items.item')
@@ -407,23 +407,23 @@ exports.getOrderDetails = async (req, res) => {
     // جلب موقع المندوب إذا كان موجود
     let driverLocation = null;
     let locationHistory = [];
-    
+
     if (order.driver && ['accepted', 'ready', 'picked'].includes(order.status)) {
       [driverLocation, locationHistory] = await Promise.all([
         DriverLocation.findOne({
           driver: order.driver._id,
           order: order._id
         }).lean(),
-        
+
         DriverLocation.find({
           driver: order.driver._id,
           order: order._id,
           createdAt: { $gte: new Date(Date.now() - 30 * 60 * 1000) }
         })
-        .select('location createdAt')
-        .sort({ createdAt: 1 })
-        .limit(20)
-        .lean()
+          .select('location createdAt')
+          .sort({ createdAt: 1 })
+          .limit(20)
+          .lean()
       ]);
     }
 
@@ -472,7 +472,7 @@ exports.getOrderDetails = async (req, res) => {
 
 /**
  * @desc    الحصول على طلبات المستخدم الحالي
- * @route   GET /api/orders/me
+ * @route   GET /api/v1/client/orders/me
  * @access  Client
  */
 exports.getMyOrdersPaginated = async (req, res) => {
@@ -480,17 +480,17 @@ exports.getMyOrdersPaginated = async (req, res) => {
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, filters } = paginationOptions;
     const userId = req.user.id;
-    
+
     let query = { user: userId };
-    
+
     if (filters.status) {
       query.status = filters.status;
     }
-    
-    if (filters.restaurant) {
-      query.restaurant = filters.restaurant;
+
+    if (filters.store) {
+      query.store = filters.store;
     }
-    
+
     if (filters.minDate || filters.maxDate) {
       query.createdAt = {};
       if (filters.minDate) query.createdAt.$gte = new Date(filters.minDate);
@@ -499,7 +499,7 @@ exports.getMyOrdersPaginated = async (req, res) => {
 
     const cacheKey = `orders:user:${userId}:${JSON.stringify(query)}:${skip}:${limit}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       console.log(`📦 Serving user orders from cache for user ${userId}`);
       return res.json({
@@ -511,7 +511,7 @@ exports.getMyOrdersPaginated = async (req, res) => {
     const [orders, total] = await Promise.all([
       Order.find(query)
         .populate('driver', 'name phone image')
-        .populate('restaurant', 'name image')
+        .populate('store', 'name image')
         .populate('pickupAddress', 'label addressLine city')
         .populate('deliveryAddress', 'label addressLine city')
         .select('status totalPrice createdAt items estimatedDeliveryTime')
@@ -519,7 +519,7 @@ exports.getMyOrdersPaginated = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-      
+
       Order.countDocuments(query)
     ]);
 
@@ -566,13 +566,13 @@ exports.getMyOrdersPaginated = async (req, res) => {
         }
       }
     );
-    
+
     cache.set(cacheKey, response, 60); // دقيقة واحدة
-    
+
     res.json(response);
   } catch (error) {
     console.error('❌ Get my orders error:', error.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: 'فشل جلب الطلبات'
     });
@@ -581,7 +581,7 @@ exports.getMyOrdersPaginated = async (req, res) => {
 
 /**
  * @desc    الحصول على طلبات المندوب
- * @route   GET /api/orders/driver/me
+ * @route   GET /api/v1/driver/deliveries
  * @access  Driver
  */
 exports.getDriverOrders = async (req, res) => {
@@ -596,13 +596,13 @@ exports.getDriverOrders = async (req, res) => {
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, filters } = paginationOptions;
     const driverId = req.user.id;
-    
+
     let query = { driver: driverId };
-    
+
     if (filters.status) {
       query.status = filters.status;
     }
-    
+
     if (filters.minDate || filters.maxDate) {
       query.createdAt = {};
       if (filters.minDate) query.createdAt.$gte = new Date(filters.minDate);
@@ -612,7 +612,7 @@ exports.getDriverOrders = async (req, res) => {
     const [orders, total] = await Promise.all([
       Order.find(query)
         .populate('user', 'name phone image')
-        .populate('restaurant', 'name image addressLine phone')
+        .populate('store', 'name image addressLine phone')
         .populate('pickupAddress', 'label addressLine city latitude longitude')
         .populate('deliveryAddress', 'label addressLine city latitude longitude')
         .select('status totalPrice createdAt items notes')
@@ -620,7 +620,7 @@ exports.getDriverOrders = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-      
+
       Order.countDocuments(query)
     ]);
 
@@ -643,9 +643,9 @@ exports.getDriverOrders = async (req, res) => {
     const totalEarnings = driverStats
       .reduce((sum, stat) => sum + stat.totalEarnings, 0);
 
-    const currentActive = await Order.countDocuments({ 
-      driver: driverId, 
-      status: { $in: ['accepted', 'ready', 'picked'] } 
+    const currentActive = await Order.countDocuments({
+      driver: driverId,
+      status: { $in: ['accepted', 'ready', 'picked'] }
     });
 
     const response = PaginationUtils.createPaginationResponse(
@@ -667,11 +667,11 @@ exports.getDriverOrders = async (req, res) => {
         }
       }
     );
-    
+
     res.json(response);
   } catch (error) {
     console.error('❌ Get driver orders error:', error.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: 'فشل جلب طلبات المندوب'
     });
@@ -680,7 +680,7 @@ exports.getDriverOrders = async (req, res) => {
 
 /**
  * @desc    الحصول على جميع الطلبات (للأدمن)
- * @route   GET /api/orders
+ * @route   GET /api/v1/admin/orders
  * @access  Admin
  */
 exports.getAllOrdersPaginated = async (req, res) => {
@@ -694,25 +694,25 @@ exports.getAllOrdersPaginated = async (req, res) => {
 
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, filters } = paginationOptions;
-    
+
     let query = {};
-    
+
     if (filters.status) {
       query.status = filters.status;
     }
-    
-    if (filters.restaurant) {
-      query.restaurant = filters.restaurant;
+
+    if (filters.store) {
+      query.store = filters.store;
     }
-    
+
     if (filters.user) {
       query.user = filters.user;
     }
-    
+
     if (filters.driver) {
       query.driver = filters.driver;
     }
-    
+
     if (filters.minDate || filters.maxDate) {
       query.createdAt = {};
       if (filters.minDate) query.createdAt.$gte = new Date(filters.minDate);
@@ -721,7 +721,7 @@ exports.getAllOrdersPaginated = async (req, res) => {
 
     const cacheKey = `orders:admin:${JSON.stringify(query)}:${skip}:${limit}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       console.log('📦 Serving admin orders from cache');
       return res.json({
@@ -734,14 +734,14 @@ exports.getAllOrdersPaginated = async (req, res) => {
       Order.find(query)
         .populate('user', 'name phone email')
         .populate('driver', 'name phone')
-        .populate('restaurant', 'name image')
+        .populate('store', 'name image')
         .populate('pickupAddress', 'addressLine city')
         .populate('deliveryAddress', 'addressLine city')
         .sort(sort)
         .skip(skip)
         .limit(limit)
         .lean(),
-      
+
       Order.countDocuments(query)
     ]);
 
@@ -787,33 +787,45 @@ exports.getAllOrdersPaginated = async (req, res) => {
     );
 
     cache.set(cacheKey, response, 30); // 30 ثانية
-    
+
     res.json(response);
   } catch (error) {
     console.error('❌ Get all orders error:', error.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: 'فشل جلب الطلبات'
     });
   }
 };
 
-// ========== 4. دوال أصحاب المطاعم (Restaurant Owner) ==========
+// ========== 4. دوال أصحاب المتاجر (Store Owner) ==========
 
 /**
- * @desc    قبول الطلب (لصاحب المطعم)
- * @route   PUT /api/orders/:id/accept
- * @access  Restaurant Owner
+ * @desc    قبول الطلب (لصاحب المتجر)
+ * @route   PUT /api/v1/vendor/orders/:id/accept
+ * @access  Vendor
  */
 exports.acceptOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const { estimatedTime } = req.body;
-    const restaurantId = req.restaurantId;
+    const userId = req.user.id;
+
+    // جلب المستخدم للتحقق من المتجر
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+
+    const storeId = user.storeOwnerInfo.store;
 
     const order = await Order.findOne({
       _id: id,
-      restaurant: restaurantId,
+      store: storeId,
       status: "pending"
     }).populate('user', 'name phone');
 
@@ -864,16 +876,27 @@ exports.acceptOrder = async (req, res) => {
 };
 
 /**
- * @desc    رفض الطلب (لصاحب المطعم)
- * @route   PUT /api/orders/:id/reject
- * @access  Restaurant Owner
+ * @desc    رفض الطلب (لصاحب المتجر)
+ * @route   PUT /api/v1/vendor/orders/:id/reject
+ * @access  Vendor
  */
 exports.rejectOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
-    const restaurantId = req.restaurantId;
     const userId = req.user.id;
+
+    // جلب المستخدم للتحقق من المتجر
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+
+    const storeId = user.storeOwnerInfo.store;
 
     if (!reason || reason.trim().length < 5) {
       return res.status(400).json({
@@ -884,7 +907,7 @@ exports.rejectOrder = async (req, res) => {
 
     const order = await Order.findOne({
       _id: id,
-      restaurant: restaurantId,
+      store: storeId,
       status: "pending"
     }).populate('user', 'name phone');
 
@@ -934,18 +957,30 @@ exports.rejectOrder = async (req, res) => {
 };
 
 /**
- * @desc    طلب جاهز (لصاحب المطعم)
- * @route   PUT /api/orders/:id/mark-ready
- * @access  Restaurant Owner
+ * @desc    طلب جاهز (لصاحب المتجر)
+ * @route   PUT /api/v1/vendor/orders/:id/mark-ready
+ * @access  Vendor
  */
 exports.markOrderReady = async (req, res) => {
   try {
     const { id } = req.params;
-    const restaurantId = req.restaurantId;
+    const userId = req.user.id;
+
+    // جلب المستخدم للتحقق من المتجر
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+
+    const storeId = user.storeOwnerInfo.store;
 
     const order = await Order.findOne({
       _id: id,
-      restaurant: restaurantId,
+      store: storeId,
       status: "accepted"
     }).populate('user', 'name phone').populate('driver', 'name phone');
 
@@ -978,7 +1013,7 @@ exports.markOrderReady = async (req, res) => {
       user: order.user._id,
       type: "order_ready",
       title: "🍽️ طلبك جاهز",
-      content: `طلبك #${order._id.toString().slice(-6)} جاهز للاستلام من المطعم`,
+      content: `طلبك #${order._id.toString().slice(-6)} جاهز للاستلام من المتجر`,
       data: { orderId: order._id },
       priority: "high",
       link: `/orders/${order._id}`,
@@ -1006,17 +1041,29 @@ exports.markOrderReady = async (req, res) => {
 };
 
 /**
- * @desc    طلبات المطعم الحالية (لصاحب المطعم)
- * @route   GET /api/orders/restaurant/me
- * @access  Restaurant Owner
+ * @desc    طلبات المتجر الحالية (لصاحب المتجر)
+ * @route   GET /api/v1/vendor/orders
+ * @access  Vendor
  */
-exports.getRestaurantOrders = async (req, res) => {
+exports.getVendorOrders = async (req, res) => {
   try {
-    const restaurantId = req.restaurantId;
+    const userId = req.user.id;
+
+    // جلب المستخدم للتحقق من المتجر
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+
+    const storeId = user.storeOwnerInfo.store;
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, filters } = paginationOptions;
 
-    let query = { restaurant: restaurantId };
+    let query = { store: storeId };
 
     if (filters.status) {
       query.status = filters.status;
@@ -1037,16 +1084,16 @@ exports.getRestaurantOrders = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-      
+
       Order.countDocuments(query)
     ]);
 
     // إحصائيات سريعة
     const stats = {
-      pending: await Order.countDocuments({ restaurant: restaurantId, status: 'pending' }),
-      accepted: await Order.countDocuments({ restaurant: restaurantId, status: 'accepted' }),
-      ready: await Order.countDocuments({ restaurant: restaurantId, status: 'ready' }),
-      completed: await Order.countDocuments({ restaurant: restaurantId, status: 'delivered' })
+      pending: await Order.countDocuments({ store: storeId, status: 'pending' }),
+      accepted: await Order.countDocuments({ store: storeId, status: 'accepted' }),
+      ready: await Order.countDocuments({ store: storeId, status: 'ready' }),
+      completed: await Order.countDocuments({ store: storeId, status: 'delivered' })
     };
 
     const response = PaginationUtils.createPaginationResponse(
@@ -1058,22 +1105,34 @@ exports.getRestaurantOrders = async (req, res) => {
 
     res.json(response);
   } catch (error) {
-    console.error("❌ Get restaurant orders error:", error.message);
+    console.error("❌ Get vendor orders error:", error.message);
     res.status(500).json({
       success: false,
-      message: "فشل جلب طلبات المطعم"
+      message: "فشل جلب طلبات المتجر"
     });
   }
 };
 
 /**
- * @desc    إحصائيات طلبات المطعم
- * @route   GET /api/orders/restaurant/stats
- * @access  Restaurant Owner
+ * @desc    إحصائيات طلبات المتجر
+ * @route   GET /api/v1/vendor/orders/stats
+ * @access  Vendor
  */
-exports.getRestaurantOrderStats = async (req, res) => {
+exports.getVendorOrderStats = async (req, res) => {
   try {
-    const restaurantId = req.restaurantId;
+    const userId = req.user.id;
+
+    // جلب المستخدم للتحقق من المتجر
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+
+    const storeId = user.storeOwnerInfo.store;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1084,7 +1143,7 @@ exports.getRestaurantOrderStats = async (req, res) => {
     const [todayStats, weekStats, totalStats, byStatus] = await Promise.all([
       // إحصائيات اليوم
       Order.aggregate([
-        { $match: { restaurant: restaurantId, createdAt: { $gte: today } } },
+        { $match: { store: storeId, createdAt: { $gte: today } } },
         {
           $group: {
             _id: null,
@@ -1096,7 +1155,7 @@ exports.getRestaurantOrderStats = async (req, res) => {
 
       // إحصائيات الأسبوع
       Order.aggregate([
-        { $match: { restaurant: restaurantId, createdAt: { $gte: weekAgo } } },
+        { $match: { store: storeId, createdAt: { $gte: weekAgo } } },
         {
           $group: {
             _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
@@ -1109,7 +1168,7 @@ exports.getRestaurantOrderStats = async (req, res) => {
 
       // الإحصائيات الكلية
       Order.aggregate([
-        { $match: { restaurant: restaurantId } },
+        { $match: { store: storeId } },
         {
           $group: {
             _id: null,
@@ -1122,7 +1181,7 @@ exports.getRestaurantOrderStats = async (req, res) => {
 
       // الطلبات حسب الحالة
       Order.aggregate([
-        { $match: { restaurant: restaurantId } },
+        { $match: { store: storeId } },
         { $group: { _id: '$status', count: { $sum: 1 } } }
       ])
     ]);
@@ -1140,7 +1199,7 @@ exports.getRestaurantOrderStats = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error("❌ Get restaurant order stats error:", error.message);
+    console.error("❌ Get vendor order stats error:", error.message);
     res.status(500).json({
       success: false,
       message: "فشل جلب إحصائيات الطلبات"
@@ -1149,18 +1208,30 @@ exports.getRestaurantOrderStats = async (req, res) => {
 };
 
 /**
- * @desc    بدء تحضير الطلب (لصاحب المطعم)
- * @route   PUT /api/orders/:id/start-preparing
- * @access  Restaurant Owner
+ * @desc    بدء تحضير الطلب (لصاحب المتجر)
+ * @route   PUT /api/v1/vendor/orders/:id/start-preparing
+ * @access  Vendor
  */
 exports.startPreparing = async (req, res) => {
   try {
     const { id } = req.params;
-    const restaurantId = req.restaurantId;
+    const userId = req.user.id;
+
+    // جلب المستخدم للتحقق من المتجر
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+
+    const storeId = user.storeOwnerInfo.store;
 
     const order = await Order.findOne({
       _id: id,
-      restaurant: restaurantId,
+      store: storeId,
       status: "accepted"
     }).populate('user', 'name phone');
 
@@ -1207,19 +1278,31 @@ exports.startPreparing = async (req, res) => {
 };
 
 /**
- * @desc    طلبات اليوم (لصاحب المطعم)
- * @route   GET /api/orders/restaurant/today
- * @access  Restaurant Owner
+ * @desc    طلبات اليوم (لصاحب المتجر)
+ * @route   GET /api/v1/vendor/orders/today
+ * @access  Vendor
  */
 exports.getTodayOrders = async (req, res) => {
   try {
-    const restaurantId = req.restaurantId;
+    const userId = req.user.id;
+
+    // جلب المستخدم للتحقق من المتجر
+    const user = await User.findById(userId).select('storeOwnerInfo');
     
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+
+    const storeId = user.storeOwnerInfo.store;
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
     const orders = await Order.find({
-      restaurant: restaurantId,
+      store: storeId,
       createdAt: { $gte: today }
     })
       .populate('user', 'name phone')
@@ -1261,7 +1344,7 @@ exports.getTodayOrders = async (req, res) => {
 
 /**
  * @desc    تحديث حالة الطلب
- * @route   PUT /api/orders/:id/status
+ * @route   PUT /api/v1/orders/:id/status
  * @access  Driver / Admin
  */
 exports.updateStatus = async (req, res) => {
@@ -1274,9 +1357,9 @@ exports.updateStatus = async (req, res) => {
     // التحقق من الحالة
     const validStatuses = ["pending", "accepted", "ready", "picked", "delivered", "cancelled"];
     if (!validStatuses.includes(status)) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "حالة الطلب غير صالحة" 
+        message: "حالة الطلب غير صالحة"
       });
     }
 
@@ -1284,12 +1367,12 @@ exports.updateStatus = async (req, res) => {
     const oldOrder = await Order.findById(id)
       .populate('user', 'id name phone')
       .populate('driver', 'id name')
-      .populate('restaurant', 'name');
-    
+      .populate('store', 'name');
+
     if (!oldOrder) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "الطلب غير موجود" 
+        message: "الطلب غير موجود"
       });
     }
 
@@ -1298,39 +1381,39 @@ exports.updateStatus = async (req, res) => {
     const isAdmin = userRole === 'admin';
 
     if (!isDriver && !isAdmin) {
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
-        message: "غير مصرح لك بتحديث هذا الطلب" 
+        message: "غير مصرح لك بتحديث هذا الطلب"
       });
     }
 
     // التحقق من تسلسل الحالات
     if (!isValidStatusTransition(oldOrder.status, status, userRole)) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "تغيير الحالة غير مسموح به" 
+        message: "تغيير الحالة غير مسموح به"
       });
     }
 
     // تحديث حالة الطلب
     const order = await Order.findByIdAndUpdate(
-      id, 
-      { 
+      id,
+      {
         status,
         ...(status === 'delivered' ? { deliveredAt: new Date() } : {})
-      }, 
+      },
       { new: true }
     )
       .populate('user', 'name phone')
       .populate('driver', 'name phone')
-      .populate('restaurant', 'name')
+      .populate('store', 'name')
       .populate('pickupAddress')
       .populate('deliveryAddress');
 
     // تحديث إحصائيات السائق إذا تم التوصيل
     if (status === 'delivered' && order.driver) {
       await User.findByIdAndUpdate(order.driver._id, {
-        $inc: { 
+        $inc: {
           'driverInfo.totalDeliveries': 1,
           'driverInfo.earnings': order.totalPrice * 0.8
         }
@@ -1340,8 +1423,8 @@ exports.updateStatus = async (req, res) => {
     // إرسال إشعارات تحديث الحالة
     try {
       await notificationService.updateOrderStatusNotifications(
-        order, 
-        oldOrder.status, 
+        order,
+        oldOrder.status,
         status
       );
     } catch (notificationError) {
@@ -1368,7 +1451,7 @@ exports.updateStatus = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Update status error:', error.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: "فشل تحديث حالة الطلب"
     });
@@ -1377,7 +1460,7 @@ exports.updateStatus = async (req, res) => {
 
 /**
  * @desc    إلغاء الطلب
- * @route   PUT /api/orders/:id/cancel
+ * @route   PUT /api/v1/orders/:id/cancel
  * @access  Client / Admin
  */
 exports.cancelOrder = async (req, res) => {
@@ -1444,8 +1527,8 @@ exports.cancelOrder = async (req, res) => {
     // إرسال إشعارات الإلغاء
     try {
       await notificationService.updateOrderStatusNotifications(
-        order, 
-        order.status, 
+        order,
+        order.status,
         'cancelled'
       );
     } catch (notificationError) {
@@ -1484,7 +1567,7 @@ exports.cancelOrder = async (req, res) => {
 
 /**
  * @desc    تعيين مندوب للطلب
- * @route   PUT /api/orders/:id/assign
+ * @route   PUT /api/v1/admin/orders/:id/assign
  * @access  Admin
  */
 exports.assignDriver = async (req, res) => {
@@ -1493,42 +1576,42 @@ exports.assignDriver = async (req, res) => {
     const { driverId } = req.body;
 
     if (req.user.role !== 'admin') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
-        message: "غير مصرح لك بهذا الإجراء" 
+        message: "غير مصرح لك بهذا الإجراء"
       });
     }
 
     if (!driverId) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: "معرِّف المندوب مطلوب" 
+        message: "معرِّف المندوب مطلوب"
       });
     }
 
     // التحقق من وجود الطلب
     const oldOrder = await Order.findById(id)
       .populate('user', 'id name')
-      .populate('restaurant', 'name');
-    
+      .populate('store', 'name');
+
     if (!oldOrder) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "الطلب غير موجود" 
+        message: "الطلب غير موجود"
       });
     }
 
     // التحقق من وجود المندوب
-    const driver = await User.findOne({ 
-      _id: driverId, 
+    const driver = await User.findOne({
+      _id: driverId,
       role: 'driver',
-      isActive: true 
+      isActive: true
     });
 
     if (!driver) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "المندوب غير موجود أو غير نشط" 
+        message: "المندوب غير موجود أو غير نشط"
       });
     }
 
@@ -1543,22 +1626,22 @@ exports.assignDriver = async (req, res) => {
     // تحديث الطلب
     const order = await Order.findByIdAndUpdate(
       id,
-      { 
-        driver: driverId, 
-        status: "accepted" 
+      {
+        driver: driverId,
+        status: "accepted"
       },
       { new: true }
     )
       .populate("driver", "name phone image rating")
       .populate("user", "name phone")
-      .populate("restaurant", "name")
+      .populate("store", "name")
       .populate("pickupAddress")
       .populate("deliveryAddress");
 
     // تحديث موقع السائق
     await DriverLocation.findOneAndUpdate(
       { driver: driverId },
-      { 
+      {
         driver: driverId,
         order: id,
         location: order.pickupAddress?.location || {
@@ -1615,7 +1698,7 @@ exports.assignDriver = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Assign driver error:', error.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: "فشل تعيين المندوب"
     });
@@ -1624,7 +1707,7 @@ exports.assignDriver = async (req, res) => {
 
 /**
  * @desc    إعادة تعيين المندوب (تلقائي)
- * @route   PUT /api/orders/:orderId/reassign
+ * @route   PUT /api/v1/admin/orders/:orderId/reassign
  * @access  Admin
  */
 exports.reassignDriver = async (req, res) => {
@@ -1632,9 +1715,9 @@ exports.reassignDriver = async (req, res) => {
     const { orderId } = req.params;
 
     if (req.user.role !== 'admin') {
-      return res.status(403).json({ 
+      return res.status(403).json({
         success: false,
-        message: "غير مصرح لك بهذا الإجراء" 
+        message: "غير مصرح لك بهذا الإجراء"
       });
     }
 
@@ -1643,9 +1726,9 @@ exports.reassignDriver = async (req, res) => {
       .populate("user", "id");
 
     if (!order) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "الطلب غير موجود" 
+        message: "الطلب غير موجود"
       });
     }
 
@@ -1690,7 +1773,7 @@ exports.reassignDriver = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Reassign driver error:', error.message);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       message: "فشل إعادة تعيين المندوب"
     });
@@ -1701,7 +1784,7 @@ exports.reassignDriver = async (req, res) => {
 
 /**
  * @desc    تتبع الطلب (مبسط)
- * @route   GET /api/orders/:id/track
+ * @route   GET /api/v1/orders/:id/track
  * @access  Authenticated (Owner, Driver, Admin)
  */
 exports.trackOrder = async (req, res) => {
@@ -1712,7 +1795,7 @@ exports.trackOrder = async (req, res) => {
 
     const order = await Order.findById(id)
       .populate('driver', 'name phone image rating')
-      .populate('restaurant', 'name image phone addressLine')
+      .populate('store', 'name image phone addressLine')
       .populate('pickupAddress')
       .populate('deliveryAddress')
       .lean();
@@ -1743,7 +1826,7 @@ exports.trackOrder = async (req, res) => {
         driver: order.driver._id,
         order: order._id
       }).lean();
-      
+
       if (location) {
         driverLocation = {
           latitude: location.location.coordinates[1],
@@ -1755,7 +1838,7 @@ exports.trackOrder = async (req, res) => {
 
     // حساب وقت التوصيل المتبقي
     const estimatedRemaining = calculateETA(order);
-    
+
     // إنشاء نقاط المسار
     const trackingPoints = [
       {
@@ -1768,28 +1851,28 @@ exports.trackOrder = async (req, res) => {
       {
         status: 'order_confirmed',
         title: 'تم تأكيد الطلب',
-        description: order.status === 'pending' ? 'في انتظار التأكيد' : 'تم تأكيد الطلب من قبل المطعم',
+        description: order.status === 'pending' ? 'في انتظار التأكيد' : 'تم تأكيد الطلب من قبل المتجر',
         timestamp: order.status !== 'pending' ? order.updatedAt : null,
         completed: order.status !== 'pending'
       },
       {
         status: 'preparing',
         title: 'جاري التحضير',
-        description: order.status === 'accepted' ? 'المطعم يحضر طلبك' : 'لم يبدأ التحضير بعد',
+        description: order.status === 'accepted' ? 'المتجر يحضر طلبك' : 'لم يبدأ التحضير بعد',
         timestamp: order.status === 'accepted' ? order.updatedAt : null,
         completed: order.status === 'accepted' || order.status === 'ready' || order.status === 'picked' || order.status === 'delivered'
       },
       {
         status: 'ready',
         title: 'الطلب جاهز',
-        description: 'الطلب جاهز للاستلام من المطعم',
+        description: 'الطلب جاهز للاستلام من المتجر',
         timestamp: order.status === 'ready' ? order.updatedAt : null,
         completed: order.status === 'ready' || order.status === 'picked' || order.status === 'delivered'
       },
       {
         status: 'picked_up',
         title: 'تم الاستلام',
-        description: order.driver ? 'تم استلام الطلب من المطعم' : 'في انتظار المندوب',
+        description: order.driver ? 'تم استلام الطلب من المتجر' : 'في انتظار المندوب',
         timestamp: order.status === 'picked' || order.status === 'delivered' ? order.updatedAt : null,
         completed: order.status === 'picked' || order.status === 'delivered'
       },
@@ -1830,10 +1913,10 @@ exports.trackOrder = async (req, res) => {
         estimatedDelivery: estimatedRemaining,
         trackingPoints,
         driver: driverInfo,
-        restaurant: {
-          name: order.restaurant.name,
-          address: order.restaurant.addressLine,
-          phone: order.restaurant.phone
+        store: {
+          name: order.store.name,
+          address: order.store.addressLine,
+          phone: order.store.phone
         },
         pickupAddress: order.pickupAddress,
         deliveryAddress: order.deliveryAddress,
@@ -1859,14 +1942,14 @@ exports.trackOrder = async (req, res) => {
 
 /**
  * @desc    تحديث موقع المندوب
- * @route   POST /api/orders/:id/location
+ * @route   POST /api/v1/orders/:id/location
  * @access  Driver
  */
 exports.updateDriverLocation = async (req, res) => {
   try {
     const { id } = req.params;
     const { latitude, longitude } = req.body;
-    
+
     if (req.user.role !== 'driver') {
       return res.status(403).json({
         success: false,
@@ -1875,9 +1958,9 @@ exports.updateDriverLocation = async (req, res) => {
     }
 
     // التحقق من أن الطلب معين لهذا المندوب
-    const order = await Order.findOne({ 
-      _id: id, 
-      driver: req.user.id 
+    const order = await Order.findOne({
+      _id: id,
+      driver: req.user.id
     });
 
     if (!order) {
@@ -1945,7 +2028,7 @@ exports.updateDriverLocation = async (req, res) => {
 
 /**
  * @desc    الحصول على موقع المندوب
- * @route   GET /api/orders/:id/location
+ * @route   GET /api/v1/orders/:id/location
  * @access  Client / Admin
  */
 exports.getDriverLocation = async (req, res) => {
@@ -1954,9 +2037,9 @@ exports.getDriverLocation = async (req, res) => {
     const userId = req.user.id;
 
     // التحقق من أن الطلب يخص المستخدم
-    const order = await Order.findOne({ 
-      _id: id, 
-      user: userId 
+    const order = await Order.findOne({
+      _id: id,
+      user: userId
     });
 
     if (!order) {
@@ -2012,7 +2095,7 @@ exports.getDriverLocation = async (req, res) => {
 
 /**
  * @desc    الجدول الزمني للطلب
- * @route   GET /api/orders/:id/timeline
+ * @route   GET /api/v1/orders/:id/timeline
  * @access  Authenticated
  */
 exports.getOrderTimeline = async (req, res) => {
@@ -2022,7 +2105,7 @@ exports.getOrderTimeline = async (req, res) => {
 
     const order = await Order.findById(id)
       .populate('driver', 'name')
-      .populate('restaurant', 'name')
+      .populate('store', 'name')
       .lean();
 
     if (!order) {
@@ -2065,7 +2148,7 @@ exports.getOrderTimeline = async (req, res) => {
 
 /**
  * @desc    أرباح المندوب
- * @route   GET /api/orders/driver/earnings
+ * @route   GET /api/v1/driver/earnings
  * @access  Driver
  */
 exports.getDriverEarnings = async (req, res) => {
@@ -2147,7 +2230,7 @@ exports.getDriverEarnings = async (req, res) => {
 
 /**
  * @desc    التوصيلة الحالية للمندوب
- * @route   GET /api/orders/driver/current
+ * @route   GET /api/v1/driver/current-delivery
  * @access  Driver
  */
 exports.getCurrentDelivery = async (req, res) => {
@@ -2159,7 +2242,7 @@ exports.getCurrentDelivery = async (req, res) => {
       status: { $in: ['accepted', 'ready', 'picked'] }
     })
       .populate('user', 'name phone image')
-      .populate('restaurant', 'name image phone addressLine')
+      .populate('store', 'name image phone addressLine')
       .populate('pickupAddress')
       .populate('deliveryAddress')
       .populate('items.item')
@@ -2205,7 +2288,7 @@ exports.getCurrentDelivery = async (req, res) => {
 
 /**
  * @desc    الحصول على إحصائيات الطلبات
- * @route   GET /api/orders/stats/overview
+ * @route   GET /api/v1/admin/orders/stats/overview
  * @access  Admin
  */
 exports.getOrderStats = async (req, res) => {
@@ -2228,7 +2311,7 @@ exports.getOrderStats = async (req, res) => {
 
     const cacheKey = `order:stats:${JSON.stringify(filter)}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       return res.json({
         ...cachedData,
@@ -2283,10 +2366,10 @@ exports.getOrderStats = async (req, res) => {
             },
             { $sort: { _id: 1 } }
           ],
-          topRestaurants: [
+          topStores: [
             {
               $group: {
-                _id: '$restaurant',
+                _id: '$store',
                 orders: { $sum: 1 },
                 revenue: { $sum: '$totalPrice' }
               }
@@ -2295,10 +2378,10 @@ exports.getOrderStats = async (req, res) => {
             { $limit: 5 },
             {
               $lookup: {
-                from: 'restaurants',
+                from: 'stores',
                 localField: '_id',
                 foreignField: '_id',
-                as: 'restaurantInfo'
+                as: 'storeInfo'
               }
             }
           ]
@@ -2317,9 +2400,9 @@ exports.getOrderStats = async (req, res) => {
         byStatus: stats[0]?.byStatus || [],
         byDay: stats[0]?.byDay || [],
         byHour: stats[0]?.byHour || [],
-        topRestaurants: stats[0]?.topRestaurants.map(item => ({
+        topStores: stats[0]?.topStores.map(item => ({
           ...item,
-          name: item.restaurantInfo[0]?.name || 'مطعم محذوف'
+          name: item.storeInfo[0]?.name || 'متجر محذوف'
         })) || []
       },
       filters: { startDate, endDate },
@@ -2327,7 +2410,7 @@ exports.getOrderStats = async (req, res) => {
     };
 
     cache.set(cacheKey, response, 300); // 5 دقائق
-    
+
     res.json(response);
   } catch (error) {
     console.error('❌ Get order stats error:', error.message);
@@ -2340,7 +2423,7 @@ exports.getOrderStats = async (req, res) => {
 
 /**
  * @desc    الحصول على إحصائيات يومية
- * @route   GET /api/orders/stats/daily
+ * @route   GET /api/v1/admin/orders/stats/daily
  * @access  Admin
  */
 exports.getDailyStats = async (req, res) => {
@@ -2390,13 +2473,13 @@ exports.getDailyStats = async (req, res) => {
 
 /**
  * @desc    الحصول على إحصائيات شهرية
- * @route   GET /api/orders/stats/monthly
+ * @route   GET /api/v1/admin/orders/stats/monthly
  * @access  Admin
  */
 exports.getMonthlyStats = async (req, res) => {
   try {
     const { year, month } = req.query;
-    
+
     let startDate = new Date();
     if (year && month) {
       startDate = new Date(year, month - 1, 1);
@@ -2404,7 +2487,7 @@ exports.getMonthlyStats = async (req, res) => {
       startDate.setDate(1);
       startDate.setHours(0, 0, 0, 0);
     }
-    
+
     const endDate = new Date(startDate);
     endDate.setMonth(endDate.getMonth() + 1);
 
@@ -2508,7 +2591,7 @@ exports.getTodayRevenue = async (query = {}) => {
 
 /**
  * @desc    إلغاء قسري للطلب (لأدمن فقط)
- * @route   PUT /api/orders/:id/force-cancel
+ * @route   PUT /api/v1/admin/orders/:id/force-cancel
  * @access  Admin
  */
 exports.forceCancelOrder = async (req, res) => {
@@ -2528,7 +2611,7 @@ exports.forceCancelOrder = async (req, res) => {
     }
 
     const oldStatus = order.status;
-    
+
     order.status = "cancelled";
     order.cancellationReason = reason || "إلغاء قسري بواسطة الأدمن";
     order.cancelledAt = new Date();
@@ -2595,7 +2678,7 @@ exports.forceCancelOrder = async (req, res) => {
 
 /**
  * @desc    الحصول على طلبات مندوب معين (لأدمن)
- * @route   GET /api/orders/driver/:driverId/orders
+ * @route   GET /api/v1/admin/drivers/:driverId/orders
  * @access  Admin
  */
 exports.getDriverOrdersById = async (req, res) => {
@@ -2619,14 +2702,14 @@ exports.getDriverOrdersById = async (req, res) => {
     const [orders, total] = await Promise.all([
       Order.find(query)
         .populate('user', 'name phone image')
-        .populate('restaurant', 'name image')
+        .populate('store', 'name image')
         .populate('pickupAddress')
         .populate('deliveryAddress')
         .sort(sort)
         .skip(skip)
         .limit(limit)
         .lean(),
-      
+
       Order.countDocuments(query)
     ]);
 
@@ -2666,17 +2749,17 @@ exports.getDriverOrdersById = async (req, res) => {
 };
 
 /**
- * @desc    الحصول على طلبات مطعم معين (لأدمن)
- * @route   GET /api/orders/restaurant/:restaurantId/orders
+ * @desc    الحصول على طلبات متجر معين (لأدمن)
+ * @route   GET /api/v1/admin/stores/:storeId/orders
  * @access  Admin
  */
-exports.getRestaurantOrdersById = async (req, res) => {
+exports.getStoreOrdersById = async (req, res) => {
   try {
-    const { restaurantId } = req.params;
+    const { storeId } = req.params;
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, filters } = paginationOptions;
 
-    let query = { restaurant: restaurantId };
+    let query = { store: storeId };
 
     if (filters.status) {
       query.status = filters.status;
@@ -2697,13 +2780,13 @@ exports.getRestaurantOrdersById = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-      
+
       Order.countDocuments(query)
     ]);
 
-    // إحصائيات المطعم
-    const restaurantStats = await Order.aggregate([
-      { $match: { restaurant: restaurantId } },
+    // إحصائيات المتجر
+    const storeStats = await Order.aggregate([
+      { $match: { store: storeId } },
       {
         $group: {
           _id: null,
@@ -2724,21 +2807,21 @@ exports.getRestaurantOrdersById = async (req, res) => {
       total,
       paginationOptions,
       {
-        restaurantStats: restaurantStats[0] || { 
-          totalOrders: 0, 
-          totalRevenue: 0, 
-          completedOrders: 0, 
-          cancelledOrders: 0 
+        storeStats: storeStats[0] || {
+          totalOrders: 0,
+          totalRevenue: 0,
+          completedOrders: 0,
+          cancelledOrders: 0
         }
       }
     );
 
     res.json(response);
   } catch (error) {
-    console.error("❌ Get restaurant orders by id error:", error.message);
+    console.error("❌ Get store orders by id error:", error.message);
     res.status(500).json({
       success: false,
-      message: "فشل جلب طلبات المطعم"
+      message: "فشل جلب طلبات المتجر"
     });
   }
 };
@@ -2747,13 +2830,13 @@ exports.getRestaurantOrdersById = async (req, res) => {
 
 /**
  * @desc    تقييم الطلب
- * @route   POST /api/orders/:id/rate
+ * @route   POST /api/v1/client/orders/:id/rate
  * @access  Client
  */
 exports.rateOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const { rating, comment, rateDriver, rateRestaurant } = req.body;
+    const { rating, comment, rateDriver, rateStore } = req.body;
 
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({
@@ -2762,11 +2845,11 @@ exports.rateOrder = async (req, res) => {
       });
     }
 
-    const order = await Order.findOne({ 
-      _id: id, 
+    const order = await Order.findOne({
+      _id: id,
       user: req.user.id,
       status: "delivered"
-    }).populate('driver').populate('restaurant');
+    }).populate('driver').populate('store');
 
     if (!order) {
       return res.status(404).json({
@@ -2791,16 +2874,16 @@ exports.rateOrder = async (req, res) => {
     // إنشاء تقييم للطلب
     const review = await Review.create({
       user: req.user.id,
-      restaurant: order.restaurant._id,
+      store: order.store._id,
       order: id,
       rating,
       comment: comment?.trim()
     });
 
-    // تحديث متوسط تقييم المطعم
-    if (order.restaurant) {
-      const restaurantStats = await Review.aggregate([
-        { $match: { restaurant: order.restaurant._id } },
+    // تحديث متوسط تقييم المتجر
+    if (order.store) {
+      const storeStats = await Review.aggregate([
+        { $match: { store: order.store._id } },
         {
           $group: {
             _id: null,
@@ -2810,37 +2893,37 @@ exports.rateOrder = async (req, res) => {
         }
       ]);
 
-      await Restaurant.findByIdAndUpdate(order.restaurant._id, {
-        averageRating: restaurantStats[0]?.avgRating || rating,
-        ratingsCount: restaurantStats[0]?.count || 1
+      await Store.findByIdAndUpdate(order.store._id, {
+        averageRating: storeStats[0]?.avgRating || rating,
+        ratingsCount: storeStats[0]?.count || 1
       });
     }
 
     // تقييم المندوب إذا طلب
     if (rateDriver && order.driver) {
       const driverRating = typeof rateDriver === 'number' ? rateDriver : rating;
-      
+
       await User.findByIdAndUpdate(order.driver._id, {
         $inc: { 'driverInfo.totalRatings': 1 },
         $set: { 'driverInfo.rating': driverRating }
       });
     }
 
-    // إرسال إشعار للمطعم
+    // إرسال إشعار للمتجر
     await notificationService.sendNotification({
-      user: order.restaurant.owner || order.restaurant.createdBy,
+      user: order.store.owner || order.store.createdBy,
       type: "new_review",
       title: "⭐ تقييم جديد",
       content: `حصلت على تقييم ${rating} نجوم على طلب #${order._id.toString().slice(-6)}`,
       data: { orderId: order._id, rating, comment },
       priority: "medium",
-      link: `/restaurant/reviews`,
+      link: `/store/reviews`,
       icon: "⭐"
     });
 
     // إبطال الكاش
     await invalidateOrderCache(order._id, req.user.id);
-    cache.del(`restaurant:complete:${order.restaurant._id}`);
+    cache.del(`store:complete:${order.store._id}`);
 
     res.json({
       success: true,
@@ -2862,7 +2945,7 @@ exports.rateOrder = async (req, res) => {
 
 /**
  * @desc    الإبلاغ عن مشكلة في الطلب
- * @route   POST /api/orders/:id/report-issue
+ * @route   POST /api/v1/client/orders/:id/report-issue
  * @access  Client
  */
 exports.reportOrderIssue = async (req, res) => {
@@ -2877,10 +2960,10 @@ exports.reportOrderIssue = async (req, res) => {
       });
     }
 
-    const order = await Order.findOne({ 
-      _id: id, 
-      user: req.user.id 
-    }).populate('restaurant');
+    const order = await Order.findOne({
+      _id: id,
+      user: req.user.id
+    }).populate('store');
 
     if (!order) {
       return res.status(404).json({
@@ -2901,18 +2984,18 @@ exports.reportOrderIssue = async (req, res) => {
 
     // إرسال إشعار للمشرفين
     const admins = await User.find({ role: 'admin' }).select('_id');
-    
+
     for (const admin of admins) {
       await notificationService.sendNotification({
         user: admin._id,
         type: "support_ticket",
         title: "⚠️ بلاغ مشكلة جديد",
         content: `مشكلة ${issue} في الطلب #${order._id.toString().slice(-6)}: ${description.substring(0, 50)}...`,
-        data: { 
-          orderId: order._id, 
+        data: {
+          orderId: order._id,
           userId: req.user.id,
           issue,
-          description 
+          description
         },
         priority: "high",
         link: `/admin/support/orders/${order._id}`,
@@ -2921,7 +3004,7 @@ exports.reportOrderIssue = async (req, res) => {
     }
 
     // إضافة ملاحظة للطلب
-    order.notes = order.notes 
+    order.notes = order.notes
       ? `${order.notes}\n[مشكلة] ${issue}: ${description}`
       : `[مشكلة] ${issue}: ${description}`;
     await order.save();

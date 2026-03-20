@@ -7,10 +7,10 @@
 const User = require('../models/user.model');
 const Address = require('../models/address.model');
 const Order = require('../models/order.model');
-const Restaurant = require('../models/restaurant.model');
-const RestaurantAddress = require('../models/restaurantAddress.model');
+const Restaurant = require('../models/store.model');
+const RestaurantAddress = require('../models/storeAddress.model');
 const Review = require('../models/review.model');
-const Item = require('../models/item.model');
+const Item = require('../models/product.model');
 const DriverLocation = require('../models/driverLocation.model');
 const cache = require('../utils/cache.util');
 const PaginationUtils = require('../utils/pagination.util');
@@ -23,7 +23,7 @@ exports.getDashboardData = async (req, res) => {
   try {
     const userId = req.user.id;
     const cacheKey = `dashboard:${userId}`;
-    
+
     const cachedData = cache.get(cacheKey);
     if (cachedData) {
       console.log('📊 Serving dashboard from cache');
@@ -35,7 +35,7 @@ exports.getDashboardData = async (req, res) => {
     }
 
     console.log('🔄 Fetching dashboard from database');
-    
+
     const [
       user,
       addresses,
@@ -47,13 +47,13 @@ exports.getDashboardData = async (req, res) => {
       User.findById(userId)
         .select('name phone role image email stats isVerified lastLogin')
         .lean(),
-      
+
       Address.find({ user: userId })
         .select('label addressLine city isDefault')
         .sort({ isDefault: -1, createdAt: -1 })
         .limit(5)
         .lean(),
-      
+
       Order.find({ user: userId })
         .populate('driver', 'name phone image')
         .populate('restaurant', 'name image')
@@ -63,20 +63,20 @@ exports.getDashboardData = async (req, res) => {
         .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
-      
+
       Restaurant.find({ isOpen: true })
         .select('name image description type averageRating deliveryFee')
         .sort({ averageRating: -1 })
         .limit(10)
         .lean(),
-      
+
       Review.find({ user: userId })
         .populate('restaurant', 'name image')
         .select('rating comment createdAt')
         .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
-      
+
       // جلب عدد الإشعارات غير المقروءة
       (async () => {
         const Notification = require('../models/notification.model');
@@ -109,12 +109,12 @@ exports.getDashboardData = async (req, res) => {
     };
 
     cache.set(cacheKey, responseData, 180);
-    
+
     res.json(responseData);
   } catch (error) {
     console.error('❌ Dashboard aggregation error:', error.message);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to load dashboard data',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -129,9 +129,9 @@ exports.getRestaurantsPaginated = async (req, res) => {
   try {
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, search, filters } = paginationOptions;
-    
+
     let query = { isOpen: true };
-    
+
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -139,22 +139,22 @@ exports.getRestaurantsPaginated = async (req, res) => {
         { tags: { $regex: search, $options: 'i' } },
       ];
     }
-    
+
     if (filters.type) {
       query.type = filters.type;
     }
-    
+
     if (filters.tags) {
       query.tags = { $in: filters.tags };
     }
-    
+
     if (filters.minRating) {
       query.averageRating = { $gte: Number(filters.minRating) };
     }
 
     const cacheKey = `restaurants:${JSON.stringify(query)}:${skip}:${limit}:${JSON.stringify(sort)}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       console.log('📊 Serving paginated restaurants from cache');
       return res.json({
@@ -164,7 +164,7 @@ exports.getRestaurantsPaginated = async (req, res) => {
     }
 
     console.log(`🔄 Fetching restaurants (page ${paginationOptions.page})`);
-    
+
     const [restaurants, total] = await Promise.all([
       Restaurant.find(query)
         .select('name image description type averageRating deliveryFee estimatedDeliveryTime tags openingHours')
@@ -173,7 +173,7 @@ exports.getRestaurantsPaginated = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-      
+
       Restaurant.countDocuments(query),
     ]);
 
@@ -182,19 +182,19 @@ exports.getRestaurantsPaginated = async (req, res) => {
         const addresses = await RestaurantAddress.find({
           restaurant: restaurant._id,
         })
-        .select('addressLine city latitude longitude')
-        .limit(3)
-        .lean();
-        
+          .select('addressLine city latitude longitude')
+          .limit(3)
+          .lean();
+
         const itemsCount = await Item.countDocuments({
           restaurant: restaurant._id,
           isAvailable: true
         });
-        
+
         const reviewsCount = await Review.countDocuments({
           restaurant: restaurant._id
         });
-        
+
         return {
           ...restaurant,
           addresses,
@@ -218,9 +218,9 @@ exports.getRestaurantsPaginated = async (req, res) => {
     );
 
     cache.set(cacheKey, responseData, 120);
-    
+
     responseData.links = PaginationUtils.buildPaginationLinks(req, responseData.pagination);
-    
+
     res.json(responseData);
   } catch (error) {
     console.error('❌ Paginated restaurants error:', error.message);
@@ -240,38 +240,38 @@ exports.getItemsPaginated = async (req, res) => {
   try {
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, filters } = paginationOptions;
-    
+
     let query = { isAvailable: true };
-    
+
     if (filters.restaurant) {
       query.restaurant = filters.restaurant;
     }
-    
+
     if (filters.category) {
       query.category = filters.category;
     }
-    
+
     if (filters.minPrice || filters.maxPrice) {
       query.price = {};
       if (filters.minPrice) query.price.$gte = Number(filters.minPrice);
       if (filters.maxPrice) query.price.$lte = Number(filters.maxPrice);
     }
-    
+
     if (filters.tags) {
       query.tags = { $in: filters.tags };
     }
-    
+
     if (filters.isVegetarian !== undefined) {
       query.isVegetarian = filters.isVegetarian === 'true';
     }
-    
+
     if (filters.isVegan !== undefined) {
       query.isVegan = filters.isVegan === 'true';
     }
 
     const cacheKey = `items:${JSON.stringify(query)}:${skip}:${limit}:${JSON.stringify(sort)}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       console.log('🍽️ Serving paginated items from cache');
       return res.json({
@@ -287,12 +287,12 @@ exports.getItemsPaginated = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-      
+
       Item.countDocuments(query),
     ]);
 
     const categories = await Item.distinct('category', query);
-    
+
     const priceStats = await Item.aggregate([
       { $match: query },
       {
@@ -318,7 +318,7 @@ exports.getItemsPaginated = async (req, res) => {
 
     cache.set(cacheKey, responseData, 180);
     responseData.links = PaginationUtils.buildPaginationLinks(req, responseData.pagination);
-    
+
     res.json(responseData);
   } catch (error) {
     console.error('❌ Paginated items error:', error.message);
@@ -345,25 +345,25 @@ exports.getOrdersPaginatedAdmin = async (req, res) => {
 
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, filters } = paginationOptions;
-    
+
     let query = {};
-    
+
     if (filters.status) {
       query.status = filters.status;
     }
-    
+
     if (filters.restaurant) {
       query.restaurant = filters.restaurant;
     }
-    
+
     if (filters.driver) {
       query.driver = filters.driver;
     }
-    
+
     if (filters.user) {
       query.user = filters.user;
     }
-    
+
     if (filters.minDate || filters.maxDate) {
       query.createdAt = {};
       if (filters.minDate) query.createdAt.$gte = new Date(filters.minDate);
@@ -372,7 +372,7 @@ exports.getOrdersPaginatedAdmin = async (req, res) => {
 
     const cacheKey = `orders:admin:${JSON.stringify(query)}:${skip}:${limit}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       console.log('📦 Serving admin orders from cache');
       return res.json({
@@ -392,7 +392,7 @@ exports.getOrdersPaginatedAdmin = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-      
+
       Order.countDocuments(query),
     ]);
 
@@ -434,7 +434,7 @@ exports.getOrdersPaginatedAdmin = async (req, res) => {
 
     cache.set(cacheKey, responseData, 60);
     responseData.links = PaginationUtils.buildPaginationLinks(req, responseData.pagination);
-    
+
     res.json(responseData);
   } catch (error) {
     console.error('❌ Paginated orders admin error:', error.message);
@@ -453,16 +453,16 @@ exports.getOrdersPaginatedAdmin = async (req, res) => {
 exports.getRestaurantDetails = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     if (!require('mongoose').Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'معرِّف المطعم غير صالح' 
+      return res.status(400).json({
+        success: false,
+        message: 'معرِّف المطعم غير صالح'
       });
     }
-    
+
     const cacheKey = `restaurant:full:${id}`;
-    
+
     const cachedData = cache.get(cacheKey);
     if (cachedData) {
       console.log(`🏪 Serving restaurant ${id} from cache`);
@@ -473,7 +473,7 @@ exports.getRestaurantDetails = async (req, res) => {
     }
 
     console.log(`🔄 Fetching restaurant ${id} from database`);
-    
+
     const [
       restaurant,
       addresses,
@@ -484,30 +484,30 @@ exports.getRestaurantDetails = async (req, res) => {
       Restaurant.findById(id)
         .populate('createdBy', 'name phone email')
         .lean(),
-      
+
       RestaurantAddress.find({ restaurant: id })
         .select('addressLine city latitude longitude')
         .lean(),
-      
+
       Review.find({ restaurant: id })
         .populate('user', 'name image')
         .select('rating comment createdAt')
         .sort({ createdAt: -1 })
         .limit(10)
         .lean(),
-      
+
       Item.find({ restaurant: id, isAvailable: true })
         .select('name price image description category ingredients preparationTime')
         .sort({ category: 1, name: 1 })
         .lean(),
-      
+
       Item.distinct('category', { restaurant: id, isAvailable: true })
     ]);
 
     if (!restaurant) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'المطعم غير موجود' 
+      return res.status(404).json({
+        success: false,
+        message: 'المطعم غير موجود'
       });
     }
 
@@ -549,12 +549,12 @@ exports.getRestaurantDetails = async (req, res) => {
     };
 
     cache.set(cacheKey, responseData, 300);
-    
+
     res.json(responseData);
   } catch (error) {
     console.error('❌ Restaurant details error:', error.message);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to fetch restaurant details',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -569,16 +569,16 @@ exports.getOrderWithTracking = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    
+
     if (!require('mongoose').Types.ObjectId.isValid(id)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'معرِّف الطلب غير صالح' 
+      return res.status(400).json({
+        success: false,
+        message: 'معرِّف الطلب غير صالح'
       });
     }
-    
+
     const cacheKey = `order:tracking:${id}:${userId}`;
-    
+
     const cachedData = cache.get(cacheKey);
     if (cachedData) {
       console.log(`📦 Serving order ${id} tracking from cache`);
@@ -589,7 +589,7 @@ exports.getOrderWithTracking = async (req, res) => {
     }
 
     console.log(`🔄 Fetching order ${id} tracking from database`);
-    
+
     const order = await Order.findOne({ _id: id, user: userId })
       .populate('user', 'name phone image email')
       .populate('driver', 'name phone image rating totalDeliveries')
@@ -599,33 +599,33 @@ exports.getOrderWithTracking = async (req, res) => {
       .lean();
 
     if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'الطلب غير موجود أو ليس لديك صلاحية الوصول' 
+      return res.status(404).json({
+        success: false,
+        message: 'الطلب غير موجود أو ليس لديك صلاحية الوصول'
       });
     }
 
     let driverLocation = null;
     let locationHistory = [];
-    
+
     if (order.driver) {
       [driverLocation, locationHistory] = await Promise.all([
         DriverLocation.findOne({
           driver: order.driver._id,
           order: order._id
         })
-        .sort({ createdAt: -1 })
-        .lean(),
-        
+          .sort({ createdAt: -1 })
+          .lean(),
+
         DriverLocation.find({
           driver: order.driver._id,
           order: order._id,
           createdAt: { $gte: new Date(Date.now() - 30 * 60 * 1000) } // آخر 30 دقيقة
         })
-        .select('location createdAt')
-        .sort({ createdAt: 1 })
-        .limit(20)
-        .lean()
+          .select('location createdAt')
+          .sort({ createdAt: 1 })
+          .limit(20)
+          .lean()
       ]);
     }
 
@@ -685,12 +685,12 @@ exports.getOrderWithTracking = async (req, res) => {
     };
 
     cache.set(cacheKey, responseData, 30);
-    
+
     res.json(responseData);
   } catch (error) {
     console.error('❌ Order tracking error:', error.message);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to fetch order details',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -704,12 +704,12 @@ exports.getOrderWithTracking = async (req, res) => {
 exports.getHomeData = async (req, res) => {
   try {
     const cacheKey = 'home:data';
-    
+
     const responseData = await cache.cacheWithFallback(
       cacheKey,
       async () => {
         console.log('🏠 Fetching home data from database');
-        
+
         const [
           topRestaurants,
           featuredItems,
@@ -722,14 +722,14 @@ exports.getHomeData = async (req, res) => {
             .limit(8)
             .select('name image averageRating type deliveryFee estimatedDeliveryTime')
             .lean(),
-          
+
           Item.find({ isAvailable: true })
             .populate('restaurant', 'name image')
             .sort({ createdAt: -1 })
             .limit(12)
             .select('name price image restaurant description category')
             .lean(),
-          
+
           Review.find()
             .populate('user', 'name image')
             .populate('restaurant', 'name image')
@@ -737,9 +737,9 @@ exports.getHomeData = async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(5)
             .lean(),
-          
+
           Restaurant.distinct('type', { isOpen: true }),
-          
+
           Promise.all([
             Restaurant.countDocuments({ isOpen: true }),
             Item.countDocuments({ isAvailable: true }),
@@ -788,8 +788,8 @@ exports.getHomeData = async (req, res) => {
     res.json(responseData);
   } catch (error) {
     console.error('❌ Home data error:', error.message);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: 'Failed to load home page data',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
@@ -810,9 +810,9 @@ exports.clearCache = async (req, res) => {
     }
 
     const { pattern, key } = req.body;
-    
+
     let result;
-    
+
     if (key) {
       const deleted = cache.del(key);
       result = {
@@ -834,7 +834,7 @@ exports.clearCache = async (req, res) => {
         clearedKeys
       };
     }
-    
+
     res.json({
       success: true,
       message: 'Cache cleared successfully',
@@ -866,7 +866,7 @@ exports.getCacheStats = async (req, res) => {
 
     const stats = cache.getStats();
     const info = cache.getCacheInfo();
-    
+
     res.json({
       success: true,
       data: {
@@ -912,7 +912,7 @@ exports.clearCachePattern = async (req, res) => {
 
     // فك ترميز pattern إذا كان مشفراً
     const decodedPattern = decodeURIComponent(pattern);
-    
+
     const clearedCount = cache.invalidatePattern(decodedPattern);
 
     res.json({
@@ -966,7 +966,7 @@ exports.getAdminDashboard = async (req, res) => {
       Order.aggregate([
         {
           $match: {
-            createdAt: { $gte: new Date(new Date().setHours(0,0,0,0)) },
+            createdAt: { $gte: new Date(new Date().setHours(0, 0, 0, 0)) },
             status: 'delivered'
           }
         },
@@ -1048,7 +1048,7 @@ exports.getAdminStats = async (req, res) => {
         },
         { $sort: { _id: 1 } }
       ]),
-      
+
       Order.aggregate([
         {
           $match: {
@@ -1420,7 +1420,7 @@ exports.getUserAnalytics = async (req, res) => {
         retention: {
           active: retention[0]?.active[0]?.count || 0,
           returning: retention[0]?.returning[0]?.count || 0,
-          rate: retention[0]?.active[0]?.count ? 
+          rate: retention[0]?.active[0]?.count ?
             ((retention[0]?.returning[0]?.count || 0) / retention[0]?.active[0]?.count * 100).toFixed(1) : 0
         },
         byLocation
@@ -1520,7 +1520,7 @@ exports.getOrderAnalytics = async (req, res) => {
           data: byHour.map(h => h.count)
         },
         completion: {
-          rate: completionRate[0] ? 
+          rate: completionRate[0] ?
             ((completionRate[0].completed / completionRate[0].total) * 100).toFixed(1) : 0,
           total: completionRate[0]?.total || 0,
           completed: completionRate[0]?.completed || 0,
@@ -1786,21 +1786,21 @@ exports.getPublicStats = async (req, res) => {
     ] = await Promise.all([
       // إجمالي المطاعم
       Restaurant.countDocuments({ isOpen: true }),
-      
+
       // إجمالي الأصناف المتاحة
       Item.countDocuments({ isAvailable: true }),
-      
+
       // إجمالي الطلبات المكتملة
       Order.countDocuments({ status: 'delivered' }),
-      
+
       // إجمالي التقييمات
       Review.countDocuments(),
-      
+
       // متوسط التقييم العام
       Review.aggregate([
         { $group: { _id: null, avg: { $avg: '$rating' } } }
       ]),
-      
+
       // أفضل الفئات
       Item.aggregate([
         { $match: { isAvailable: true } },
@@ -1808,7 +1808,7 @@ exports.getPublicStats = async (req, res) => {
         { $sort: { count: -1 } },
         { $limit: 5 }
       ]),
-      
+
       // أفضل المدن
       RestaurantAddress.aggregate([
         { $group: { _id: '$city', count: { $sum: 1 } } },
@@ -1958,7 +1958,7 @@ exports.calculateETA = (order) => {
     delivered: 'تم التوصيل',
     cancelled: 'ملغي'
   };
-  
+
   return statusTimes[order.status] || 'غير معروف';
 };
 
@@ -1973,7 +1973,7 @@ exports.getStatusText = (status) => {
     delivered: 'تم التوصيل',
     cancelled: 'ملغي'
   };
-  
+
   return statusTexts[status] || 'غير معروف';
 };
 

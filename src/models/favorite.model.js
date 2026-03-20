@@ -10,10 +10,10 @@ const favoriteSchema = new mongoose.Schema(
       required: [true, "User ID is required"],
       index: true
     },
-    restaurant: {
+    store: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Restaurant",
-      required: [true, "Restaurant ID is required"],
+      ref: "Store",
+      required: [true, "Store ID is required"],
     },
     notes: {
       type: String,
@@ -37,12 +37,12 @@ const favoriteSchema = new mongoose.Schema(
 );
 
 // 🎯 **فهرس مركب لمنع تكرار نفس المطعم لنفس المستخدم**
-favoriteSchema.index({ user: 1, restaurant: 1 }, { unique: true });
+favoriteSchema.index({ user: 1, store: 1 }, { unique: true });
 
 // 🎯 **Virtual populate للمطعم**
-favoriteSchema.virtual("restaurantDetails", {
-  ref: "Restaurant",
-  localField: "restaurant",
+favoriteSchema.virtual("storeDetails", {
+  ref: "Store",
+  localField: "store",
   foreignField: "_id",
   justOne: true
 });
@@ -57,7 +57,7 @@ favoriteSchema.virtual("userDetails", {
 
 // 🎯 **Middleware: قبل الحذف**
 favoriteSchema.pre("remove", async function(next) {
-  console.log(`Removing favorite: User ${this.user} - Restaurant ${this.restaurant}`);
+  console.log(`Removing favorite: User ${this.user} - Store ${this.store}`);
   next();
 });
 
@@ -93,25 +93,25 @@ favoriteSchema.methods = {
 // 🎯 **ستاتيك ميثودز (Statics)**
 favoriteSchema.statics = {
   // إضافة مطعم للمفضلة
-  async addToFavorites(userId, restaurantId, notes = "", tags = []) {
+  async addToFavorites(userId, storeId, notes = "", tags = []) {
     try {
       const favorite = await this.findOneAndUpdate(
-        { user: userId, restaurant: restaurantId },
-        { user: userId, restaurant: restaurantId, notes, tags, isActive: true },
+        { user: userId, store: storeId },
+        { user: userId, store: storeId, notes, tags, isActive: true },
         { upsert: true, new: true, runValidators: true }
       );
       return favorite;
     } catch (error) {
       if (error.code === 11000) {
-        throw new Error("Restaurant already in favorites");
+        throw new Error("Store already in favorites");
       }
       throw error;
     }
   },
   
   // إزالة مطعم من المفضلة
-  async removeFromFavorites(userId, restaurantId) {
-    return this.findOneAndDelete({ user: userId, restaurant: restaurantId });
+  async removeFromFavorites(userId, storeId) {
+    return this.findOneAndDelete({ user: userId, store: storeId });
   },
   
   // جلب كل مفضلات المستخدم
@@ -128,7 +128,7 @@ favoriteSchema.statics = {
     const [favorites, total] = await Promise.all([
       this.find(query)
         .populate({
-          path: "restaurant",
+          path: "store",
           select: "name image description type averageRating deliveryFee estimatedDeliveryTime isOpen",
           populate: {
             path: "items",
@@ -156,10 +156,10 @@ favoriteSchema.statics = {
   },
   
   // التحقق إذا كان المطعم في المفضلة
-  async isFavorite(userId, restaurantId) {
+  async isFavorite(userId, storeId) {
     const favorite = await this.findOne({ 
       user: userId, 
-      restaurant: restaurantId,
+      store: storeId,
       isActive: true 
     });
     return !!favorite;
@@ -176,7 +176,7 @@ favoriteSchema.statics = {
           uniqueTags: { $addToSet: "$tags" },
           recentFavorites: {
             $push: {
-              restaurantId: "$restaurant",
+              storeId: "$store",
               addedAt: "$createdAt"
             }
           }

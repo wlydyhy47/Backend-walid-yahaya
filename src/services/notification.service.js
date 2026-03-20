@@ -20,24 +20,24 @@ class NotificationService {
   }
 
   // ========== 1. دوال أساسية ==========
-  
+
   /**
    * إرسال إشعار واحد
    */
   async sendNotification(notificationData) {
     try {
-      businessLogger.info('Sending notification', { 
+      businessLogger.info('Sending notification', {
         user: notificationData.user,
-        type: notificationData.type 
+        type: notificationData.type
       });
-      
+
       const notification = await Notification.create(notificationData);
       const user = await User.findById(notificationData.user)
         .select("preferences email phone name");
 
       if (!user) {
-        businessLogger.error('User not found for notification', { 
-          userId: notificationData.user 
+        businessLogger.error('User not found for notification', {
+          userId: notificationData.user
         });
         return notification;
       }
@@ -75,22 +75,22 @@ class NotificationService {
       }
 
       await Promise.allSettled(deliveryPromises);
-      
+
       // تجميع الإشعارات المتشابهة
       await this.groupSimilarNotifications(notification);
 
       this.invalidateCache(notification.user);
-      
-      businessLogger.info('Notification sent successfully', { 
+
+      businessLogger.info('Notification sent successfully', {
         id: notification._id,
-        user: notification.user 
+        user: notification.user
       });
 
       return notification;
     } catch (error) {
-      businessLogger.error('Notification sending failed', { 
+      businessLogger.error('Notification sending failed', {
         error: error.message,
-        data: notificationData 
+        data: notificationData
       });
       throw error;
     }
@@ -200,7 +200,7 @@ class NotificationService {
 
       // TODO: إرسال Push Notification عبر FCM/APN
       // هذا مثال مبسط - سيتم تنفيذه لاحقاً
-      const pushPromises = devices.map(device => 
+      const pushPromises = devices.map(device =>
         this.sendToDevice(device, notification)
       );
 
@@ -209,10 +209,10 @@ class NotificationService {
       notification.delivery.pushSent = true;
       await notification.save();
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         channel: "push",
-        devices: devices.length 
+        devices: devices.length
       };
     } catch (error) {
       businessLogger.error('Push notification error:', error);
@@ -331,13 +331,13 @@ class NotificationService {
     for (const notification of failedNotifications) {
       try {
         await notification.retryDelivery();
-        businessLogger.info('Retrying failed notification', { 
-          id: notification._id 
+        businessLogger.info('Retrying failed notification', {
+          id: notification._id
         });
       } catch (error) {
-        businessLogger.error('Retry failed', { 
-          id: notification._id, 
-          error: error.message 
+        businessLogger.error('Retry failed', {
+          id: notification._id,
+          error: error.message
         });
       }
     }
@@ -425,7 +425,7 @@ class NotificationService {
 
       // إشعار للمطعم (إذا كان موجود)
       if (order.restaurant) {
-        const restaurant = await require("../models/restaurant.model")
+        const restaurant = await require("../models/store.model")
           .findById(order.restaurant)
           .populate('owner');
 
@@ -487,7 +487,7 @@ class NotificationService {
   async updateOrderStatusNotifications(order, oldStatus, newStatus) {
     try {
       const notificationType = `order_${newStatus}`;
-      
+
       // تحديد الأولوية والأيقونة حسب الحالة
       const config = this.getStatusConfig(newStatus);
 
@@ -659,8 +659,8 @@ class NotificationService {
         Notification.countDocuments(query),
       ]);
 
-      const unreadCount = unreadOnly 
-        ? total 
+      const unreadCount = unreadOnly
+        ? total
         : await Notification.getUnreadCount(userId);
 
       const notificationsWithTime = notifications.map(notification => ({
@@ -707,11 +707,11 @@ class NotificationService {
       }
 
       const stats = await Notification.aggregate([
-        { 
-          $match: { 
+        {
+          $match: {
             user: userId,
             expiresAt: { $gt: new Date() }
-          } 
+          }
         },
         {
           $facet: {
@@ -777,7 +777,7 @@ class NotificationService {
           byType: stats[0]?.byType || [],
           byPriority: stats[0]?.byPriority || [],
           byDay: stats[0]?.byDay || [],
-          readRate: stats[0]?.totals[0] 
+          readRate: stats[0]?.totals[0]
             ? ((stats[0].totals[0].total - stats[0].totals[0].unread) / stats[0].totals[0].total * 100).toFixed(1)
             : 0
         }

@@ -8,7 +8,7 @@ const User = require("../models/user.model");
 const Order = require("../models/order.model");
 const Address = require("../models/address.model");
 const Review = require("../models/review.model");
-const Restaurant = require("../models/restaurant.model");
+const Restaurant = require("../models/store.model");
 const Favorite = require("../models/favorite.model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -29,9 +29,9 @@ exports.getUsers = async (req, res) => {
   try {
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, search, filters } = paginationOptions;
-    
+
     let query = {};
-    
+
     // بحث نصي
     if (search) {
       query.$or = [
@@ -40,7 +40,7 @@ exports.getUsers = async (req, res) => {
         { email: { $regex: search, $options: 'i' } }
       ];
     }
-    
+
     // فلاتر
     if (filters.role) query.role = filters.role;
     if (filters.isActive !== undefined) query.isActive = filters.isActive === 'true';
@@ -53,7 +53,7 @@ exports.getUsers = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-      
+
       User.countDocuments(query)
     ]);
 
@@ -77,9 +77,9 @@ exports.getUsers = async (req, res) => {
     res.json(response);
   } catch (error) {
     console.error("❌ Error in getUsers:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to fetch users" 
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch users"
     });
   }
 };
@@ -92,16 +92,16 @@ exports.getUsers = async (req, res) => {
 exports.getUserById = async (req, res) => {
   try {
     const userId = req.params.id;
-    
+
     const user = await User.findById(userId)
       .select('-password -verificationCode -resetPasswordToken')
       .populate('favorites', 'name image')
       .lean();
-    
+
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
     }
 
@@ -112,17 +112,17 @@ exports.getUserById = async (req, res) => {
         .populate('driver', 'name')
         .sort({ createdAt: -1 })
         .limit(10),
-      
+
       Address.find({ user: userId }),
-      
+
       Review.find({ user: userId })
         .populate('restaurant', 'name image')
         .sort({ createdAt: -1 })
         .limit(10)
     ]);
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       data: {
         user,
         orders,
@@ -137,9 +137,9 @@ exports.getUserById = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error in getUserById:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to fetch user' 
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user'
     });
   }
 };
@@ -154,9 +154,9 @@ exports.createUser = async (req, res) => {
     const { name, phone, password, email, role = "client" } = req.body;
 
     if (!name || !phone || !password) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Name, phone and password are required" 
+      return res.status(400).json({
+        success: false,
+        message: "Name, phone and password are required"
       });
     }
 
@@ -193,9 +193,9 @@ exports.createUser = async (req, res) => {
 
   } catch (error) {
     console.error("❌ Error in createUser:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to create user" 
+    res.status(500).json({
+      success: false,
+      message: "Failed to create user"
     });
   }
 };
@@ -209,33 +209,33 @@ exports.updateUserById = async (req, res) => {
   try {
     const { name, email, role, isActive, isVerified } = req.body;
     const userId = req.params.id;
-    
+
     const user = await User.findByIdAndUpdate(
       userId,
       { name, email, role, isActive, isVerified },
       { new: true, runValidators: true }
     ).select('-password -verificationCode -resetPasswordToken');
-    
+
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
     }
 
     cache.del(`user:complete:${userId}`);
     cache.invalidatePattern(`user:*:${userId}`);
-    
-    res.json({ 
-      success: true, 
-      message: 'User updated successfully', 
-      data: user 
+
+    res.json({
+      success: true,
+      message: 'User updated successfully',
+      data: user
     });
   } catch (error) {
     console.error('❌ Error in updateUserById:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to update user' 
+    res.status(500).json({
+      success: false,
+      message: 'Failed to update user'
     });
   }
 };
@@ -248,37 +248,37 @@ exports.updateUserById = async (req, res) => {
 exports.deleteUserById = async (req, res) => {
   try {
     if (req.params.id === req.user.id) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Cannot delete your own account' 
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete your own account'
       });
     }
-    
+
     const user = await User.findByIdAndUpdate(
       req.params.id,
       { isActive: false },
       { new: true }
     );
-    
+
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
     }
 
     cache.del(`user:complete:${req.params.id}`);
     cache.invalidatePattern(`user:*:${req.params.id}`);
-    
-    res.json({ 
-      success: true, 
-      message: 'User deactivated successfully' 
+
+    res.json({
+      success: true,
+      message: 'User deactivated successfully'
     });
   } catch (error) {
     console.error('❌ Error in deleteUserById:', error);
-    res.status(500).json({ 
-      success: false, 
-      message: 'Failed to delete user' 
+    res.status(500).json({
+      success: false,
+      message: 'Failed to delete user'
     });
   }
 };
@@ -293,16 +293,16 @@ exports.deleteUserById = async (req, res) => {
 exports.getMyProfile = async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId)
       .select("-password -verificationCode -resetPasswordToken")
       .populate('favorites', 'name image type averageRating')
       .lean();
 
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: "User not found" 
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
       });
     }
 
@@ -316,9 +316,9 @@ exports.getMyProfile = async (req, res) => {
 
     const [ordersCount, unreadNotifications] = await Promise.all([
       Order.countDocuments({ user: userId }),
-      require("../models/notification.model").countDocuments({ 
-        user: userId, 
-        status: 'unread' 
+      require("../models/notification.model").countDocuments({
+        user: userId,
+        status: 'unread'
       })
     ]);
 
@@ -334,9 +334,9 @@ exports.getMyProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error in getMyProfile:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Server error" 
+    res.status(500).json({
+      success: false,
+      message: "Server error"
     });
   }
 };
@@ -387,7 +387,7 @@ exports.updateMyProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error in updateMyProfile:", error);
-    
+
     if (error.name === 'ValidationError') {
       return res.status(400).json({
         success: false,
@@ -419,7 +419,7 @@ exports.getMyCompleteProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     const cacheKey = `user:complete:${userId}`;
-    
+
     const cachedData = cache.get(cacheKey);
     if (cachedData) {
       console.log(`📦 Serving complete profile from cache for user ${userId}`);
@@ -430,7 +430,7 @@ exports.getMyCompleteProfile = async (req, res) => {
     }
 
     console.log(`🔄 Fetching complete profile for user ${userId}`);
-    
+
     const [
       user,
       addresses,
@@ -442,29 +442,29 @@ exports.getMyCompleteProfile = async (req, res) => {
       User.findById(userId)
         .select("-password -verificationCode -resetPasswordToken -activityLog")
         .lean(),
-      
+
       Address.find({ user: userId })
         .sort({ isDefault: -1, createdAt: -1 })
         .lean(),
-      
+
       Order.find({ user: userId })
         .populate("restaurant", "name image")
         .populate("driver", "name phone image")
         .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
-      
+
       Restaurant.find({ _id: { $in: user?.favorites || [] } })
         .select("name image type averageRating")
         .limit(10)
         .lean(),
-      
+
       Review.find({ user: userId })
         .populate("restaurant", "name image")
         .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
-      
+
       exports.getUserAdvancedStats(userId)
     ]);
 
@@ -506,7 +506,7 @@ exports.getMyCompleteProfile = async (req, res) => {
     };
 
     cache.set(cacheKey, responseData, 300);
-    
+
     res.json(responseData);
   } catch (error) {
     console.error("❌ Complete profile error:", error.message);
@@ -526,14 +526,14 @@ exports.updateCompleteProfile = async (req, res) => {
   try {
     const userId = req.user.id;
     const updateData = req.body;
-    
+
     console.log(`🔄 Updating complete profile for user ${userId}`);
 
     const allowedFields = [
-      "name", "email", "bio", "city", 
+      "name", "email", "bio", "city",
       "dateOfBirth", "gender", "preferences"
     ];
-    
+
     const filteredData = {};
     Object.keys(updateData).forEach(key => {
       if (allowedFields.includes(key)) {
@@ -554,7 +554,7 @@ exports.updateCompleteProfile = async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $set: filteredData },
-      { 
+      {
         new: true,
         runValidators: true,
         select: "-password -verificationCode -resetPasswordToken -activityLog"
@@ -584,7 +584,7 @@ exports.updateCompleteProfile = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Complete profile update error:", error.message);
-    
+
     if (error.name === "ValidationError") {
       return res.status(400).json({
         success: false,
@@ -592,14 +592,14 @@ exports.updateCompleteProfile = async (req, res) => {
         errors: Object.values(error.errors).map(err => err.message)
       });
     }
-    
+
     if (error.code === 11000) {
       return res.status(400).json({
         success: false,
         message: "Email already exists"
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: "Failed to update profile"
@@ -617,9 +617,9 @@ exports.updateCompleteProfile = async (req, res) => {
 exports.uploadAvatar = async (req, res) => {
   try {
     if (!req.file) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "No file uploaded" 
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded"
       });
     }
 
@@ -627,15 +627,15 @@ exports.uploadAvatar = async (req, res) => {
 
     const oldUser = await User.findById(req.user.id).select('image metadata.avatar.publicId');
     let oldPublicId = null;
-    
+
     if (oldUser && oldUser.image) {
-      oldPublicId = oldUser.metadata?.avatar?.publicId || 
-                    fileService.extractPublicIdFromUrl(oldUser.image);
+      oldPublicId = oldUser.metadata?.avatar?.publicId ||
+        fileService.extractPublicIdFromUrl(oldUser.image);
     }
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { 
+      {
         image: req.file.path,
         'metadata.avatar': {
           publicId: req.file.publicId,
@@ -647,7 +647,7 @@ exports.uploadAvatar = async (req, res) => {
     ).select("name email phone role image");
 
     if (oldPublicId) {
-      fileService.deleteFile(oldPublicId).catch(err => 
+      fileService.deleteFile(oldPublicId).catch(err =>
         console.error('Error deleting old avatar:', err)
       );
     }
@@ -671,17 +671,17 @@ exports.uploadAvatar = async (req, res) => {
 
   } catch (error) {
     console.error("❌ Error in uploadAvatar:", error);
-    
+
     if (error.isOperational) {
       return res.status(error.statusCode || 400).json({
         success: false,
         message: error.message
       });
     }
-    
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to upload avatar" 
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to upload avatar"
     });
   }
 };
@@ -702,8 +702,8 @@ exports.deleteAvatar = async (req, res) => {
       });
     }
 
-    const publicId = user.metadata?.avatar?.publicId || 
-                     fileService.extractPublicIdFromUrl(user.image);
+    const publicId = user.metadata?.avatar?.publicId ||
+      fileService.extractPublicIdFromUrl(user.image);
 
     if (publicId) {
       await fileService.deleteFile(publicId);
@@ -749,7 +749,7 @@ exports.updateCoverImage = async (req, res) => {
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { coverImage: imageUrl },
-      { 
+      {
         new: true,
         select: "-password -verificationCode -resetPasswordToken"
       }
@@ -785,22 +785,22 @@ exports.getMyFavorites = async (req, res) => {
   try {
     const userId = req.user.id;
     const { page = 1, limit = 20, sort = "-createdAt" } = req.query;
-    
+
     const result = await Favorite.getUserFavorites(userId, {
       page: parseInt(page),
       limit: parseInt(limit),
       sort
     });
-    
+
     res.json({
       success: true,
       ...result
     });
   } catch (error) {
     console.error("❌ Error in getMyFavorites:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Failed to fetch favorites" 
+      message: "Failed to fetch favorites"
     });
   }
 };
@@ -814,14 +814,14 @@ exports.addToFavorites = async (req, res) => {
   try {
     const { restaurantId } = req.params;
     const { notes, tags } = req.body;
-    
+
     const favorite = await Favorite.addToFavorites(
       req.user.id,
       restaurantId,
       notes,
       tags || []
     );
-    
+
     cache.del(`user:complete:${req.user.id}`);
 
     res.status(201).json({
@@ -831,17 +831,17 @@ exports.addToFavorites = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error in addToFavorites:", error);
-    
+
     if (error.message === "Restaurant already in favorites") {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: error.message 
+        message: error.message
       });
     }
-    
-    res.status(500).json({ 
+
+    res.status(500).json({
       success: false,
-      message: "Failed to add to favorites" 
+      message: "Failed to add to favorites"
     });
   }
 };
@@ -854,9 +854,9 @@ exports.addToFavorites = async (req, res) => {
 exports.removeFromFavorites = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    
+
     await Favorite.removeFromFavorites(req.user.id, restaurantId);
-    
+
     cache.del(`user:complete:${req.user.id}`);
 
     res.json({
@@ -865,9 +865,9 @@ exports.removeFromFavorites = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error in removeFromFavorites:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Failed to remove from favorites" 
+      message: "Failed to remove from favorites"
     });
   }
 };
@@ -880,21 +880,21 @@ exports.removeFromFavorites = async (req, res) => {
 exports.checkFavoriteStatus = async (req, res) => {
   try {
     const { restaurantId } = req.params;
-    
+
     const isFavorite = await Favorite.isFavorite(req.user.id, restaurantId);
-    
-    res.json({ 
+
+    res.json({
       success: true,
       data: {
         isFavorite,
-        restaurantId 
+        restaurantId
       }
     });
   } catch (error) {
     console.error("❌ Error in checkFavoriteStatus:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Failed to check favorite status" 
+      message: "Failed to check favorite status"
     });
   }
 };
@@ -908,20 +908,20 @@ exports.updateFavorite = async (req, res) => {
   try {
     const { restaurantId } = req.params;
     const { notes, tags, isActive } = req.body;
-    
+
     const favorite = await Favorite.findOneAndUpdate(
       { user: req.user.id, restaurant: restaurantId },
       { notes, tags, isActive },
       { new: true, runValidators: true }
     );
-    
+
     if (!favorite) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "Favorite not found" 
+        message: "Favorite not found"
       });
     }
-    
+
     cache.del(`user:complete:${req.user.id}`);
 
     res.json({
@@ -931,9 +931,9 @@ exports.updateFavorite = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Error in updateFavorite:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Failed to update favorite" 
+      message: "Failed to update favorite"
     });
   }
 };
@@ -972,7 +972,7 @@ exports.changePassword = async (req, res) => {
     }
 
     const user = await User.findById(userId).select("+password");
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -981,7 +981,7 @@ exports.changePassword = async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
-    
+
     if (!isMatch) {
       return res.status(400).json({
         success: false,
@@ -1022,7 +1022,7 @@ exports.getUserStats = async (req, res) => {
   try {
     const userId = req.user.id;
     const cacheKey = `user:stats:${userId}`;
-    
+
     const cachedData = cache.get(cacheKey);
     if (cachedData) {
       return res.json({
@@ -1041,7 +1041,7 @@ exports.getUserStats = async (req, res) => {
     };
 
     cache.set(cacheKey, responseData, 300);
-    
+
     res.json(responseData);
   } catch (error) {
     console.error("❌ User stats error:", error.message);
@@ -1064,7 +1064,7 @@ exports.getActivityLog = async (req, res) => {
     const { skip, limit } = paginationOptions;
 
     const user = await User.findById(userId).select("activityLog");
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -1113,13 +1113,13 @@ exports.updatePresence = async (req, res) => {
     const { isOnline, location } = req.body;
 
     const updateData = { isOnline };
-    
+
     if (location && location.latitude && location.longitude) {
       updateData.location = {
         type: "Point",
         coordinates: [location.longitude, location.latitude]
       };
-      
+
       if (req.user.role === "driver") {
         updateData["driverInfo.currentLocation"] = updateData.location;
         updateData["driverInfo.isAvailable"] = isOnline;
@@ -1194,7 +1194,7 @@ exports.getUserAdvancedStats = async (userId) => {
           }
         }
       ]),
-      
+
       Review.aggregate([
         { $match: { user: userId } },
         {
@@ -1205,13 +1205,13 @@ exports.getUserAdvancedStats = async (userId) => {
           }
         }
       ]),
-      
+
       Order.aggregate([
-        { 
-          $match: { 
-            user: userId, 
-            status: "delivered" 
-          } 
+        {
+          $match: {
+            user: userId,
+            status: "delivered"
+          }
         },
         {
           $group: {
@@ -1225,7 +1225,7 @@ exports.getUserAdvancedStats = async (userId) => {
         { $sort: { _id: -1 } },
         { $limit: 6 }
       ]),
-      
+
       Order.aggregate([
         { $match: { user: userId, status: "delivered" } },
         { $unwind: "$items" },
@@ -1309,7 +1309,7 @@ exports.getMemberSince = async (userId) => {
 exports.getLastActivity = async (userId) => {
   try {
     const user = await User.findById(userId).select("lastActivity lastLogin");
-    
+
     const activities = [
       { type: "lastLogin", date: user?.lastLogin },
       { type: "lastActivity", date: user?.lastActivity }
@@ -1336,7 +1336,7 @@ exports.getLastActivity = async (userId) => {
  */
 exports.getRelativeTime = (date) => {
   if (!date) return null;
-  
+
   const now = new Date();
   const past = new Date(date);
   const diffMs = now - past;
@@ -1455,7 +1455,7 @@ exports.getFavoriteTimeOfDay = async (userId) => {
 
     const hour = result[0]._id;
     let timeOfDay = "";
-    
+
     if (hour < 6) timeOfDay = "ليل";
     else if (hour < 12) timeOfDay = "صباح";
     else if (hour < 18) timeOfDay = "ظهر";
@@ -1479,7 +1479,7 @@ exports.getFavoriteTimeOfDay = async (userId) => {
 exports.getFavoriteDayOfWeek = async (userId) => {
   try {
     const days = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-    
+
     const result = await Order.aggregate([
       { $match: { user: userId } },
       {

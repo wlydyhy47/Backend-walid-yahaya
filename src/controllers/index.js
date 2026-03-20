@@ -1,5 +1,5 @@
 // ============================================
-// ملف: src/controllers/index.js (النسخة النهائية)
+// ملف: src/controllers/index.js (المحدث)
 // ============================================
 
 // ========== 1. استيراد جميع الـ Controllers ==========
@@ -7,9 +7,9 @@
 // 📦 الأساسية
 const authController = require('./auth.controller');
 const userController = require('./user.controller');
-const restaurantController = require('./restaurant.controller');
+const storeController = require('./store.controller');
+const productController = require('./product.controller');
 const orderController = require('./order.controller');
-const itemController = require('./item.controller');
 const addressController = require('./address.controller');
 
 // 💬 التواصل
@@ -20,7 +20,7 @@ const notificationController = require('./notification.controller');
 const aggregateController = require('./aggregate.controller');
 
 // 👑 خاصة
-const restaurantOwnerController = require('./restaurantOwner.controller');
+const vendorController = require('./vendor.controller');
 
 // ⭐ إضافية
 const reviewController = require('./review.controller');
@@ -40,9 +40,9 @@ module.exports = {
   // 📦 الأساسية
   authController,
   userController,
-  restaurantController,
+  storeController,
+  productController,
   orderController,
-  itemController,
   addressController,
   
   // 💬 التواصل
@@ -53,7 +53,7 @@ module.exports = {
   aggregateController,
   
   // 👑 الخاصة
-  restaurantOwnerController,
+  vendorController,
   
   // ⭐ الإضافية
   reviewController,
@@ -76,14 +76,14 @@ module.exports = {
     const controllers = {
       auth: authController,
       user: userController,
-      restaurant: restaurantController,
+      store: storeController,
+      product: productController,
       order: orderController,
-      item: itemController,
       address: addressController,
       chat: chatController,
       notification: notificationController,
       aggregate: aggregateController,
-      restaurantOwner: restaurantOwnerController,
+      vendor: vendorController,
       review: reviewController,
       favorite: favoriteController,
       driver: driverController,
@@ -103,14 +103,14 @@ module.exports = {
   listControllers: () => [
     'authController',
     'userController',
-    'restaurantController',
+    'storeController',
+    'productController',
     'orderController',
-    'itemController',
     'addressController',
     'chatController',
     'notificationController',
     'aggregateController',
-    'restaurantOwnerController',
+    'vendorController',
     'reviewController',
     'favoriteController',
     'driverController',

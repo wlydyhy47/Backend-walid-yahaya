@@ -8,7 +8,7 @@ const Conversation = require("../models/conversation.model");
 const Message = require("../models/message.model");
 const User = require("../models/user.model");
 const Order = require("../models/order.model");
-const Restaurant = require("../models/restaurant.model");
+const Restaurant = require("../models/store.model");
 const chatSocketService = require("../services/chat.socket.service");
 const notificationService = require("../services/notification.service");
 const cache = require("../utils/cache.util");
@@ -24,7 +24,7 @@ const { AppError } = require('../middlewares/errorHandler.middleware');
 const invalidateConversationCache = (conversationId, participants = []) => {
   cache.del(`chat:conversation:${conversationId}`);
   cache.invalidatePattern(`chat:messages:${conversationId}:*`);
-  
+
   participants.forEach(participantId => {
     cache.invalidatePattern(`chat:conversations:${participantId}:*`);
     cache.invalidatePattern(`chat:stats:${participantId}`);
@@ -36,14 +36,14 @@ const invalidateConversationCache = (conversationId, participants = []) => {
  */
 const getRelativeTime = (date) => {
   if (!date) return null;
-  
+
   const now = new Date();
   const past = new Date(date);
   const diffMs = now - past;
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
   const diffDays = Math.floor(diffMs / 86400000);
-  
+
   if (diffMins < 1) return "الآن";
   if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
   if (diffHours < 24) return `منذ ${diffHours} ساعة`;
@@ -90,7 +90,7 @@ exports.getUserConversations = async (req, res) => {
 
     const cacheKey = `chat:conversations:${userId}:${JSON.stringify(options)}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       console.log(`📦 Serving conversations from cache for user ${userId}`);
       return res.json({
@@ -100,7 +100,7 @@ exports.getUserConversations = async (req, res) => {
     }
 
     const result = await Conversation.getUserConversations(userId, options);
-    
+
     // تحديث عدد الرسائل غير المقروءة وإضافة معلومات إضافية
     for (const conversation of result.conversations) {
       // عدد الرسائل غير المقروءة
@@ -108,20 +108,20 @@ exports.getUserConversations = async (req, res) => {
         conversation._id,
         userId
       );
-      
+
       // حالة المحادثة
-      conversation.isActive = conversation.expiresAt 
-        ? conversation.expiresAt > new Date() 
+      conversation.isActive = conversation.expiresAt
+        ? conversation.expiresAt > new Date()
         : true;
-      
+
       conversation.isMuted = conversation.notificationSettings?.mute || false;
-      
+
       // آخر مشارك (غير المستخدم الحالي)
       const otherParticipant = conversation.participants.find(
         p => p._id.toString() !== userId
       );
       conversation.otherParticipant = otherParticipant || null;
-      
+
       // وقت آخر نشاط نسبي
       conversation.lastActivityRelative = getRelativeTime(conversation.lastActivity);
     }
@@ -148,7 +148,7 @@ exports.getUserConversations = async (req, res) => {
     };
 
     cache.set(cacheKey, responseData, 120); // دقيقتان
-    
+
     res.json(responseData);
   } catch (error) {
     console.error("❌ Get conversations error:", error.message);
@@ -171,7 +171,7 @@ exports.getConversation = async (req, res) => {
 
     const cacheKey = `chat:conversation:${conversationId}:${userId}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       console.log(`📦 Serving conversation ${conversationId} from cache`);
       return res.json({
@@ -201,21 +201,21 @@ exports.getConversation = async (req, res) => {
 
     // حساب الرسائل غير المقروءة
     conversation.unreadCount = await Message.getUnreadCount(conversationId, userId);
-    
+
     // التحقق من نشاط المحادثة
-    conversation.isActive = conversation.expiresAt 
-      ? conversation.expiresAt > new Date() 
+    conversation.isActive = conversation.expiresAt
+      ? conversation.expiresAt > new Date()
       : true;
-      
+
     conversation.isMuted = conversation.notificationSettings?.mute || false;
-    
+
     // تحديد المشارك الآخر للمحادثات الفردية
     if (conversation.type === 'direct') {
       conversation.otherParticipant = conversation.participants.find(
         p => p._id.toString() !== userId
       );
     }
-    
+
     // إحصائيات المحادثة
     const stats = await Message.aggregate([
       { $match: { conversation: conversation._id, "deleted.isDeleted": false } },
@@ -283,7 +283,7 @@ exports.getConversation = async (req, res) => {
     };
 
     cache.set(cacheKey, responseData, 60); // دقيقة واحدة
-    
+
     res.json(responseData);
   } catch (error) {
     console.error("❌ Get conversation error:", error.message);
@@ -499,7 +499,7 @@ exports.createSupportChat = async (req, res) => {
     if (!supportAgent) {
       // لا يوجد مشرف متصل، إرسال إشعار لجميع المشرفين
       const admins = await User.find({ role: "admin" }).select('_id');
-      
+
       admins.forEach(admin => {
         notificationService.sendNotification({
           user: admin._id,
@@ -697,7 +697,7 @@ exports.updateConversation = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Update conversation error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -754,7 +754,7 @@ exports.deleteConversation = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Delete conversation error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -793,7 +793,7 @@ exports.archiveConversation = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Archive conversation error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -836,7 +836,7 @@ exports.muteConversation = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Mute conversation error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -874,7 +874,7 @@ exports.unmuteConversation = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Unmute conversation error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -931,7 +931,7 @@ exports.addParticipant = async (req, res) => {
       user: participantId,
       type: "system",
       title: "تمت إضافتك إلى محادثة",
-      content: conversation.title 
+      content: conversation.title
         ? `تمت إضافتك إلى محادثة ${conversation.title}`
         : "تمت إضافتك إلى محادثة جديدة",
       data: {
@@ -959,7 +959,7 @@ exports.addParticipant = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Add participant error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -990,7 +990,7 @@ exports.removeParticipant = async (req, res) => {
     if (conversation.type === "group") {
       const isAdmin = conversation.metadata.group.admins.includes(userId);
       const isSelf = participantId === userId;
-      
+
       if (!isAdmin && !isSelf) {
         return res.status(403).json({
           success: false,
@@ -1019,7 +1019,7 @@ exports.removeParticipant = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Remove participant error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -1069,7 +1069,7 @@ exports.getParticipants = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Get participants error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -1138,7 +1138,7 @@ exports.makeAdmin = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Make admin error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -1181,8 +1181,8 @@ exports.removeAdmin = async (req, res) => {
     }
 
     // لا يمكن إزالة آخر مشرف
-    if (conversation.metadata.group.admins.length <= 1 && 
-        conversation.metadata.group.admins.includes(participantId)) {
+    if (conversation.metadata.group.admins.length <= 1 &&
+      conversation.metadata.group.admins.includes(participantId)) {
       return res.status(400).json({
         success: false,
         message: "لا يمكن إزالة آخر مشرف في المجموعة"
@@ -1204,7 +1204,7 @@ exports.removeAdmin = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Remove admin error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -1230,7 +1230,7 @@ exports.getConversationMessages = async (req, res) => {
   try {
     const userId = req.user.id;
     const conversationId = req.params.id;
-    
+
     const options = {
       page: parseInt(req.query.page) || 1,
       limit: Math.min(parseInt(req.query.limit) || 50, 100),
@@ -1246,7 +1246,7 @@ exports.getConversationMessages = async (req, res) => {
 
     const cacheKey = `chat:messages:${conversationId}:${JSON.stringify(options)}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       console.log(`📦 Serving messages from cache for conversation ${conversationId}`);
       return res.json({
@@ -1260,7 +1260,7 @@ exports.getConversationMessages = async (req, res) => {
     // تحديث حالة القراءة للمستخدم الحالي
     if (options.page === 1) {
       await Message.markAllAsRead(conversationId, userId);
-      
+
       // إبطال كاش المحادثات للمستخدم
       cache.invalidatePattern(`chat:conversations:${userId}:*`);
     }
@@ -1286,11 +1286,11 @@ exports.getConversationMessages = async (req, res) => {
     };
 
     cache.set(cacheKey, responseData, 30); // 30 ثانية
-    
+
     res.json(responseData);
   } catch (error) {
     console.error("❌ Get messages error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -1340,7 +1340,7 @@ exports.sendTextMessage = async (req, res) => {
         _id: replyTo,
         conversation: conversationId
       });
-      
+
       if (!repliedMessage) {
         return res.status(404).json({
           success: false,
@@ -1380,7 +1380,7 @@ exports.sendTextMessage = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Send text message error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -1426,7 +1426,7 @@ exports.sendMediaMessage = async (req, res) => {
     // تحديد نوع الملف
     const mimeType = req.file.mimetype;
     let type = "file";
-    
+
     if (mimeType.startsWith("image/")) {
       type = "image";
     } else if (mimeType.startsWith("video/")) {
@@ -1471,7 +1471,7 @@ exports.sendMediaMessage = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Send media message error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -1656,7 +1656,7 @@ exports.updateMessage = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Update message error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -1700,7 +1700,7 @@ exports.deleteMessage = async (req, res) => {
     // التحقق من الصلاحيات
     const isSender = message.sender.toString() === userId;
     const isAdmin = req.user.role === "admin";
-    
+
     if (!isSender && !isAdmin) {
       return res.status(403).json({
         success: false,
@@ -1732,7 +1732,7 @@ exports.deleteMessage = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Delete message error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -1814,7 +1814,7 @@ exports.forwardMessage = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Forward message error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -1887,7 +1887,7 @@ exports.addReaction = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Add reaction error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -1949,7 +1949,7 @@ exports.removeReaction = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Remove reaction error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -2022,7 +2022,7 @@ exports.pinMessage = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Pin message error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -2091,7 +2091,7 @@ exports.unpinMessage = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Unpin message error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -2140,7 +2140,7 @@ exports.starMessage = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Star message error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -2189,7 +2189,7 @@ exports.unstarMessage = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Unstar message error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -2264,7 +2264,7 @@ exports.searchMessages = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Search messages error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -2404,7 +2404,7 @@ exports.getConversationMedia = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Get media error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -2473,7 +2473,7 @@ exports.getConversationFiles = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Get files error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -2551,7 +2551,7 @@ exports.getConversationLinks = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Get links error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -2579,7 +2579,7 @@ exports.getChatStats = async (req, res) => {
 
     const cacheKey = `chat:stats:${userId}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       return res.json({
         ...cachedData,
@@ -2730,7 +2730,7 @@ exports.getChatStats = async (req, res) => {
     };
 
     cache.set(cacheKey, stats, 300); // 5 دقائق
-    
+
     res.json(stats);
   } catch (error) {
     console.error("❌ Get chat stats error:", error.message);
@@ -2827,7 +2827,7 @@ exports.getConversationStats = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Get conversation stats error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -2869,7 +2869,7 @@ exports.getOnlineParticipants = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Get online participants error:", error.message);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -2895,7 +2895,7 @@ exports.getTotalUnreadCount = async (req, res) => {
 
     const cacheKey = `chat:unread:total:${userId}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       return res.json({
         success: true,
@@ -2938,7 +2938,7 @@ exports.getTotalUnreadCount = async (req, res) => {
  */
 async function calculateAverageMessages(userId) {
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-  
+
   const result = await Message.aggregate([
     {
       $lookup: {
@@ -3013,7 +3013,7 @@ async function getBusiestChatDay(userId) {
 
   const days = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
   const dayIndex = result[0].dayName - 1; // MongoDB returns 1-7
-  
+
   return {
     day: days[dayIndex],
     count: result[0].messageCount
@@ -3030,12 +3030,12 @@ async function getBusiestChatDay(userId) {
 exports.getSupportConversations = async (req, res) => {
   try {
     const { status, department, assignedTo } = req.query;
-    
+
     const query = {
       type: "support",
       deletedAt: null
     };
-    
+
     if (status) query["metadata.support.status"] = status;
     if (department) query["metadata.support.department"] = department;
     if (assignedTo) query["metadata.support.assignedTo"] = assignedTo;
@@ -3095,9 +3095,9 @@ exports.getSupportConversations = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Get support conversations error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "فشل جلب محادثات الدعم" 
+      message: "فشل جلب محادثات الدعم"
     });
   }
 };
@@ -3124,9 +3124,9 @@ exports.assignSupportAgent = async (req, res) => {
       .populate("participants", "name image");
 
     if (!conversation) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "المحادثة غير موجودة" 
+        message: "المحادثة غير موجودة"
       });
     }
 
@@ -3168,9 +3168,9 @@ exports.assignSupportAgent = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Assign conversation error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "فشل تعيين المحادثة" 
+      message: "فشل تعيين المحادثة"
     });
   }
 };
@@ -3194,9 +3194,9 @@ exports.resolveSupportChat = async (req, res) => {
     );
 
     if (!conversation) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "المحادثة غير موجودة" 
+        message: "المحادثة غير موجودة"
       });
     }
 
@@ -3216,9 +3216,9 @@ exports.resolveSupportChat = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Resolve support chat error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "فشل إنهاء المحادثة" 
+      message: "فشل إنهاء المحادثة"
     });
   }
 };
@@ -3283,9 +3283,9 @@ exports.getSupportStats = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Get support stats error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "فشل جلب إحصائيات الدعم" 
+      message: "فشل جلب إحصائيات الدعم"
     });
   }
 };
@@ -3313,7 +3313,7 @@ exports.getAllConversations = async (req, res) => {
         .skip(skip)
         .limit(parseInt(limit))
         .lean(),
-      
+
       Conversation.countDocuments(query)
     ]);
 
@@ -3331,9 +3331,9 @@ exports.getAllConversations = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Get all conversations error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "فشل جلب المحادثات" 
+      message: "فشل جلب المحادثات"
     });
   }
 };
@@ -3354,9 +3354,9 @@ exports.adminDeleteConversation = async (req, res) => {
     );
 
     if (!conversation) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: "المحادثة غير موجودة" 
+        message: "المحادثة غير موجودة"
       });
     }
 
@@ -3375,9 +3375,9 @@ exports.adminDeleteConversation = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Admin delete conversation error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "فشل حذف المحادثة" 
+      message: "فشل حذف المحادثة"
     });
   }
 };
@@ -3425,7 +3425,7 @@ exports.broadcastMessage = async (req, res) => {
       try {
         // البحث عن محادثة مباشرة أو إنشاؤها
         let conversation = await Conversation.findByParticipants([req.user.id, userId], "direct");
-        
+
         if (!conversation) {
           conversation = await Conversation.create({
             type: "direct",
@@ -3459,9 +3459,9 @@ exports.broadcastMessage = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Broadcast message error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "فشل إرسال الرسالة الجماعية" 
+      message: "فشل إرسال الرسالة الجماعية"
     });
   }
 };

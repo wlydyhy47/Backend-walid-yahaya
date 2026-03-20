@@ -1,6 +1,7 @@
 // ============================================
-// ملف: src/middlewares/role.middleware.js (محدث)
+// ملف: src/middlewares/role.middleware.js (مصحح)
 // الوصف: التحقق من صلاحيات الأدوار
+// الإصدار: 3.0
 // ============================================
 
 const { businessLogger } = require("../utils/logger.util");
@@ -12,15 +13,15 @@ const ROLES = {
   CLIENT: 'client',
   DRIVER: 'driver',
   ADMIN: 'admin',
-  RESTAURANT_OWNER: 'restaurant_owner'
+  STORE_OWNER: 'store_owner'  // ✅ تغيير من RESTAURANT_OWNER
 };
 
 /**
  * هرمية الأدوار (كل دور له صلاحية الأدوار الأدنى)
  */
 const ROLE_HIERARCHY = {
-  [ROLES.ADMIN]: [ROLES.ADMIN, ROLES.RESTAURANT_OWNER, ROLES.DRIVER, ROLES.CLIENT],
-  [ROLES.RESTAURANT_OWNER]: [ROLES.RESTAURANT_OWNER, ROLES.DRIVER, ROLES.CLIENT],
+  [ROLES.ADMIN]: [ROLES.ADMIN, ROLES.STORE_OWNER, ROLES.DRIVER, ROLES.CLIENT],
+  [ROLES.STORE_OWNER]: [ROLES.STORE_OWNER, ROLES.DRIVER, ROLES.CLIENT],
   [ROLES.DRIVER]: [ROLES.DRIVER, ROLES.CLIENT],
   [ROLES.CLIENT]: [ROLES.CLIENT]
 };
@@ -31,7 +32,7 @@ const ROLE_HIERARCHY = {
 const ROLE_PERMISSIONS = {
   [ROLES.ADMIN]: [
     'manage_users',
-    'manage_restaurants',
+    'manage_stores',      // ✅ تغيير من manage_restaurants
     'manage_orders',
     'manage_drivers',
     'view_analytics',
@@ -40,11 +41,11 @@ const ROLE_PERMISSIONS = {
     'manage_loyalty',
     'view_logs'
   ],
-  [ROLES.RESTAURANT_OWNER]: [
-    'manage_own_restaurant',
+  [ROLES.STORE_OWNER]: [  // ✅ تغيير من RESTAURANT_OWNER
+    'manage_own_store',    // ✅ تغيير من manage_own_restaurant
     'view_own_orders',
     'update_order_status',
-    'manage_menu',
+    'manage_products',     // ✅ تغيير من manage_menu
     'view_own_analytics',
     'manage_staff'
   ],
@@ -106,7 +107,7 @@ const roleMiddleware = (...allowedRoles) => {
       next();
     } catch (error) {
       businessLogger.error('Role middleware error:', error);
-      
+
       res.status(500).json({
         success: false,
         message: "خطأ في التحقق من الصلاحيات",
@@ -148,7 +149,7 @@ const hasPermission = (permission) => {
       next();
     } catch (error) {
       businessLogger.error('Permission middleware error:', error);
-      
+
       res.status(500).json({
         success: false,
         message: "خطأ في التحقق من الصلاحية"
@@ -157,15 +158,15 @@ const hasPermission = (permission) => {
   };
 };
 
-// ========== 3. Middleware خاص لصاحب المطعم ==========
+// ========== 3. Middleware خاص لصاحب المتجر ==========
 
 /**
- * @desc    التحقق من أن المستخدم يملك المطعم المطلوب
+ * @desc    التحقق من أن المستخدم يملك المتجر المطلوب
  */
-const restaurantOwnerMiddleware = async (req, res, next) => {
+const storeOwnerMiddleware = async (req, res, next) => {
   try {
-    const Restaurant = require("../models/restaurant.model");
-    
+    const Store = require("../models/store.model");
+
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -179,51 +180,51 @@ const restaurantOwnerMiddleware = async (req, res, next) => {
       return next();
     }
 
-    if (req.user.role !== ROLES.RESTAURANT_OWNER) {
+    if (req.user.role !== ROLES.STORE_OWNER) {
       return res.status(403).json({
         success: false,
-        message: "هذا المسار مخصص لأصحاب المطاعم فقط",
+        message: "هذا المسار مخصص لأصحاب المتاجر فقط",
         code: "FORBIDDEN"
       });
     }
 
-    // التحقق من أن المستخدم يملك مطعماً
+    // التحقق من أن المستخدم يملك متجراً
     const user = await require("../models/user.model").findById(req.user.id)
-      .select('restaurantOwnerInfo');
+      .select('storeOwnerInfo');
 
-    if (!user?.restaurantOwnerInfo?.restaurant) {
+    if (!user?.storeOwnerInfo?.store) {
       return res.status(400).json({
         success: false,
-        message: "لم يتم ربطك بأي مطعم بعد",
-        code: "NO_RESTAURANT"
+        message: "لم يتم ربطك بأي متجر بعد",
+        code: "NO_STORE"
       });
     }
 
-    // إذا كان هناك restaurantId في params، تحقق من الملكية
-    const requestedRestaurantId = req.params.restaurantId || 
-                                   req.params.id || 
-                                   req.body.restaurantId;
-    
-    if (requestedRestaurantId) {
-      const ownsRestaurant = user.restaurantOwnerInfo.restaurant.toString() === requestedRestaurantId;
-      
-      if (!ownsRestaurant) {
+    // إذا كان هناك storeId في params، تحقق من الملكية
+    const requestedStoreId = req.params.storeId ||
+      req.params.id ||
+      req.body.storeId;
+
+    if (requestedStoreId) {
+      const ownsStore = user.storeOwnerInfo.store.toString() === requestedStoreId;
+
+      if (!ownsStore) {
         return res.status(403).json({
           success: false,
-          message: "هذا المطعم لا ينتمي إليك",
+          message: "هذا المتجر لا ينتمي إليك",
           code: "NOT_OWNER"
         });
       }
     }
 
-    // إضافة معلومات المطعم للـ req
-    req.restaurantId = user.restaurantOwnerInfo.restaurant;
-    req.restaurantOwner = user.restaurantOwnerInfo;
-    
+    // إضافة معلومات المتجر للـ req
+    req.storeId = user.storeOwnerInfo.store;
+    req.storeOwner = user.storeOwnerInfo;
+
     next();
   } catch (error) {
-    businessLogger.error("Restaurant owner middleware error:", error);
-    
+    businessLogger.error("Store owner middleware error:", error);
+
     res.status(500).json({
       success: false,
       message: "خطأ في التحقق من الصلاحيات",
@@ -277,11 +278,11 @@ const driverMiddleware = async (req, res, next) => {
       isAvailable: user.driverInfo?.isAvailable || false,
       isOnline: user.isOnline
     };
-    
+
     next();
   } catch (error) {
     businessLogger.error("Driver middleware error:", error);
-    
+
     res.status(500).json({
       success: false,
       message: "خطأ في التحقق من صلاحيات المندوب"
@@ -313,7 +314,7 @@ const hasRoleHierarchy = (userRole, requiredRole) => {
 
 module.exports = roleMiddleware;
 module.exports.roleMiddleware = roleMiddleware;
-module.exports.restaurantOwnerMiddleware = restaurantOwnerMiddleware;
+module.exports.storeOwnerMiddleware = storeOwnerMiddleware;  // ✅ تغيير من restaurantOwnerMiddleware
 module.exports.driverMiddleware = driverMiddleware;
 module.exports.hasPermission = hasPermission;
 module.exports.getRoles = getRoles;

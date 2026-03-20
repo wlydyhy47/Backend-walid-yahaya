@@ -661,4 +661,35 @@ const createOrderTimeline = (order) => {
   ];
 };
 
+/**
+ * @desc    الحصول على مندوب محدد (للأدمن)
+ */
+exports.getDriverById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    const driver = await User.findById(id)
+      .select('name phone email image driverInfo stats isOnline lastLogin')
+      .lean();
+    
+    if (!driver || driver.role !== 'driver') {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: driver
+    });
+  } catch (error) {
+    console.error("❌ Get driver by id error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب بيانات المندوب"
+    });
+  }
+};
+
 module.exports = exports;
