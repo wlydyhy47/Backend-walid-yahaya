@@ -1,12 +1,12 @@
 // ============================================
-// ملف: src/routes/auth.routes.js (النسخة النهائية الموحدة)
+// ملف: src/routes/auth.routes.js (النسخة النهائية الموحدة - تم إصلاح الاستيراد)
 // الوصف: مسارات المصادقة - رابط واحد لكل عملية
 // ============================================
 
 const express = require("express");
 const router = express.Router();
 
-// ✅ استيراد موحد
+// ✅ ✅ ✅ التصحيح: استيراد authController من المجلد الموحد controllers ✅ ✅ ✅
 const { authController } = require('../controllers');
 
 // الـ middlewares
