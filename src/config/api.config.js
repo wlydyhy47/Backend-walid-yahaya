@@ -9,21 +9,21 @@ module.exports = {
     prefix: 'api',
     versions: ['v1', 'v2'],
     defaultVersion: 'v1',
-    
+
     // إعدادات Rate Limiting
     rateLimit: {
       windowMs: 15 * 60 * 1000, // 15 دقيقة
       max: 100, // الحد الأقصى للطلبات
       message: 'محاولات كثيرة جداً، الرجاء المحاولة بعد 15 دقيقة'
     },
-    
+
     // إعدادات Pagination
     pagination: {
       defaultLimit: 20,
       maxLimit: 100,
       defaultPage: 1
     },
-    
+
     // إعدادات Cache
     cache: {
       defaultTTL: 300, // 5 دقائق
@@ -52,7 +52,7 @@ module.exports = {
     CLIENT: 'client',
     DRIVER: 'driver',
     ADMIN: 'admin',
-    RESTAURANT_OWNER: 'restaurant_owner'
+    STORE_OWNER: 'store_owner'
   },
 
   // حالات الطلب

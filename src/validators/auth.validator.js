@@ -41,7 +41,7 @@ const registerSchema = Joi.object({
     }),
 
   role: Joi.string()
-    .valid('client', 'driver', 'admin')
+    .valid('client', 'driver', 'admin', 'store_owner') // ✅ إضافة store_owner
     .optional()
     .default('client')
 });
@@ -61,11 +61,6 @@ const loginSchema = Joi.object({
     })
 });
 
-module.exports = {
-  registerSchema,
-  loginSchema
-};
-
 const changePasswordSchema = Joi.object({
   currentPassword: Joi.string().required().messages({
     'any.required': 'كلمة المرور الحالية مطلوبة'
@@ -75,3 +70,9 @@ const changePasswordSchema = Joi.object({
     'any.required': 'كلمة المرور الجديدة مطلوبة'
   })
 });
+
+module.exports = {
+  registerSchema,
+  loginSchema,
+  changePasswordSchema
+};
