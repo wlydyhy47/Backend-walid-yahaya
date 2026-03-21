@@ -16,7 +16,7 @@ class FileService {
     // ========== 1. أنواع الملفات المسموح بها ==========
     this.allowedTypes = {
       image: [
-        'image/jpeg', 'image/jpg', 'image/png', 'image/webp', 
+        'image/jpeg', 'image/jpg', 'image/png', 'image/webp',
         'image/gif', 'image/svg+xml', 'image/avif', 'image/bmp'
       ],
       document: [
@@ -42,7 +42,7 @@ class FileService {
       avatar: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
       cover: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
       item: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
-      restaurant: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+      store: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
       category: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
       chat: ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'application/pdf'],
       document: ['application/pdf', 'text/plain', 'application/msword']
@@ -57,7 +57,7 @@ class FileService {
       avatar: 2 * 1024 * 1024,      // 2MB
       cover: 8 * 1024 * 1024,       // 8MB
       item: 5 * 1024 * 1024,        // 5MB
-      restaurant: 10 * 1024 * 1024,  // 10MB
+      store: 10 * 1024 * 1024,  // 10MB
       chat: 25 * 1024 * 1024,       // 25MB
       default: 5 * 1024 * 1024      // 5MB
     };
@@ -112,7 +112,7 @@ class FileService {
 
     // التحقق من نوع الملف
     const allowedForType = this.customTypes[type] || this.allowedTypes[type] || this.allowedTypes.image;
-    
+
     if (!allowedForType.includes(file.mimetype)) {
       errors.push(`نوع الملف غير مسموح. الأنواع المسموحة: ${allowedForType.join(', ')}`);
     }
@@ -174,7 +174,7 @@ class FileService {
         const ratio = metadata.width / metadata.height;
         const [targetWidth, targetHeight] = aspectRatio.split(':').map(Number);
         const targetRatio = targetWidth / targetHeight;
-        
+
         if (Math.abs(ratio - targetRatio) > 0.01) {
           throw new AppError(`نسبة العرض إلى الارتفاع يجب أن تكون ${aspectRatio}`, 400);
         }
@@ -197,7 +197,7 @@ class FileService {
       this.validateFile(file, folder);
 
       const fileType = file.mimetype.split('/')[0];
-      
+
       const uploadOptions = {
         folder: `food-delivery/${folder}`,
         public_id: `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`,
@@ -251,12 +251,12 @@ class FileService {
     } catch (error) {
       this.stats.errors++;
       businessLogger.error('Cloudinary upload failed:', error);
-      
+
       // تنظيف الملف المؤقت حتى في حالة الخطأ
       if (file.path) {
         await this.cleanupTempFile(file.path);
       }
-      
+
       throw new AppError(`فشل رفع الملف: ${error.message}`, 500);
     }
   }
@@ -301,7 +301,7 @@ class FileService {
     try {
       // التحقق من صحة Base64
       const matches = base64String.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-      
+
       if (!matches || matches.length !== 3) {
         throw new AppError('تنسيق Base64 غير صالح', 400);
       }
@@ -386,7 +386,7 @@ class FileService {
     if (!publicId) return null;
 
     const dimensions = this.imageSizes[size] || this.imageSizes.medium;
-    
+
     try {
       const url = cloudinary.url(publicId, {
         transformation: [
@@ -403,7 +403,7 @@ class FileService {
         ],
         secure: true
       });
-      
+
       return url;
     } catch (error) {
       businessLogger.error('Error generating optimized URL:', error);
@@ -418,11 +418,11 @@ class FileService {
     if (!publicId) return null;
 
     const sizes = {};
-    
+
     for (const [sizeName, dimensions] of Object.entries(this.imageSizes)) {
       sizes[sizeName] = this.getOptimizedUrl(publicId, sizeName);
     }
-    
+
     return sizes;
   }
 
@@ -436,13 +436,13 @@ class FileService {
 
     try {
       const result = await cloudinary.uploader.destroy(publicId);
-      
+
       if (result.result === 'ok') {
         businessLogger.info(`File deleted: ${publicId}`);
-        
+
         // تحديث الإحصائيات
         this.stats.totalSize -= result.bytes || 0;
-        
+
         return true;
       } else {
         businessLogger.warn(`File not found: ${publicId}`);
@@ -517,7 +517,7 @@ class FileService {
       for (const file of files) {
         const filePath = path.join(this.tempDir, file);
         const stat = await fs.stat(filePath);
-        
+
         if (now - stat.mtimeMs > maxAge) {
           await fs.unlink(filePath);
           deleted++;
@@ -560,7 +560,7 @@ class FileService {
       const parts = url.split('/');
       const lastPart = parts[parts.length - 1];
       const publicIdWithExt = lastPart.split('.')[0];
-      
+
       return publicIdWithExt || null;
     } catch (error) {
       businessLogger.error('Error extracting publicId:', error);
@@ -625,9 +625,9 @@ class FileService {
   /**
    * الحصول على رابط افتراضي حسب النوع
    */
-  getDefaultImage(type = 'restaurant') {
+  getDefaultImage(type = 'store') {
     const defaults = {
-      restaurant: '/images/default-restaurant.jpg',
+      store: '/images/default-store.jpg',
       item: '/images/default-item.jpg',
       avatar: '/images/default-avatar.png',
       user: '/images/default-avatar.png',
@@ -636,7 +636,7 @@ class FileService {
       category: '/images/default-category.jpg'
     };
 
-    return defaults[type] || defaults.restaurant;
+    return defaults[type] || defaults.store;
   }
 
   /**
@@ -644,7 +644,7 @@ class FileService {
    */
   getAllDefaultImages() {
     return {
-      restaurant: this.getDefaultImage('restaurant'),
+      store: this.getDefaultImage('store'),
       item: this.getDefaultImage('item'),
       avatar: this.getDefaultImage('avatar'),
       cover: this.getDefaultImage('cover'),

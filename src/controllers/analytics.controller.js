@@ -316,10 +316,10 @@ exports.getDashboardOverview = async (req, res) => {
     const [
       userStats,
       orderStats,
-      restaurantStats,
+      storeStats,
       revenueStats,
       popularItems,
-      topRestaurants
+      topStores
     ] = await Promise.all([
       // إحصائيات المستخدمين
       User.aggregate([
@@ -439,7 +439,7 @@ exports.getDashboardOverview = async (req, res) => {
         },
         {
           $group: {
-            _id: '$restaurant',
+            _id: '$store',
             orders: { $sum: 1 },
             revenue: { $sum: '$totalPrice' }
           }
@@ -448,10 +448,10 @@ exports.getDashboardOverview = async (req, res) => {
         { $limit: 5 },
         {
           $lookup: {
-            from: 'restaurants',
+            from: 'stores',
             localField: '_id',
             foreignField: '_id',
-            as: 'restaurantInfo'
+            as: 'storeInfo'
           }
         }
       ])
@@ -475,11 +475,11 @@ exports.getDashboardOverview = async (req, res) => {
         byStatus: orderStats[0]?.byStatus || [],
         chart: formatChartData(orderStats[0]?.byDay || [], '_id', 'count')
       },
-      restaurants: {
-        total: restaurantStats[0]?.total[0]?.count || 0,
-        new: restaurantStats[0]?.new[0]?.count || 0,
-        byType: restaurantStats[0]?.byType || [],
-        topRated: restaurantStats[0]?.topRated || []
+      stores: {
+        total: storeStats[0]?.total[0]?.count || 0,
+        new: storeStats[0]?.new[0]?.count || 0,
+        byType: storeStats[0]?.byType || [],
+        topRated: storeStats[0]?.topRated || []
       },
       revenue: {
         total: revenueStats[0]?.total || 0,
@@ -488,9 +488,9 @@ exports.getDashboardOverview = async (req, res) => {
         minOrder: revenueStats[0]?.minOrder || 0
       },
       popularItems,
-      topRestaurants: topRestaurants.map(r => ({
+      topStores: topStores.map(r => ({
         ...r,
-        name: r.restaurantInfo[0]?.name || 'Unknown'
+        name: r.storeInfo[0]?.name || 'Unknown'
       }))
     };
 

@@ -8,7 +8,7 @@ const Conversation = require("../models/conversation.model");
 const Message = require("../models/message.model");
 const User = require("../models/user.model");
 const Order = require("../models/order.model");
-const Restaurant = require("../models/store.model");
+const Store = require("../models/store.model");
 const chatSocketService = require("../services/chat.socket.service");
 const notificationService = require("../services/notification.service");
 const cache = require("../utils/cache.util");
@@ -370,7 +370,7 @@ exports.createOrderChat = async (req, res) => {
     const order = await Order.findById(orderId)
       .populate('user', '_id name')
       .populate('driver', '_id name')
-      .populate('restaurant', '_id name');
+      .populate('store', '_id name');
 
     if (!order) {
       return res.status(404).json({
@@ -411,7 +411,7 @@ exports.createOrderChat = async (req, res) => {
         metadata: {
           order: {
             orderId,
-            restaurant: order.restaurant._id,
+            store: order.store._id,
             driver: order.driver?._id,
             status: "active"
           }
@@ -431,7 +431,7 @@ exports.createOrderChat = async (req, res) => {
     const populatedConversation = await Conversation.findById(conversation._id)
       .populate("participants", "name image role")
       .populate("metadata.order.orderId", "status totalPrice")
-      .populate("metadata.order.restaurant", "name image")
+      .populate("metadata.order.store", "name image")
       .populate("metadata.order.driver", "name image")
       .lean();
 

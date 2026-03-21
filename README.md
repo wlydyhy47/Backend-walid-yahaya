@@ -5,7 +5,7 @@ A complete backend solution for food delivery applications with real-time featur
 ## Features
 
 - ✅ User authentication & authorization
-- ✅ Restaurant management
+- ✅ Store management
 - ✅ Order processing & tracking
 - ✅ Real-time chat
 - ✅ Notification system

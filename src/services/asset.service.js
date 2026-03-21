@@ -104,7 +104,7 @@ class AssetService {
   async getAllImages(type = 'images') {
     try {
       const cacheKey = `asset:all:${type}`;
-      
+
       // التحقق من الكاش
       const cached = cache.get(cacheKey);
       if (cached) {
@@ -113,7 +113,7 @@ class AssetService {
 
       const dir = path.join(this.baseDir, type);
       const files = await fs.readdir(dir);
-      
+
       const images = await Promise.all(
         files
           .filter(file => {
@@ -123,7 +123,7 @@ class AssetService {
           .map(async (file) => {
             const filePath = path.join(dir, file);
             const stats = await fs.stat(filePath);
-            
+
             return {
               filename: file,
               url: `/${type}/${file}`,
@@ -165,7 +165,7 @@ class AssetService {
   async getImagesByCategory(category) {
     try {
       const cacheKey = `asset:category:${category}`;
-      
+
       const cached = cache.get(cacheKey);
       if (cached) {
         return cached;
@@ -196,7 +196,7 @@ class AssetService {
   async getIcons() {
     try {
       const cacheKey = 'asset:icons:all';
-      
+
       const cached = cache.get(cacheKey);
       if (cached) {
         return cached;
@@ -204,7 +204,7 @@ class AssetService {
 
       const iconsDir = path.join(this.baseDir, 'icons');
       const files = await fs.readdir(iconsDir);
-      
+
       const icons = await Promise.all(
         files
           .filter(file => {
@@ -214,7 +214,7 @@ class AssetService {
           .map(async (file) => {
             const filePath = path.join(iconsDir, file);
             const stats = await fs.stat(filePath);
-            
+
             return {
               filename: file,
               url: `/icons/${file}`,
@@ -258,7 +258,7 @@ class AssetService {
   async getDefaultImages() {
     try {
       const cacheKey = 'asset:defaults';
-      
+
       const cached = cache.get(cacheKey);
       if (cached) {
         return cached;
@@ -271,9 +271,9 @@ class AssetService {
           type: 'png',
           description: 'الصورة الافتراضية للمستخدم'
         },
-        restaurant: {
-          url: '/images/default-restaurant.jpg',
-          fullUrl: `${process.env.API_URL || 'http://localhost:3000'}/images/default-restaurant.jpg`,
+        store: {
+          url: '/images/default-store.jpg',
+          fullUrl: `${process.env.API_URL || 'http://localhost:3000'}/images/default-store.jpg`,
           type: 'jpg',
           description: 'الصورة الافتراضية للمطعم'
         },
@@ -361,7 +361,7 @@ class AssetService {
    */
   async getDefaultImageByType(type) {
     const defaults = await this.getDefaultImages();
-    return defaults[type] || defaults.restaurant;
+    return defaults[type] || defaults.store;
   }
 
   // ========== 4. رفع الملفات ==========
@@ -377,11 +377,11 @@ class AssetService {
       // إنشاء اسم فريد
       const ext = path.extname(file.originalname);
       const filename = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${ext}`;
-      
+
       // المسار الكامل
       const uploadDir = path.join(this.baseDir, type);
       await fs.mkdir(uploadDir, { recursive: true });
-      
+
       const filePath = path.join(uploadDir, filename);
 
       // نسخ الملف
@@ -391,7 +391,7 @@ class AssetService {
       const stats = await fs.stat(filePath);
 
       // تنظيف الملف المؤقت
-      await fs.unlink(file.path).catch(() => {});
+      await fs.unlink(file.path).catch(() => { });
 
       const result = {
         filename,
@@ -431,7 +431,7 @@ class AssetService {
       // استخدام file service لإنشاء نسخة مصغرة
       const publicId = `temp-${Date.now()}`;
       const thumbnailUrl = fileService.getOptimizedUrl(publicId, 'thumbnail');
-      
+
       return thumbnailUrl;
     } catch (error) {
       businessLogger.error('Error creating thumbnail:', error);
@@ -581,11 +581,11 @@ class AssetService {
         const dirPath = path.join(this.baseDir, dir);
         try {
           const files = await fs.readdir(dirPath);
-          
+
           for (const file of files) {
             const filePath = path.join(dirPath, file);
             const fileStats = await fs.stat(filePath);
-            
+
             stats[dir].count++;
             stats[dir].totalSize += fileStats.size;
 
@@ -611,15 +611,15 @@ class AssetService {
    */
   getImageCategory(filename) {
     const name = filename.toLowerCase();
-    
-    if (name.includes('restaurant') || name.includes('resto')) return 'restaurants';
+
+    if (name.includes('store') || name.includes('resto')) return 'stores';
     if (name.includes('item') || name.includes('food') || name.includes('meal')) return 'items';
     if (name.includes('user') || name.includes('avatar') || name.includes('profile')) return 'users';
     if (name.includes('cover') || name.includes('banner')) return 'covers';
     if (name.includes('icon') || name.includes('logo')) return 'icons';
     if (name.includes('default')) return 'defaults';
     if (name.includes('category')) return 'categories';
-    
+
     return 'other';
   }
 
@@ -628,7 +628,7 @@ class AssetService {
    */
   getIconPurpose(filename) {
     const name = filename.toLowerCase();
-    
+
     if (name === 'favicon.ico') return 'favicon';
     if (name.includes('apple-touch-icon')) return 'apple-touch';
     if (name.includes('icon-192')) return 'android-192';
@@ -636,7 +636,7 @@ class AssetService {
     if (name.includes('manifest')) return 'manifest';
     if (name.includes('og-image')) return 'og-image';
     if (name.includes('twitter-image')) return 'twitter-image';
-    
+
     return 'general';
   }
 
@@ -663,7 +663,7 @@ class AssetService {
 
       for (const dir of dirs) {
         const dirPath = path.join(this.baseDir, dir);
-        
+
         try {
           const files = await fs.readdir(dirPath);
           const now = Date.now();

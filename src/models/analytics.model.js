@@ -20,7 +20,7 @@ const analyticsSchema = new mongoose.Schema(
         "order_cancelled",
         "user_login",
         "user_register",
-        "restaurant_view",
+        "store_view",
         "item_view",
         "add_to_cart",
         "remove_from_cart",
@@ -34,30 +34,30 @@ const analyticsSchema = new mongoose.Schema(
       ],
       index: true,
     },
-    
+
     // المستخدم (إذا كان مسجلاً)
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       index: true,
     },
-    
+
     // جلسة المستخدم
     sessionId: {
       type: String,
       index: true,
     },
-    
+
     // البيانات المرتبطة
     data: {
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
-    
+
     // المسار
     page: String,
     referrer: String,
-    
+
     // الجهاز والمتصفح
     device: {
       type: {
@@ -68,7 +68,7 @@ const analyticsSchema = new mongoose.Schema(
       os: String,
       screenSize: String,
     },
-    
+
     // الموقع
     location: {
       ip: String,
@@ -77,13 +77,13 @@ const analyticsSchema = new mongoose.Schema(
       latitude: Number,
       longitude: Number,
     },
-    
+
     // الوقت المستغرق
     duration: Number, // بالمللي ثانية
-    
+
     // قيمة الحدث (مثل سعر الطلب)
     value: Number,
-    
+
     // مصدر الزائر
     utm: {
       source: String,
@@ -92,7 +92,7 @@ const analyticsSchema = new mongoose.Schema(
       term: String,
       content: String,
     },
-    
+
     // ملاحظات إضافية
     tags: [String],
   },
@@ -117,27 +117,27 @@ analyticsSchema.index({ sessionId: 1, createdAt: -1 });
 /**
  * تسجيل حدث
  */
-analyticsSchema.statics.track = async function(eventData) {
+analyticsSchema.statics.track = async function (eventData) {
   const event = new this(eventData);
   await event.save();
-  
+
   // تحديث إحصائيات الأداء
   global.requestCount = (global.requestCount || 0) + 1;
-  
+
   return event;
 };
 
 /**
  * الحصول على إحصائيات عامة
  */
-analyticsSchema.statics.getOverview = async function(startDate, endDate) {
+analyticsSchema.statics.getOverview = async function (startDate, endDate) {
   const match = {};
   if (startDate || endDate) {
     match.createdAt = {};
     if (startDate) match.createdAt.$gte = new Date(startDate);
     if (endDate) match.createdAt.$lte = new Date(endDate);
   }
-  
+
   return this.aggregate([
     { $match: match },
     {
@@ -174,10 +174,10 @@ analyticsSchema.statics.getOverview = async function(startDate, endDate) {
 /**
  * الحصول على إحصائيات المستخدم
  */
-analyticsSchema.statics.getUserStats = async function(userId, days = 30) {
+analyticsSchema.statics.getUserStats = async function (userId, days = 30) {
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
-  
+
   return this.aggregate([
     {
       $match: {

@@ -73,7 +73,7 @@ const options = {
             },
             role: {
               type: 'string',
-              enum: ['client', 'driver', 'admin', 'restaurant_owner'],
+              enum: ['client', 'driver', 'admin', 'store_owner'],
               example: 'client',
               description: 'دور المستخدم'
             },
@@ -99,9 +99,9 @@ const options = {
             }
           }
         },
-        
+
         // ====== المطاعم ======
-        Restaurant: {
+        Store: {
           type: 'object',
           required: ['name'],
           properties: {
@@ -121,7 +121,7 @@ const options = {
             },
             image: {
               type: 'string',
-              example: 'https://res.cloudinary.com/.../restaurant.jpg',
+              example: 'https://res.cloudinary.com/.../store.jpg',
               description: 'صورة المطعم'
             },
             coverImage: {
@@ -131,8 +131,8 @@ const options = {
             },
             type: {
               type: 'string',
-              enum: ['restaurant', 'cafe', 'bakery', 'fast-food', 'grocery', 'pharmacy', 'other'],
-              example: 'restaurant',
+              enum: ['store', 'cafe', 'bakery', 'fast-food', 'grocery', 'pharmacy', 'other'],
+              example: 'store',
               description: 'نوع المطعم'
             },
             isOpen: {
@@ -167,7 +167,7 @@ const options = {
         // ====== الطلبات ======
         Order: {
           type: 'object',
-          required: ['items', 'totalPrice', 'restaurant'],
+          required: ['items', 'totalPrice', 'store'],
           properties: {
             id: {
               type: 'string',
@@ -178,7 +178,7 @@ const options = {
               example: '60d21b4667d0d8992e610c85',
               description: 'معرف المستخدم'
             },
-            restaurant: {
+            store: {
               type: 'string',
               example: '60d21b4667d0d8992e610c86',
               description: 'معرف المطعم'
@@ -265,7 +265,7 @@ const options = {
         // ====== عناصر القائمة ======
         Item: {
           type: 'object',
-          required: ['name', 'price', 'restaurant'],
+          required: ['name', 'price', 'store'],
           properties: {
             id: {
               type: 'string',
@@ -362,7 +362,7 @@ const options = {
               example: '60d21b4667d0d8992e610c85',
               description: 'معرف المستخدم'
             },
-            restaurant: {
+            store: {
               type: 'string',
               example: '60d21b4667d0d8992e610c86',
               description: 'معرف المطعم'
@@ -515,7 +515,7 @@ const options = {
         description: 'إدارة المستخدمين والملفات الشخصية'
       },
       {
-        name: 'Restaurants',
+        name: 'Stores',
         description: 'إدارة المطاعم وقوائم الطعام'
       },
       {
@@ -547,7 +547,7 @@ const options = {
         description: 'لوحة تحكم المندوب'
       },
       {
-        name: 'Restaurant Owner',
+        name: 'Store Owner',
         description: 'لوحة تحكم صاحب المطعم'
       },
       {

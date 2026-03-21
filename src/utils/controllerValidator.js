@@ -75,10 +75,10 @@ const REQUIRED_METHODS = {
   aggregateController: {
     required: [
       'getDashboardData',
-      'getRestaurantsPaginated',
+      'getStoresPaginated',
       'getItemsPaginated',
       'getOrdersPaginatedAdmin',
-      'getRestaurantDetails',
+      'getStoreDetails',
       'getOrderWithTracking',
       'getHomeData',
       'clearCache',
@@ -424,12 +424,12 @@ function printHeader(title) {
 function printResult(controllerName, stats, missingMethods) {
   const status = stats.isValid ? '✅' : '❌';
   const color = stats.isValid ? 'green' : 'red';
-  
+
   console.log(`\n${colorize(status, color)} ${colorize(controllerName, 'yellow')}`);
   console.log(`   📊 الدوال المطلوبة: ${stats.requiredCount}`);
   console.log(`   📈 الدوال الموجودة: ${stats.existingCount}`);
   console.log(`   📉 الدوال المفقودة: ${stats.missingCount}`);
-  
+
   if (missingMethods.length > 0) {
     console.log(colorize(`   ⚠️  المفقودة: ${missingMethods.join(', ')}`, 'red'));
   }
@@ -485,7 +485,7 @@ function validateController(controller, controllerName, requiredMethods, optiona
  */
 function validateAllControllers() {
   printHeader('التحقق من صحة جميع الـ Controllers');
-  
+
   const results = [];
   let allValid = true;
   let totalRequired = 0;
@@ -495,11 +495,11 @@ function validateAllControllers() {
   try {
     // استيراد جميع الـ Controllers
     const controllers = require('../controllers');
-    
+
     // التحقق من كل Controller
     for (const [name, config] of Object.entries(REQUIRED_METHODS)) {
       const controller = controllers[name];
-      
+
       if (!controller) {
         console.log(`\n❌ ${colorize(name, 'red')} - Controller غير موجود!`);
         allValid = false;
@@ -511,43 +511,43 @@ function validateAllControllers() {
         });
         continue;
       }
-      
+
       const stats = validateController(
         controller,
         name,
         config.required,
         config.optional
       );
-      
+
       results.push(stats);
-      
+
       if (!stats.isValid) {
         allValid = false;
       }
-      
+
       totalRequired += stats.requiredCount;
       totalExisting += stats.existingCount;
       totalMissing += stats.missingCount;
-      
+
       printResult(name, stats, stats.missingMethods);
     }
-    
+
     // طباعة الملخص النهائي
     printHeader('ملخص التحقق النهائي');
-    
+
     console.log(`\n📊 الإحصائيات العامة:`);
     console.log(`   🎯 إجمالي الدوال المطلوبة: ${totalRequired}`);
     console.log(`   ✅ الدوال الموجودة: ${totalExisting}`);
     console.log(`   ❌ الدوال المفقودة: ${totalMissing}`);
     console.log(`   📈 نسبة الاكتمال: ${((totalExisting / totalRequired) * 100).toFixed(1)}%`);
-    
+
     if (allValid) {
       console.log(`\n${colorize('🎉 مبروك! جميع الـ Controllers تعمل بشكل صحيح!', 'green')}`);
     } else {
       console.log(`\n${colorize('⚠️  يوجد دوال مفقودة في بعض الـ Controllers', 'yellow')}`);
       console.log(colorize('📝 يرجى إضافة الدوال المفقودة حسب القائمة أعلاه', 'yellow'));
     }
-    
+
     return {
       success: allValid,
       results,
@@ -561,7 +561,7 @@ function validateAllControllers() {
         invalidControllers: results.filter(r => !r.isValid).length
       }
     };
-    
+
   } catch (error) {
     console.error(`\n${colorize('❌ خطأ في التحقق:', 'red')}`, error.message);
     console.error(error.stack);
@@ -578,41 +578,41 @@ function validateAllControllers() {
  */
 function validateSingleController(controllerName) {
   printHeader(`التحقق من Controller: ${controllerName}`);
-  
+
   const config = REQUIRED_METHODS[controllerName];
-  
+
   if (!config) {
     console.log(`\n${colorize(`❌ لا يوجد تعريف للـ Controller: ${controllerName}`, 'red')}`);
     return null;
   }
-  
+
   try {
     const controllers = require('../controllers');
     const controller = controllers[controllerName];
-    
+
     if (!controller) {
       console.log(`\n${colorize(`❌ Controller ${controllerName} غير موجود!`, 'red')}`);
       return null;
     }
-    
+
     const stats = validateController(
       controller,
       controllerName,
       config.required,
       config.optional
     );
-    
+
     printResult(controllerName, stats, stats.missingMethods);
-    
+
     if (stats.missingMethods.length > 0) {
       console.log(`\n${colorize('📝 الدوال المفقودة:', 'yellow')}`);
       stats.missingMethods.forEach(method => {
         console.log(`   - ${method}`);
       });
     }
-    
+
     return stats;
-    
+
   } catch (error) {
     console.error(`\n${colorize('❌ خطأ:', 'red')}`, error.message);
     return null;
@@ -625,16 +625,16 @@ function validateSingleController(controllerName) {
 function exportValidationReport() {
   const results = validateAllControllers();
   const reportPath = path.join(__dirname, '../../validation-report.json');
-  
+
   const report = {
     generatedAt: new Date().toISOString(),
     environment: process.env.NODE_ENV || 'development',
     ...results
   };
-  
+
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
   console.log(`\n📄 تم حفظ التقرير في: ${reportPath}`);
-  
+
   return report;
 }
 
@@ -643,11 +643,11 @@ function exportValidationReport() {
  */
 function quickCheck() {
   console.log('\n🚀 بدء التحقق السريع من الـ Controllers...');
-  
+
   try {
     const controllers = require('../controllers');
     const controllerNames = Object.keys(controllers);
-    
+
     console.log(`\n📦 الـ Controllers الموجودة: ${controllerNames.length}`);
     controllerNames.forEach(name => {
       const methods = Object.keys(controllers[name]).filter(
@@ -655,13 +655,13 @@ function quickCheck() {
       );
       console.log(`   ✅ ${name}: ${methods.length} دالة`);
     });
-    
+
     return {
       success: true,
       controllers: controllerNames,
       count: controllerNames.length
     };
-    
+
   } catch (error) {
     console.error(`❌ خطأ: ${error.message}`);
     return {
@@ -680,10 +680,10 @@ module.exports = {
   validateController,
   exportValidationReport,
   quickCheck,
-  
+
   // بيانات
   REQUIRED_METHODS,
-  
+
   // دوال مساعدة للاستخدام المباشر
   checkAll: validateAllControllers,
   checkOne: validateSingleController,

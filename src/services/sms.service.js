@@ -28,9 +28,9 @@ class SmsService {
       this.initializeTwilio();
     }
 
-    businessLogger.info('SMS service initialized', { 
+    businessLogger.info('SMS service initialized', {
       enabled: this.config.enabled,
-      provider: this.config.provider 
+      provider: this.config.provider
     });
   }
 
@@ -44,7 +44,7 @@ class SmsService {
       }
 
       this.client = twilio(this.config.accountSid, this.config.authToken);
-      
+
       businessLogger.info('Twilio client initialized');
     } catch (error) {
       businessLogger.error('Failed to initialize Twilio:', error);
@@ -75,8 +75,8 @@ class SmsService {
       }
 
       // تقليم الرسالة إذا كانت طويلة
-      const trimmedMessage = message.length > 160 
-        ? message.substring(0, 157) + '...' 
+      const trimmedMessage = message.length > 160
+        ? message.substring(0, 157) + '...'
         : message;
 
       const result = await this.client.messages.create({
@@ -172,11 +172,11 @@ class SmsService {
     // تطبيق Rate Limiting
     for (let i = 0; i < recipients.length; i += this.batchSize) {
       const batch = recipients.slice(i, i + this.batchSize);
-      
+
       const batchPromises = batch.map(async recipient => {
         const phone = typeof recipient === 'string' ? recipient : recipient.phone;
-        const customMessage = typeof recipient === 'object' && recipient.message 
-          ? recipient.message 
+        const customMessage = typeof recipient === 'object' && recipient.message
+          ? recipient.message
           : message;
 
         const result = await this.sendSms(phone, customMessage, options);
@@ -280,7 +280,7 @@ class SmsService {
     const message = type === 'earn'
       ? `🎉 تهانينا! لقد حصلت على ${points} نقطة ولاء جديدة في ${this.config.appName}.`
       : `🔄 تم استبدال ${points} نقطة ولاء بنجاح. شكراً لولائك!`;
-    
+
     return this.sendSms(user.phone, message);
   }
 
@@ -296,7 +296,7 @@ class SmsService {
    * إرسال تذكير بالتقييم
    */
   async sendReviewReminderSms(user, order) {
-    const message = `⭐ كيف كانت تجربتك مع ${order.restaurant?.name || 'المطعم'}؟ قيم طلبك الآن: ${process.env.CLIENT_URL}/orders/${order._id}/review`;
+    const message = `⭐ كيف كانت تجربتك مع ${order.store?.name || 'المطعم'}؟ قيم طلبك الآن: ${process.env.CLIENT_URL}/orders/${order._id}/review`;
     return this.sendSms(user.phone, message);
   }
 
@@ -343,7 +343,7 @@ class SmsService {
    */
   simulateSms(phone, message) {
     const messageId = `simulated-${crypto.randomBytes(8).toString('hex')}`;
-    
+
     businessLogger.info(`[SIMULATED] SMS to ${phone}: ${message.substring(0, 50)}...`, {
       messageId,
       length: message.length
@@ -414,7 +414,7 @@ class SmsService {
     try {
       // هذا خاص بـ Twilio
       const balance = await this.client.api.v2010.balance.fetch();
-      
+
       return {
         success: true,
         balance: balance.balance,

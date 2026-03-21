@@ -25,7 +25,7 @@ npm run rollback
 npm run rollback:step -- 3
 
 # الرجوع إلى ترحيل معين
-npm run rollback:to -- 20240310_002_update_restaurant_stats
+npm run rollback:to -- 20240310_002_update_store_stats
 
 # إنشاء ترحيل جديد مع وصف
 npm run migrate:create -- "add_new_field" "وصف الترحيل"
@@ -83,7 +83,7 @@ text
 | 2 | `src/migrations/migrate.js` | سكريبت تشغيل الترحيلات |
 | 3 | `src/migrations/rollback.js` | سكريبت الرجوع عن الترحيلات |
 | 4 | `src/migrations/scripts/20240310_001_add_loyalty_points.js` | إضافة نقاط الولاء |
-| 5 | `src/migrations/scripts/20240310_002_update_restaurant_stats.js` | تحديث إحصائيات المطاعم |
+| 5 | `src/migrations/scripts/20240310_002_update_store_stats.js` | تحديث إحصائيات المطاعم |
 | 6 | `src/migrations/scripts/20240310_003_update_orders.js` | تحديث بيانات الطلبات |
 | 7 | `src/migrations/scripts/20240310_004_create_analytics.js` | إنشاء بيانات تحليلية |
 | 8 | `package.json` (محدث) | إضافة سكريبتات npm |

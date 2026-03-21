@@ -8,13 +8,13 @@ const Favorite = require("../models/favorite.model");
 exports.getUserFavorites = async (req, res) => {
   try {
     const { page, limit, sort } = req.query;
-    
+
     const result = await Favorite.getUserFavorites(req.user.id, {
       page: parseInt(page) || 1,
       limit: parseInt(limit) || 20,
       sort: sort || "-createdAt"
     });
-    
+
     res.json(result);
   } catch (error) {
     console.error("Error in getUserFavorites:", error);
@@ -27,27 +27,27 @@ exports.getUserFavorites = async (req, res) => {
  */
 exports.addToFavorites = async (req, res) => {
   try {
-    const { restaurantId } = req.params;
+    const { storeId } = req.params;
     const { notes, tags } = req.body;
-    
+
     const favorite = await Favorite.addToFavorites(
       req.user.id,
-      restaurantId,
+      storeId,
       notes,
       tags || []
     );
-    
+
     res.status(201).json({
       message: "Added to favorites successfully",
       favorite
     });
   } catch (error) {
     console.error("Error in addToFavorites:", error);
-    
-    if (error.message === "Restaurant already in favorites") {
+
+    if (error.message === "Store already in favorites") {
       return res.status(400).json({ message: error.message });
     }
-    
+
     res.status(500).json({ message: "Failed to add to favorites" });
   }
 };
@@ -57,10 +57,10 @@ exports.addToFavorites = async (req, res) => {
  */
 exports.removeFromFavorites = async (req, res) => {
   try {
-    const { restaurantId } = req.params;
-    
-    await Favorite.removeFromFavorites(req.user.id, restaurantId);
-    
+    const { storeId } = req.params;
+
+    await Favorite.removeFromFavorites(req.user.id, storeId);
+
     res.json({ message: "Removed from favorites successfully" });
   } catch (error) {
     console.error("Error in removeFromFavorites:", error);
@@ -73,13 +73,13 @@ exports.removeFromFavorites = async (req, res) => {
  */
 exports.checkFavoriteStatus = async (req, res) => {
   try {
-    const { restaurantId } = req.params;
-    
-    const isFavorite = await Favorite.isFavorite(req.user.id, restaurantId);
-    
-    res.json({ 
+    const { storeId } = req.params;
+
+    const isFavorite = await Favorite.isFavorite(req.user.id, storeId);
+
+    res.json({
       isFavorite,
-      restaurantId 
+      storeId
     });
   } catch (error) {
     console.error("Error in checkFavoriteStatus:", error);
@@ -92,19 +92,19 @@ exports.checkFavoriteStatus = async (req, res) => {
  */
 exports.updateFavorite = async (req, res) => {
   try {
-    const { restaurantId } = req.params;
+    const { storeId } = req.params;
     const { notes, tags, isActive } = req.body;
-    
+
     const favorite = await Favorite.findOneAndUpdate(
-      { user: req.user.id, restaurant: restaurantId },
+      { user: req.user.id, store: storeId },
       { notes, tags, isActive },
       { new: true, runValidators: true }
     );
-    
+
     if (!favorite) {
       return res.status(404).json({ message: "Favorite not found" });
     }
-    
+
     res.json({
       message: "Favorite updated successfully",
       favorite

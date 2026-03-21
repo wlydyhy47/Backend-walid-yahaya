@@ -410,7 +410,7 @@ class NotificationService {
           orderId: order._id,
           orderNumber: order._id.toString().slice(-6),
           totalPrice: order.totalPrice,
-          restaurant: order.restaurant,
+          store: order.store,
           status: order.status
         },
         actions: [
@@ -424,26 +424,26 @@ class NotificationService {
       });
 
       // إشعار للمطعم (إذا كان موجود)
-      if (order.restaurant) {
-        const restaurant = await require("../models/store.model")
-          .findById(order.restaurant)
+      if (order.store) {
+        const store = await require("../models/store.model")
+          .findById(order.store)
           .populate('owner');
 
-        if (restaurant?.owner) {
+        if (store?.owner) {
           notifications.push({
-            user: restaurant.owner,
+            user: store.owner,
             type: "order_created",
             title: "🛒 طلب جديد!",
             content: `طلب جديد بقيمة ${order.totalPrice} من ${order.user?.name || 'عميل'}`,
             priority: "high",
             icon: "📦",
-            link: `/restaurant/orders/${order._id}`,
+            link: `/store/orders/${order._id}`,
             data: {
               orderId: order._id,
               totalPrice: order.totalPrice,
               itemsCount: order.items?.length || 0
             },
-            tags: ["restaurant", `order_${order._id}`]
+            tags: ["store", `order_${order._id}`]
           });
         }
       }

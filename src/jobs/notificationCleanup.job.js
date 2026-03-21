@@ -60,25 +60,25 @@ class NotificationCleanupJob {
     try {
       const Order = require("../models/order.model");
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      
+
       // البحث عن الطلبات المكتملة منذ 24 ساعة ولم يتم تقييمها
       const orders = await Order.find({
         status: "delivered",
-        deliveredAt: { 
+        deliveredAt: {
           $gte: oneDayAgo,
           $lt: new Date(Date.now() - 23 * 60 * 60 * 1000), // بين 23 و 24 ساعة
         },
       })
-      .populate("user", "name")
-      .populate("restaurant", "name");
+        .populate("user", "name")
+        .populate("store", "name");
 
       // التحقق إذا كان هناك تقييم سابق
       const Review = require("../models/review.model");
-      
+
       for (const order of orders) {
         const existingReview = await Review.findOne({
           user: order.user._id,
-          restaurant: order.restaurant._id,
+          store: order.store._id,
           order: order._id,
         });
 
@@ -88,14 +88,14 @@ class NotificationCleanupJob {
             user: order.user._id,
             type: "review_reminder",
             title: "كيف كانت تجربتك؟",
-            content: `شاركنا رأيك في تجربة طلبك من ${order.restaurant.name}`,
+            content: `شاركنا رأيك في تجربة طلبك من ${order.store.name}`,
             data: {
               orderId: order._id,
-              restaurantId: order.restaurant._id,
-              restaurantName: order.restaurant.name,
+              storeId: order.store._id,
+              storeName: order.store.name,
             },
             priority: "low",
-            link: `/restaurants/${order.restaurant._id}/review`,
+            link: `/stores/${order.store._id}/review`,
             icon: "⭐",
             tags: ["review", "reminder", `order_${order._id}`],
           });
@@ -126,8 +126,8 @@ class NotificationCleanupJob {
             $group: {
               _id: null,
               total: { $sum: 1 },
-              read: { 
-                $sum: { $cond: [{ $eq: ["$status", "read"] }, 1, 0] } 
+              read: {
+                $sum: { $cond: [{ $eq: ["$status", "read"] }, 1, 0] }
               },
               delivered: {
                 $sum: { $cond: [{ $eq: ["$delivery.pushSent", true] }, 1, 0] },

@@ -36,7 +36,7 @@ exports.getMyProfile = async (req, res) => {
 
     const cacheKey = `driver:profile:${driverId}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       return res.json({
         success: true,
@@ -63,7 +63,7 @@ exports.getMyProfile = async (req, res) => {
         status: 'delivered',
         createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
       }),
-      
+
       Order.aggregate([
         { $match: { driver: driverId, status: 'delivered' } },
         { $group: { _id: null, total: { $sum: '$totalPrice' } } }
@@ -238,7 +238,7 @@ exports.getCurrentOrder = async (req, res) => {
       status: { $in: ['accepted', 'picked'] }
     })
       .populate('user', 'name phone image')
-      .populate('restaurant', 'name image phone addressLine')
+      .populate('store', 'name image phone addressLine')
       .populate('pickupAddress')
       .populate('deliveryAddress')
       .populate('items.item')
@@ -284,7 +284,7 @@ exports.getMyStats = async (req, res) => {
 
     const cacheKey = `driver:stats:${driverId}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       return res.json({
         success: true,
@@ -449,7 +449,7 @@ exports.getDrivers = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-      
+
       User.countDocuments(query)
     ]);
 
@@ -609,14 +609,14 @@ const getStatusText = (status) => {
 
 const calculateETA = (order) => {
   if (!order) return 'غير معروف';
-  
+
   const now = new Date();
   const created = new Date(order.createdAt);
   const elapsedMinutes = Math.floor((now - created) / 60000);
-  
+
   const baseTime = order.estimatedDeliveryTime || 30;
   const remaining = Math.max(0, baseTime - elapsedMinutes);
-  
+
   const statusTimes = {
     pending: `${baseTime} دقيقة`,
     accepted: `${Math.max(5, remaining)} دقيقة`,
@@ -624,7 +624,7 @@ const calculateETA = (order) => {
     delivered: 'تم التوصيل',
     cancelled: 'ملغي'
   };
-  
+
   return statusTimes[order.status] || 'قيد الحساب';
 };
 
@@ -667,18 +667,18 @@ const createOrderTimeline = (order) => {
 exports.getDriverById = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const driver = await User.findById(id)
       .select('name phone email image driverInfo stats isOnline lastLogin')
       .lean();
-    
+
     if (!driver || driver.role !== 'driver') {
       return res.status(404).json({
         success: false,
         message: "المندوب غير موجود"
       });
     }
-    
+
     res.json({
       success: true,
       data: driver
@@ -808,8 +808,8 @@ exports.getEarningsHistory = async (req, res) => {
     const stats = {
       totalEarnings: earnings.reduce((sum, e) => sum + e.netEarnings, 0),
       totalOrders: earnings.length,
-      averagePerOrder: earnings.length > 0 
-        ? earnings.reduce((sum, e) => sum + e.netEarnings, 0) / earnings.length 
+      averagePerOrder: earnings.length > 0
+        ? earnings.reduce((sum, e) => sum + e.netEarnings, 0) / earnings.length
         : 0,
       totalCommission: earnings.reduce((sum, e) => sum + e.commission, 0)
     };
@@ -968,7 +968,7 @@ exports.getPerformanceReport = async (req, res) => {
       driver: driverId,
       status: { $in: ['accepted', 'picked', 'delivered'] }
     });
-    
+
     const rejectedOrders = await Order.countDocuments({
       driver: driverId,
       status: 'cancelled',
@@ -993,10 +993,10 @@ exports.getPerformanceReport = async (req, res) => {
         },
         performance: {
           acceptanceRate: acceptanceRate.toFixed(1),
-          deliveryTime: deliveryTimes[0] || { 
-            avgDeliveryTime: 0, 
-            fastestDelivery: 0, 
-            slowestDelivery: 0 
+          deliveryTime: deliveryTimes[0] || {
+            avgDeliveryTime: 0,
+            fastestDelivery: 0,
+            slowestDelivery: 0
           },
           rating: ratings?.driverInfo?.rating || 0,
           totalRatings: ratings?.driverInfo?.totalRatings || 0
@@ -1004,8 +1004,8 @@ exports.getPerformanceReport = async (req, res) => {
         summary: {
           totalDeliveries: acceptedOrders,
           totalEarnings: monthlyStats[0]?.earnings || 0,
-          averagePerDay: weeklyStats.length > 0 
-            ? weeklyStats.reduce((sum, day) => sum + day.orders, 0) / weeklyStats.length 
+          averagePerDay: weeklyStats.length > 0
+            ? weeklyStats.reduce((sum, day) => sum + day.orders, 0) / weeklyStats.length
             : 0
         }
       }
@@ -1031,9 +1031,9 @@ exports.verifyDriver = async (req, res) => {
 
     const driver = await User.findByIdAndUpdate(
       id,
-      { 
+      {
         isVerified: true,
-        'driverInfo.documents.$[].verified': true 
+        'driverInfo.documents.$[].verified': true
       },
       { new: true }
     ).select('name phone email driverInfo isVerified');
@@ -1048,7 +1048,7 @@ exports.verifyDriver = async (req, res) => {
     res.json({
       success: true,
       message: "تم توثيق المندوب بنجاح",
-      data: { 
+      data: {
         id: driver._id,
         isVerified: driver.isVerified,
         driverInfo: driver.driverInfo
@@ -1089,9 +1089,9 @@ exports.toggleDriverStatus = async (req, res) => {
     res.json({
       success: true,
       message: `تم ${isActive ? 'تفعيل' : 'تعطيل'} المندوب بنجاح`,
-      data: { 
+      data: {
         id: driver._id,
-        isActive: driver.isActive 
+        isActive: driver.isActive
       }
     });
   } catch (error) {

@@ -7,7 +7,7 @@ const mongoose = require("mongoose");
 
 const storeAddressSchema = new mongoose.Schema(
   {
-    store: {  // 🔄 كان restaurant
+    store: {  // 🔄 كان store
       type: mongoose.Schema.Types.ObjectId,
       ref: "Store",
       required: true,
@@ -30,7 +30,7 @@ const storeAddressSchema = new mongoose.Schema(
     },
 
     state: String,
-    
+
     country: {
       type: String,
       default: "Niger",

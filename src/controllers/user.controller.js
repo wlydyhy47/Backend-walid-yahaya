@@ -8,7 +8,7 @@ const User = require("../models/user.model");
 const Order = require("../models/order.model");
 const Address = require("../models/address.model");
 const Review = require("../models/review.model");
-const Restaurant = require("../models/store.model");
+const Store = require("../models/store.model");
 const Favorite = require("../models/favorite.model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
@@ -108,7 +108,7 @@ exports.getUserById = async (req, res) => {
     // جلب بيانات إضافية
     const [orders, addresses, reviews] = await Promise.all([
       Order.find({ user: userId })
-        .populate('restaurant', 'name')
+        .populate('store', 'name')
         .populate('driver', 'name')
         .sort({ createdAt: -1 })
         .limit(10),
@@ -116,7 +116,7 @@ exports.getUserById = async (req, res) => {
       Address.find({ user: userId }),
 
       Review.find({ user: userId })
-        .populate('restaurant', 'name image')
+        .populate('store', 'name image')
         .sort({ createdAt: -1 })
         .limit(10)
     ]);
@@ -435,7 +435,7 @@ exports.getMyCompleteProfile = async (req, res) => {
       user,
       addresses,
       recentOrders,
-      favoriteRestaurants,
+      favoriteStores,
       recentReviews,
       stats
     ] = await Promise.all([
@@ -448,19 +448,19 @@ exports.getMyCompleteProfile = async (req, res) => {
         .lean(),
 
       Order.find({ user: userId })
-        .populate("restaurant", "name image")
+        .populate("store", "name image")
         .populate("driver", "name phone image")
         .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
 
-      Restaurant.find({ _id: { $in: user?.favorites || [] } })
+      Store.find({ _id: { $in: user?.favorites || [] } })
         .select("name image type averageRating")
         .limit(10)
         .lean(),
 
       Review.find({ user: userId })
-        .populate("restaurant", "name image")
+        .populate("store", "name image")
         .sort({ createdAt: -1 })
         .limit(5)
         .lean(),
@@ -488,13 +488,13 @@ exports.getMyCompleteProfile = async (req, res) => {
         user,
         addresses,
         recentOrders,
-        favoriteRestaurants,
+        favoriteStores,
         recentReviews,
         stats,
         summary: {
           addressesCount: addresses.length,
           totalOrders: user.stats?.totalOrders || 0,
-          favoriteRestaurantsCount: favoriteRestaurants.length,
+          favoriteStoresCount: favoriteStores.length,
           reviewsCount: recentReviews.length,
           unreadNotifications: await require("../models/notification.model").countDocuments({
             user: userId,
@@ -807,17 +807,17 @@ exports.getMyFavorites = async (req, res) => {
 
 /**
  * @desc    إضافة للمفضلة
- * @route   POST /api/users/me/favorites/:restaurantId
+ * @route   POST /api/users/me/favorites/:storeId
  * @access  Authenticated
  */
 exports.addToFavorites = async (req, res) => {
   try {
-    const { restaurantId } = req.params;
+    const { storeId } = req.params;
     const { notes, tags } = req.body;
 
     const favorite = await Favorite.addToFavorites(
       req.user.id,
-      restaurantId,
+      storeId,
       notes,
       tags || []
     );
@@ -832,7 +832,7 @@ exports.addToFavorites = async (req, res) => {
   } catch (error) {
     console.error("❌ Error in addToFavorites:", error);
 
-    if (error.message === "Restaurant already in favorites") {
+    if (error.message === "Store already in favorites") {
       return res.status(400).json({
         success: false,
         message: error.message
@@ -848,14 +848,14 @@ exports.addToFavorites = async (req, res) => {
 
 /**
  * @desc    إزالة من المفضلة
- * @route   DELETE /api/users/me/favorites/:restaurantId
+ * @route   DELETE /api/users/me/favorites/:storeId
  * @access  Authenticated
  */
 exports.removeFromFavorites = async (req, res) => {
   try {
-    const { restaurantId } = req.params;
+    const { storeId } = req.params;
 
-    await Favorite.removeFromFavorites(req.user.id, restaurantId);
+    await Favorite.removeFromFavorites(req.user.id, storeId);
 
     cache.del(`user:complete:${req.user.id}`);
 
@@ -874,20 +874,20 @@ exports.removeFromFavorites = async (req, res) => {
 
 /**
  * @desc    التحقق من حالة المفضلة
- * @route   GET /api/users/me/favorites/:restaurantId/status
+ * @route   GET /api/users/me/favorites/:storeId/status
  * @access  Authenticated
  */
 exports.checkFavoriteStatus = async (req, res) => {
   try {
-    const { restaurantId } = req.params;
+    const { storeId } = req.params;
 
-    const isFavorite = await Favorite.isFavorite(req.user.id, restaurantId);
+    const isFavorite = await Favorite.isFavorite(req.user.id, storeId);
 
     res.json({
       success: true,
       data: {
         isFavorite,
-        restaurantId
+        storeId
       }
     });
   } catch (error) {
@@ -901,16 +901,16 @@ exports.checkFavoriteStatus = async (req, res) => {
 
 /**
  * @desc    تحديث المفضلة
- * @route   PUT /api/users/me/favorites/:restaurantId
+ * @route   PUT /api/users/me/favorites/:storeId
  * @access  Authenticated
  */
 exports.updateFavorite = async (req, res) => {
   try {
-    const { restaurantId } = req.params;
+    const { storeId } = req.params;
     const { notes, tags, isActive } = req.body;
 
     const favorite = await Favorite.findOneAndUpdate(
-      { user: req.user.id, restaurant: restaurantId },
+      { user: req.user.id, store: storeId },
       { notes, tags, isActive },
       { new: true, runValidators: true }
     );

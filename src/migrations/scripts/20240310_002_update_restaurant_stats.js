@@ -1,15 +1,15 @@
 // ============================================
-// ملف: src/migrations/scripts/20240310_002_update_restaurant_stats.js
+// ملف: src/migrations/scripts/20240310_002_update_store_stats.js
 // الوصف: تحديث إحصائيات المطاعم
 // ============================================
 
 const mongoose = require('mongoose');
-const Restaurant = require('../../models/restaurant.model');
+const Store = require('../../models/store.model');
 const Order = require('../../models/order.model');
 const Review = require('../../models/review.model');
 
 module.exports = {
-  name: '20240310_002_update_restaurant_stats',
+  name: '20240310_002_update_store_stats',
   description: 'تحديث إحصائيات المطاعم (عدد الطلبات، الإيرادات، التقييمات)',
 
   /**
@@ -17,15 +17,15 @@ module.exports = {
    */
   async up() {
     const affected = {
-      restaurants: 0
+      stores : 0
     };
 
-    const restaurants = await Restaurant.find({});
+    const stores  = await Store.find({});
 
-    for (const restaurant of restaurants) {
+    for (const store of stores ) {
       // حساب إحصائيات الطلبات
       const orderStats = await Order.aggregate([
-        { $match: { restaurant: restaurant._id } },
+        { $match: { store: store._id } },
         {
           $group: {
             _id: null,
@@ -45,7 +45,7 @@ module.exports = {
 
       // حساب التقييمات
       const reviewStats = await Review.aggregate([
-        { $match: { restaurant: restaurant._id } },
+        { $match: { store: store._id } },
         {
           $group: {
             _id: null,
@@ -57,7 +57,7 @@ module.exports = {
 
       if (orderStats.length > 0 || reviewStats.length > 0) {
         // تحديث إحصائيات المطعم
-        restaurant.stats = {
+        store.stats = {
           totalOrders: orderStats[0]?.totalOrders || 0,
           completedOrders: orderStats[0]?.completedOrders || 0,
           cancelledOrders: orderStats[0]?.cancelledOrders || 0,
@@ -67,22 +67,22 @@ module.exports = {
         };
 
         if (reviewStats.length > 0) {
-          restaurant.averageRating = reviewStats[0].avgRating;
-          restaurant.ratingsCount = reviewStats[0].totalReviews;
+          store.averageRating = reviewStats[0].avgRating;
+          store.ratingsCount = reviewStats[0].totalReviews;
         }
 
-        await restaurant.save();
-        affected.restaurants++;
+        await store.save();
+        affected.stores ++;
 
-        console.log(`🏪 مطعم ${restaurant.name}: ${restaurant.stats.totalOrders} طلب, ${restaurant.stats.totalRevenue} إيرادات`);
+        console.log(`🏪 مطعم ${store.name}: ${store.stats.totalOrders} طلب, ${store.stats.totalRevenue} إيرادات`);
       }
     }
 
     return {
       affected,
       metadata: {
-        totalRestaurants: await Restaurant.countDocuments(),
-        updated: affected.restaurants
+        totalStores: await Store.countDocuments(),
+        updated: affected.stores 
       }
     };
   },

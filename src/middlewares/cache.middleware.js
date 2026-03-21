@@ -53,7 +53,7 @@ const shouldCache = (req) => {
  */
 const getCacheTTL = (req) => {
   if (req.path.includes('/home')) return 600; // 10 دقائق
-  if (req.path.includes('/restaurants')) return 300; // 5 دقائق
+  if (req.path.includes('/stores')) return 300; // 5 دقائق
   if (req.path.includes('/items')) return 180; // 3 دقائق
   if (req.path.includes('/dashboard')) return 60; // دقيقة واحدة
   return 60; // دقيقة واحدة افتراضياً
@@ -67,12 +67,12 @@ const getCacheTTL = (req) => {
 const cacheMiddleware = (req, res, next) => {
   // تجاهل الملفات الثابتة
   if (req.path.startsWith('/public/') ||
-      req.path.startsWith('/images/') ||
-      req.path.startsWith('/icons/') ||
-      req.path === '/logo.png' ||
-      req.path === '/favicon.ico' ||
-      req.path.match(/\.(png|jpg|jpeg|gif|ico|svg|css|js|webp|avif|woff|woff2|ttf)$/)) {
-    
+    req.path.startsWith('/images/') ||
+    req.path.startsWith('/icons/') ||
+    req.path === '/logo.png' ||
+    req.path === '/favicon.ico' ||
+    req.path.match(/\.(png|jpg|jpeg|gif|ico|svg|css|js|webp|avif|woff|woff2|ttf)$/)) {
+
     res.setHeader('Cache-Control', 'public, max-age=86400'); // 24 ساعة
     return next();
   }

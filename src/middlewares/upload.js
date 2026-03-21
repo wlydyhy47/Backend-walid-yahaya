@@ -18,11 +18,11 @@ const allowedMimeTypes = {
   video: ['video/mp4', 'video/mov', 'video/avi', 'video/mkv', 'video/webm', 'video/quicktime'],
   audio: ['audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/mp3', 'audio/aac', 'audio/m4a'],
   document: [
-    'application/pdf', 
-    'application/msword', 
+    'application/pdf',
+    'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'text/plain', 
-    'application/vnd.ms-excel', 
+    'text/plain',
+    'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation'
@@ -34,7 +34,7 @@ const customTypes = {
   avatar: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
   cover: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
   item: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
-  restaurant: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
+  store: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
   category: ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'],
   chat: ['image/jpeg', 'image/png', 'image/gif', 'video/mp4', 'application/pdf'],
   document: ['application/pdf', 'text/plain', 'application/msword']
@@ -49,7 +49,7 @@ const maxFileSizes = {
   avatar: 2 * 1024 * 1024,      // 2MB
   cover: 8 * 1024 * 1024,       // 8MB
   item: 5 * 1024 * 1024,        // 5MB
-  restaurant: 10 * 1024 * 1024,  // 10MB
+  store: 10 * 1024 * 1024,  // 10MB
   chat: 25 * 1024 * 1024,       // 25MB
   default: 5 * 1024 * 1024      // 5MB
 };
@@ -74,21 +74,21 @@ const fileFilter = (allowedTypes) => (req, file, cb) => {
   try {
     // التحقق من customTypes أولاً
     let fileType = null;
-    
+
     // إذا كان النوع المطلوب موجود في customTypes
     const requestedCustomType = allowedTypes.find(t => customTypes[t]);
     if (requestedCustomType) {
       const isValidCustom = customTypes[requestedCustomType].includes(file.mimetype);
       if (!isValidCustom) {
         return cb(new AppError(
-          `نوع الملف غير مسموح لهذا الحقل. الأنواع المسموحة: ${customTypes[requestedCustomType].join(', ')}`, 
+          `نوع الملف غير مسموح لهذا الحقل. الأنواع المسموحة: ${customTypes[requestedCustomType].join(', ')}`,
           400
         ), false);
       }
       fileType = requestedCustomType;
     } else {
       // التحقق من الأنواع العامة
-      fileType = Object.keys(allowedMimeTypes).find(type => 
+      fileType = Object.keys(allowedMimeTypes).find(type =>
         allowedMimeTypes[type].includes(file.mimetype)
       );
     }
@@ -98,10 +98,10 @@ const fileFilter = (allowedTypes) => (req, file, cb) => {
     }
 
     // التحقق إذا كان النوع مسموحاً به
-    const isAllowed = allowedTypes.includes(fileType) || 
-                     allowedTypes.includes('all') || 
-                     allowedTypes.some(t => customTypes[t]);
-    
+    const isAllowed = allowedTypes.includes(fileType) ||
+      allowedTypes.includes('all') ||
+      allowedTypes.some(t => customTypes[t]);
+
     if (!isAllowed) {
       return cb(new AppError(`نوع الملف ${fileType} غير مسموح به للرفع`, 400), false);
     }
@@ -130,9 +130,9 @@ const uploadToCloudinary = async (file, folder) => {
   try {
     // استخدام file service للتحقق من الملف
     fileService.validateFile(file, folder);
-    
+
     const fileType = file.mimetype.split('/')[0];
-    
+
     const options = {
       folder: `food-delivery/${folder}`,
       public_id: `${Date.now()}-${crypto.randomBytes(8).toString('hex')}`,
@@ -164,7 +164,7 @@ const uploadToCloudinary = async (file, folder) => {
     }
 
     const result = await cloudinary.uploader.upload(file.path, options);
-    
+
     // الحصول على الصور المحسنة
     const optimized = await fileService.generateOptimizedVersions(result.public_id, folder);
 
@@ -220,23 +220,23 @@ const upload = (folder, allowedTypes = ['image']) => {
             }
             return next(err);
           }
-          
+
           if (!req.file) return next();
-          
+
           try {
             // رفع إلى Cloudinary
             const result = await uploadToCloudinary(req.file, folder);
-            
+
             // تنظيف الملف المؤقت
             cleanupTempFile(req.file.path);
-            
+
             // إضافة معلومات Cloudinary
             req.file.cloudinary = result;
             req.file.path = result.url;
             req.file.publicId = result.publicId;
             req.file.thumbnail = result.thumbnail;
             req.file.optimized = result.optimized;
-            
+
             next();
           } catch (error) {
             cleanupTempFile(req.file.path);
@@ -245,7 +245,7 @@ const upload = (folder, allowedTypes = ['image']) => {
         });
       };
     },
-    
+
     // رفع عدة ملفات (مصفوفة)
     array: (fieldName, maxCount = 5) => {
       return (req, res, next) => {
@@ -262,9 +262,9 @@ const upload = (folder, allowedTypes = ['image']) => {
             }
             return next(err);
           }
-          
+
           if (!req.files || req.files.length === 0) return next();
-          
+
           try {
             const uploadPromises = req.files.map(async (file) => {
               const result = await uploadToCloudinary(file, folder);
@@ -276,9 +276,9 @@ const upload = (folder, allowedTypes = ['image']) => {
                 size: file.size
               };
             });
-            
+
             req.files = await Promise.all(uploadPromises);
-            
+
             next();
           } catch (error) {
             req.files.forEach(file => cleanupTempFile(file.path));
@@ -287,7 +287,7 @@ const upload = (folder, allowedTypes = ['image']) => {
         });
       };
     },
-    
+
     // رفع عدة ملفات (حقول متعددة)
     fields: (fields) => {
       return (req, res, next) => {
@@ -298,12 +298,12 @@ const upload = (folder, allowedTypes = ['image']) => {
             }
             return next(err);
           }
-          
+
           if (!req.files) return next();
-          
+
           try {
             const filesObj = {};
-            
+
             for (const [fieldName, fileArray] of Object.entries(req.files)) {
               const uploadPromises = fileArray.map(async (file) => {
                 const result = await uploadToCloudinary(file, folder);
@@ -315,10 +315,10 @@ const upload = (folder, allowedTypes = ['image']) => {
                   size: file.size
                 };
               });
-              
+
               filesObj[fieldName] = await Promise.all(uploadPromises);
             }
-            
+
             req.files = filesObj;
             next();
           } catch (error) {
@@ -357,12 +357,12 @@ const validateUpload = (req, res, next) => {
   if (!req.file && !req.files) {
     return next(new AppError('لم يتم رفع أي ملف', 400));
   }
-  
+
   // التحقق من أن الملفات قد تم رفعها بنجاح
   if (req.file && !req.file.path) {
     return next(new AppError('فشل رفع الملف', 500));
   }
-  
+
   if (req.files) {
     const files = Array.isArray(req.files) ? req.files : Object.values(req.files).flat();
     for (const file of files) {
@@ -371,7 +371,7 @@ const validateUpload = (req, res, next) => {
       }
     }
   }
-  
+
   next();
 };
 
@@ -387,7 +387,7 @@ const cleanupOldTempFiles = async (maxAge = 24 * 60 * 60 * 1000) => {
     for (const file of files) {
       const filePath = path.join(tempDir, file);
       const stat = await fs.promises.stat(filePath);
-      
+
       if (now - stat.mtimeMs > maxAge) {
         await fs.promises.unlink(filePath);
         deleted++;

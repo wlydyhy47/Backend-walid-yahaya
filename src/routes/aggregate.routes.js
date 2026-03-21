@@ -20,11 +20,11 @@ router.get('/stats', aggregateController.getPublicStats);
 
 // ========== 2. مسارات تحتاج توثيق ==========
 router.get('/dashboard', auth, aggregateController.getDashboardData);
-router.get('/restaurants/:id/full', auth.optional, aggregateController.getRestaurantDetails);
+router.get('/stores/:id/full', auth.optional, aggregateController.getStoreDetails);
 router.get('/orders/:id/full', auth, aggregateController.getOrderWithTracking);
 
 // ========== 3. مسارات Pagination ==========
-router.get('/restaurants', PaginationUtils.validatePaginationParams, aggregateController.getRestaurantsPaginated);
+router.get('/stores', PaginationUtils.validatePaginationParams, aggregateController.getStoresPaginated);
 router.get('/items', PaginationUtils.validatePaginationParams, aggregateController.getItemsPaginated);
 router.get('/orders/me', auth, PaginationUtils.validatePaginationParams, aggregateController.getMyOrdersPaginated);
 

@@ -62,9 +62,9 @@ const loyaltyRewardSchema = new mongoose.Schema(
     },
     
     // المطاعم المشمولة (فارغ = جميع المطاعم)
-    restaurants: [{
+    stores: [{
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Restaurant",
+      ref: "Store",
     }],
     
     // شروط إضافية
@@ -153,8 +153,8 @@ loyaltyRewardSchema.virtual("isValid").get(function () {
 /**
  * هل المكافأة شاملة لكل المطاعم
  */
-loyaltyRewardSchema.virtual("isForAllRestaurants").get(function () {
-  return !this.restaurants || this.restaurants.length === 0;
+loyaltyRewardSchema.virtual("isForAllStores").get(function () {
+  return !this.stores || this.stores.length === 0;
 });
 
 /**

@@ -36,12 +36,12 @@ const validateStore = async (storeId, userId = null) => {
   if (!store) {
     throw new AppError('المتجر غير موجود', 404);
   }
-  
+
   // إذا كان هناك userId، تحقق من الملكية
   if (userId && store.owner?.toString() !== userId) {
     throw new AppError('غير مصرح لك بإدارة منتجات هذا المتجر', 403);
   }
-  
+
   return store;
 };
 
@@ -136,7 +136,7 @@ exports.getAllProducts = async (req, res) => {
  */
 exports.getVendorProducts = async (req, res) => {
   try {
-    const storeId = req.restaurantId;
+    const storeId = req.storeId;
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, filters } = paginationOptions;
 
@@ -184,14 +184,14 @@ exports.getVendorProducts = async (req, res) => {
     const stats = {
       totalProducts: await Product.countDocuments({ store: storeId }),
       availableProducts: await Product.countDocuments({ store: storeId, isAvailable: true }),
-      outOfStock: await Product.countDocuments({ 
-        store: storeId, 
-        'inventory.quantity': { $lte: 0 } 
+      outOfStock: await Product.countDocuments({
+        store: storeId,
+        'inventory.quantity': { $lte: 0 }
       }),
       categories: await Product.distinct('category', { store: storeId }),
-      lowStock: await Product.countDocuments({ 
+      lowStock: await Product.countDocuments({
         store: storeId,
-        $expr: { $lte: [ "$inventory.quantity", "$inventory.lowStockThreshold" ] }
+        $expr: { $lte: ["$inventory.quantity", "$inventory.lowStockThreshold"] }
       })
     };
 
@@ -290,7 +290,7 @@ exports.getProductById = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Get product error:", error);
-    
+
     if (error.name === 'CastError') {
       return res.status(400).json({
         success: false,
@@ -314,12 +314,12 @@ exports.getProductById = async (req, res) => {
  */
 exports.createProduct = async (req, res) => {
   try {
-    const storeId = req.restaurantId;
-    const { 
-      name, 
-      price, 
-      discountedPrice, 
-      description, 
+    const storeId = req.storeId;
+    const {
+      name,
+      price,
+      discountedPrice,
+      description,
       category,
       inventory,
       attributes,
@@ -345,22 +345,22 @@ exports.createProduct = async (req, res) => {
     let inventoryObj = { quantity: 0, unit: 'piece', lowStockThreshold: 5, trackInventory: false };
     try {
       if (inventory) inventoryObj = JSON.parse(inventory);
-    } catch (e) {}
+    } catch (e) { }
 
     let attributesObj = {};
     try {
       if (attributes) attributesObj = JSON.parse(attributes);
-    } catch (e) {}
+    } catch (e) { }
 
     let nutritionalInfoObj = {};
     try {
       if (nutritionalInfo) nutritionalInfoObj = JSON.parse(nutritionalInfo);
-    } catch (e) {}
+    } catch (e) { }
 
     let optionsArray = [];
     try {
       if (options) optionsArray = JSON.parse(options);
-    } catch (e) {}
+    } catch (e) { }
 
     let ingredientsArray = [];
     if (ingredients) {
@@ -420,7 +420,7 @@ exports.createProduct = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Create product error:", error);
-    
+
     if (error instanceof AppError) {
       return res.status(error.statusCode).json({
         success: false,
@@ -443,7 +443,7 @@ exports.createProduct = async (req, res) => {
 exports.updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const storeId = req.restaurantId;
+    const storeId = req.storeId;
     const updates = req.body;
 
     const product = await Product.findOne({ _id: id, store: storeId });
@@ -512,7 +512,7 @@ exports.updateProduct = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Update product error:", error);
-    
+
     if (error.name === 'ValidationError') {
       return res.status(400).json({
         success: false,
@@ -536,7 +536,7 @@ exports.updateProduct = async (req, res) => {
 exports.updateProductImage = async (req, res) => {
   try {
     const { id } = req.params;
-    const storeId = req.restaurantId;
+    const storeId = req.storeId;
 
     if (!req.file) {
       return res.status(400).json({
@@ -558,7 +558,7 @@ exports.updateProductImage = async (req, res) => {
     if (product.image) {
       const oldPublicId = fileService.extractPublicIdFromUrl(product.image);
       if (oldPublicId) {
-        fileService.deleteFile(oldPublicId).catch(err => 
+        fileService.deleteFile(oldPublicId).catch(err =>
           console.error('Error deleting old product image:', err)
         );
       }
@@ -608,7 +608,7 @@ exports.updateProductImage = async (req, res) => {
 exports.deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const storeId = req.restaurantId;
+    const storeId = req.storeId;
 
     const product = await Product.findOne({ _id: id, store: storeId });
 
@@ -623,7 +623,7 @@ exports.deleteProduct = async (req, res) => {
     if (product.image) {
       const publicId = fileService.extractPublicIdFromUrl(product.image);
       if (publicId) {
-        fileService.deleteFile(publicId).catch(err => 
+        fileService.deleteFile(publicId).catch(err =>
           console.error('Error deleting product image:', err)
         );
       }
@@ -660,7 +660,7 @@ exports.deleteProduct = async (req, res) => {
 exports.toggleAvailability = async (req, res) => {
   try {
     const { id } = req.params;
-    const storeId = req.restaurantId;
+    const storeId = req.storeId;
 
     const product = await Product.findOne({ _id: id, store: storeId });
 
@@ -702,7 +702,7 @@ exports.toggleAvailability = async (req, res) => {
 exports.updateInventory = async (req, res) => {
   try {
     const { id } = req.params;
-    const storeId = req.restaurantId;
+    const storeId = req.storeId;
     const { quantity, unit, lowStockThreshold, trackInventory } = req.body;
 
     const product = await Product.findOne({ _id: id, store: storeId });
@@ -795,7 +795,7 @@ exports.toggleFeatured = async (req, res) => {
  */
 exports.getProductStats = async (req, res) => {
   try {
-    const storeId = req.restaurantId;
+    const storeId = req.storeId;
 
     const [
       totalProducts,
@@ -833,7 +833,7 @@ exports.getProductStats = async (req, res) => {
       // المنتجات منخفضة المخزون
       Product.countDocuments({
         store: storeId,
-        $expr: { $lte: [ "$inventory.quantity", "$inventory.lowStockThreshold" ] }
+        $expr: { $lte: ["$inventory.quantity", "$inventory.lowStockThreshold"] }
       }),
 
       // المنتجات نفذت من المخزون

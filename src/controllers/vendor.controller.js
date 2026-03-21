@@ -84,14 +84,14 @@ exports.getMyProfile = async (req, res) => {
     let storeStats = {};
     if (user.storeOwnerInfo?.store) {
       const storeId = user.storeOwnerInfo.store;
-      
+
       const [todayOrders, totalRevenue, pendingOrders] = await Promise.all([
         Order.countDocuments({
           store: storeId,
           status: 'delivered',
           createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
         }),
-        
+
         Order.aggregate([
           { $match: { store: storeId, status: 'delivered' } },
           { $group: { _id: null, total: { $sum: '$totalPrice' } } }
@@ -239,9 +239,9 @@ exports.updateAvatar = async (req, res) => {
 exports.getMyStore = async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -318,9 +318,9 @@ exports.getMyStore = async (req, res) => {
 exports.updateStore = async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -406,9 +406,9 @@ exports.updateStoreLogo = async (req, res) => {
     }
 
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -476,9 +476,9 @@ exports.updateStoreCover = async (req, res) => {
     }
 
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -539,9 +539,9 @@ exports.updateStoreCover = async (req, res) => {
 exports.toggleStoreStatus = async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -598,9 +598,9 @@ exports.toggleStoreStatus = async (req, res) => {
 exports.getAddresses = async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -637,9 +637,9 @@ exports.createAddress = async (req, res) => {
   try {
     const userId = req.user.id;
     const { label, addressLine, city, latitude, longitude, phone } = req.body;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -687,9 +687,9 @@ exports.updateAddress = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     const { label, addressLine, city, latitude, longitude, phone, isActive } = req.body;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -747,9 +747,9 @@ exports.deleteAddress = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -796,9 +796,9 @@ exports.getAddressById = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -843,9 +843,9 @@ exports.getAddressById = async (req, res) => {
 exports.getAnalytics = async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -998,9 +998,9 @@ exports.getFinancialReport = async (req, res) => {
   try {
     const userId = req.user.id;
     const { period = 'month' } = req.query;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -1091,9 +1091,9 @@ exports.getFinancialReport = async (req, res) => {
 exports.getPerformanceReport = async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -1185,9 +1185,9 @@ exports.getPerformanceReport = async (req, res) => {
 exports.getProductAnalytics = async (req, res) => {
   try {
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -1254,9 +1254,9 @@ exports.getProductAnalytics = async (req, res) => {
  */
 exports.getVendors = async (req, res) => {
   try {
-    const vendors = await User.find({ 
-      role: 'restaurant_owner',
-      isActive: true 
+    const vendors = await User.find({
+      role: 'store_owner',
+      isActive: true
     })
       .select('name phone email image storeOwnerInfo createdAt')
       .populate('storeOwnerInfo.store', 'name logo category isOpen averageRating')
@@ -1289,7 +1289,7 @@ exports.getVendorById = async (req, res) => {
       .populate('storeOwnerInfo.store')
       .lean();
 
-    if (!vendor || vendor.role !== 'restaurant_owner') {
+    if (!vendor || vendor.role !== 'store_owner') {
       return res.status(404).json({
         success: false,
         message: "التاجر غير موجود"
@@ -1354,7 +1354,7 @@ exports.toggleVendorStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { isActive } = req.body;
-    
+
     // التحقق من وجود البيانات
     if (isActive === undefined) {
       return res.status(400).json({
@@ -1362,32 +1362,32 @@ exports.toggleVendorStatus = async (req, res) => {
         message: "حقل isActive مطلوب"
       });
     }
-    
+
     const vendor = await User.findById(id);
-    
+
     if (!vendor) {
       return res.status(404).json({
         success: false,
         message: "التاجر غير موجود"
       });
     }
-    
+
     vendor.isActive = isActive;
     await vendor.save();
-    
+
     // إذا كان للتاجر متجر، تحديث حالة المتجر أيضاً
     if (vendor.storeOwnerInfo?.store) {
       await Store.findByIdAndUpdate(vendor.storeOwnerInfo.store, {
         isOpen: isActive
       });
     }
-    
+
     res.json({
       success: true,
       message: `تم ${isActive ? 'تفعيل' : 'تعطيل'} التاجر بنجاح`,
-      data: { 
+      data: {
         id: vendor._id,
-        isActive: vendor.isActive 
+        isActive: vendor.isActive
       }
     });
   } catch (error) {
@@ -1409,7 +1409,7 @@ exports.getVendors = async (req, res) => {
     const vendors = await User.find({ role: 'store_owner' })
       .select('name phone email image storeOwnerInfo createdAt')
       .lean();
-    
+
     res.json({
       success: true,
       data: vendors
@@ -1428,11 +1428,11 @@ exports.getVendorById = async (req, res) => {
     const vendor = await User.findById(req.params.id)
       .select('-password -verificationCode -resetPasswordToken')
       .lean();
-    
+
     if (!vendor) {
       return res.status(404).json({ success: false, message: 'التاجر غير موجود' });
     }
-    
+
     res.json({
       success: true,
       data: vendor
@@ -1453,7 +1453,7 @@ exports.verifyVendor = async (req, res) => {
       { isVerified: true },
       { new: true }
     );
-    
+
     res.json({
       success: true,
       message: 'تم توثيق التاجر بنجاح',

@@ -7,8 +7,8 @@
 const User = require('../models/user.model');
 const Address = require('../models/address.model');
 const Order = require('../models/order.model');
-const Restaurant = require('../models/store.model');
-const RestaurantAddress = require('../models/storeAddress.model');
+const Store = require('../models/store.model');
+const StoreAddress = require('../models/storeAddress.model');
 const Review = require('../models/review.model');
 const Item = require('../models/product.model');
 const DriverLocation = require('../models/driverLocation.model');
@@ -40,7 +40,7 @@ exports.getDashboardData = async (req, res) => {
       user,
       addresses,
       orders,
-      restaurants,
+      stores,
       reviews,
       unreadNotifications
     ] = await Promise.all([
@@ -56,7 +56,7 @@ exports.getDashboardData = async (req, res) => {
 
       Order.find({ user: userId })
         .populate('driver', 'name phone image')
-        .populate('restaurant', 'name image')
+        .populate('store', 'name image')
         .populate('pickupAddress', 'addressLine city')
         .populate('deliveryAddress', 'addressLine city')
         .select('status totalPrice createdAt items')
@@ -64,14 +64,14 @@ exports.getDashboardData = async (req, res) => {
         .limit(5)
         .lean(),
 
-      Restaurant.find({ isOpen: true })
+      Store.find({ isOpen: true })
         .select('name image description type averageRating deliveryFee')
         .sort({ averageRating: -1 })
         .limit(10)
         .lean(),
 
       Review.find({ user: userId })
-        .populate('restaurant', 'name image')
+        .populate('store', 'name image')
         .select('rating comment createdAt')
         .sort({ createdAt: -1 })
         .limit(5)
@@ -94,12 +94,12 @@ exports.getDashboardData = async (req, res) => {
         user,
         addresses,
         recentOrders: orders,
-        topRestaurants: restaurants,
+        topStores: stores,
         recentReviews: reviews,
         stats: {
           totalOrders: user?.stats?.totalOrders || 0,
           totalSpent: user?.stats?.totalSpent || 0,
-          favoriteRestaurants: restaurants.length,
+          favoriteStores: stores.length,
           unreadNotifications: unreadNotifications || 0,
           addressesCount: addresses.length
         }
@@ -123,9 +123,9 @@ exports.getDashboardData = async (req, res) => {
 
 /**
  * 🔄 الحصول على المطاعم مع Pagination
- * GET /api/aggregate/restaurants
+ * GET /api/aggregate/stores
  */
-exports.getRestaurantsPaginated = async (req, res) => {
+exports.getStoresPaginated = async (req, res) => {
   try {
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, search, filters } = paginationOptions;
@@ -152,21 +152,21 @@ exports.getRestaurantsPaginated = async (req, res) => {
       query.averageRating = { $gte: Number(filters.minRating) };
     }
 
-    const cacheKey = `restaurants:${JSON.stringify(query)}:${skip}:${limit}:${JSON.stringify(sort)}`;
+    const cacheKey = `stores:${JSON.stringify(query)}:${skip}:${limit}:${JSON.stringify(sort)}`;
     const cachedData = cache.get(cacheKey);
 
     if (cachedData) {
-      console.log('📊 Serving paginated restaurants from cache');
+      console.log('📊 Serving paginated stores from cache');
       return res.json({
         ...cachedData,
         cached: true,
       });
     }
 
-    console.log(`🔄 Fetching restaurants (page ${paginationOptions.page})`);
+    console.log(`🔄 Fetching stores (page ${paginationOptions.page})`);
 
-    const [restaurants, total] = await Promise.all([
-      Restaurant.find(query)
+    const [stores, total] = await Promise.all([
+      Store.find(query)
         .select('name image description type averageRating deliveryFee estimatedDeliveryTime tags openingHours')
         .populate('createdBy', 'name phone')
         .sort(sort)
@@ -174,29 +174,29 @@ exports.getRestaurantsPaginated = async (req, res) => {
         .limit(limit)
         .lean(),
 
-      Restaurant.countDocuments(query),
+      Store.countDocuments(query),
     ]);
 
-    const restaurantsWithAddresses = await Promise.all(
-      restaurants.map(async (restaurant) => {
-        const addresses = await RestaurantAddress.find({
-          restaurant: restaurant._id,
+    const storesWithAddresses = await Promise.all(
+      stores.map(async (store) => {
+        const addresses = await StoreAddress.find({
+          store: store._id,
         })
           .select('addressLine city latitude longitude')
           .limit(3)
           .lean();
 
         const itemsCount = await Item.countDocuments({
-          restaurant: restaurant._id,
+          store: store._id,
           isAvailable: true
         });
 
         const reviewsCount = await Review.countDocuments({
-          restaurant: restaurant._id
+          store: store._id
         });
 
         return {
-          ...restaurant,
+          ...store,
           addresses,
           stats: {
             itemsCount,
@@ -208,7 +208,7 @@ exports.getRestaurantsPaginated = async (req, res) => {
     );
 
     const responseData = PaginationUtils.createPaginationResponse(
-      restaurantsWithAddresses,
+      storesWithAddresses,
       total,
       paginationOptions,
       {
@@ -223,10 +223,10 @@ exports.getRestaurantsPaginated = async (req, res) => {
 
     res.json(responseData);
   } catch (error) {
-    console.error('❌ Paginated restaurants error:', error.message);
+    console.error('❌ Paginated stores error:', error.message);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch restaurants',
+      message: 'Failed to fetch stores',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
@@ -243,8 +243,8 @@ exports.getItemsPaginated = async (req, res) => {
 
     let query = { isAvailable: true };
 
-    if (filters.restaurant) {
-      query.restaurant = filters.restaurant;
+    if (filters.store) {
+      query.store = filters.store;
     }
 
     if (filters.category) {
@@ -282,7 +282,7 @@ exports.getItemsPaginated = async (req, res) => {
 
     const [items, total] = await Promise.all([
       Item.find(query)
-        .populate('restaurant', 'name image type averageRating')
+        .populate('store', 'name image type averageRating')
         .sort(sort)
         .skip(skip)
         .limit(limit)
@@ -312,7 +312,7 @@ exports.getItemsPaginated = async (req, res) => {
       {
         categories,
         priceRange: priceStats[0] || { minPrice: 0, maxPrice: 0, avgPrice: 0 },
-        totalRestaurants: await Item.distinct('restaurant', query).then(ids => ids.length)
+        totalStores: await Item.distinct('store', query).then(ids => ids.length)
       }
     );
 
@@ -352,8 +352,8 @@ exports.getOrdersPaginatedAdmin = async (req, res) => {
       query.status = filters.status;
     }
 
-    if (filters.restaurant) {
-      query.restaurant = filters.restaurant;
+    if (filters.store) {
+      query.store = filters.store;
     }
 
     if (filters.driver) {
@@ -385,7 +385,7 @@ exports.getOrdersPaginatedAdmin = async (req, res) => {
       Order.find(query)
         .populate('user', 'name phone email')
         .populate('driver', 'name phone')
-        .populate('restaurant', 'name image')
+        .populate('store', 'name image')
         .populate('pickupAddress', 'addressLine city')
         .populate('deliveryAddress', 'addressLine city')
         .sort(sort)
@@ -448,9 +448,9 @@ exports.getOrdersPaginatedAdmin = async (req, res) => {
 
 /**
  * 2️⃣ تفاصيل مطعم كاملة مع الكاش
- * GET /api/aggregate/restaurants/:id/full
+ * GET /api/aggregate/stores/:id/full
  */
-exports.getRestaurantDetails = async (req, res) => {
+exports.getStoreDetails = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -461,50 +461,50 @@ exports.getRestaurantDetails = async (req, res) => {
       });
     }
 
-    const cacheKey = `restaurant:full:${id}`;
+    const cacheKey = `store:full:${id}`;
 
     const cachedData = cache.get(cacheKey);
     if (cachedData) {
-      console.log(`🏪 Serving restaurant ${id} from cache`);
+      console.log(`🏪 Serving store ${id} from cache`);
       return res.json({
         ...cachedData,
         cached: true
       });
     }
 
-    console.log(`🔄 Fetching restaurant ${id} from database`);
+    console.log(`🔄 Fetching store ${id} from database`);
 
     const [
-      restaurant,
+      store,
       addresses,
       reviews,
       items,
       categories
     ] = await Promise.all([
-      Restaurant.findById(id)
+      Store.findById(id)
         .populate('createdBy', 'name phone email')
         .lean(),
 
-      RestaurantAddress.find({ restaurant: id })
+      StoreAddress.find({ store: id })
         .select('addressLine city latitude longitude')
         .lean(),
 
-      Review.find({ restaurant: id })
+      Review.find({ store: id })
         .populate('user', 'name image')
         .select('rating comment createdAt')
         .sort({ createdAt: -1 })
         .limit(10)
         .lean(),
 
-      Item.find({ restaurant: id, isAvailable: true })
+      Item.find({ store: id, isAvailable: true })
         .select('name price image description category ingredients preparationTime')
         .sort({ category: 1, name: 1 })
         .lean(),
 
-      Item.distinct('category', { restaurant: id, isAvailable: true })
+      Item.distinct('category', { store: id, isAvailable: true })
     ]);
 
-    if (!restaurant) {
+    if (!store) {
       return res.status(404).json({
         success: false,
         message: 'المطعم غير موجود'
@@ -512,7 +512,7 @@ exports.getRestaurantDetails = async (req, res) => {
     }
 
     const reviewStats = await Review.aggregate([
-      { $match: { restaurant: restaurant._id } },
+      { $match: { store: store._id } },
       {
         $group: {
           _id: null,
@@ -531,7 +531,7 @@ exports.getRestaurantDetails = async (req, res) => {
     const responseData = {
       success: true,
       data: {
-        restaurant,
+        store,
         addresses,
         reviews,
         items,
@@ -552,10 +552,10 @@ exports.getRestaurantDetails = async (req, res) => {
 
     res.json(responseData);
   } catch (error) {
-    console.error('❌ Restaurant details error:', error.message);
+    console.error('❌ Store details error:', error.message);
     res.status(500).json({
       success: false,
-      message: 'Failed to fetch restaurant details',
+      message: 'Failed to fetch store details',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
@@ -593,7 +593,7 @@ exports.getOrderWithTracking = async (req, res) => {
     const order = await Order.findOne({ _id: id, user: userId })
       .populate('user', 'name phone image email')
       .populate('driver', 'name phone image rating totalDeliveries')
-      .populate('restaurant', 'name image phone addressLine')
+      .populate('store', 'name image phone addressLine')
       .populate('pickupAddress', 'label addressLine city latitude longitude')
       .populate('deliveryAddress', 'label addressLine city latitude longitude')
       .lean();
@@ -711,37 +711,37 @@ exports.getHomeData = async (req, res) => {
         console.log('🏠 Fetching home data from database');
 
         const [
-          topRestaurants,
+          topStores,
           featuredItems,
           recentReviews,
           categories,
           stats
         ] = await Promise.all([
-          Restaurant.find({ isOpen: true })
+          Store.find({ isOpen: true })
             .sort({ averageRating: -1, ratingsCount: -1 })
             .limit(8)
             .select('name image averageRating type deliveryFee estimatedDeliveryTime')
             .lean(),
 
           Item.find({ isAvailable: true })
-            .populate('restaurant', 'name image')
+            .populate('store', 'name image')
             .sort({ createdAt: -1 })
             .limit(12)
-            .select('name price image restaurant description category')
+            .select('name price image store description category')
             .lean(),
 
           Review.find()
             .populate('user', 'name image')
-            .populate('restaurant', 'name image')
+            .populate('store', 'name image')
             .select('rating comment createdAt')
             .sort({ createdAt: -1 })
             .limit(5)
             .lean(),
 
-          Restaurant.distinct('type', { isOpen: true }),
+          Store.distinct('type', { isOpen: true }),
 
           Promise.all([
-            Restaurant.countDocuments({ isOpen: true }),
+            Store.countDocuments({ isOpen: true }),
             Item.countDocuments({ isAvailable: true }),
             Order.countDocuments({ status: 'delivered' }),
             Review.countDocuments()
@@ -751,12 +751,12 @@ exports.getHomeData = async (req, res) => {
         return {
           success: true,
           data: {
-            topRestaurants,
+            topStores,
             featuredItems,
             recentReviews,
             categories,
             stats: {
-              restaurantCount: stats[0],
+              storeCount: stats[0],
               itemCount: stats[1],
               ordersDelivered: stats[2],
               reviewsCount: stats[3]
@@ -1029,7 +1029,7 @@ exports.getAdminStats = async (req, res) => {
 
     const [
       ordersByDay,
-      topRestaurants,
+      topStores,
       topUsers,
       revenueStats
     ] = await Promise.all([
@@ -1058,7 +1058,7 @@ exports.getAdminStats = async (req, res) => {
         },
         {
           $group: {
-            _id: '$restaurant',
+            _id: '$store',
             orders: { $sum: 1 },
             revenue: { $sum: '$totalPrice' }
           }
@@ -1067,10 +1067,10 @@ exports.getAdminStats = async (req, res) => {
         { $limit: 5 },
         {
           $lookup: {
-            from: 'restaurants',
+            from: 'stores',
             localField: '_id',
             foreignField: '_id',
-            as: 'restaurantInfo'
+            as: 'storeInfo'
           }
         }
       ]),
@@ -1124,9 +1124,9 @@ exports.getAdminStats = async (req, res) => {
       data: {
         period,
         ordersByDay,
-        topRestaurants: topRestaurants.map(r => ({
+        topStores: topStores.map(r => ({
           ...r,
-          name: r.restaurantInfo[0]?.name || 'Unknown'
+          name: r.storeInfo[0]?.name || 'Unknown'
         })),
         topUsers: topUsers.map(u => ({
           ...u,
@@ -1682,8 +1682,8 @@ exports.unifiedSearch = async (req, res) => {
     const results = {};
 
     // البحث في المطاعم
-    if (!type || type === 'restaurants') {
-      const restaurants = await Restaurant.find({
+    if (!type || type === 'stores') {
+      const stores = await Store.find({
         $or: [
           { name: { $regex: searchTerm, $options: 'i' } },
           { description: { $regex: searchTerm, $options: 'i' } },
@@ -1695,7 +1695,7 @@ exports.unifiedSearch = async (req, res) => {
         .limit(limit)
         .lean();
 
-      results.restaurants = restaurants;
+      results.stores = stores;
     }
 
     // البحث في الأصناف
@@ -1704,7 +1704,7 @@ exports.unifiedSearch = async (req, res) => {
         name: { $regex: searchTerm, $options: 'i' },
         isAvailable: true
       })
-        .populate('restaurant', 'name image')
+        .populate('store', 'name image')
         .select('name price image description category')
         .limit(limit)
         .lean();
@@ -1734,7 +1734,7 @@ exports.unifiedSearch = async (req, res) => {
         user: req.user.id,
         'items.name': { $regex: searchTerm, $options: 'i' }
       })
-        .populate('restaurant', 'name')
+        .populate('store', 'name')
         .select('status totalPrice createdAt')
         .limit(limit)
         .lean();
@@ -1776,7 +1776,7 @@ exports.getPublicStats = async (req, res) => {
     }
 
     const [
-      totalRestaurants,
+      totalStores,
       totalItems,
       totalOrders,
       totalReviews,
@@ -1785,7 +1785,7 @@ exports.getPublicStats = async (req, res) => {
       topCities
     ] = await Promise.all([
       // إجمالي المطاعم
-      Restaurant.countDocuments({ isOpen: true }),
+      Store.countDocuments({ isOpen: true }),
 
       // إجمالي الأصناف المتاحة
       Item.countDocuments({ isAvailable: true }),
@@ -1810,7 +1810,7 @@ exports.getPublicStats = async (req, res) => {
       ]),
 
       // أفضل المدن
-      RestaurantAddress.aggregate([
+      StoreAddress.aggregate([
         { $group: { _id: '$city', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 5 }
@@ -1818,7 +1818,7 @@ exports.getPublicStats = async (req, res) => {
     ]);
 
     const stats = {
-      restaurants: totalRestaurants,
+      stores: totalStores,
       items: totalItems,
       orders: totalOrders,
       reviews: totalReviews,
@@ -1866,8 +1866,8 @@ exports.getMyOrdersPaginated = async (req, res) => {
       query.status = filters.status;
     }
 
-    if (filters.restaurant) {
-      query.restaurant = filters.restaurant;
+    if (filters.store) {
+      query.store = filters.store;
     }
 
     if (filters.minDate || filters.maxDate) {
@@ -1879,7 +1879,7 @@ exports.getMyOrdersPaginated = async (req, res) => {
     const [orders, total] = await Promise.all([
       Order.find(query)
         .populate('driver', 'name phone image')
-        .populate('restaurant', 'name image')
+        .populate('store', 'name image')
         .populate('pickupAddress', 'label addressLine city')
         .populate('deliveryAddress', 'label addressLine city')
         .select('status totalPrice createdAt items estimatedDeliveryTime')
@@ -2230,9 +2230,9 @@ exports.getDailyAdvancedStats = async (req, res) => {
     const stats = await Promise.all([
       // الطلبات اليوم
       Order.aggregate([
-        { 
-          $match: { 
-            createdAt: { $gte: today, $lt: tomorrow } 
+        {
+          $match: {
+            createdAt: { $gte: today, $lt: tomorrow }
           }
         },
         {
@@ -2254,20 +2254,20 @@ exports.getDailyAdvancedStats = async (req, res) => {
       ]),
 
       // المستخدمين الجدد اليوم
-      User.countDocuments({ 
-        createdAt: { $gte: today, $lt: tomorrow } 
+      User.countDocuments({
+        createdAt: { $gte: today, $lt: tomorrow }
       }),
 
       // المتاجر الجديدة اليوم
-      Store.countDocuments({ 
-        createdAt: { $gte: today, $lt: tomorrow } 
+      Store.countDocuments({
+        createdAt: { $gte: today, $lt: tomorrow }
       }),
 
       // الطلبات حسب الساعة
       Order.aggregate([
-        { 
-          $match: { 
-            createdAt: { $gte: today, $lt: tomorrow } 
+        {
+          $match: {
+            createdAt: { $gte: today, $lt: tomorrow }
           }
         },
         {
@@ -2285,12 +2285,12 @@ exports.getDailyAdvancedStats = async (req, res) => {
       success: true,
       data: {
         date: today,
-        orders: stats[0][0] || { 
-          totalOrders: 0, 
-          totalRevenue: 0, 
+        orders: stats[0][0] || {
+          totalOrders: 0,
+          totalRevenue: 0,
           pendingOrders: 0,
           completedOrders: 0,
-          cancelledOrders: 0 
+          cancelledOrders: 0
         },
         newUsers: stats[1],
         newStores: stats[2],
@@ -2318,9 +2318,9 @@ exports.getWeeklyAdvancedStats = async (req, res) => {
     weekAgo.setHours(0, 0, 0, 0);
 
     const stats = await Order.aggregate([
-      { 
-        $match: { 
-          createdAt: { $gte: weekAgo } 
+      {
+        $match: {
+          createdAt: { $gte: weekAgo }
         }
       },
       {
@@ -2340,9 +2340,9 @@ exports.getWeeklyAdvancedStats = async (req, res) => {
     ]);
 
     const userGrowth = await User.aggregate([
-      { 
-        $match: { 
-          createdAt: { $gte: weekAgo } 
+      {
+        $match: {
+          createdAt: { $gte: weekAgo }
         }
       },
       {
@@ -2365,9 +2365,9 @@ exports.getWeeklyAdvancedStats = async (req, res) => {
         summary: {
           totalRevenue: totalWeek,
           averageDailyRevenue: avgDaily,
-          bestDay: stats.reduce((best, day) => 
+          bestDay: stats.reduce((best, day) =>
             day.revenue > (best?.revenue || 0) ? day : best, null),
-          worstDay: stats.reduce((worst, day) => 
+          worstDay: stats.reduce((worst, day) =>
             day.revenue < (worst?.revenue || Infinity) ? day : worst, stats[0])
         }
       }
@@ -2391,7 +2391,7 @@ exports.getMonthlyAdvancedStats = async (req, res) => {
     const { year, month } = req.query;
 
     let startDate, endDate;
-    
+
     if (year && month) {
       startDate = new Date(year, month - 1, 1);
       endDate = new Date(year, month, 1);

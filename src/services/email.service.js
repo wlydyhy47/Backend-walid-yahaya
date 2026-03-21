@@ -427,7 +427,7 @@ class EmailService {
       </div>
 
       <div style="text-align: center; margin: 30px 0;">
-        <a href="${process.env.CLIENT_URL}/restaurants" class="button">
+        <a href="${process.env.CLIENT_URL}/stores" class="button">
           ابدأ الطلب الآن 🛒
         </a>
       </div>
@@ -765,13 +765,13 @@ class EmailService {
    * بريد تذكير التقييم
    */
   async sendReviewReminderEmail(user, order) {
-    const subject = `⭐ كيف كانت تجربتك مع ${order.restaurant?.name || 'المطعم'}؟`;
+    const subject = `⭐ كيف كانت تجربتك مع ${order.store?.name || 'المطعم'}؟`;
 
     const content = `
       <h2>مرحباً ${user.name}!</h2>
       
       <div class="info-box">
-        <p>نأمل أن تكون قد استمتعت بوجبتك من <strong>${order.restaurant?.name || 'المطعم'}</strong>.</p>
+        <p>نأمل أن تكون قد استمتعت بوجبتك من <strong>${order.store?.name || 'المطعم'}</strong>.</p>
         <p style="margin-top: 10px;">ساعد الآخرين بمشاركة تجربتك!</p>
       </div>
 

@@ -24,7 +24,7 @@ const getFilesInDirectory = async (dir, extensions = []) => {
   try {
     const fullPath = path.join(PUBLIC_DIR, dir);
     const files = await fs.readdir(fullPath);
-    
+
     return files
       .filter(file => {
         if (extensions.length === 0) return true;
@@ -67,7 +67,7 @@ exports.getImages = async (req, res) => {
   try {
     const cacheKey = 'assets:images:all';
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       return res.json({
         success: true,
@@ -78,14 +78,14 @@ exports.getImages = async (req, res) => {
 
     const imagesDir = path.join(PUBLIC_DIR, 'images');
     const files = await fs.readdir(imagesDir);
-    
+
     const images = await Promise.all(
       files
         .filter(file => /\.(png|jpg|jpeg|gif|svg|webp|avif)$/i.test(file))
         .map(async (file) => {
           const filePath = path.join(imagesDir, file);
           const size = await getFileSize(filePath);
-          
+
           return {
             id: file,
             filename: file,
@@ -136,8 +136,8 @@ exports.getImages = async (req, res) => {
 exports.getImagesByCategory = async (req, res) => {
   try {
     const { category } = req.params;
-    
-    const validCategories = ['restaurants', 'items', 'users', 'covers', 'icons', 'defaults'];
+
+    const validCategories = ['stores', 'items', 'users', 'covers', 'icons', 'defaults'];
     if (!validCategories.includes(category)) {
       return res.status(400).json({
         success: false,
@@ -147,7 +147,7 @@ exports.getImagesByCategory = async (req, res) => {
 
     const cacheKey = `assets:images:${category}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       return res.json({
         success: true,
@@ -159,18 +159,18 @@ exports.getImagesByCategory = async (req, res) => {
     // البحث عن الصور التي تطابق الفئة
     const imagesDir = path.join(PUBLIC_DIR, 'images');
     const files = await fs.readdir(imagesDir);
-    
+
     const images = await Promise.all(
       files
         .filter(file => {
-          const matches = file.toLowerCase().includes(category) || 
-                         file.toLowerCase().includes(category.slice(0, -1));
+          const matches = file.toLowerCase().includes(category) ||
+            file.toLowerCase().includes(category.slice(0, -1));
           return matches && /\.(png|jpg|jpeg|gif|svg|webp)$/i.test(file);
         })
         .map(async (file) => {
           const filePath = path.join(imagesDir, file);
           const size = await getFileSize(filePath);
-          
+
           return {
             filename: file,
             url: `/images/${file}`,
@@ -212,7 +212,7 @@ exports.getIcons = async (req, res) => {
   try {
     const cacheKey = 'assets:icons:all';
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       return res.json({
         success: true,
@@ -223,14 +223,14 @@ exports.getIcons = async (req, res) => {
 
     const iconsDir = path.join(PUBLIC_DIR, 'icons');
     const files = await fs.readdir(iconsDir);
-    
+
     const icons = await Promise.all(
       files
         .filter(file => /\.(png|ico|svg)$/i.test(file))
         .map(async (file) => {
           const filePath = path.join(iconsDir, file);
           const size = await getFileSize(filePath);
-          
+
           return {
             filename: file,
             url: `/icons/${file}`,
@@ -275,7 +275,7 @@ exports.getDefaultImages = async (req, res) => {
   try {
     const cacheKey = 'assets:defaults';
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       return res.json({
         success: true,
@@ -379,7 +379,7 @@ exports.getDefaultImages = async (req, res) => {
 exports.getDefaultImageByType = async (req, res) => {
   try {
     const { type } = req.params;
-    
+
     const validTypes = ['avatar', 'restaurant', 'item', 'cover', 'logo', 'favicon'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({
@@ -389,7 +389,7 @@ exports.getDefaultImageByType = async (req, res) => {
     }
 
     const defaults = await exports.getDefaultImages();
-    
+
     if (type === 'logo') {
       return res.json({
         success: true,
@@ -544,14 +544,14 @@ exports.getFileInfo = async (req, res) => {
  */
 const getImageCategory = (filename) => {
   const name = filename.toLowerCase();
-  
-  if (name.includes('restaurant') || name.includes('resto')) return 'restaurants';
+
+  if (name.includes('restaurant') || name.includes('resto')) return 'stores';
   if (name.includes('item') || name.includes('food') || name.includes('meal')) return 'items';
   if (name.includes('user') || name.includes('avatar') || name.includes('profile')) return 'users';
   if (name.includes('cover') || name.includes('banner')) return 'covers';
   if (name.includes('icon') || name.includes('logo')) return 'icons';
   if (name.includes('default')) return 'defaults';
-  
+
   return 'other';
 };
 
@@ -560,13 +560,13 @@ const getImageCategory = (filename) => {
  */
 const getIconPurpose = (filename) => {
   const name = filename.toLowerCase();
-  
+
   if (name === 'favicon.ico') return 'favicon';
   if (name.includes('apple-touch-icon')) return 'apple-touch';
   if (name.includes('icon-192')) return 'android-192';
   if (name.includes('icon-512')) return 'android-512';
   if (name.includes('manifest')) return 'manifest';
-  
+
   return 'general';
 };
 

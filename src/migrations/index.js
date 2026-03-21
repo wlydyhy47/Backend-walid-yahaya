@@ -30,8 +30,8 @@ class MigrationManager {
           description: String,
           appliedAt: { type: Date, default: Date.now },
           duration: Number,
-          status: { 
-            type: String, 
+          status: {
+            type: String,
             enum: ['pending', 'success', 'failed', 'rolledback'],
             default: 'pending'
           },
@@ -39,7 +39,7 @@ class MigrationManager {
           affected: {
             users: Number,
             orders: Number,
-            restaurants: Number,
+            stores: Number,
             items: Number,
             reviews: Number
           },
@@ -65,7 +65,7 @@ class MigrationManager {
   async loadMigrations() {
     try {
       const files = await fs.readdir(this.scriptsDir);
-      
+
       // فلترة ملفات JavaScript فقط
       const migrationFiles = files
         .filter(f => f.endsWith('.js') && !f.startsWith('_'))
@@ -77,7 +77,7 @@ class MigrationManager {
         try {
           const migrationPath = path.join(this.scriptsDir, file);
           const migration = require(migrationPath);
-          
+
           // التحقق من صحة الترحيل
           if (migration.name && (migration.up || migration.down)) {
             this.migrations.push({
@@ -365,7 +365,7 @@ module.exports = {
     const affected = {
       users: 0,
       orders: 0,
-      restaurants: 0,
+      stores: 0,
       items: 0,
       reviews: 0
     };

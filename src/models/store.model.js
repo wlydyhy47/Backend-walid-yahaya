@@ -12,11 +12,11 @@ const storeSchema = new mongoose.Schema(
     logo: {
       type: String,
     },
-    
+
     coverImage: {
       type: String,
     },
-    
+
     // المعلومات الأساسية
     name: {
       type: String,
@@ -24,35 +24,35 @@ const storeSchema = new mongoose.Schema(
       trim: true,
       index: true,
     },
-    
+
     description: String,
-    
+
     category: {
       type: String,
       required: true,
       enum: [
-        "restaurant", "cafe", "bakery", "fast-food", "grocery",
+        "store", "cafe", "bakery", "fast-food", "grocery",
         "supermarket", "pharmacy", "clothing", "electronics",
         "furniture", "books", "sports", "beauty", "flowers",
         "pet-shop", "other"
       ],
       index: true,
     },
-    
+
     // معلومات الاتصال
     phone: {
       type: String,
       trim: true,
     },
-    
+
     email: {
       type: String,
       trim: true,
       lowercase: true,
     },
-    
+
     website: String,
-    
+
     // الموقع
     address: {
       street: String,
@@ -61,7 +61,7 @@ const storeSchema = new mongoose.Schema(
       country: { type: String, default: "Niger" },
       postalCode: String,
     },
-    
+
     location: {
       type: {
         type: String,
@@ -74,30 +74,30 @@ const storeSchema = new mongoose.Schema(
         default: [2.1098, 13.5126],
       },
     },
-    
+
     // حالة المتجر
     isOpen: {
       type: Boolean,
       default: true,
     },
-    
+
     isVerified: {
       type: Boolean,
       default: false,
     },
-    
+
     // المالك
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       index: true,
     },
-    
+
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    
+
     // إحصائيات التقييم
     averageRating: {
       type: Number,
@@ -105,12 +105,12 @@ const storeSchema = new mongoose.Schema(
       min: 0,
       max: 5,
     },
-    
+
     ratingsCount: {
       type: Number,
       default: 0,
     },
-    
+
     // معلومات التوصيل
     deliveryInfo: {
       hasDelivery: { type: Boolean, default: true },
@@ -120,7 +120,7 @@ const storeSchema = new mongoose.Schema(
       deliveryRadius: { type: Number, default: 10 },
       freeDeliveryThreshold: { type: Number, default: 0 },
     },
-    
+
     // ساعات العمل
     openingHours: {
       type: Map,
@@ -131,7 +131,7 @@ const storeSchema = new mongoose.Schema(
       },
       default: {},
     },
-    
+
     // إحصائيات المتجر
     stats: {
       totalOrders: { type: Number, default: 0 },
@@ -143,7 +143,7 @@ const storeSchema = new mongoose.Schema(
       totalProducts: { type: Number, default: 0 },
       totalCustomers: { type: Number, default: 0 },
     },
-    
+
     // إعدادات المتجر
     settings: {
       autoAcceptOrders: { type: Boolean, default: false },
@@ -157,26 +157,26 @@ const storeSchema = new mongoose.Schema(
         sms: { type: Boolean, default: false },
       },
     },
-    
+
     // المندوبين المفضلين
     preferredDrivers: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     }],
-    
+
     // الوسوم
     tags: [{
       type: String,
       trim: true,
     }],
-    
+
     // الصور الإضافية
     gallery: [{
       url: String,
       caption: String,
       order: Number,
     }],
-    
+
     // المستندات
     documents: [{
       type: { type: String, enum: ["license", "tax", "id", "other"] },
@@ -184,11 +184,11 @@ const storeSchema = new mongoose.Schema(
       verified: { type: Boolean, default: false },
       verifiedAt: Date,
     }],
-    
+
     // تاريخ الحذف
     deletedAt: Date,
   },
-  { 
+  {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
@@ -227,16 +227,16 @@ storeSchema.virtual("successRate").get(function () {
 
 storeSchema.virtual("isOpenNow").get(function () {
   if (!this.openingHours) return false;
-  
+
   const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
   const today = days[new Date().getDay()];
   const hours = this.openingHours.get(today);
-  
+
   if (!hours || !hours.isOpen) return false;
-  
+
   const now = new Date();
   const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-  
+
   return currentTime >= hours.open && currentTime <= hours.close;
 });
 
@@ -249,20 +249,20 @@ storeSchema.index({ 'stats.totalOrders': -1 });
 storeSchema.index({ name: 'text', description: 'text', tags: 'text' });
 
 // ========== ✅✅✅ Middleware مصحح ✅✅✅ ==========
-storeSchema.pre('save', async function(next) {
+storeSchema.pre('save', async function (next) {
   try {
     // ✅ التحقق من أن next دالة قبل استدعائها
     if (typeof next !== 'function') {
       // إذا لم يكن next دالة، نكمل بدونها
       console.warn('⚠️ next is not a function in store pre-save middleware');
-      
+
       // تحديث slug إذا كان جديداً
       if (this.isNew && this.name) {
         const slug = this.name
           .toLowerCase()
           .replace(/[^a-z0-9]+/g, '-')
           .replace(/^-+|-+$/g, '');
-        
+
         // إضافة slug إذا كان الحقل موجوداً في المخطط
         if (this.schema.paths.slug) {
           this.slug = slug;
@@ -270,20 +270,20 @@ storeSchema.pre('save', async function(next) {
       }
       return;
     }
-    
+
     // تحديث slug إذا كان جديداً
     if (this.isNew && this.name) {
       const slug = this.name
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
-      
+
       // إضافة slug إذا كان الحقل موجوداً في المخطط
       if (this.schema.paths.slug) {
         this.slug = slug;
       }
     }
-    
+
     next();
   } catch (error) {
     console.error('❌ Error in pre-save middleware:', error);
@@ -294,7 +294,7 @@ storeSchema.pre('save', async function(next) {
 });
 
 // ✅ Middleware للتحديث
-storeSchema.pre('findOneAndUpdate', function(next) {
+storeSchema.pre('findOneAndUpdate', function (next) {
   try {
     if (typeof next !== 'function') {
       console.warn('⚠️ next is not a function in store findOneAndUpdate middleware');
@@ -312,10 +312,10 @@ storeSchema.pre('findOneAndUpdate', function(next) {
 /**
  * تحديث إحصائيات المتجر بعد كل طلب
  */
-storeSchema.methods.updateStats = async function(order) {
+storeSchema.methods.updateStats = async function (order) {
   try {
     const Order = require("./order.model");
-    
+
     const stats = await Order.aggregate([
       { $match: { store: this._id } },
       {
@@ -342,7 +342,7 @@ storeSchema.methods.updateStats = async function(order) {
       };
       await this.save();
     }
-    
+
     return this;
   } catch (error) {
     console.error('❌ Error updating store stats:', error);

@@ -32,7 +32,7 @@ const ROLE_HIERARCHY = {
 const ROLE_PERMISSIONS = {
   [ROLES.ADMIN]: [
     'manage_users',
-    'manage_stores',      // ✅ تغيير من manage_restaurants
+    'manage_stores',      // ✅ تغيير من manage_stores
     'manage_orders',
     'manage_drivers',
     'view_analytics',
@@ -42,7 +42,7 @@ const ROLE_PERMISSIONS = {
     'view_logs'
   ],
   [ROLES.STORE_OWNER]: [  // ✅ تغيير من RESTAURANT_OWNER
-    'manage_own_store',    // ✅ تغيير من manage_own_restaurant
+    'manage_own_store',    // ✅ تغيير من manage_own_store
     'view_own_orders',
     'update_order_status',
     'manage_products',     // ✅ تغيير من manage_menu
@@ -314,7 +314,7 @@ const hasRoleHierarchy = (userRole, requiredRole) => {
 
 module.exports = roleMiddleware;
 module.exports.roleMiddleware = roleMiddleware;
-module.exports.storeOwnerMiddleware = storeOwnerMiddleware;  // ✅ تغيير من restaurantOwnerMiddleware
+module.exports.storeOwnerMiddleware = storeOwnerMiddleware;  // ✅ تغيير من storeOwnerMiddleware
 module.exports.driverMiddleware = driverMiddleware;
 module.exports.hasPermission = hasPermission;
 module.exports.getRoles = getRoles;

@@ -89,7 +89,7 @@ exports.getStoresPaginated = async (req, res) => {
     const storesWithDetails = await Promise.all(
       stores.map(async (store) => {
         const productsCount = await Product.countDocuments({  // ✅ تغيير من Item
-          store: store._id,  // ✅ store بدل restaurant
+          store: store._id,  // ✅ store بدل store
           isAvailable: true
         });
 
@@ -244,7 +244,7 @@ exports.searchStores = async (req, res) => {
         user: req.user.id,
         isActive: true
       });
-      const favoriteIds = favorites.map(f => f.store.toString());  // ✅ restaurant -> store
+      const favoriteIds = favorites.map(f => f.store.toString());  // ✅ store -> store
 
       results = results.map(store => ({
         ...store,
@@ -277,7 +277,7 @@ exports.getStoreDetails = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const cacheKey = `store:complete:${id}`;  // ✅ restaurant -> store
+    const cacheKey = `store:complete:${id}`;  // ✅ store -> store
     const cachedData = cache.get(cacheKey);
 
     if (cachedData) {
@@ -306,7 +306,7 @@ exports.getStoreDetails = async (req, res) => {
         .select('addressLine city latitude longitude label isDefault')
         .lean(),
 
-      Review.find({ store: id })  // ✅ restaurant -> store
+      Review.find({ store: id })  // ✅ store -> store
         .populate('user', 'name image')
         .select('rating comment createdAt')
         .sort({ createdAt: -1 })
@@ -343,7 +343,7 @@ exports.getStoreDetails = async (req, res) => {
     }
 
     const reviewStats = await Review.aggregate([
-      { $match: { store: id } },  // ✅ restaurant -> store
+      { $match: { store: id } },  // ✅ store -> store
       {
         $group: {
           _id: null,
@@ -406,23 +406,23 @@ exports.getStoreDetails = async (req, res) => {
  * @route   GET /api/v1/public/stores/:id/products
  * @access  Public
  */
-exports.getStoreProducts = async (req, res) => {  // ✅ getRestaurantItems -> getStoreProducts
+exports.getStoreProducts = async (req, res) => {  // ✅ getStoreItems -> getStoreProducts
   try {
     const { id } = req.params;
     const { category, minPrice, maxPrice, inStock } = req.query;
 
-    const query = { store: id, isAvailable: true };  // ✅ restaurant -> store
-    
+    const query = { store: id, isAvailable: true };  // ✅ store -> store
+
     if (category) {
       query.category = category;
     }
-    
+
     if (minPrice || maxPrice) {
       query.price = {};
       if (minPrice) query.price.$gte = Number(minPrice);
       if (maxPrice) query.price.$lte = Number(maxPrice);
     }
-    
+
     if (inStock === 'true') {
       query['inventory.quantity'] = { $gt: 0 };
     }
@@ -467,7 +467,7 @@ exports.getStoreProducts = async (req, res) => {  // ✅ getRestaurantItems -> g
 exports.addReview = async (req, res) => {
   try {
     const { rating, comment } = req.body;
-    const storeId = req.params.storeId;  // ✅ restaurantId -> storeId
+    const storeId = req.params.storeId;  // ✅ storeId -> storeId
 
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({
@@ -478,7 +478,7 @@ exports.addReview = async (req, res) => {
 
     const existingReview = await Review.findOne({
       user: req.user.id,
-      store: storeId  // ✅ restaurant -> store
+      store: storeId  // ✅ store -> store
     });
 
     if (existingReview) {
@@ -490,7 +490,7 @@ exports.addReview = async (req, res) => {
 
     const hasOrdered = await Order.findOne({
       user: req.user.id,
-      store: storeId,  // ✅ restaurant -> store
+      store: storeId,  // ✅ store -> store
       status: 'delivered'
     });
 
@@ -503,13 +503,13 @@ exports.addReview = async (req, res) => {
 
     const review = await Review.create({
       user: req.user.id,
-      store: storeId,  // ✅ restaurant -> store
+      store: storeId,  // ✅ store -> store
       rating,
       comment: comment?.trim()
     });
 
     const stats = await Review.aggregate([
-      { $match: { store: storeId } },  // ✅ restaurant -> store
+      { $match: { store: storeId } },  // ✅ store -> store
       {
         $group: {
           _id: "$store",
@@ -519,13 +519,13 @@ exports.addReview = async (req, res) => {
       }
     ]);
 
-    await Store.findByIdAndUpdate(storeId, {  // ✅ Restaurant -> Store
+    await Store.findByIdAndUpdate(storeId, {
       averageRating: stats[0]?.avgRating || rating,
       ratingsCount: stats[0]?.count || 1
     });
 
-    cache.del(`store:complete:${storeId}`);  // ✅ restaurant -> store
-    cache.invalidatePattern(`stores:*`);  // ✅ restaurants -> stores
+    cache.del(`store:complete:${storeId}`);
+    cache.invalidatePattern(`stores:*`);
 
     const populatedReview = await Review.findById(review._id)
       .populate('user', 'name image')
@@ -558,15 +558,15 @@ exports.addReview = async (req, res) => {
  * @route   GET /api/v1/public/stores/:storeId/reviews
  * @access  Public
  */
-exports.getStoreReviews = async (req, res) => {  // ✅ getRestaurantReviews -> getStoreReviews
+exports.getStoreReviews = async (req, res) => {  // ✅ getStoreReviews -> getStoreReviews
   try {
-    const storeId = req.params.storeId;  // ✅ restaurantId -> storeId
+    const storeId = req.params.storeId;  // ✅ storeId -> storeId
     const { page = 1, limit = 10, sort = "-createdAt" } = req.query;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
     const [reviews, total] = await Promise.all([
-      Review.find({ store: storeId })  // ✅ restaurant -> store
+      Review.find({ store: storeId })  // ✅ store -> store
         .populate("user", "name image")
         .sort(sort)
         .skip(skip)
@@ -631,12 +631,12 @@ exports.getStoreReviews = async (req, res) => {  // ✅ getRestaurantReviews -> 
  * @route   POST /api/v1/admin/stores
  * @access  Admin
  */
-exports.createStore = async (req, res) => {  // ✅ createRestaurant -> createStore
+exports.createStore = async (req, res) => {  // ✅ createStore -> createStore
   try {
-    const { 
+    const {
       name, description, category, phone, email, website,
       deliveryFee, minOrderAmount, estimatedDeliveryTime, deliveryRadius,
-      tags, openingHours, address 
+      tags, openingHours, address
     } = req.body;
 
     if (!name || !name.trim()) {
@@ -673,7 +673,7 @@ exports.createStore = async (req, res) => {  // ✅ createRestaurant -> createSt
     const store = await Store.create({
       name: name.trim(),
       description: description?.trim(),
-      category: category || "restaurant",
+      category: category || "store",
       phone: phone?.trim(),
       email: email?.trim(),
       website: website?.trim(),
@@ -725,9 +725,9 @@ exports.createStore = async (req, res) => {  // ✅ createRestaurant -> createSt
  * @route   PUT /api/v1/admin/stores/:id (للمسؤول)
  * @access  Vendor / Admin
  */
-exports.updateStore = async (req, res) => {  // ✅ updateRestaurant -> updateStore
+exports.updateStore = async (req, res) => {  // ✅ updateStore -> updateStore
   try {
-    const storeId = req.params.id || req.restaurantId;  // دعم لكل من المسؤول والتاجر
+    const storeId = req.params.id || req.storeId;  // دعم لكل من المسؤول والتاجر
     const updates = req.body;
 
     // الحقول المسموح بتحديثها
@@ -805,7 +805,7 @@ exports.updateStoreLogo = async (req, res) => {  // ✅ updateCoverImage -> upda
       });
     }
 
-    const storeId = req.restaurantId;
+    const storeId = req.storeId;
 
     const oldStore = await Store.findById(storeId).select('logo');
     if (oldStore?.logo) {
@@ -864,7 +864,7 @@ exports.updateStoreCover = async (req, res) => {
       });
     }
 
-    const storeId = req.restaurantId;
+    const storeId = req.storeId;
 
     const oldStore = await Store.findById(storeId).select('coverImage');
     if (oldStore?.coverImage) {
@@ -914,7 +914,7 @@ exports.updateStoreCover = async (req, res) => {
  * @route   DELETE /api/v1/admin/stores/:id
  * @access  Admin
  */
-exports.deleteStore = async (req, res) => {  // ✅ deleteRestaurant -> deleteStore
+exports.deleteStore = async (req, res) => {  // ✅ deleteStore -> deleteStore
   try {
     const storeId = req.params.id;
 
@@ -954,9 +954,9 @@ exports.deleteStore = async (req, res) => {  // ✅ deleteRestaurant -> deleteSt
  * @route   PUT /api/v1/vendor/store/toggle-status
  * @access  Vendor
  */
-exports.toggleStoreStatus = async (req, res) => {  // ✅ toggleRestaurantStatus -> toggleStoreStatus
+exports.toggleStoreStatus = async (req, res) => {  // ✅ toggleStoreStatus -> toggleStoreStatus
   try {
-    const storeId = req.restaurantId;
+    const storeId = req.storeId;
 
     const store = await Store.findById(storeId);
 
@@ -1035,7 +1035,7 @@ exports.verifyStore = async (req, res) => {  // ✅ دالة جديدة
  * @desc    الحصول على إحصائيات المتجر
  * @access  Internal
  */
-exports.getStoreStats = async (storeId) => {  // ✅ getRestaurantStats -> getStoreStats
+exports.getStoreStats = async (storeId) => {  // ✅ getStoreStats -> getStoreStats
   try {
     const [
       productsCount,  // ✅ itemsCount -> productsCount
@@ -1102,8 +1102,8 @@ exports.getStoreStats = async (storeId) => {  // ✅ getRestaurantStats -> getSt
 /**
  * @desc    Middleware لرفع ملفات المتجر
  */
-exports.uploadStoreFiles = (req, res, next) => {  // ✅ uploadRestaurantFiles -> uploadStoreFiles
-  const uploadFields = upload("stores").fields([  // ✅ restaurants -> stores
+exports.uploadStoreFiles = (req, res, next) => {  // ✅ uploadStoreFiles -> uploadStoreFiles
+  const uploadFields = upload("stores").fields([
     { name: "logo", maxCount: 1 },  // ✅ image -> logo
     { name: "coverImage", maxCount: 1 },
     { name: "productImages", maxCount: 20 }  // ✅ itemImages -> productImages

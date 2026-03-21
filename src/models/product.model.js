@@ -12,29 +12,29 @@ const productSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
-    
+
     price: {
       type: Number,
       required: true,
       min: 0,
     },
-    
+
     discountedPrice: {  // سعر بعد الخصم
       type: Number,
       min: 0,
     },
-    
+
     image: {
       type: String,
     },
-    
+
     gallery: [String], // معرض صور المنتج
-    
+
     description: {
       type: String,
       trim: true,
     },
-    
+
     category: {
       type: String,
       required: true,
@@ -49,14 +49,14 @@ const productSchema = new mongoose.Schema(
         "electronics", "clothing", "books", "other"
       ],
     },
-    
-    store: {  // 🔄 كان restaurant
+
+    store: {  // 🔄 كان store
       type: mongoose.Schema.Types.ObjectId,
       ref: "Store",
       required: true,
       index: true,
     },
-    
+
     // معلومات المخزون
     inventory: {
       quantity: { type: Number, default: 0 },
@@ -64,18 +64,18 @@ const productSchema = new mongoose.Schema(
       lowStockThreshold: { type: Number, default: 5 },
       trackInventory: { type: Boolean, default: false },
     },
-    
+
     isAvailable: {
       type: Boolean,
       default: true,
     },
-    
+
     // للمنتجات الغذائية
     ingredients: [{
       type: String,
       trim: true,
     }],
-    
+
     nutritionalInfo: {
       calories: Number,
       protein: Number,
@@ -83,12 +83,12 @@ const productSchema = new mongoose.Schema(
       fat: Number,
       allergens: [String],
     },
-    
+
     preparationTime: {
       type: Number, // بالدقائق
       default: 15,
     },
-    
+
     // خصائص إضافية
     attributes: {
       spicyLevel: { type: Number, min: 0, max: 3, default: 0 },
@@ -97,7 +97,7 @@ const productSchema = new mongoose.Schema(
       isGlutenFree: { type: Boolean, default: false },
       isOrganic: { type: Boolean, default: false },
     },
-    
+
     // خيارات إضافية (للبيتزا مثلاً)
     options: [{
       name: String,
@@ -108,9 +108,9 @@ const productSchema = new mongoose.Schema(
       required: Boolean,
       multiple: Boolean,
     }],
-    
+
     tags: [String],
-    
+
     // إحصائيات المنتج
     stats: {
       views: { type: Number, default: 0 },
@@ -118,7 +118,7 @@ const productSchema = new mongoose.Schema(
       revenue: { type: Number, default: 0 },
     },
   },
-  { 
+  {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
