@@ -47,6 +47,7 @@ The content is organized as follows:
 Migrations.README .md
 package.json
 README.md
+scripts/validate-controllers.js
 src/app.js
 src/config/api.config.js
 src/config/cloudinary.js
@@ -148,6 +149,7 @@ src/services/sms.service.js
 src/services/socket.service.js
 src/socket.js
 src/utils/cache.util.js
+src/utils/controllerValidator.js
 src/utils/cursorPagination.util.js
 src/utils/logger.util.js
 src/utils/pagination.util.js
@@ -158,6 +160,724 @@ src/validators/auth.validator.js
 
 <files>
 This section contains the contents of the repository's files.
+
+<file path="scripts/validate-controllers.js">
+// ============================================
+// ملف: scripts/validate-controllers.js
+// الوصف: سكربت مستقل للتحقق من الـ Controllers
+// الاستخدام: node scripts/validate-controllers.js
+// ============================================
+
+const { validateAllControllers, exportValidationReport } = require('../src/utils/controllerValidator');
+
+console.log('🔍 Food Delivery API - Controller Validator');
+console.log('============================================\n');
+
+// تنفيذ التحقق
+const result = validateAllControllers();
+
+// تصدير التقرير
+if (process.argv.includes('--export')) {
+  exportValidationReport();
+}
+
+// الخروج برمز مناسب
+process.exit(result.success ? 0 : 1);
+</file>
+
+<file path="src/utils/controllerValidator.js">
+// ============================================
+// ملف: src/utils/controllerValidator.js
+// الوصف: التحقق من وجود جميع الدوال في الـ Controllers
+// الإصدار: 2.0 (متكامل)
+// ============================================
+
+const fs = require('fs');
+const path = require('path');
+const chalk = require('chalk'); // يمكن تثبيته: npm install chalk
+
+// ========== 1. تعريف الدوال المطلوبة لكل Controller ==========
+
+const REQUIRED_METHODS = {
+  // Order Controller
+  orderController: {
+    required: [
+      'createOrder',
+      'getOrderDetails',
+      'getMyOrdersPaginated',
+      'getDriverOrders',
+      'getAllOrdersPaginated',
+      'acceptOrder',
+      'rejectOrder',
+      'markOrderReady',
+      'startPreparing',
+      'getVendorOrders',
+      'getVendorOrderStats',
+      'getTodayOrders',
+      'updateStatus',
+      'cancelOrder',
+      'assignDriver',
+      'reassignDriver',
+      'forceCancelOrder',
+      'trackOrder',
+      'updateDriverLocation',
+      'getDriverLocation',
+      'getOrderTimeline',
+      'getDriverEarnings',
+      'getCurrentDelivery',
+      'getOrderStats',
+      'getDailyStats',
+      'getMonthlyStats',
+      'getDriverOrdersById',
+      'getStoreOrdersById',
+      'rateOrder',
+      'reportOrderIssue'
+    ],
+    optional: [
+      'getTodayRevenue'
+    ]
+  },
+
+  // Driver Controller
+  driverController: {
+    required: [
+      'getMyProfile',
+      'toggleAvailability',
+      'updateLocation',
+      'getCurrentOrder',
+      'getMyStats',
+      'getDrivers',
+      'getDriverById',
+      'getDriverLocation',
+      'getDriverStatsById',
+      'updateAvatar',
+      'getEarningsHistory',
+      'getPerformanceReport',
+      'verifyDriver',
+      'toggleDriverStatus'
+    ],
+    optional: []
+  },
+
+  // Aggregate Controller
+  aggregateController: {
+    required: [
+      'getDashboardData',
+      'getRestaurantsPaginated',
+      'getItemsPaginated',
+      'getOrdersPaginatedAdmin',
+      'getRestaurantDetails',
+      'getOrderWithTracking',
+      'getHomeData',
+      'clearCache',
+      'clearCachePattern',
+      'getCacheStats',
+      'getAdminDashboard',
+      'getAdminStats',
+      'getAdminUserStats',
+      'getAdminOrderStats',
+      'getAdminRevenueStats',
+      'getUserAnalytics',
+      'getOrderAnalytics',
+      'getRevenueAnalytics',
+      'unifiedSearch',
+      'getPublicStats',
+      'getMyOrdersPaginated',
+      'calculateETA',
+      'getStatusText',
+      'exportOrdersReport',
+      'exportUsersReport',
+      'exportRevenueReport',
+      'exportDriversReport',
+      'exportStoresReport',
+      'getDailyAdvancedStats',
+      'getWeeklyAdvancedStats',
+      'getMonthlyAdvancedStats',
+      'getCustomStats'
+    ],
+    optional: []
+  },
+
+  // Notification Controller
+  notificationController: {
+    required: [
+      'getUserNotifications',
+      'getUnreadCount',
+      'getNotificationStats',
+      'markAsRead',
+      'markAsUnread',
+      'archive',
+      'deleteNotification',
+      'markAllAsRead',
+      'deleteReadNotifications',
+      'updateNotificationPreferences',
+      'registerDevice',
+      'unregisterDevice',
+      'sendCustomNotification',
+      'getCampaignStats',
+      'getAllNotificationsStats',
+      'cleanupExpiredNotifications',
+      'createWelcomeNotification',
+      'createPasswordChangedNotification',
+      'createCampaign',
+      'getCampaigns',
+      'pauseCampaign',
+      'resumeCampaign',
+      'deleteCampaign'
+    ],
+    optional: []
+  },
+
+  // Store Controller
+  storeController: {
+    required: [
+      'getStoresPaginated',
+      'getStoresSmart',
+      'searchStores',
+      'getStoreDetails',
+      'getStoreProducts',
+      'addReview',
+      'getStoreReviews',
+      'createStore',
+      'updateStore',
+      'updateStoreLogo',
+      'updateStoreCover',
+      'deleteStore',
+      'toggleStoreStatus',
+      'verifyStore',
+      'getStoreStats',
+      'uploadStoreFiles',
+      'advancedSearch'
+    ],
+    optional: []
+  },
+
+  // User Controller
+  userController: {
+    required: [
+      'getUsers',
+      'getUserById',
+      'createUser',
+      'updateUserById',
+      'deleteUserById',
+      'getMyProfile',
+      'getMyCompleteProfile',
+      'updateMyProfile',
+      'updateCompleteProfile',
+      'uploadAvatar',
+      'updateCoverImage',
+      'deleteAvatar',
+      'changePassword',
+      'getMyFavorites',
+      'addToFavorites',
+      'removeFromFavorites',
+      'checkFavoriteStatus',
+      'updateFavorite',
+      'getUserStats',
+      'getActivityLog',
+      'updatePresence'
+    ],
+    optional: []
+  },
+
+  // Auth Controller
+  authController: {
+    required: [
+      'register',
+      'login',
+      'verifyAccount',
+      'resendVerification',
+      'forgotPassword',
+      'resetPassword',
+      'refreshToken',
+      'logout',
+      'validateToken',
+      'changePassword',
+      'revokeAllSessions'
+    ],
+    optional: []
+  },
+
+  // Address Controller
+  addressController: {
+    required: [
+      'createAddress',
+      'getMyAddresses',
+      'deleteAddress',
+      'updateAddress',
+      'setDefaultAddress',
+      'getAddressById'
+    ],
+    optional: []
+  },
+
+  // Favorite Controller
+  favoriteController: {
+    required: [
+      'getUserFavorites',
+      'addToFavorites',
+      'removeFromFavorites',
+      'checkFavoriteStatus',
+      'updateFavorite'
+    ],
+    optional: []
+  },
+
+  // Review Controller
+  reviewController: {
+    required: [
+      'addReview',
+      'getStoreReviews',
+      'getVendorReviews',
+      'getVendorReviewStats',
+      'replyToReview'
+    ],
+    optional: []
+  },
+
+  // Loyalty Controller
+  loyaltyController: {
+    required: [
+      'getPoints',
+      'getRewards',
+      'getTransactions',
+      'addPoints',
+      'redeemPoints',
+      'getStats'
+    ],
+    optional: []
+  },
+
+  // Product Controller
+  productController: {
+    required: [
+      'getVendorProducts',
+      'getAllProducts',
+      'getProductById',
+      'createProduct',
+      'updateProduct',
+      'updateProductImage',
+      'deleteProduct',
+      'toggleAvailability',
+      'updateInventory',
+      'toggleFeatured'
+    ],
+    optional: []
+  },
+
+  // Chat Controller
+  chatController: {
+    required: [
+      'getUserConversations',
+      'createDirectChat',
+      'createOrderChat',
+      'createSupportChat',
+      'createGroupChat',
+      'getConversation',
+      'updateConversation',
+      'deleteConversation',
+      'archiveConversation',
+      'muteConversation',
+      'unmuteConversation',
+      'addParticipant',
+      'removeParticipant',
+      'getParticipants',
+      'makeAdmin',
+      'removeAdmin',
+      'getConversationMessages',
+      'sendTextMessage',
+      'sendMediaMessage',
+      'sendLocationMessage',
+      'sendContactMessage',
+      'updateMessage',
+      'deleteMessage',
+      'forwardMessage',
+      'addReaction',
+      'removeReaction',
+      'pinMessage',
+      'unpinMessage',
+      'starMessage',
+      'unstarMessage',
+      'searchMessages',
+      'globalSearch',
+      'getConversationMedia',
+      'getConversationFiles',
+      'getConversationLinks',
+      'getChatStats',
+      'getConversationStats',
+      'getOnlineParticipants',
+      'getTotalUnreadCount',
+      'getSupportConversations',
+      'assignSupportAgent',
+      'resolveSupportChat',
+      'getSupportStats',
+      'getAllConversations',
+      'adminDeleteConversation',
+      'broadcastMessage'
+    ],
+    optional: []
+  },
+
+  // Health Controller
+  healthController: {
+    required: [
+      'quickHealthCheck',
+      'fullHealthCheck',
+      'readinessProbe',
+      'livenessProbe'
+    ],
+    optional: []
+  },
+
+  // Security Controller
+  securityController: {
+    required: [
+      'checkPassword',
+      'checkEmail',
+      'getSecurityHeaders'
+    ],
+    optional: []
+  },
+
+  // Assets Controller
+  assetsController: {
+    required: [
+      'getImages',
+      'getIcons',
+      'getDefaultImages'
+    ],
+    optional: []
+  },
+
+  // Analytics Controller
+  analyticsController: {
+    required: [
+      'getUserAnalytics',
+      'getOrderAnalytics',
+      'getRevenueAnalytics'
+    ],
+    optional: []
+  },
+
+  // Vendor Controller
+  vendorController: {
+    required: [
+      'getMyProfile',
+      'updateProfile',
+      'updateAvatar',
+      'getMyStore',
+      'updateStore',
+      'updateStoreLogo',
+      'updateStoreCover',
+      'toggleStoreStatus',
+      'getAddresses',
+      'createAddress',
+      'updateAddress',
+      'deleteAddress',
+      'getAddressById',
+      'getAnalytics',
+      'getFinancialReport',
+      'getPerformanceReport',
+      'getProductAnalytics'
+    ],
+    optional: []
+  }
+};
+
+// ========== 2. دوال مساعدة ==========
+
+/**
+ * تنسيق النص بألوان (إذا كان chalk متوفراً)
+ */
+function colorize(text, color) {
+  if (chalk && chalk[color]) {
+    return chalk[color](text);
+  }
+  return text;
+}
+
+/**
+ * طباعة رأس التقرير
+ */
+function printHeader(title) {
+  const line = '='.repeat(60);
+  console.log('\n' + colorize(line, 'cyan'));
+  console.log(colorize(`🔍 ${title}`, 'cyan'));
+  console.log(colorize(line, 'cyan'));
+}
+
+/**
+ * طباعة نتيجة التحقق
+ */
+function printResult(controllerName, stats, missingMethods) {
+  const status = stats.isValid ? '✅' : '❌';
+  const color = stats.isValid ? 'green' : 'red';
+  
+  console.log(`\n${colorize(status, color)} ${colorize(controllerName, 'yellow')}`);
+  console.log(`   📊 الدوال المطلوبة: ${stats.requiredCount}`);
+  console.log(`   📈 الدوال الموجودة: ${stats.existingCount}`);
+  console.log(`   📉 الدوال المفقودة: ${stats.missingCount}`);
+  
+  if (missingMethods.length > 0) {
+    console.log(colorize(`   ⚠️  المفقودة: ${missingMethods.join(', ')}`, 'red'));
+  }
+}
+
+/**
+ * التحقق من وجود دوال في Controller
+ */
+function validateController(controller, controllerName, requiredMethods, optionalMethods = []) {
+  const existing = [];
+  const missing = [];
+  const optionalExisting = [];
+  const optionalMissing = [];
+
+  // التحقق من الدوال المطلوبة
+  requiredMethods.forEach(method => {
+    if (typeof controller[method] === 'function') {
+      existing.push(method);
+    } else {
+      missing.push(method);
+    }
+  });
+
+  // التحقق من الدوال الاختيارية
+  optionalMethods.forEach(method => {
+    if (typeof controller[method] === 'function') {
+      optionalExisting.push(method);
+    } else {
+      optionalMissing.push(method);
+    }
+  });
+
+  return {
+    controllerName,
+    requiredCount: requiredMethods.length,
+    optionalCount: optionalMethods.length,
+    existingCount: existing.length,
+    missingCount: missing.length,
+    existingMethods: existing,
+    missingMethods: missing,
+    optionalExisting: optionalExisting,
+    optionalMissing: optionalMissing,
+    isValid: missing.length === 0,
+    details: {
+      required: { existing, missing },
+      optional: { existing: optionalExisting, missing: optionalMissing }
+    }
+  };
+}
+
+/**
+ * التحقق من جميع الـ Controllers
+ */
+function validateAllControllers() {
+  printHeader('التحقق من صحة جميع الـ Controllers');
+  
+  const results = [];
+  let allValid = true;
+  let totalRequired = 0;
+  let totalExisting = 0;
+  let totalMissing = 0;
+
+  try {
+    // استيراد جميع الـ Controllers
+    const controllers = require('../controllers');
+    
+    // التحقق من كل Controller
+    for (const [name, config] of Object.entries(REQUIRED_METHODS)) {
+      const controller = controllers[name];
+      
+      if (!controller) {
+        console.log(`\n❌ ${colorize(name, 'red')} - Controller غير موجود!`);
+        allValid = false;
+        results.push({
+          controllerName: name,
+          exists: false,
+          isValid: false,
+          error: 'Controller not found'
+        });
+        continue;
+      }
+      
+      const stats = validateController(
+        controller,
+        name,
+        config.required,
+        config.optional
+      );
+      
+      results.push(stats);
+      
+      if (!stats.isValid) {
+        allValid = false;
+      }
+      
+      totalRequired += stats.requiredCount;
+      totalExisting += stats.existingCount;
+      totalMissing += stats.missingCount;
+      
+      printResult(name, stats, stats.missingMethods);
+    }
+    
+    // طباعة الملخص النهائي
+    printHeader('ملخص التحقق النهائي');
+    
+    console.log(`\n📊 الإحصائيات العامة:`);
+    console.log(`   🎯 إجمالي الدوال المطلوبة: ${totalRequired}`);
+    console.log(`   ✅ الدوال الموجودة: ${totalExisting}`);
+    console.log(`   ❌ الدوال المفقودة: ${totalMissing}`);
+    console.log(`   📈 نسبة الاكتمال: ${((totalExisting / totalRequired) * 100).toFixed(1)}%`);
+    
+    if (allValid) {
+      console.log(`\n${colorize('🎉 مبروك! جميع الـ Controllers تعمل بشكل صحيح!', 'green')}`);
+    } else {
+      console.log(`\n${colorize('⚠️  يوجد دوال مفقودة في بعض الـ Controllers', 'yellow')}`);
+      console.log(colorize('📝 يرجى إضافة الدوال المفقودة حسب القائمة أعلاه', 'yellow'));
+    }
+    
+    return {
+      success: allValid,
+      results,
+      summary: {
+        totalRequired,
+        totalExisting,
+        totalMissing,
+        completionRate: (totalExisting / totalRequired) * 100,
+        controllersChecked: results.length,
+        validControllers: results.filter(r => r.isValid).length,
+        invalidControllers: results.filter(r => !r.isValid).length
+      }
+    };
+    
+  } catch (error) {
+    console.error(`\n${colorize('❌ خطأ في التحقق:', 'red')}`, error.message);
+    console.error(error.stack);
+    return {
+      success: false,
+      error: error.message,
+      stack: error.stack
+    };
+  }
+}
+
+/**
+ * التحقق من Controller واحد فقط
+ */
+function validateSingleController(controllerName) {
+  printHeader(`التحقق من Controller: ${controllerName}`);
+  
+  const config = REQUIRED_METHODS[controllerName];
+  
+  if (!config) {
+    console.log(`\n${colorize(`❌ لا يوجد تعريف للـ Controller: ${controllerName}`, 'red')}`);
+    return null;
+  }
+  
+  try {
+    const controllers = require('../controllers');
+    const controller = controllers[controllerName];
+    
+    if (!controller) {
+      console.log(`\n${colorize(`❌ Controller ${controllerName} غير موجود!`, 'red')}`);
+      return null;
+    }
+    
+    const stats = validateController(
+      controller,
+      controllerName,
+      config.required,
+      config.optional
+    );
+    
+    printResult(controllerName, stats, stats.missingMethods);
+    
+    if (stats.missingMethods.length > 0) {
+      console.log(`\n${colorize('📝 الدوال المفقودة:', 'yellow')}`);
+      stats.missingMethods.forEach(method => {
+        console.log(`   - ${method}`);
+      });
+    }
+    
+    return stats;
+    
+  } catch (error) {
+    console.error(`\n${colorize('❌ خطأ:', 'red')}`, error.message);
+    return null;
+  }
+}
+
+/**
+ * تصدير تقرير التحقق إلى ملف
+ */
+function exportValidationReport() {
+  const results = validateAllControllers();
+  const reportPath = path.join(__dirname, '../../validation-report.json');
+  
+  const report = {
+    generatedAt: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development',
+    ...results
+  };
+  
+  fs.writeFileSync(reportPath, JSON.stringify(report, null, 2));
+  console.log(`\n📄 تم حفظ التقرير في: ${reportPath}`);
+  
+  return report;
+}
+
+/**
+ * التحقق السريع (للإستخدام في server.js)
+ */
+function quickCheck() {
+  console.log('\n🚀 بدء التحقق السريع من الـ Controllers...');
+  
+  try {
+    const controllers = require('../controllers');
+    const controllerNames = Object.keys(controllers);
+    
+    console.log(`\n📦 الـ Controllers الموجودة: ${controllerNames.length}`);
+    controllerNames.forEach(name => {
+      const methods = Object.keys(controllers[name]).filter(
+        key => typeof controllers[name][key] === 'function'
+      );
+      console.log(`   ✅ ${name}: ${methods.length} دالة`);
+    });
+    
+    return {
+      success: true,
+      controllers: controllerNames,
+      count: controllerNames.length
+    };
+    
+  } catch (error) {
+    console.error(`❌ خطأ: ${error.message}`);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// ========== 3. التصدير ==========
+
+module.exports = {
+  // دوال رئيسية
+  validateAllControllers,
+  validateSingleController,
+  validateController,
+  exportValidationReport,
+  quickCheck,
+  
+  // بيانات
+  REQUIRED_METHODS,
+  
+  // دوال مساعدة للاستخدام المباشر
+  checkAll: validateAllControllers,
+  checkOne: validateSingleController,
+  quick: quickCheck
+};
+</file>
 
 <file path=".npmrc">
 # .npmrc
@@ -8427,7 +9147,7 @@ module.exports = mongoose.model("StoreAddress", storeAddressSchema);
 
 <file path="src/routes/public.routes.js">
 // ============================================
-// ملف: src/routes/public.routes.js (مصحح)
+// ملف: src/routes/public.routes.js (المُصلح)
 // الوصف: مسارات عامة (لا تحتاج توثيق)
 // ============================================
 
@@ -8464,7 +9184,10 @@ router.get('/assets/defaults', assetsController.getDefaultImages);
 router.get('/stores', PaginationUtils.validatePaginationParams, storeController.getStoresPaginated);
 router.get('/stores/smart', storeController.getStoresSmart);
 router.get('/stores/search', storeController.searchStores);
-// router.get('/stores/search/advanced', PaginationUtils.validatePaginationParams, storeController.advancedSearch); // مؤقتاً نعطلها
+
+// ✅ ✅ ✅ تم إزالة التعليق عن مسار البحث المتقدم وتفعيله ✅ ✅ ✅
+router.get('/stores/search/advanced', PaginationUtils.validatePaginationParams, storeController.advancedSearch);
+
 router.get('/stores/:id', storeController.getStoreDetails);
 router.get('/stores/:id/products', storeController.getStoreProducts);
 router.get('/stores/:storeId/reviews', storeController.getStoreReviews);
@@ -14587,6 +15310,10 @@ module.exports = router;
 </file>
 
 <file path="src/routes/loyalty.routes.js">
+// ============================================
+// ملف: src/routes/loyalty.routes.js (المُصلح)
+// ============================================
+
 const express = require('express');
 const router = express.Router();
 
@@ -14594,13 +15321,17 @@ const router = express.Router();
 const { loyaltyController } = require('../controllers');
 
 const auth = require('../middlewares/auth.middleware');
+const role = require('../middlewares/role.middleware'); // ✅ إضافة role middleware
 
+// ========== مسارات المستخدم العادي ==========
 router.get('/points', auth, loyaltyController.getPoints);
 router.get('/rewards', auth, loyaltyController.getRewards);
 router.get('/transactions', auth, loyaltyController.getTransactions);
-router.post('/points/add', auth, loyaltyController.addPoints);
 router.post('/points/redeem', auth, loyaltyController.redeemPoints);
 router.get('/stats', auth, loyaltyController.getStats);
+
+// ✅ ✅ ✅ تم تعديل هذا المسار ليكون محمي بـ Admin فقط ✅ ✅ ✅
+router.post('/points/add', auth, role('admin'), loyaltyController.addPoints);
 
 module.exports = router;
 </file>
@@ -28566,9 +29297,9 @@ module.exports = router;
 
 <file path="src/routes/user.routes.js">
 // ============================================
-// ملف: src/routes/user.routes.js (مصحح)
-// الوصف: مسارات المستخدمين
-// الإصدار: 4.0
+// ملف: src/routes/user.routes.js (المُصلح - تم إزالة الازدواجية)
+// الوصف: مسارات المستخدمين - فقط مسارات الأدمن
+// الإصدار: 5.0
 // ============================================
 
 const express = require("express");
@@ -28585,7 +29316,7 @@ const role = require("../middlewares/role.middleware");
 const upload = require("../middlewares/upload");
 const PaginationUtils = require('../utils/pagination.util');
 
-// ========== 1. مسارات المسؤول ==========
+// ========== 1. مسارات المسؤول فقط ==========
 /**
  * @route   GET /api/v1/admin/users
  * @desc    الحصول على جميع المستخدمين
@@ -28621,122 +29352,14 @@ router.put("/admin/users/:id", auth, role("admin"), userController.updateUserByI
  */
 router.delete("/admin/users/:id", auth, role("admin"), userController.deleteUserById);
 
-// ========== 2. مسارات المستخدم الحالي ==========
-/**
- * @route   GET /api/v1/client/profile
- * @desc    الملف الشخصي للمستخدم
- * @access  Authenticated
- */
-router.get("/client/profile", auth, userController.getMyProfile);
-
-/**
- * @route   GET /api/v1/client/profile/complete
- * @desc    الملف الشخصي الكامل
- * @access  Authenticated
- */
-router.get("/client/profile/complete", auth, userController.getMyCompleteProfile);
-
-/**
- * @route   PUT /api/v1/client/profile
- * @desc    تحديث الملف الشخصي
- * @access  Authenticated
- */
-router.put("/client/profile", auth, userController.updateMyProfile);
-
-/**
- * @route   PUT /api/v1/client/profile/complete
- * @desc    تحديث الملف الشخصي الكامل
- * @access  Authenticated
- */
-router.put("/client/profile/complete", auth, userController.updateCompleteProfile);
-
-// ========== 3. الصور ==========
-/**
- * @route   PUT /api/v1/client/profile/avatar
- * @desc    رفع الصورة الشخصية
- * @access  Authenticated
- */
-router.put("/client/profile/avatar", auth, upload("users/avatars").single("image"), userController.uploadAvatar);
-
-/**
- * @route   PUT /api/v1/client/profile/cover
- * @desc    تحديث صورة الغلاف
- * @access  Authenticated
- */
-router.put("/client/profile/cover", auth, upload("users/covers").single("image"), userController.updateCoverImage);
-
-/**
- * @route   DELETE /api/v1/client/profile/avatar
- * @desc    حذف الصورة الشخصية
- * @access  Authenticated
- */
-router.delete("/client/profile/avatar", auth, userController.deleteAvatar);
-
-// ========== 4. الأمان ==========
-/**
- * @route   PUT /api/v1/client/profile/password
- * @desc    تغيير كلمة المرور
- * @access  Authenticated
- */
-router.put("/client/profile/password", auth, userController.changePassword);
-
-// ========== 5. المفضلة ==========
-/**
- * @route   GET /api/v1/client/favorites
- * @desc    الحصول على المفضلة
- * @access  Authenticated
- */
-router.get("/client/favorites", auth, userController.getMyFavorites);
-
-/**
- * @route   POST /api/v1/client/favorites/:storeId
- * @desc    إضافة للمفضلة
- * @access  Authenticated
- */
-router.post("/client/favorites/:storeId", auth, userController.addToFavorites);
-
-/**
- * @route   DELETE /api/v1/client/favorites/:storeId
- * @desc    إزالة من المفضلة
- * @access  Authenticated
- */
-router.delete("/client/favorites/:storeId", auth, userController.removeFromFavorites);
-
-/**
- * @route   GET /api/v1/client/favorites/:storeId/status
- * @desc    التحقق من حالة المفضلة
- * @access  Authenticated
- */
-router.get("/client/favorites/:storeId/status", auth, userController.checkFavoriteStatus);
-
-/**
- * @route   PUT /api/v1/client/favorites/:storeId
- * @desc    تحديث المفضلة
- * @access  Authenticated
- */
-router.put("/client/favorites/:storeId", auth, userController.updateFavorite);
-
-// ========== 6. الإحصائيات ==========
-/**
- * @route   GET /api/v1/client/stats
- * @desc    إحصائيات المستخدم
- * @access  Authenticated
- */
-router.get("/client/stats", auth, userController.getUserStats);
-
-/**
- * @route   GET /api/v1/client/activity
- * @desc    سجل النشاطات
- * @access  Authenticated
- */
-router.get("/client/activity", auth, PaginationUtils.validatePaginationParams, userController.getActivityLog);
-
-/**
- * @route   PUT /api/v1/client/presence
- * @desc    تحديث حالة التواجد
- * @access  Authenticated
- */
-router.put("/client/presence", auth, userController.updatePresence);
+// ========== ملاحظة: مسارات المستخدم الشخصي (profile, favorites, etc) ==========
+// تم نقلها بالكامل إلى client.routes.js لتجنب الازدواجية
+// الرجاء استخدام client.routes.js للمسارات التالية:
+// - /client/profile
+// - /client/favorites
+// - /client/stats
+// - /client/activity
+// - /client/presence
 
 module.exports = router;
 </file>
@@ -37427,9 +38050,9 @@ module.exports = {
 
 <file path="src/routes/order.routes.js">
 // ============================================
-// ملف: src/routes/order.routes.js (مصحح)
+// ملف: src/routes/order.routes.js (المُصلح - ترتيب محسّن)
 // الوصف: جميع مسارات الطلبات
-// الإصدار: 4.0
+// الإصدار: 5.0
 // ============================================
 
 const express = require("express");
@@ -37445,51 +38068,55 @@ const { storeOwnerMiddleware, driverMiddleware } = require("../middlewares/role.
 const { noCache } = require('../middlewares/cache.middleware');
 const PaginationUtils = require('../utils/pagination.util');
 
+// ========== ملاحظة مهمة: ترتيب المسارات ==========
+// يجب وضع المسارات الأكثر تحديداً أولاً لتجنب التعارض
+// مثال: /me قبل /:id
+
 // ========== 1. مسارات العملاء ==========
 /**
- * @route   POST /api/v1/client/orders
+ * @route   POST /api/v1/orders
  * @desc    إنشاء طلب جديد
  * @access  Client
  */
 router.post("/", auth, role("client"), orderController.createOrder);
 
 /**
- * @route   GET /api/v1/client/orders/me
+ * @route   GET /api/v1/orders/me
  * @desc    طلبات المستخدم الحالي
  * @access  Client
  */
 router.get('/me', auth, role('client'), PaginationUtils.validatePaginationParams, orderController.getMyOrdersPaginated);
 
 /**
+ * @route   GET /api/v1/orders/track/:id
+ * @desc    تتبع الطلب (مسار محدد لتجنب التعارض مع /:id)
+ * @access  Client
+ */
+router.get("/track/:id", auth, orderController.trackOrder);
+
+/**
  * @route   GET /api/v1/orders/:id
- * @desc    تفاصيل الطلب
+ * @desc    تفاصيل الطلب (يجب أن يكون بعد المسارات الأكثر تحديداً)
  * @access  Authenticated
  */
 router.get("/:id", auth, orderController.getOrderDetails);
 
 /**
- * @route   PUT /api/v1/client/orders/:id/cancel
+ * @route   PUT /api/v1/orders/:id/cancel
  * @desc    إلغاء الطلب
  * @access  Client
  */
 router.put("/:id/cancel", auth, role("client"), orderController.cancelOrder);
 
 /**
- * @route   GET /api/v1/client/orders/:id/track
- * @desc    تتبع الطلب
- * @access  Client
- */
-router.get("/:id/track", auth, orderController.trackOrder);
-
-/**
- * @route   POST /api/v1/client/orders/:id/rate
+ * @route   POST /api/v1/orders/:id/rate
  * @desc    تقييم الطلب
  * @access  Client
  */
 router.post("/:id/rate", auth, role('client'), orderController.rateOrder);
 
 /**
- * @route   POST /api/v1/client/orders/:id/report-issue
+ * @route   POST /api/v1/orders/:id/report-issue
  * @desc    الإبلاغ عن مشكلة في الطلب
  * @access  Client
  */
@@ -37497,35 +38124,35 @@ router.post("/:id/report-issue", auth, orderController.reportOrderIssue);
 
 // ========== 2. مسارات المندوبين ==========
 /**
- * @route   GET /api/v1/driver/deliveries
+ * @route   GET /api/v1/orders/driver/deliveries
  * @desc    طلبات المندوب
  * @access  Driver
  */
 router.get('/driver/deliveries', auth, driverMiddleware, PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
 
 /**
- * @route   GET /api/v1/driver/current-delivery
+ * @route   GET /api/v1/orders/driver/current-delivery
  * @desc    التوصيلة الحالية للمندوب
  * @access  Driver
  */
 router.get('/driver/current-delivery', auth, driverMiddleware, orderController.getCurrentDelivery);
 
 /**
- * @route   PUT /api/v1/driver/orders/:id/status
+ * @route   PUT /api/v1/orders/driver/:id/status
  * @desc    تحديث حالة الطلب
  * @access  Driver
  */
-router.put("/:id/status", auth, driverMiddleware, noCache, orderController.updateStatus);
+router.put("/driver/:id/status", auth, driverMiddleware, noCache, orderController.updateStatus);
 
 /**
- * @route   POST /api/v1/driver/orders/:id/location
+ * @route   POST /api/v1/orders/driver/:id/location
  * @desc    تحديث موقع المندوب
  * @access  Driver
  */
-router.post("/:id/location", auth, driverMiddleware, orderController.updateDriverLocation);
+router.post("/driver/:id/location", auth, driverMiddleware, orderController.updateDriverLocation);
 
 /**
- * @route   GET /api/v1/driver/earnings
+ * @route   GET /api/v1/orders/driver/earnings
  * @desc    أرباح المندوب
  * @access  Driver
  */
@@ -37533,119 +38160,119 @@ router.get('/driver/earnings', auth, driverMiddleware, orderController.getDriver
 
 // ========== 3. مسارات أصحاب المتاجر ==========
 /**
- * @route   GET /api/v1/vendor/orders
+ * @route   GET /api/v1/orders/vendor/orders
  * @desc    طلبات المتجر
  * @access  Vendor
  */
 router.get('/vendor/orders', auth, storeOwnerMiddleware, PaginationUtils.validatePaginationParams, orderController.getVendorOrders);
 
 /**
- * @route   GET /api/v1/vendor/orders/stats
+ * @route   GET /api/v1/orders/vendor/orders/stats
  * @desc    إحصائيات طلبات المتجر
  * @access  Vendor
  */
 router.get('/vendor/orders/stats', auth, storeOwnerMiddleware, orderController.getVendorOrderStats);
 
 /**
- * @route   PUT /api/v1/vendor/orders/:id/accept
- * @desc    قبول الطلب
- * @access  Vendor
- */
-router.put("/:id/accept", auth, storeOwnerMiddleware, orderController.acceptOrder);
-
-/**
- * @route   PUT /api/v1/vendor/orders/:id/reject
- * @desc    رفض الطلب
- * @access  Vendor
- */
-router.put("/:id/reject", auth, storeOwnerMiddleware, orderController.rejectOrder);
-
-/**
- * @route   PUT /api/v1/vendor/orders/:id/mark-ready
- * @desc    تأكيد جاهزية الطلب
- * @access  Vendor
- */
-router.put("/:id/mark-ready", auth, storeOwnerMiddleware, orderController.markOrderReady);
-
-/**
- * @route   PUT /api/v1/vendor/orders/:id/start-preparing
- * @desc    بدء تحضير الطلب
- * @access  Vendor
- */
-router.put("/:id/start-preparing", auth, storeOwnerMiddleware, orderController.startPreparing);
-
-/**
- * @route   GET /api/v1/vendor/orders/today
+ * @route   GET /api/v1/orders/vendor/orders/today
  * @desc    طلبات اليوم
  * @access  Vendor
  */
 router.get('/vendor/orders/today', auth, storeOwnerMiddleware, orderController.getTodayOrders);
 
+/**
+ * @route   PUT /api/v1/orders/vendor/:id/accept
+ * @desc    قبول الطلب
+ * @access  Vendor
+ */
+router.put("/vendor/:id/accept", auth, storeOwnerMiddleware, orderController.acceptOrder);
+
+/**
+ * @route   PUT /api/v1/orders/vendor/:id/reject
+ * @desc    رفض الطلب
+ * @access  Vendor
+ */
+router.put("/vendor/:id/reject", auth, storeOwnerMiddleware, orderController.rejectOrder);
+
+/**
+ * @route   PUT /api/v1/orders/vendor/:id/mark-ready
+ * @desc    تأكيد جاهزية الطلب
+ * @access  Vendor
+ */
+router.put("/vendor/:id/mark-ready", auth, storeOwnerMiddleware, orderController.markOrderReady);
+
+/**
+ * @route   PUT /api/v1/orders/vendor/:id/start-preparing
+ * @desc    بدء تحضير الطلب
+ * @access  Vendor
+ */
+router.put("/vendor/:id/start-preparing", auth, storeOwnerMiddleware, orderController.startPreparing);
+
 // ========== 4. مسارات الأدمن ==========
 /**
- * @route   GET /api/v1/admin/orders
+ * @route   GET /api/v1/orders/admin/orders
  * @desc    جميع الطلبات
  * @access  Admin
  */
 router.get('/admin/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getAllOrdersPaginated);
 
 /**
- * @route   GET /api/v1/admin/orders/stats/overview
+ * @route   GET /api/v1/orders/admin/orders/stats/overview
  * @desc    إحصائيات الطلبات
  * @access  Admin
  */
 router.get('/admin/orders/stats/overview', auth, role('admin'), orderController.getOrderStats);
 
 /**
- * @route   GET /api/v1/admin/orders/stats/daily
+ * @route   GET /api/v1/orders/admin/orders/stats/daily
  * @desc    إحصائيات يومية
  * @access  Admin
  */
 router.get('/admin/orders/stats/daily', auth, role('admin'), orderController.getDailyStats);
 
 /**
- * @route   GET /api/v1/admin/orders/stats/monthly
+ * @route   GET /api/v1/orders/admin/orders/stats/monthly
  * @desc    إحصائيات شهرية
  * @access  Admin
  */
 router.get('/admin/orders/stats/monthly', auth, role('admin'), orderController.getMonthlyStats);
 
 /**
- * @route   PUT /api/v1/admin/orders/:id/assign
+ * @route   PUT /api/v1/orders/admin/:id/assign
  * @desc    تعيين مندوب للطلب
  * @access  Admin
  */
-router.put("/admin/orders/:id/assign", auth, role("admin"), orderController.assignDriver);
+router.put("/admin/:id/assign", auth, role("admin"), orderController.assignDriver);
 
 /**
- * @route   PUT /api/v1/admin/orders/:orderId/reassign
+ * @route   PUT /api/v1/orders/admin/:orderId/reassign
  * @desc    إعادة تعيين مندوب للطلب
  * @access  Admin
  */
-router.put("/admin/orders/:orderId/reassign", auth, role("admin"), orderController.reassignDriver);
+router.put("/admin/:orderId/reassign", auth, role("admin"), orderController.reassignDriver);
 
 /**
- * @route   PUT /api/v1/admin/orders/:id/force-cancel
+ * @route   PUT /api/v1/orders/admin/:id/force-cancel
  * @desc    إلغاء قسري للطلب
  * @access  Admin
  */
-router.put("/admin/orders/:id/force-cancel", auth, role("admin"), orderController.forceCancelOrder);
+router.put("/admin/:id/force-cancel", auth, role("admin"), orderController.forceCancelOrder);
 
 /**
- * @route   GET /api/v1/admin/drivers/:driverId/orders
+ * @route   GET /api/v1/orders/admin/drivers/:driverId/orders
  * @desc    طلبات مندوب معين
  * @access  Admin
  */
 router.get('/admin/drivers/:driverId/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getDriverOrdersById);
 
 /**
- * @route   GET /api/v1/admin/stores/:storeId/orders
+ * @route   GET /api/v1/orders/admin/stores/:storeId/orders
  * @desc    طلبات متجر معين
  * @access  Admin
  */
 router.get('/admin/stores/:storeId/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getStoreOrdersById);
 
-// ========== 5. مسارات التتبع ==========
+// ========== 5. مسارات التتبع العامة ==========
 /**
  * @route   GET /api/v1/orders/:id/location
  * @desc    موقع المندوب
@@ -38323,16 +38950,85 @@ if (aggregateController.getCustomStats) {
 module.exports = router;
 </file>
 
+<file path="src/server.js">
+// ============================================
+// ملف: src/server.js (محدث - بدون طباعة مسارات)
+// ============================================
+
+require("dotenv").config();
+const http = require("http");
+const app = require("./app");
+const connectDB = require("./config/db");
+const socketService = require("./services/socket.service");
+const apiConfig = require("./config/api.config");
+
+// إزالة تحذير Deprecation
+process.env.NODE_NO_WARNINGS = '1';
+
+const PORT = process.env.PORT || 3000;
+
+console.log(`
+╔════════════════════════════════════════╗
+║    🚀 Food Delivery API Server        ║
+╠════════════════════════════════════════╣
+║  Starting with configuration...        ║
+╚════════════════════════════════════════╝
+`);
+
+// connect database
+connectDB(); 
+
+// create http server
+const server = http.createServer(app);
+
+// تهيئة Socket.io
+socketService.initialize(server);
+
+// start server
+server.listen(PORT, () => {
+  console.log(`
+╔════════════════════════════════════════╗
+║    ✅ Server Started Successfully      ║
+╠════════════════════════════════════════╣
+║  📡 Port: ${PORT}
+║  📡 API: http://localhost:${PORT}/${apiConfig.api.prefix}/${apiConfig.api.defaultVersion}
+║  📚 Docs: http://localhost:${PORT}/api-docs
+║  📡 Socket: ${socketService.isInitialized() ? '✅ Ready' : '❌ Not ready'}
+║  📦 Version: 1.0.0
+╚════════════════════════════════════════╝
+  `);
+});
+
+// Handle graceful shutdown
+process.on("SIGTERM", () => {
+  console.log("\n👋 SIGTERM received. Shutting down gracefully...");
+  
+  server.close(() => {
+    console.log("💤 Server closed");
+    process.exit(0);
+  });
+});
+
+process.on("SIGINT", () => {
+  console.log("\n👋 SIGINT received. Shutting down gracefully...");
+  
+  server.close(() => {
+    console.log("💤 Server closed");
+    process.exit(0);
+  });
+});
+</file>
+
 <file path="src/routes/auth.routes.js">
 // ============================================
-// ملف: src/routes/auth.routes.js (النسخة النهائية الموحدة)
+// ملف: src/routes/auth.routes.js (النسخة النهائية الموحدة - تم إصلاح الاستيراد)
 // الوصف: مسارات المصادقة - رابط واحد لكل عملية
 // ============================================
 
 const express = require("express");
 const router = express.Router();
 
-// ✅ استيراد موحد
+// ✅ ✅ ✅ التصحيح: استيراد authController من المجلد الموحد controllers ✅ ✅ ✅
 const { authController } = require('../controllers');
 
 // الـ middlewares
@@ -38470,75 +39166,6 @@ router.post(
 );
 
 module.exports = router;
-</file>
-
-<file path="src/server.js">
-// ============================================
-// ملف: src/server.js (محدث - بدون طباعة مسارات)
-// ============================================
-
-require("dotenv").config();
-const http = require("http");
-const app = require("./app");
-const connectDB = require("./config/db");
-const socketService = require("./services/socket.service");
-const apiConfig = require("./config/api.config");
-
-// إزالة تحذير Deprecation
-process.env.NODE_NO_WARNINGS = '1';
-
-const PORT = process.env.PORT || 3000;
-
-console.log(`
-╔════════════════════════════════════════╗
-║    🚀 Food Delivery API Server        ║
-╠════════════════════════════════════════╣
-║  Starting with configuration...        ║
-╚════════════════════════════════════════╝
-`);
-
-// connect database
-connectDB(); 
-
-// create http server
-const server = http.createServer(app);
-
-// تهيئة Socket.io
-socketService.initialize(server);
-
-// start server
-server.listen(PORT, () => {
-  console.log(`
-╔════════════════════════════════════════╗
-║    ✅ Server Started Successfully      ║
-╠════════════════════════════════════════╣
-║  📡 Port: ${PORT}
-║  📡 API: http://localhost:${PORT}/${apiConfig.api.prefix}/${apiConfig.api.defaultVersion}
-║  📚 Docs: http://localhost:${PORT}/api-docs
-║  📡 Socket: ${socketService.isInitialized() ? '✅ Ready' : '❌ Not ready'}
-║  📦 Version: 1.0.0
-╚════════════════════════════════════════╝
-  `);
-});
-
-// Handle graceful shutdown
-process.on("SIGTERM", () => {
-  console.log("\n👋 SIGTERM received. Shutting down gracefully...");
-  
-  server.close(() => {
-    console.log("💤 Server closed");
-    process.exit(0);
-  });
-});
-
-process.on("SIGINT", () => {
-  console.log("\n👋 SIGINT received. Shutting down gracefully...");
-  
-  server.close(() => {
-    console.log("💤 Server closed");
-    process.exit(0);
-  });
-});
 </file>
 
 <file path="src/controllers/auth.controller.js">
@@ -39412,7 +40039,10 @@ exports.resetPassword = async (req, res) => {
     "test:connection:win": "set NODE_ENV=test&& jest tests/01_connection.test.js --runInBand --forceExit",
     "migrate": "node src/migrations/migrate.js",
     "migrate:status": "node src/migrations/migrate.js --status",
-    "rollback": "node src/migrations/rollback.js"
+    "rollback": "node src/migrations/rollback.js",
+    "validate:controllers": "node -e \"require('./src/utils/controllerValidator').validateAllControllers()\"",
+    "validate:quick": "node -e \"require('./src/utils/controllerValidator').quickCheck()\"",
+    "validate:export": "node -e \"require('./src/utils/controllerValidator').exportValidationReport()\""
   },
   "keywords": [
     "food-delivery",
@@ -40384,6 +41014,7 @@ const compression = require('compression');
 
 // ✅ استيراد الإعدادات الجديدة
 const apiConfig = require('./config/api.config');
+const { validateAllControllers, quickCheck } = require('./utils/controllerValidator');
 
 // ✅ استيراد المسارات المجمعة
 const apiRoutes = require('./routes/api');
@@ -40441,6 +41072,23 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
   contentSecurityPolicy: false
 }));
+
+
+// التحقق السريع عند بدء التشغيل (في بيئة التطوير فقط)
+// if (process.env.NODE_ENV !== 'production') {
+//   console.log('\n🔍 جاري التحقق من الـ Controllers...');
+  
+//   // تحقق سريع
+//   quickCheck();
+  
+//   // تحقق كامل (اختياري)
+//   const result = validateAllControllers();
+//   if (!result.success) {
+//     console.warn('⚠️ تحذير: بعض الـ Controllers تحتوي على دوال مفقودة');
+//   }
+// }
+
+
 
 // ========== 3. الملفات الثابتة ==========
 app.use('/public', express.static(path.join(__dirname, 'public'), {

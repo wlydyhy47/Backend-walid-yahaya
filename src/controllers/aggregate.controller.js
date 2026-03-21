@@ -945,7 +945,7 @@ exports.getAdminDashboard = async (req, res) => {
     const [
       totalUsers,
       totalOrders,
-      totalRestaurants,
+      totalStores,
       totalDrivers,
       pendingOrders,
       recentOrders,
@@ -954,12 +954,12 @@ exports.getAdminDashboard = async (req, res) => {
     ] = await Promise.all([
       User.countDocuments(),
       Order.countDocuments(),
-      Restaurant.countDocuments(),
+      Store.countDocuments(),
       User.countDocuments({ role: 'driver' }),
       Order.countDocuments({ status: 'pending' }),
       Order.find()
         .populate('user', 'name')
-        .populate('restaurant', 'name')
+        .populate('store', 'name')
         .sort({ createdAt: -1 })
         .limit(10)
         .lean(),
@@ -983,7 +983,7 @@ exports.getAdminDashboard = async (req, res) => {
         stats: {
           totalUsers,
           totalOrders,
-          totalRestaurants,
+          totalStores,
           totalDrivers,
           pendingOrders,
           revenueToday: revenueToday[0]?.total || 0

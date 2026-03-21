@@ -10,6 +10,7 @@ const compression = require('compression');
 
 // ✅ استيراد الإعدادات الجديدة
 const apiConfig = require('./config/api.config');
+const { validateAllControllers, quickCheck } = require('./utils/controllerValidator');
 
 // ✅ استيراد المسارات المجمعة
 const apiRoutes = require('./routes/api');
@@ -67,6 +68,23 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
   contentSecurityPolicy: false
 }));
+
+
+// التحقق السريع عند بدء التشغيل (في بيئة التطوير فقط)
+// if (process.env.NODE_ENV !== 'production') {
+//   console.log('\n🔍 جاري التحقق من الـ Controllers...');
+  
+//   // تحقق سريع
+//   quickCheck();
+  
+//   // تحقق كامل (اختياري)
+//   const result = validateAllControllers();
+//   if (!result.success) {
+//     console.warn('⚠️ تحذير: بعض الـ Controllers تحتوي على دوال مفقودة');
+//   }
+// }
+
+
 
 // ========== 3. الملفات الثابتة ==========
 app.use('/public', express.static(path.join(__dirname, 'public'), {

@@ -28,3 +28,623 @@ MongooseServerSelectionError: Server selection timed out after 5000 ms
 {
   "error": "Server selection timed out after 5000 ms"
 }
+2026-03-20 18:34:58 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Server selection timed out after 5000 ms
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async connectDB (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Server selection timed out after 5000 ms"
+}
+2026-03-20 18:35:08 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Server selection timed out after 5000 ms
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Server selection timed out after 5000 ms"
+}
+2026-03-20 18:35:18 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Server selection timed out after 5000 ms
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Server selection timed out after 5000 ms"
+}
+2026-03-20 18:35:28 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-20 18:35:53 [error]: Business Error: MongoDB Connection Error ❌
+MongoNetworkError: read ECONNRESET
+    at TLSSocket.<anonymous> (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cmap\connect.js:297:44)
+    at Object.onceWrapper (node:events:623:26)
+    at TLSSocket.emit (node:events:508:28)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at process.processTicksAndRejections (node:internal/process/task_queues:89:21)
+{
+  "error": "read ECONNRESET"
+}
+2026-03-20 18:38:25 [error]: Unhandled Error لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-20 18:38:25 [error]: Business Error: Error caught: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-20 18:38:25 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 404,
+  "duration": "183ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-20 18:38:36 [error]: Unhandled Error لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-20 18:38:36 [error]: Business Error: Error caught: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-20 18:38:36 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 404,
+  "duration": "7ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-20 18:38:43 [error]: Unhandled Error لا يمكن العثور على /api/v1/auth/login في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/login في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "url": "/api/v1/auth/login",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-20 18:38:43 [error]: Business Error: Error caught: لا يمكن العثور على /api/v1/auth/login في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/login في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/api/v1/auth/login",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-20 18:38:43 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 404,
+  "duration": "11ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-20 18:39:33 [error]: Unhandled Error لا يمكن العثور على /api/v1/auth/resend-verification في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/resend-verification في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "url": "/api/v1/auth/resend-verification",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-20 18:39:33 [error]: Business Error: Error caught: لا يمكن العثور على /api/v1/auth/resend-verification في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/resend-verification في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/api/v1/auth/resend-verification",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-20 18:39:33 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/resend-verification",
+  "status": 404,
+  "duration": "11ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-20 18:39:42 [error]: Unhandled Error لا يمكن العثور على /api/v1/auth/logout في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/logout في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "url": "/api/v1/auth/logout",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-20 18:39:42 [error]: Business Error: Error caught: لا يمكن العثور على /api/v1/auth/logout في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/logout في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/api/v1/auth/logout",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-20 18:39:42 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/logout",
+  "status": 404,
+  "duration": "13ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-20 20:53:43 [error]: Unhandled Error لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-20 20:53:43 [error]: Business Error: Error caught: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/register في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-20 20:53:43 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 404,
+  "duration": "125ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-20 20:57:42 [error]: Unhandled Error "phone" length must be at least 8 characters long
+Error: "phone" length must be at least 8 characters long
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:24:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "url": "/api/v1/public/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-20 20:57:42 [error]: Business Error: Error caught: "phone" length must be at least 8 characters long
+Error: "phone" length must be at least 8 characters long
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:24:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/public/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-20 20:57:42 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/public/auth/register",
+  "status": 400,
+  "duration": "143ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-21 20:56:49 [error]: Unhandled Error لا يمكن العثور على /api/v1/auth/login في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/login في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "url": "/api/v1/auth/login",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-21 20:56:49 [error]: Business Error: Error caught: لا يمكن العثور على /api/v1/auth/login في هذا الخادم
+Error: لا يمكن العثور على /api/v1/auth/login في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/api/v1/auth/login",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-21 20:56:49 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 404,
+  "duration": "96ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-21 21:21:38 [error]: HTTP Request Error
+{
+  "method": "PUT",
+  "url": "/api/v1/admin/vendors/69bca8e6be66aed898a61c53/status",
+  "status": 500,
+  "duration": "128ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "6988bb28c62ec5705132894e"
+}
+2026-03-21 21:25:47 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "171ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "6988bb28c62ec5705132894e"
+}
+2026-03-21 21:39:09 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/drivers/69aa5b247c4bce58606f6b1e",
+  "status": 404,
+  "duration": "138ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "6988bb28c62ec5705132894e"
+}
+2026-03-21 21:39:50 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/drivers/69bca22a8ebaa204df4c1a77",
+  "status": 404,
+  "duration": "213ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "6988bb28c62ec5705132894e"
+}
+2026-03-21 21:43:30 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/notifications/send",
+  "status": 400,
+  "duration": "209ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "6988bb28c62ec5705132894e"
+}
+2026-03-21 21:48:16 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/campaigns/notifications/create",
+  "status": 400,
+  "duration": "100ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "6988bb28c62ec5705132894e"
+}
+2026-03-21 21:51:35 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/cache/clear",
+  "status": 500,
+  "duration": "180ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "6988bb28c62ec5705132894e"
+}
+2026-03-21 21:56:10 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/advanced-stats/daily?date=2024-12-15",
+  "status": 500,
+  "duration": "443ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "6988bb28c62ec5705132894e"
+}
+2026-03-21 21:58:59 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/advanced-stats/custom?startDate=2024-01-01&endDate=2024-12-31&groupBy=day",
+  "status": 400,
+  "duration": "198ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "6988bb28c62ec5705132894e"
+}
+2026-03-21 22:00:08 [error]: Unhandled Error Cannot read properties of undefined (reading 'redis')
+TypeError: Cannot read properties of undefined (reading 'redis')
+    at getStats (C:\project\Backend-walid-yahaya\src\middlewares\rateLimit.middleware.js:209:15)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/admin/rate-limit/stats",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "6988bb28c62ec5705132894e"
+}
+2026-03-21 22:00:08 [error]: Business Error: Error caught: Cannot read properties of undefined (reading 'redis')
+TypeError: Cannot read properties of undefined (reading 'redis')
+    at getStats (C:\project\Backend-walid-yahaya\src\middlewares\rateLimit.middleware.js:209:15)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 500,
+  "url": "/api/v1/admin/rate-limit/stats",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "6988bb28c62ec5705132894e"
+}
+2026-03-21 22:00:08 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/rate-limit/stats",
+  "status": 500,
+  "duration": "267ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "6988bb28c62ec5705132894e"
+}
+2026-03-21 22:00:48 [error]: Unhandled Error لا يمكن العثور على /api/v1/analytics/performance/stats في هذا الخادم
+Error: لا يمكن العثور على /api/v1/analytics/performance/stats في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "url": "/api/v1/analytics/performance/stats",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-21 22:00:48 [error]: Business Error: Error caught: لا يمكن العثور على /api/v1/analytics/performance/stats في هذا الخادم
+Error: لا يمكن العثور على /api/v1/analytics/performance/stats في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:688:15
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:276:14)
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/api/v1/analytics/performance/stats",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-21 22:00:48 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/analytics/performance/stats",
+  "status": 404,
+  "duration": "16ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-21 23:23:13 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "124ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "6988bb28c62ec5705132894e"
+}

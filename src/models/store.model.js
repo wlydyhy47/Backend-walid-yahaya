@@ -1,7 +1,7 @@
 // ============================================
 // ملف: src/models/store.model.js (مصحح)
-// الوصف: نموذج المتجر (يشمل مطاعم، بقالات، صيدليات...)
-// الإصدار: 2.0
+// الوصف: نموذج المتجر
+// الإصدار: 2.1
 // ============================================
 
 const mongoose = require("mongoose");
@@ -22,7 +22,7 @@ const storeSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      index: true, // ✅ هذا كافٍ، لا نحتاج فهرس منفصل
+      index: true,
     },
     
     description: String,
@@ -36,7 +36,7 @@ const storeSchema = new mongoose.Schema(
         "furniture", "books", "sports", "beauty", "flowers",
         "pet-shop", "other"
       ],
-      index: true, // ✅ هذا كافٍ
+      index: true,
     },
     
     // معلومات الاتصال
@@ -90,7 +90,7 @@ const storeSchema = new mongoose.Schema(
     owner: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      index: true, // ✅ هذا كافٍ
+      index: true,
     },
     
     createdBy: {
@@ -168,7 +168,6 @@ const storeSchema = new mongoose.Schema(
     tags: [{
       type: String,
       trim: true,
-      // ❌ تم إزالة index من هنا لتجنب التكرار
     }],
     
     // الصور الإضافية
@@ -236,64 +235,119 @@ storeSchema.virtual("isOpenNow").get(function () {
   if (!hours || !hours.isOpen) return false;
   
   const now = new Date();
-  const currentTime = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
   
   return currentTime >= hours.open && currentTime <= hours.close;
 });
 
-// ========== Indexes (مركزة هنا) ==========
-// ✅ جميع الفهارس في مكان واحد لتجنب التكرار
+// ========== Indexes ==========
 storeSchema.index({ category: 1, averageRating: -1 });
 storeSchema.index({ isOpen: 1, isVerified: 1 });
-storeSchema.index({ tags: 1 }); // ✅ تم نقل فهرس tags إلى هنا
+storeSchema.index({ tags: 1 });
 storeSchema.index({ location: "2dsphere" });
 storeSchema.index({ 'stats.totalOrders': -1 });
 storeSchema.index({ name: 'text', description: 'text', tags: 'text' });
-// storeSchema.index({ owner: 1 }); // ❌ تم إزالة التكرار (موجود في الحقل نفسه)
 
-// ========== Middleware ==========
-storeSchema.pre('save', function(next) {
-  // تحديث إجمالي المنتجات
-  if (this.isModified('products')) {
-    // سيتم تحديثه لاحقاً
+// ========== ✅✅✅ Middleware مصحح ✅✅✅ ==========
+storeSchema.pre('save', async function(next) {
+  try {
+    // ✅ التحقق من أن next دالة قبل استدعائها
+    if (typeof next !== 'function') {
+      // إذا لم يكن next دالة، نكمل بدونها
+      console.warn('⚠️ next is not a function in store pre-save middleware');
+      
+      // تحديث slug إذا كان جديداً
+      if (this.isNew && this.name) {
+        const slug = this.name
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        
+        // إضافة slug إذا كان الحقل موجوداً في المخطط
+        if (this.schema.paths.slug) {
+          this.slug = slug;
+        }
+      }
+      return;
+    }
+    
+    // تحديث slug إذا كان جديداً
+    if (this.isNew && this.name) {
+      const slug = this.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+      
+      // إضافة slug إذا كان الحقل موجوداً في المخطط
+      if (this.schema.paths.slug) {
+        this.slug = slug;
+      }
+    }
+    
+    next();
+  } catch (error) {
+    console.error('❌ Error in pre-save middleware:', error);
+    if (typeof next === 'function') {
+      next(error);
+    }
   }
-  next();
+});
+
+// ✅ Middleware للتحديث
+storeSchema.pre('findOneAndUpdate', function(next) {
+  try {
+    if (typeof next !== 'function') {
+      console.warn('⚠️ next is not a function in store findOneAndUpdate middleware');
+      return;
+    }
+    next();
+  } catch (error) {
+    console.error('❌ Error in findOneAndUpdate middleware:', error);
+    if (typeof next === 'function') {
+      next(error);
+    }
+  }
 });
 
 /**
  * تحديث إحصائيات المتجر بعد كل طلب
  */
 storeSchema.methods.updateStats = async function(order) {
-  const Order = require("./order.model");
-  
-  const stats = await Order.aggregate([
-    { $match: { store: this._id } },
-    {
-      $group: {
-        _id: null,
-        totalOrders: { $sum: 1 },
-        completedOrders: {
-          $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] }
-        },
-        cancelledOrders: {
-          $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] }
-        },
-        totalRevenue: { $sum: "$totalPrice" },
-        lastOrderDate: { $max: "$createdAt" },
-        avgOrderValue: { $avg: "$totalPrice" }
+  try {
+    const Order = require("./order.model");
+    
+    const stats = await Order.aggregate([
+      { $match: { store: this._id } },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          completedOrders: {
+            $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] }
+          },
+          cancelledOrders: {
+            $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] }
+          },
+          totalRevenue: { $sum: "$totalPrice" },
+          lastOrderDate: { $max: "$createdAt" },
+          avgOrderValue: { $avg: "$totalPrice" }
+        }
       }
-    }
-  ]);
+    ]);
 
-  if (stats.length > 0) {
-    this.stats = {
-      ...this.stats,
-      ...stats[0]
-    };
-    await this.save();
+    if (stats.length > 0) {
+      this.stats = {
+        ...this.stats,
+        ...stats[0]
+      };
+      await this.save();
+    }
+    
+    return this;
+  } catch (error) {
+    console.error('❌ Error updating store stats:', error);
+    return this;
   }
-  
-  return this;
 };
 
 module.exports = mongoose.model("Store", storeSchema);

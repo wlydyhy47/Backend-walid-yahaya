@@ -1346,7 +1346,7 @@ exports.verifyVendor = async (req, res) => {
 };
 
 /**
- * @desc    تغيير حالة التاجر (للمشرفين)
+ * @desc    تغيير حالة المتجر (للمشرفين)
  * @route   PUT /api/v1/admin/vendors/:id/status
  * @access  Admin
  */
@@ -1354,24 +1354,41 @@ exports.toggleVendorStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { isActive } = req.body;
-
-    const vendor = await User.findByIdAndUpdate(
-      id,
-      { isActive },
-      { new: true }
-    );
-
+    
+    // التحقق من وجود البيانات
+    if (isActive === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "حقل isActive مطلوب"
+      });
+    }
+    
+    const vendor = await User.findById(id);
+    
     if (!vendor) {
       return res.status(404).json({
         success: false,
         message: "التاجر غير موجود"
       });
     }
-
+    
+    vendor.isActive = isActive;
+    await vendor.save();
+    
+    // إذا كان للتاجر متجر، تحديث حالة المتجر أيضاً
+    if (vendor.storeOwnerInfo?.store) {
+      await Store.findByIdAndUpdate(vendor.storeOwnerInfo.store, {
+        isOpen: isActive
+      });
+    }
+    
     res.json({
       success: true,
       message: `تم ${isActive ? 'تفعيل' : 'تعطيل'} التاجر بنجاح`,
-      data: { isActive: vendor.isActive }
+      data: { 
+        id: vendor._id,
+        isActive: vendor.isActive 
+      }
     });
   } catch (error) {
     console.error("❌ Toggle vendor status error:", error);
@@ -1382,7 +1399,6 @@ exports.toggleVendorStatus = async (req, res) => {
   }
 };
 
-// أضف هذه الدوال في نهاية ملف vendor.controller.js
 
 /**
  * @desc    الحصول على جميع التجار (للمشرفين)
@@ -1448,28 +1464,5 @@ exports.verifyVendor = async (req, res) => {
   }
 };
 
-/**
- * @desc    تغيير حالة التاجر
- */
-exports.toggleVendorStatus = async (req, res) => {
-  try {
-    const User = require('../models/user.model');
-    const { isActive } = req.body;
-    
-    const vendor = await User.findByIdAndUpdate(
-      req.params.id,
-      { isActive },
-      { new: true }
-    );
-    
-    res.json({
-      success: true,
-      message: `تم ${isActive ? 'تفعيل' : 'تعطيل'} التاجر بنجاح`,
-      data: { isActive: vendor.isActive }
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
 
 module.exports = exports;

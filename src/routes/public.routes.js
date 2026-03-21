@@ -1,5 +1,5 @@
 // ============================================
-// ملف: src/routes/public.routes.js (مصحح)
+// ملف: src/routes/public.routes.js (المُصلح)
 // الوصف: مسارات عامة (لا تحتاج توثيق)
 // ============================================
 
@@ -36,7 +36,10 @@ router.get('/assets/defaults', assetsController.getDefaultImages);
 router.get('/stores', PaginationUtils.validatePaginationParams, storeController.getStoresPaginated);
 router.get('/stores/smart', storeController.getStoresSmart);
 router.get('/stores/search', storeController.searchStores);
-// router.get('/stores/search/advanced', PaginationUtils.validatePaginationParams, storeController.advancedSearch); // مؤقتاً نعطلها
+
+// ✅ ✅ ✅ تم إزالة التعليق عن مسار البحث المتقدم وتفعيله ✅ ✅ ✅
+router.get('/stores/search/advanced', PaginationUtils.validatePaginationParams, storeController.advancedSearch);
+
 router.get('/stores/:id', storeController.getStoreDetails);
 router.get('/stores/:id/products', storeController.getStoreProducts);
 router.get('/stores/:storeId/reviews', storeController.getStoreReviews);

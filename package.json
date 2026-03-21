@@ -15,7 +15,10 @@
     "test:connection:win": "set NODE_ENV=test&& jest tests/01_connection.test.js --runInBand --forceExit",
     "migrate": "node src/migrations/migrate.js",
     "migrate:status": "node src/migrations/migrate.js --status",
-    "rollback": "node src/migrations/rollback.js"
+    "rollback": "node src/migrations/rollback.js",
+    "validate:controllers": "node -e \"require('./src/utils/controllerValidator').validateAllControllers()\"",
+    "validate:quick": "node -e \"require('./src/utils/controllerValidator').quickCheck()\"",
+    "validate:export": "node -e \"require('./src/utils/controllerValidator').exportValidationReport()\""
   },
   "keywords": [
     "food-delivery",
