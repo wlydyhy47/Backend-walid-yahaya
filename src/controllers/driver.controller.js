@@ -7,6 +7,7 @@
 const { User, Order, DriverLocation } = require('../models');
 const cache = require("../utils/cache.util");
 const PaginationUtils = require('../utils/pagination.util');
+const fileService = require('../services/file.service');
 const { AppError } = require('../middlewares/errorHandler.middleware');
 
 // ========== 1. دوال مساعدة ==========

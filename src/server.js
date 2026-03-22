@@ -8,6 +8,8 @@ const app = require("./app");
 const connectDB = require("./config/db");
 const socketService = require("./services/socket.service");
 const apiConfig = require("./config/api.config");
+const mapboxConfig = require('./config/mapbox.config');
+
 
 // إزالة تحذير Deprecation
 process.env.NODE_NO_WARNINGS = '1';
@@ -64,3 +66,9 @@ process.on("SIGINT", () => {
     process.exit(0);
   });
 });
+
+console.log('🗺️ Mapbox Configuration:');
+console.log(`   Access Token: ${mapboxConfig.accessToken ? '✅ موجود' : '❌ مفقود'}`);
+console.log(`   Secret Token: ${mapboxConfig.secretToken ? '✅ موجود' : '❌ مفقود'}`);
+console.log(`   Style: ${mapboxConfig.style}`);
+console.log(`   Default Zoom: ${mapboxConfig.defaultZoom}`);

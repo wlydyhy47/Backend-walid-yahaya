@@ -9,9 +9,9 @@ const errorHandler = require('./errorHandler.middleware');
 const rateLimiter = require('./rateLimit.middleware');
 const upload = require('./upload');
 const validate = require('./validate.middleware');
-const validation = require('./validation.middleware');
 const cache = require('./cache.middleware');
 const disableCache = require('./disableCache.middleware');
+const map = require('./map.middleware'); // ✅ إضافة middleware الخرائط
 
 module.exports = {
   auth,
@@ -20,7 +20,7 @@ module.exports = {
   rateLimiter,
   upload,
   validate,
-  validation,
   cache,
-  disableCache
+  disableCache,
+  map  // ✅ تصدير map middleware
 };

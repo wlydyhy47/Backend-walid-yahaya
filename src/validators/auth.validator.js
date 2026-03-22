@@ -1,59 +1,70 @@
-// src/validators/auth.validator.js
+// ============================================
+// ملف: src/validators/auth.validator.js
+// الوصف: مصادقات المصادقة والتسجيل
+// ============================================
+
 const Joi = require('joi');
 
-// التحقق من صحة بيانات التسجيل
+/**
+ * مصادقة التسجيل
+ * @description التحقق من صحة بيانات المستخدم الجديد
+ */
 const registerSchema = Joi.object({
   name: Joi.string()
-    .min(2)
+    .min(3)
     .max(100)
     .required()
     .messages({
-      'string.min': 'الاسم يجب أن يكون على الأقل 2 أحرف',
-      'string.max': 'الاسم يجب أن لا يتجاوز 100 حرف',
+      'string.base': 'الاسم يجب أن يكون نصاً',
+      'string.empty': 'الاسم لا يمكن أن يكون فارغاً',
+      'string.min': 'الاسم يجب أن يكون {#limit} أحرف على الأقل',
+      'string.max': 'الاسم يجب أن لا يتجاوز {#limit} حرف',
       'any.required': 'الاسم مطلوب'
     }),
-
+  
   phone: Joi.string()
-    .pattern(/^\+?[\d\s\-\(\)]+$/)
-    .min(8)
-    .max(15)
+    .pattern(/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{4,6}$/)
     .required()
     .messages({
-      'string.pattern.base': 'رقم الهاتف غير صالح',
+      'string.pattern.base': 'رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة',
       'any.required': 'رقم الهاتف مطلوب'
     }),
-
+  
+  email: Joi.string()
+    .email()
+    .optional()
+    .messages({
+      'string.email': 'البريد الإلكتروني غير صالح'
+    }),
+  
   password: Joi.string()
     .min(6)
     .max(100)
     .required()
     .messages({
-      'string.min': 'كلمة المرور يجب أن تكون على الأقل 6 أحرف',
+      'string.min': 'كلمة المرور يجب أن تكون {#limit} أحرف على الأقل',
+      'string.max': 'كلمة المرور يجب أن لا تتجاوز {#limit} حرف',
       'any.required': 'كلمة المرور مطلوبة'
     }),
-
-  email: Joi.string()
-    .email()
-    .optional()
-    .allow('')
-    .messages({
-      'string.email': 'البريد الإلكتروني غير صالح'
-    }),
-
+  
   role: Joi.string()
-    .valid('client', 'driver', 'admin', 'store_owner') // ✅ إضافة store_owner
-    .optional()
+    .valid('client', 'driver', 'store_owner')
     .default('client')
+    .messages({
+      'any.only': 'الدور غير صالح. يجب أن يكون client, driver, أو store_owner'
+    })
 });
 
-// التحقق من صحة بيانات تسجيل الدخول
+/**
+ * مصادقة تسجيل الدخول
+ */
 const loginSchema = Joi.object({
   phone: Joi.string()
     .required()
     .messages({
       'any.required': 'رقم الهاتف مطلوب'
     }),
-
+  
   password: Joi.string()
     .required()
     .messages({
@@ -61,18 +72,113 @@ const loginSchema = Joi.object({
     })
 });
 
+/**
+ * مصادقة تغيير كلمة المرور
+ */
 const changePasswordSchema = Joi.object({
-  currentPassword: Joi.string().required().messages({
-    'any.required': 'كلمة المرور الحالية مطلوبة'
-  }),
-  newPassword: Joi.string().min(6).required().messages({
-    'string.min': 'كلمة المرور الجديدة يجب أن تكون على الأقل 6 أحرف',
-    'any.required': 'كلمة المرور الجديدة مطلوبة'
-  })
+  currentPassword: Joi.string()
+    .required()
+    .messages({
+      'any.required': 'كلمة المرور الحالية مطلوبة'
+    }),
+  
+  newPassword: Joi.string()
+    .min(6)
+    .max(100)
+    .required()
+    .messages({
+      'string.min': 'كلمة المرور الجديدة يجب أن تكون {#limit} أحرف على الأقل',
+      'any.required': 'كلمة المرور الجديدة مطلوبة'
+    }),
+  
+  confirmPassword: Joi.string()
+    .valid(Joi.ref('newPassword'))
+    .required()
+    .messages({
+      'any.only': 'كلمة المرور غير متطابقة',
+      'any.required': 'تأكيد كلمة المرور مطلوب'
+    })
+});
+
+/**
+ * مصادقة إعادة تعيين كلمة المرور
+ */
+const resetPasswordSchema = Joi.object({
+  token: Joi.string()
+    .required()
+    .messages({
+      'any.required': 'رمز إعادة التعيين مطلوب'
+    }),
+  
+  password: Joi.string()
+    .min(6)
+    .max(100)
+    .required()
+    .messages({
+      'string.min': 'كلمة المرور يجب أن تكون {#limit} أحرف على الأقل',
+      'any.required': 'كلمة المرور مطلوبة'
+    }),
+  
+  confirmPassword: Joi.string()
+    .valid(Joi.ref('password'))
+    .required()
+    .messages({
+      'any.only': 'كلمة المرور غير متطابقة',
+      'any.required': 'تأكيد كلمة المرور مطلوب'
+    })
+});
+
+/**
+ * مصادقة إعادة إرسال التحقق
+ */
+const resendVerificationSchema = Joi.object({
+  phone: Joi.string()
+    .pattern(/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{4,6}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'رقم الهاتف غير صالح',
+      'any.required': 'رقم الهاتف مطلوب'
+    })
+});
+
+/**
+ * مصادقة التحقق من الحساب
+ */
+const verifyAccountSchema = Joi.object({
+  phone: Joi.string()
+    .pattern(/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{4,6}$/)
+    .required(),
+  
+  code: Joi.string()
+    .length(6)
+    .pattern(/^[0-9]{6}$/)
+    .required()
+    .messages({
+      'string.length': 'رمز التحقق يجب أن يكون 6 أرقام',
+      'string.pattern.base': 'رمز التحقق يجب أن يحتوي على أرقام فقط',
+      'any.required': 'رمز التحقق مطلوب'
+    })
+});
+
+/**
+ * مصادقة طلب إعادة تعيين كلمة المرور
+ */
+const forgotPasswordSchema = Joi.object({
+  phone: Joi.string()
+    .pattern(/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{4,6}$/)
+    .required()
+    .messages({
+      'string.pattern.base': 'رقم الهاتف غير صالح',
+      'any.required': 'رقم الهاتف مطلوب'
+    })
 });
 
 module.exports = {
   registerSchema,
   loginSchema,
-  changePasswordSchema
+  changePasswordSchema,
+  resetPasswordSchema,
+  resendVerificationSchema,
+  verifyAccountSchema,
+  forgotPasswordSchema
 };

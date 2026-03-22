@@ -18,7 +18,8 @@
     "rollback": "node src/migrations/rollback.js",
     "validate:controllers": "node -e \"require('./src/utils/controllerValidator').validateAllControllers()\"",
     "validate:quick": "node -e \"require('./src/utils/controllerValidator').quickCheck()\"",
-    "validate:export": "node -e \"require('./src/utils/controllerValidator').exportValidationReport()\""
+    "validate:export": "node -e \"require('./src/utils/controllerValidator').exportValidationReport()\"",
+    "extract-routes": "node scripts/extract-routes.js"
   },
   "keywords": [
     "food-delivery",
@@ -31,6 +32,8 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@mapbox/mapbox-sdk": "0.16.2",
+    "axios": "1.13.6",
     "bcryptjs": "^3.0.3",
     "check-disk-space": "^3.4.0",
     "cloudinary": "^1.41.3",

@@ -49,7 +49,6 @@ const driverLocationSchema = new mongoose.Schema(
     speed: {
       type: Number,
       min: 0,
-      max: 200,
     },
     
     /**

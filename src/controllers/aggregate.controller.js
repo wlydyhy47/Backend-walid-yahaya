@@ -1,9 +1,9 @@
 // ============================================
 // ملف: src/controllers/aggregate.controller.js
 // الوصف: التحكم في عمليات التجميع والتحليلات
-// الإصدار: 2.0 (محدث)
+// الإصدار: 3.0 (مصحح - استخدام Product بدلاً من Item)
 // ============================================
-const { User, Address, Order, Store, StoreAddress, Review, Product, DriverLocation, Notification} = require('../models');
+const { User, Address, Order, Store, StoreAddress, Review, Product, DriverLocation, Notification } = require('../models');
 const cache = require('../utils/cache.util');
 const PaginationUtils = require('../utils/pagination.util');
 
@@ -113,7 +113,7 @@ exports.getDashboardData = async (req, res) => {
 };
 
 /**
- * 🔄 الحصول على المطاعم مع Pagination
+ * 🔄 الحصول على المتاجر مع Pagination
  * GET /api/aggregate/stores
  */
 exports.getStoresPaginated = async (req, res) => {
@@ -177,7 +177,8 @@ exports.getStoresPaginated = async (req, res) => {
           .limit(3)
           .lean();
 
-        const itemsCount = await Item.countDocuments({
+        // ✅ تم التصحيح: استخدام Product بدلاً من Item
+        const itemsCount = await Product.countDocuments({
           store: store._id,
           isAvailable: true
         });
@@ -224,7 +225,7 @@ exports.getStoresPaginated = async (req, res) => {
 };
 
 /**
- * 🔄 الحصول على عناصر المطعم مع Pagination
+ * 🔄 الحصول على عناصر المتجر مع Pagination
  * GET /api/aggregate/items
  */
 exports.getItemsPaginated = async (req, res) => {
@@ -271,20 +272,23 @@ exports.getItemsPaginated = async (req, res) => {
       });
     }
 
+    // ✅ تم التصحيح: استخدام Product بدلاً من Item
     const [items, total] = await Promise.all([
-      Item.find(query)
+      Product.find(query)
         .populate('store', 'name image type averageRating')
         .sort(sort)
         .skip(skip)
         .limit(limit)
         .lean(),
 
-      Item.countDocuments(query),
+      Product.countDocuments(query),
     ]);
 
-    const categories = await Item.distinct('category', query);
+    // ✅ تم التصحيح: استخدام Product بدلاً من Item
+    const categories = await Product.distinct('category', query);
 
-    const priceStats = await Item.aggregate([
+    // ✅ تم التصحيح: استخدام Product بدلاً من Item
+    const priceStats = await Product.aggregate([
       { $match: query },
       {
         $group: {
@@ -296,6 +300,9 @@ exports.getItemsPaginated = async (req, res) => {
       }
     ]);
 
+    // ✅ تم التصحيح: استخدام Product بدلاً من Item
+    const totalStores = await Product.distinct('store', query).then(ids => ids.length);
+
     const responseData = PaginationUtils.createPaginationResponse(
       items,
       total,
@@ -303,7 +310,7 @@ exports.getItemsPaginated = async (req, res) => {
       {
         categories,
         priceRange: priceStats[0] || { minPrice: 0, maxPrice: 0, avgPrice: 0 },
-        totalStores: await Item.distinct('store', query).then(ids => ids.length)
+        totalStores
       }
     );
 
@@ -438,7 +445,7 @@ exports.getOrdersPaginatedAdmin = async (req, res) => {
 };
 
 /**
- * 2️⃣ تفاصيل مطعم كاملة مع الكاش
+ * 2️⃣ تفاصيل متجر كاملة مع الكاش
  * GET /api/aggregate/stores/:id/full
  */
 exports.getStoreDetails = async (req, res) => {
@@ -448,7 +455,7 @@ exports.getStoreDetails = async (req, res) => {
     if (!require('mongoose').Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: 'معرِّف المطعم غير صالح'
+        message: 'معرِّف المتجر غير صالح'
       });
     }
 
@@ -473,7 +480,7 @@ exports.getStoreDetails = async (req, res) => {
       categories
     ] = await Promise.all([
       Store.findById(id)
-        .populate('createdBy', 'name phone email')
+        .populate('owner', 'name phone email')
         .lean(),
 
       StoreAddress.find({ store: id })
@@ -487,18 +494,20 @@ exports.getStoreDetails = async (req, res) => {
         .limit(10)
         .lean(),
 
-      Item.find({ store: id, isAvailable: true })
+      // ✅ تم التصحيح: استخدام Product بدلاً من Item
+      Product.find({ store: id, isAvailable: true })
         .select('name price image description category ingredients preparationTime')
         .sort({ category: 1, name: 1 })
         .lean(),
 
-      Item.distinct('category', { store: id, isAvailable: true })
+      // ✅ تم التصحيح: استخدام Product بدلاً من Item
+      Product.distinct('category', { store: id, isAvailable: true })
     ]);
 
     if (!store) {
       return res.status(404).json({
         success: false,
-        message: 'المطعم غير موجود'
+        message: 'المتجر غير موجود'
       });
     }
 
@@ -714,7 +723,8 @@ exports.getHomeData = async (req, res) => {
             .select('name image averageRating type deliveryFee estimatedDeliveryTime')
             .lean(),
 
-          Item.find({ isAvailable: true })
+          // ✅ تم التصحيح: استخدام Product بدلاً من Item
+          Product.find({ isAvailable: true })
             .populate('store', 'name image')
             .sort({ createdAt: -1 })
             .limit(12)
@@ -733,7 +743,8 @@ exports.getHomeData = async (req, res) => {
 
           Promise.all([
             Store.countDocuments({ isOpen: true }),
-            Item.countDocuments({ isAvailable: true }),
+            // ✅ تم التصحيح: استخدام Product بدلاً من Item
+            Product.countDocuments({ isAvailable: true }),
             Order.countDocuments({ status: 'delivered' }),
             Review.countDocuments()
           ])
@@ -1672,7 +1683,7 @@ exports.unifiedSearch = async (req, res) => {
 
     const results = {};
 
-    // البحث في المطاعم
+    // البحث في المتاجر
     if (!type || type === 'stores') {
       const stores = await Store.find({
         $or: [
@@ -1691,7 +1702,8 @@ exports.unifiedSearch = async (req, res) => {
 
     // البحث في الأصناف
     if (!type || type === 'items') {
-      const items = await Item.find({
+      // ✅ تم التصحيح: استخدام Product بدلاً من Item
+      const items = await Product.find({
         name: { $regex: searchTerm, $options: 'i' },
         isAvailable: true
       })
@@ -1775,11 +1787,11 @@ exports.getPublicStats = async (req, res) => {
       topCategories,
       topCities
     ] = await Promise.all([
-      // إجمالي المطاعم
+      // إجمالي المتاجر
       Store.countDocuments({ isOpen: true }),
 
-      // إجمالي الأصناف المتاحة
-      Item.countDocuments({ isAvailable: true }),
+      // ✅ تم التصحيح: استخدام Product بدلاً من Item
+      Product.countDocuments({ isAvailable: true }),
 
       // إجمالي الطلبات المكتملة
       Order.countDocuments({ status: 'delivered' }),
@@ -1792,8 +1804,8 @@ exports.getPublicStats = async (req, res) => {
         { $group: { _id: null, avg: { $avg: '$rating' } } }
       ]),
 
-      // أفضل الفئات
-      Item.aggregate([
+      // ✅ تم التصحيح: استخدام Product بدلاً من Item
+      Product.aggregate([
         { $match: { isAvailable: true } },
         { $group: { _id: '$category', count: { $sum: 1 } } },
         { $sort: { count: -1 } },

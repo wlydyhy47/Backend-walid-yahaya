@@ -21,6 +21,7 @@ class SocketService {
     this.userStatus = new Map();    // userId -> { online, lastSeen }
     this.typingUsers = new Map();   // conversationId -> Set<userId>
     this.messageQueue = new Map();   // conversationId -> [messages]
+    this.onlineUsers = new Map();
   }
 
   /**
@@ -995,6 +996,32 @@ class SocketService {
     
     return connections;
   }
+
+
+  /**
+ * إرسال تحديث موقع المندوب
+ */
+sendDriverLocationUpdate(orderId, driverId, location) {
+  this.sendToRoom(`order:${orderId}`, {
+    type: 'driver:location:updated',
+    data: {
+      orderId,
+      driverId,
+      location,
+      timestamp: new Date()
+    }
+  });
+}
+
+/**
+ * إرسال تحديث موقع لجميع المندوبين (للمشرف)
+ */
+broadcastAllDriversLocations(driversLocations) {
+  this.broadcast({
+    type: 'drivers:locations:updated',
+    data: driversLocations
+  });
+}
 
   /**
    * إحصائيات Socket.io

@@ -1,11 +1,10 @@
 // ============================================
-// ملف: src/routes/client.routes.js (المصحح بالكامل)
+// ملف: src/routes/client.routes.js (المصحح النهائي مع Validation)
 // ============================================
 
 const express = require('express');
 const router = express.Router();
 
-// ✅ استيراد الـ Controllers
 const { 
   userController,
   orderController,
@@ -16,73 +15,87 @@ const {
   notificationController
 } = require('../controllers');
 
-// ✅ استيراد الـ middlewares
 const auth = require('../middlewares/auth.middleware');
 const role = require('../middlewares/role.middleware');
+const validate = require('../middlewares/validate.middleware');
 const upload = require('../middlewares/upload');
 const PaginationUtils = require('../utils/pagination.util');
 
-// جميع مسارات العميل تحتاج توثيق
-router.use(auth);
-router.use(role('client'));
+// ✅ Validators
+const {
+  updateProfileSchema,
+  avatarSchema,
+  presenceSchema
+} = require('../validators/user.validator');
 
-// ========== 1. الملف الشخصي ==========
+const {
+  createOrderSchema,
+  cancelOrderSchema,
+  rateOrderSchema,
+  reportIssueSchema
+} = require('../validators/order.validator');
+
+const {
+  createAddressSchema,
+  updateAddressSchema
+} = require('../validators/address.validator');
+
+// ✅ فقط التحقق من التوكن
+router.use(auth);
+
+// ========== 1. الملف الشخصي (متاح لجميع المستخدمين) ==========
 router.get('/profile', userController.getMyProfile);
 router.get('/profile/complete', userController.getMyCompleteProfile);
-router.put('/profile', userController.updateMyProfile);
-router.put('/profile/complete', userController.updateCompleteProfile);
-
-// ✅ مسارات الصور - تم تفعيلها
+router.put('/profile', validate(updateProfileSchema), userController.updateMyProfile);
+router.put('/profile/complete', validate(updateProfileSchema), userController.updateCompleteProfile);
 router.put('/profile/avatar', 
+  validate(avatarSchema),
   upload('users/avatars', ['image']).single('image'), 
   userController.uploadAvatar
 );
-
 router.put('/profile/cover', 
   upload('users/covers', ['image']).single('image'), 
   userController.updateCoverImage
 );
-
 router.delete('/profile/avatar', userController.deleteAvatar);
-
 router.put('/profile/password', userController.changePassword);
-router.put('/profile/presence', userController.updatePresence);
+router.put('/profile/presence', validate(presenceSchema), userController.updatePresence);
 
-// ========== 2. الطلبات ==========
-router.get('/orders', PaginationUtils.validatePaginationParams, orderController.getMyOrdersPaginated);
-router.post('/orders', orderController.createOrder);
-router.get('/orders/:id', orderController.getOrderDetails);
-router.put('/orders/:id/cancel', orderController.cancelOrder);
-router.get('/orders/:id/track', orderController.trackOrder);
-router.post('/orders/:id/rate', orderController.rateOrder);
-router.post('/orders/:id/report-issue', orderController.reportOrderIssue);
+// ========== 2. الطلبات (فقط العملاء) ==========
+router.get('/orders', role('client'), PaginationUtils.validatePaginationParams, orderController.getMyOrdersPaginated);
+router.post('/orders', role('client'), validate(createOrderSchema), orderController.createOrder);
+router.get('/orders/:id', role('client'), orderController.getOrderDetails);
+router.put('/orders/:id/cancel', role('client'), validate(cancelOrderSchema), orderController.cancelOrder);
+router.get('/orders/:id/track', role('client'), orderController.trackOrder);
+router.post('/orders/:id/rate', role('client'), validate(rateOrderSchema), orderController.rateOrder);
+router.post('/orders/:id/report-issue', role('client'), validate(reportIssueSchema), orderController.reportOrderIssue);
 
-// ========== 3. العناوين ==========
-router.get('/addresses', addressController.getMyAddresses);
-router.post('/addresses', addressController.createAddress);
-router.put('/addresses/:id', addressController.updateAddress);
-router.delete('/addresses/:id', addressController.deleteAddress);
-router.put('/addresses/:id/set-default', addressController.setDefaultAddress);
-router.get('/addresses/:id', addressController.getAddressById);
+// ========== 3. العناوين (فقط العملاء) ==========
+router.get('/addresses', role('client'), addressController.getMyAddresses);
+router.post('/addresses', role('client'), validate(createAddressSchema), addressController.createAddress);
+router.put('/addresses/:id', role('client'), validate(updateAddressSchema), addressController.updateAddress);
+router.delete('/addresses/:id', role('client'), addressController.deleteAddress);
+router.put('/addresses/:id/set-default', role('client'), addressController.setDefaultAddress);
+router.get('/addresses/:id', role('client'), addressController.getAddressById);
 
-// ========== 4. المفضلة ==========
-router.get('/favorites', favoriteController.getUserFavorites);
-router.post('/favorites/:storeId', favoriteController.addToFavorites);
-router.delete('/favorites/:storeId', favoriteController.removeFromFavorites);
-router.get('/favorites/:storeId/status', favoriteController.checkFavoriteStatus);
-router.put('/favorites/:storeId', favoriteController.updateFavorite);
+// ========== 4. المفضلة (فقط العملاء) ==========
+router.get('/favorites', role('client'), favoriteController.getUserFavorites);
+router.post('/favorites/:storeId', role('client'), favoriteController.addToFavorites);
+router.delete('/favorites/:storeId', role('client'), favoriteController.removeFromFavorites);
+router.get('/favorites/:storeId/status', role('client'), favoriteController.checkFavoriteStatus);
+router.put('/favorites/:storeId', role('client'), favoriteController.updateFavorite);
 
-// ========== 5. التقييمات ==========
-router.post('/reviews/:storeId', reviewController.addReview);
+// ========== 5. التقييمات (فقط العملاء) ==========
+router.post('/reviews/:storeId', role('client'), reviewController.addReview);
 
-// ========== 6. نقاط الولاء ==========
-router.get('/loyalty/points', loyaltyController.getPoints);
-router.get('/loyalty/rewards', loyaltyController.getRewards);
-router.get('/loyalty/transactions', loyaltyController.getTransactions);
-router.post('/loyalty/redeem', loyaltyController.redeemPoints);
-router.get('/loyalty/stats', loyaltyController.getStats);
+// ========== 6. نقاط الولاء (فقط العملاء) ==========
+router.get('/loyalty/points', role('client'), loyaltyController.getPoints);
+router.get('/loyalty/rewards', role('client'), loyaltyController.getRewards);
+router.get('/loyalty/transactions', role('client'), loyaltyController.getTransactions);
+router.post('/loyalty/redeem', role('client'), loyaltyController.redeemPoints);
+router.get('/loyalty/stats', role('client'), loyaltyController.getStats);
 
-// ========== 7. الإشعارات ==========
+// ========== 7. الإشعارات (متاح لجميع المستخدمين) ==========
 router.get('/notifications', PaginationUtils.validatePaginationParams, notificationController.getUserNotifications);
 router.get('/notifications/unread-count', notificationController.getUnreadCount);
 router.get('/notifications/stats', notificationController.getNotificationStats);
@@ -96,7 +109,7 @@ router.put('/notifications/preferences', notificationController.updateNotificati
 router.post('/notifications/devices', notificationController.registerDevice);
 router.delete('/notifications/devices/:deviceId', notificationController.unregisterDevice);
 
-// ========== 8. إحصائيات ==========
+// ========== 8. إحصائيات (متاح لجميع المستخدمين) ==========
 router.get('/stats', userController.getUserStats);
 router.get('/activity', PaginationUtils.validatePaginationParams, userController.getActivityLog);
 

@@ -1,60 +1,59 @@
 // ============================================
-// ملف: src/routes/driver.routes.js (المصحح بالكامل)
+// ملف: src/routes/driver.routes.js (المصحح النهائي مع Validation)
 // ============================================
 
 const express = require('express');
 const router = express.Router();
 
-// ✅ استيراد الـ Controllers
 const { 
   driverController,
   orderController
 } = require('../controllers');
 
-// ✅ استيراد الـ middlewares
 const auth = require('../middlewares/auth.middleware');
 const { driverMiddleware } = require('../middlewares/role.middleware');
+const validate = require('../middlewares/validate.middleware');
 const upload = require('../middlewares/upload');
 const PaginationUtils = require('../utils/pagination.util');
 
-// جميع مسارات المندوب تحتاج توثيق
+// ✅ Validators
+const {
+  avatarSchema,
+  presenceSchema
+} = require('../validators/user.validator');
+
+const {
+  updateStatusSchema
+} = require('../validators/order.validator');
+
 router.use(auth);
-router.use(driverMiddleware);
 
-// ========== 1. ملف المندوب الشخصي ==========
-router.get('/profile', driverController.getMyProfile);
-
-// ✅ تم تفعيل مسار رفع الصورة الشخصية
+// ========== 1. ملف المندوب الشخصي (فقط المندوبين) ==========
+router.get('/profile', driverMiddleware, driverController.getMyProfile);
 router.put('/profile/avatar', 
+  driverMiddleware,
+  validate(avatarSchema),
   upload('users/avatars', ['image']).single('image'), 
   driverController.updateAvatar
 );
+router.put('/profile/availability', driverMiddleware, validate(presenceSchema), driverController.toggleAvailability);
+router.put('/profile/location', driverMiddleware, driverController.updateLocation);
 
-router.put('/profile/availability', driverController.toggleAvailability);
-router.put('/profile/location', driverController.updateLocation);
+// ========== 2. التوصيلات (فقط المندوبين) ==========
+router.get('/deliveries', driverMiddleware, PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
+router.get('/deliveries/current', driverMiddleware, orderController.getCurrentDelivery);
+router.get('/deliveries/:id', driverMiddleware, orderController.getOrderDetails);
+router.put('/deliveries/:id/status', driverMiddleware, validate(updateStatusSchema), orderController.updateStatus);
+router.post('/deliveries/:id/location', driverMiddleware, orderController.updateDriverLocation);
+router.get('/deliveries/:id/track', driverMiddleware, orderController.trackOrder);
 
-// ========== 2. التوصيلات ==========
-router.get('/deliveries', PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
-router.get('/deliveries/current', orderController.getCurrentDelivery);
-router.get('/deliveries/:id', orderController.getOrderDetails);
-router.put('/deliveries/:id/status', orderController.updateStatus);
-router.put('/deliveries/:id/location', orderController.updateDriverLocation);
-router.get('/deliveries/:id/track', orderController.trackOrder);
+// ========== 3. الأرباح (فقط المندوبين) ==========
+router.get('/earnings', driverMiddleware, orderController.getDriverEarnings);
+router.get('/earnings/stats', driverMiddleware, driverController.getMyStats);
+router.get('/earnings/history', driverMiddleware, PaginationUtils.validatePaginationParams, driverController.getEarningsHistory);
 
-// ========== 3. الأرباح ==========
-router.get('/earnings', orderController.getDriverEarnings);
-router.get('/earnings/stats', driverController.getMyStats);
-
-// ✅ تم تفعيل مسار سجل الأرباح
-router.get('/earnings/history', 
-  PaginationUtils.validatePaginationParams, 
-  driverController.getEarningsHistory
-);
-
-// ========== 4. إحصائيات ==========
-router.get('/stats', driverController.getMyStats);
-
-// ✅ تم تفعيل مسار تقرير الأداء
-router.get('/performance', driverController.getPerformanceReport);
+// ========== 4. إحصائيات (فقط المندوبين) ==========
+router.get('/stats', driverMiddleware, driverController.getMyStats);
+router.get('/performance', driverMiddleware, driverController.getPerformanceReport);
 
 module.exports = router;

@@ -11,6 +11,7 @@ const assetService = require('./asset.service');
 const socketService = require('./socket.service');
 const performanceService = require('./performance.service');
 const healthCheckService = require('./healthCheck.service');
+const mapboxService = require('./mapbox.service');  // ✅ إضافة mapboxService
 
 module.exports = {
   notificationService,
@@ -20,5 +21,6 @@ module.exports = {
   assetService,
   socketService,
   performanceService,
-  healthCheckService
+  healthCheckService,
+  mapboxService  // ✅ تصدير mapboxService
 };
