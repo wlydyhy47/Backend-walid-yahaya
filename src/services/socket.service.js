@@ -1,11 +1,15 @@
 // ============================================
-// ملف: src/services/socket.service.js (محدث)
-// الوصف: خدمة Socket.io المتقدمة
+// ملف: src/services/socket.service.js (المدمج)
+// الوصف: خدمة Socket.io الموحدة مع الدردشة
 // ============================================
 
 const socketIo = require("socket.io");
 const jwt = require("jsonwebtoken");
-const User = require("../models/user.model");
+
+// ✅ استيراد موحد من models/index.js
+const { User, Message, Conversation } = require('../models');
+
+const notificationService = require("./notification.service");
 const { businessLogger } = require("../utils/logger.util");
 
 class SocketService {
@@ -15,7 +19,8 @@ class SocketService {
     this.socketUser = new Map();   // socketId -> userId
     this.userRooms = new Map();    // userId -> Set<rooms>
     this.userStatus = new Map();    // userId -> { online, lastSeen }
-    this.chatSocketService = null;
+    this.typingUsers = new Map();   // conversationId -> Set<userId>
+    this.messageQueue = new Map();   // conversationId -> [messages]
   }
 
   /**
@@ -37,7 +42,8 @@ class SocketService {
       this.setupEventHandlers();
       businessLogger.info("Socket.io initialized successfully");
       
-      this.initializeChatServices();
+      // بدء معالج قائمة الانتظار
+      this.startQueueProcessor();
       
       return this.io;
     } catch (error) {
@@ -92,18 +98,49 @@ class SocketService {
         this.handlePresenceUpdate(socket, data);
       });
 
-      // ====== Typing Indicators ======
-      socket.on("typing:start", (data) => {
-        this.handleTypingStart(socket, data);
+      // ====== Chat Events ======
+      socket.on("chat:join", (data) => {
+        this.handleJoinChat(socket, data);
       });
 
-      socket.on("typing:stop", (data) => {
-        this.handleTypingStop(socket, data);
+      socket.on("chat:leave", (data) => {
+        this.handleLeaveChat(socket, data);
       });
 
-      // ====== Read Receipts ======
-      socket.on("message:read", (data) => {
-        this.handleMessageRead(socket, data);
+      socket.on("chat:message:send", async (data) => {
+        await this.handleSendMessage(socket, data);
+      });
+
+      socket.on("chat:message:read", async (data) => {
+        await this.handleMessageRead(socket, data);
+      });
+
+      socket.on("chat:typing", (data) => {
+        this.handleTyping(socket, data);
+      });
+
+      socket.on("chat:message:react", async (data) => {
+        await this.handleReaction(socket, data);
+      });
+
+      socket.on("chat:message:delete", async (data) => {
+        await this.handleDeleteMessage(socket, data);
+      });
+
+      socket.on("chat:message:edit", async (data) => {
+        await this.handleEditMessage(socket, data);
+      });
+
+      socket.on("chat:history:request", async (data) => {
+        await this.handleHistoryRequest(socket, data);
+      });
+
+      socket.on("chat:search", async (data) => {
+        await this.handleSearch(socket, data);
+      });
+
+      socket.on("chat:support:join", (data) => {
+        this.handleJoinSupport(socket, data);
       });
 
       // ====== Room Management ======
@@ -192,6 +229,425 @@ class SocketService {
     }
   }
 
+  // ====== Chat Handlers ======
+
+  /**
+   * معالجة الانضمام إلى محادثة
+   */
+  async handleJoinChat(socket, data) {
+    try {
+      const { conversationId } = data;
+      const userId = socket.userId;
+
+      if (!userId || !conversationId) {
+        socket.emit("error", { message: "Missing required data" });
+        return;
+      }
+
+      const conversation = await Conversation.findOne({
+        _id: conversationId,
+        participants: userId,
+        deletedAt: null
+      });
+
+      if (!conversation) {
+        socket.emit("error", { message: "Conversation not found or access denied" });
+        return;
+      }
+
+      const room = `chat:${conversationId}`;
+      socket.join(room);
+
+      if (!this.userRooms.has(userId)) {
+        this.userRooms.set(userId, new Set());
+      }
+      this.userRooms.get(userId).add(room);
+
+      if (!this.onlineUsers.has(userId)) {
+        this.onlineUsers.set(userId, new Map());
+      }
+      this.onlineUsers.get(userId).set(conversationId, {
+        socketId: socket.id,
+        joinedAt: new Date()
+      });
+
+      socket.to(room).emit("chat:participant:joined", {
+        conversationId,
+        userId,
+        timestamp: new Date()
+      });
+
+      const unreadMessages = await Message.find({
+        conversation: conversationId,
+        "delivery.readBy.user": { $ne: userId },
+        "deleted.isDeleted": false
+      })
+        .sort({ "delivery.sentAt": -1 })
+        .limit(20)
+        .populate("sender", "name image")
+        .lean();
+
+      if (unreadMessages.length > 0) {
+        socket.emit("chat:history:unread", {
+          conversationId,
+          messages: unreadMessages.reverse()
+        });
+      }
+
+      businessLogger.info(`User ${userId} joined chat ${conversationId}`);
+    } catch (error) {
+      businessLogger.error("Join chat error:", error);
+      socket.emit("error", { message: "Failed to join chat" });
+    }
+  }
+
+  /**
+   * معالجة مغادرة محادثة
+   */
+  handleLeaveChat(socket, data) {
+    const { conversationId } = data;
+    const userId = socket.userId;
+
+    if (!userId || !conversationId) return;
+
+    const room = `chat:${conversationId}`;
+    socket.leave(room);
+
+    if (this.userRooms.has(userId)) {
+      this.userRooms.get(userId).delete(room);
+    }
+
+    if (this.onlineUsers.has(userId)) {
+      this.onlineUsers.get(userId).delete(conversationId);
+    }
+
+    socket.to(room).emit("chat:participant:left", {
+      conversationId,
+      userId,
+      timestamp: new Date()
+    });
+
+    businessLogger.info(`User ${userId} left chat ${conversationId}`);
+  }
+
+  /**
+   * معالجة إرسال رسالة
+   */
+  async handleSendMessage(socket, data) {
+    try {
+      const { conversationId, content, type = "text", replyTo = null, tempId } = data;
+      const userId = socket.userId;
+
+      if (!userId || !conversationId || !content) {
+        socket.emit("error", { message: "Missing required data" });
+        return;
+      }
+
+      const conversation = await Conversation.findOne({
+        _id: conversationId,
+        participants: userId,
+        deletedAt: null
+      });
+
+      if (!conversation) {
+        socket.emit("error", { message: "Conversation not found" });
+        return;
+      }
+
+      let message;
+      if (type === "text") {
+        message = await Message.createTextMessage(conversationId, userId, content, replyTo);
+      } else {
+        socket.emit("error", { message: "Unsupported message type" });
+        return;
+      }
+
+      const populatedMessage = await Message.findById(message._id)
+        .populate("sender", "name image role")
+        .populate("replyTo", "content.text sender type")
+        .lean();
+
+      if (tempId) {
+        populatedMessage.tempId = tempId;
+      }
+
+      const room = `chat:${conversationId}`;
+      socket.to(room).emit("chat:message:new", {
+        conversationId,
+        message: populatedMessage,
+        timestamp: new Date()
+      });
+
+      socket.emit("chat:message:sent", {
+        conversationId,
+        message: populatedMessage,
+        tempId
+      });
+
+      await this.sendOfflineNotifications(conversation, populatedMessage);
+
+      await Conversation.findByIdAndUpdate(conversationId, {
+        lastMessage: message._id,
+        lastActivity: new Date()
+      });
+
+      businessLogger.info(`Message sent in chat ${conversationId}`, {
+        messageId: message._id,
+        sender: userId
+      });
+    } catch (error) {
+      businessLogger.error("Send message error:", error);
+      socket.emit("error", { message: "Failed to send message" });
+    }
+  }
+
+  /**
+   * معالجة قراءة الرسالة
+   */
+  async handleMessageRead(socket, data) {
+    try {
+      const { conversationId, messageId } = data;
+      const userId = socket.userId;
+
+      if (!userId || !conversationId || !messageId) return;
+
+      await Message.findByIdAndUpdate(messageId, {
+        $addToSet: {
+          readReceipts: {
+            user: userId,
+            readAt: new Date()
+          }
+        }
+      });
+
+      const room = `chat:${conversationId}`;
+      socket.to(room).emit("chat:message:read", {
+        conversationId,
+        messageId,
+        userId,
+        timestamp: new Date()
+      });
+
+      await this.updateConversationReadStats(conversationId, userId);
+    } catch (error) {
+      businessLogger.error("Message read error:", error);
+    }
+  }
+
+  /**
+   * معالجة حالة الكتابة
+   */
+  handleTyping(socket, data) {
+    const { conversationId, isTyping } = data;
+    const userId = socket.userId;
+
+    if (!userId || !conversationId) return;
+
+    if (!this.typingUsers.has(conversationId)) {
+      this.typingUsers.set(conversationId, new Set());
+    }
+
+    if (isTyping) {
+      this.typingUsers.get(conversationId).add(userId);
+    } else {
+      this.typingUsers.get(conversationId).delete(userId);
+    }
+
+    const room = `chat:${conversationId}`;
+    socket.to(room).emit("chat:typing", {
+      conversationId,
+      userId,
+      isTyping,
+      timestamp: new Date()
+    });
+  }
+
+  /**
+   * معالجة رد الفعل على رسالة
+   */
+  async handleReaction(socket, data) {
+    try {
+      const { conversationId, messageId, emoji } = data;
+      const userId = socket.userId;
+
+      if (!userId || !conversationId || !messageId || !emoji) return;
+
+      const message = await Message.findById(messageId);
+      
+      if (message) {
+        await message.addReaction(userId, emoji);
+
+        const room = `chat:${conversationId}`;
+        socket.to(room).emit("chat:message:reaction", {
+          conversationId,
+          messageId,
+          userId,
+          emoji,
+          timestamp: new Date()
+        });
+
+        socket.emit("chat:message:reaction:added", {
+          messageId,
+          emoji
+        });
+      }
+    } catch (error) {
+      businessLogger.error("Reaction error:", error);
+    }
+  }
+
+  /**
+   * معالجة حذف رسالة
+   */
+  async handleDeleteMessage(socket, data) {
+    try {
+      const { conversationId, messageId } = data;
+      const userId = socket.userId;
+
+      if (!userId || !conversationId || !messageId) return;
+
+      const message = await Message.findOne({
+        _id: messageId,
+        conversation: conversationId
+      });
+
+      if (!message) return;
+
+      const isSender = message.sender.toString() === userId;
+      const user = await User.findById(userId);
+      const isAdmin = user?.role === 'admin';
+
+      if (!isSender && !isAdmin) return;
+
+      await message.softDelete(userId, isSender ? 'sender' : 'admin');
+
+      const room = `chat:${conversationId}`;
+      socket.to(room).emit("chat:message:deleted", {
+        conversationId,
+        messageId,
+        deletedBy: userId,
+        timestamp: new Date()
+      });
+    } catch (error) {
+      businessLogger.error("Delete message error:", error);
+    }
+  }
+
+  /**
+   * معالجة تعديل رسالة
+   */
+  async handleEditMessage(socket, data) {
+    try {
+      const { conversationId, messageId, newContent } = data;
+      const userId = socket.userId;
+
+      if (!userId || !conversationId || !messageId || !newContent) return;
+
+      const message = await Message.findOne({
+        _id: messageId,
+        conversation: conversationId,
+        sender: userId
+      });
+
+      if (!message) return;
+
+      await message.edit({ text: newContent });
+
+      const room = `chat:${conversationId}`;
+      socket.to(room).emit("chat:message:edited", {
+        conversationId,
+        messageId,
+        newContent,
+        editedBy: userId,
+        timestamp: new Date()
+      });
+    } catch (error) {
+      businessLogger.error("Edit message error:", error);
+    }
+  }
+
+  /**
+   * معالجة طلب سجل المحادثة
+   */
+  async handleHistoryRequest(socket, data) {
+    try {
+      const { conversationId, before, limit = 50 } = data;
+      const userId = socket.userId;
+
+      if (!userId || !conversationId) return;
+
+      const messages = await Message.getConversationMessages(conversationId, {
+        limit,
+        before,
+        includeSystem: true
+      });
+
+      socket.emit("chat:history", {
+        conversationId,
+        messages: messages.messages,
+        hasMore: messages.pagination.hasMore
+      });
+    } catch (error) {
+      businessLogger.error("History request error:", error);
+    }
+  }
+
+  /**
+   * معالجة البحث في المحادثة
+   */
+  async handleSearch(socket, data) {
+    try {
+      const { conversationId, query, limit = 20 } = data;
+      const userId = socket.userId;
+
+      if (!userId || !conversationId || !query) return;
+
+      const results = await Message.searchMessages(conversationId, query, { limit });
+
+      socket.emit("chat:search:results", {
+        conversationId,
+        results: results.messages,
+        total: results.pagination.total
+      });
+    } catch (error) {
+      businessLogger.error("Search error:", error);
+    }
+  }
+
+  /**
+   * معالجة الانضمام إلى غرفة الدعم
+   */
+  async handleJoinSupport(socket, data) {
+    try {
+      const userId = socket.userId;
+      const user = await User.findById(userId);
+
+      if (!user || user.role !== 'admin') {
+        socket.emit("error", { message: "Unauthorized" });
+        return;
+      }
+
+      socket.join("support:room");
+      
+      const pendingConversations = await Conversation.find({
+        type: "support",
+        "metadata.support.status": "open",
+        deletedAt: null
+      })
+        .populate("participants", "name image")
+        .sort({ lastActivity: -1 })
+        .limit(20);
+
+      socket.emit("support:pending", {
+        conversations: pendingConversations
+      });
+
+      businessLogger.info(`Admin ${userId} joined support room`);
+    } catch (error) {
+      businessLogger.error("Join support error:", error);
+    }
+  }
+
   // ====== Presence Handlers ======
 
   /**
@@ -209,86 +665,17 @@ class SocketService {
       lastSeen: new Date()
     });
 
-    // تحديث في قاعدة البيانات
     User.findByIdAndUpdate(userId, {
       isOnline,
       lastSeen: new Date()
     }).catch(err => businessLogger.error('Update presence error:', err));
 
-    // إعلام المشتركين
     socket.broadcast.emit("presence:changed", {
       userId,
       isOnline,
       status,
       timestamp: new Date()
     });
-  }
-
-  // ====== Typing Handlers ======
-
-  /**
-   * معالجة بدء الكتابة
-   */
-  handleTypingStart(socket, data) {
-    const { conversationId } = data;
-    const userId = socket.userId;
-
-    if (!userId || !conversationId) return;
-
-    socket.to(`chat:${conversationId}`).emit("typing:started", {
-      conversationId,
-      userId,
-      timestamp: new Date()
-    });
-  }
-
-  /**
-   * معالجة توقف الكتابة
-   */
-  handleTypingStop(socket, data) {
-    const { conversationId } = data;
-    const userId = socket.userId;
-
-    if (!userId || !conversationId) return;
-
-    socket.to(`chat:${conversationId}`).emit("typing:stopped", {
-      conversationId,
-      userId,
-      timestamp: new Date()
-    });
-  }
-
-  // ====== Read Receipts ======
-
-  /**
-   * معالجة قراءة الرسالة
-   */
-  async handleMessageRead(socket, data) {
-    const { conversationId, messageId } = data;
-    const userId = socket.userId;
-
-    if (!userId || !conversationId || !messageId) return;
-
-    try {
-      const Message = require("../models/message.model");
-      await Message.findByIdAndUpdate(messageId, {
-        $addToSet: {
-          readReceipts: {
-            user: userId,
-            readAt: new Date()
-          }
-        }
-      });
-
-      socket.to(`chat:${conversationId}`).emit("message:read", {
-        conversationId,
-        messageId,
-        userId,
-        timestamp: new Date()
-      });
-    } catch (error) {
-      businessLogger.error('Message read error:', error);
-    }
   }
 
   // ====== Room Management ======
@@ -338,26 +725,22 @@ class SocketService {
     });
 
     if (userId) {
-      // إزالة من التخزين
       this.socketUser.delete(socket.id);
       
       if (this.userSockets.has(userId)) {
         this.userSockets.get(userId).delete(socket.id);
 
-        // إذا كان آخر اتصال للمستخدم
         if (this.userSockets.get(userId).size === 0) {
           this.userStatus.set(userId, {
             online: false,
             lastSeen: new Date()
           });
 
-          // تحديث في قاعدة البيانات
           await User.findByIdAndUpdate(userId, {
             isOnline: false,
             lastSeen: new Date()
           });
 
-          // إعلام الآخرين
           socket.broadcast.emit("user:disconnected", {
             userId,
             timestamp: new Date()
@@ -365,11 +748,22 @@ class SocketService {
         }
       }
 
-      // تنظيف الغرف
       if (this.userRooms.has(userId)) {
         const rooms = this.userRooms.get(userId);
         rooms.forEach(room => socket.leave(room));
         this.userRooms.delete(userId);
+      }
+
+      for (const [convId, users] of this.typingUsers.entries()) {
+        if (users.has(userId)) {
+          users.delete(userId);
+          socket.to(`chat:${convId}`).emit("chat:typing", {
+            conversationId: convId,
+            userId,
+            isTyping: false,
+            timestamp: new Date()
+          });
+        }
       }
     }
   }
@@ -406,40 +800,6 @@ class SocketService {
       businessLogger.error("Send to user error:", error);
       return { success: false, error: error.message };
     }
-  }
-
-  /**
-   * إرسال إلى عدة مستخدمين
-   */
-  sendToUsers(userIds, data) {
-    const results = {
-      total: userIds.length,
-      delivered: 0,
-      offline: 0,
-      failed: 0,
-      errors: []
-    };
-
-    userIds.forEach(userId => {
-      const result = this.sendToUser(userId, data);
-      if (result.success) {
-        if (result.delivered) {
-          results.delivered++;
-        } else if (result.offline) {
-          results.offline++;
-        }
-      } else {
-        results.failed++;
-        results.errors.push({ userId, error: result.error });
-      }
-    });
-
-    businessLogger.info(`Broadcast to ${userIds.length} users`, {
-      delivered: results.delivered,
-      offline: results.offline
-    });
-
-    return results;
   }
 
   /**
@@ -482,6 +842,82 @@ class SocketService {
       businessLogger.error("Broadcast error:", error);
       return { success: false, error: error.message };
     }
+  }
+
+  // ====== Helper Methods ======
+
+  /**
+   * إرسال إشعارات للمستخدمين غير المتصلين
+   */
+  async sendOfflineNotifications(conversation, message) {
+    try {
+      const participants = conversation.participants;
+      const senderId = message.sender._id.toString();
+
+      for (const participantId of participants) {
+        if (participantId.toString() === senderId) continue;
+
+        const isOnline = this.userSockets.has(participantId.toString());
+
+        if (!isOnline) {
+          await notificationService.sendNotification({
+            user: participantId,
+            type: "new_message",
+            title: `رسالة جديدة`,
+            content: message.content.text?.substring(0, 100) || "📎 مرفق",
+            data: {
+              conversationId: conversation._id,
+              messageId: message._id,
+              senderId,
+              senderName: message.sender.name
+            },
+            priority: "medium",
+            link: `/chat/${conversation._id}`,
+            icon: "💬"
+          });
+        }
+      }
+    } catch (error) {
+      businessLogger.error("Send offline notifications error:", error);
+    }
+  }
+
+  /**
+   * تحديث إحصائيات القراءة للمحادثة
+   */
+  async updateConversationReadStats(conversationId, userId) {
+    try {
+      const conversation = await Conversation.findById(conversationId);
+      if (!conversation) return;
+
+      const unreadCount = await Message.getUnreadCount(conversationId, userId);
+      
+      this.sendToUser(userId, {
+        type: "chat:unread:updated",
+        data: {
+          conversationId,
+          unreadCount
+        }
+      });
+    } catch (error) {
+      businessLogger.error("Update read stats error:", error);
+    }
+  }
+
+  /**
+   * بدء معالج قائمة الانتظار
+   */
+  startQueueProcessor() {
+    setInterval(() => {
+      this.processMessageQueue();
+    }, 5000);
+  }
+
+  /**
+   * معالجة قائمة انتظار الرسائل
+   */
+  async processMessageQueue() {
+    // TODO: تنفيذ معالجة قائمة الانتظار
   }
 
   // ====== Info Methods ======
@@ -529,44 +965,9 @@ class SocketService {
       : [];
   }
 
-  // ====== Chat Services ======
-
   /**
-   * تهيئة خدمات الدردشة
+   * الحصول على معلومات Socket
    */
-  initializeChatServices() {
-    try {
-      if (!this.io) {
-        businessLogger.warn("Socket.io not ready for chat services");
-        return null;
-      }
-
-      const ChatSocketService = require("./chat.socket.service");
-      
-      if (ChatSocketService.initializeWithIO) {
-        ChatSocketService.initializeWithIO(this.io);
-      }
-      
-      this.chatSocketService = ChatSocketService;
-      
-      businessLogger.info("Chat socket service initialized");
-      return ChatSocketService;
-    } catch (error) {
-      businessLogger.error("Chat service initialization failed:", error);
-      return null;
-    }
-  }
-
-  // ====== Utility Methods ======
-
-  getIO() {
-    return this.io;
-  }
-
-  isInitialized() {
-    return !!this.io;
-  }
-
   getSocketInfo(socketId) {
     const userId = this.socketUser.get(socketId);
     return {
@@ -577,6 +978,9 @@ class SocketService {
     };
   }
 
+  /**
+   * الحصول على جميع معلومات الاتصالات
+   */
   getAllConnectionsInfo() {
     const connections = [];
     
@@ -600,37 +1004,22 @@ class SocketService {
       totalSockets: this.socketUser.size,
       onlineUsers: this.userSockets.size,
       totalRooms: this.io?.sockets?.adapter?.rooms?.size || 0,
-      connections: this.getAllConnectionsInfo().length
+      connections: this.getAllConnectionsInfo().length,
+      typingUsers: this.typingUsers.size,
+      messageQueue: this.messageQueue.size
     };
+  }
+
+  getIO() {
+    return this.io;
+  }
+
+  isInitialized() {
+    return !!this.io;
   }
 }
 
+// تصدير نسخة واحدة (Singleton)
 const socketServiceInstance = new SocketService();
 
-module.exports = {
-  initialize: (server) => socketServiceInstance.initialize(server),
-  
-  // إرسال الإشعارات
-  sendToUser: (userId, data) => socketServiceInstance.sendToUser(userId, data),
-  sendToUsers: (userIds, data) => socketServiceInstance.sendToUsers(userIds, data),
-  sendToRoom: (room, data) => socketServiceInstance.sendToRoom(room, data),
-  broadcast: (data, excludeSocketId) => socketServiceInstance.broadcast(data, excludeSocketId),
-  
-  // معلومات الاتصال
-  isUserOnline: (userId) => socketServiceInstance.isUserOnline(userId),
-  getUserStatus: (userId) => socketServiceInstance.getUserStatus(userId),
-  getOnlineUsersCount: () => socketServiceInstance.getOnlineUsersCount(),
-  getOnlineUsers: () => socketServiceInstance.getOnlineUsers(),
-  getUserRooms: (userId) => socketServiceInstance.getUserRooms(userId),
-  getSocketInfo: (socketId) => socketServiceInstance.getSocketInfo(socketId),
-  getAllConnectionsInfo: () => socketServiceInstance.getAllConnectionsInfo(),
-  getStats: () => socketServiceInstance.getStats(),
-  
-  // الخدمات
-  initializeChatServices: () => socketServiceInstance.initializeChatServices(),
-  getIO: () => socketServiceInstance.getIO(),
-  isInitialized: () => socketServiceInstance.isInitialized(),
-  
-  // Instance للاستخدام المباشر
-  instance: socketServiceInstance
-};
+module.exports = socketServiceInstance;

@@ -4,9 +4,7 @@
 // الإصدار: 1.0
 // ============================================
 
-const Product = require("../models/product.model");
-const Store = require("../models/store.model");
-const Order = require("../models/order.model");
+const { Product, Store, Order } = require('../models');
 const cache = require("../utils/cache.util");
 const fileService = require('../services/file.service');
 const PaginationUtils = require('../utils/pagination.util');

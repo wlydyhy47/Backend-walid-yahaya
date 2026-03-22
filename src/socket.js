@@ -1,3 +1,8 @@
+// ============================================
+// ملف: src/socket.js
+// الوصف: تهيئة Socket.io
+// ============================================
+
 const socketService = require("./services/socket.service");
 
 const initSocket = (server) => {
@@ -13,7 +18,6 @@ const initSocket = (server) => {
     return io;
   } catch (error) {
     console.error("❌ Socket.io initialization failed:", error.message);
-    // لا نوقف الخادم إذا فشلت الـ sockets
     return null;
   }
 };

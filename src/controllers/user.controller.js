@@ -1,15 +1,11 @@
 // ============================================
-// ملف: src/controllers/user.controller.js
+// ملف: src/controllers/user.controller.js (المصحح)
 // الوصف: التحكم الكامل في عمليات المستخدمين
-// الإصدار: 3.0 (موحد - بدون تكرار)
 // ============================================
 
-const User = require("../models/user.model");
-const Order = require("../models/order.model");
-const Address = require("../models/address.model");
-const Review = require("../models/review.model");
-const Store = require("../models/store.model");
-const Favorite = require("../models/favorite.model");
+// ✅ استيراد موحد من models/index.js
+const { User, Order, Address, Review, Store, Favorite, Notification } = require('../models');
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
@@ -316,7 +312,7 @@ exports.getMyProfile = async (req, res) => {
 
     const [ordersCount, unreadNotifications] = await Promise.all([
       Order.countDocuments({ user: userId }),
-      require("../models/notification.model").countDocuments({
+      Notification.countDocuments({
         user: userId,
         status: 'unread'
       })
@@ -455,7 +451,7 @@ exports.getMyCompleteProfile = async (req, res) => {
         .lean(),
 
       Store.find({ _id: { $in: user?.favorites || [] } })
-        .select("name image type averageRating")
+        .select("name image category averageRating")
         .limit(10)
         .lean(),
 
@@ -496,7 +492,7 @@ exports.getMyCompleteProfile = async (req, res) => {
           totalOrders: user.stats?.totalOrders || 0,
           favoriteStoresCount: favoriteStores.length,
           reviewsCount: recentReviews.length,
-          unreadNotifications: await require("../models/notification.model").countDocuments({
+          unreadNotifications: await Notification.countDocuments({
             user: userId,
             status: 'unread'
           })
@@ -774,7 +770,7 @@ exports.updateCoverImage = async (req, res) => {
   }
 };
 
-// ========== 4. دوال المفضلة (دمج favorite.controller.js) ==========
+// ========== 4. دوال المفضلة ==========
 
 /**
  * @desc    الحصول على مفضلات المستخدم
@@ -1353,234 +1349,31 @@ exports.getRelativeTime = (date) => {
   return `منذ ${Math.floor(diffDays / 365)} سنة`;
 };
 
-/**
- * @desc    الحصول على إحصائيات الفئات المفضلة
- * @access  Internal
- */
-exports.getFavoriteCategories = async (userId) => {
-  try {
-    const favoriteCategories = await Order.aggregate([
-      { $match: { user: userId, status: "delivered" } },
-      { $unwind: "$items" },
-      {
-        $lookup: {
-          from: "items",
-          localField: "items.item",
-          foreignField: "_id",
-          as: "itemDetails",
-        },
-      },
-      { $unwind: "$itemDetails" },
-      {
-        $group: {
-          _id: "$itemDetails.category",
-          count: { $sum: 1 },
-          totalSpent: { $sum: "$items.price" },
-        },
-      },
-      { $sort: { count: -1 } },
-      { $limit: 5 },
-    ]);
-
-    return favoriteCategories.map(cat => ({
-      category: cat._id || "unknown",
-      orderCount: cat.count,
-      totalSpent: cat.totalSpent,
-    }));
-  } catch (error) {
-    console.error("Favorite categories error:", error);
-    return [];
-  }
-};
+// ========== 8. دوال مستخدم واحد (للأدمن) - معاد توجيهها ==========
 
 /**
- * @desc    حساب المتوسط الشهري للإنفاق
- * @access  Internal
- */
-exports.calculateMonthlyAverage = async (userId) => {
-  try {
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-
-    const result = await Order.aggregate([
-      {
-        $match: {
-          user: userId,
-          status: "delivered",
-          createdAt: { $gte: sixMonthsAgo },
-        },
-      },
-      {
-        $group: {
-          _id: { $month: "$createdAt" },
-          totalSpent: { $sum: "$totalPrice" },
-          orderCount: { $sum: 1 },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          averageMonthlySpent: { $avg: "$totalSpent" },
-          averageMonthlyOrders: { $avg: "$orderCount" },
-        },
-      },
-    ]);
-
-    return result[0] || { averageMonthlySpent: 0, averageMonthlyOrders: 0 };
-  } catch (error) {
-    console.error("Monthly average error:", error);
-    return { averageMonthlySpent: 0, averageMonthlyOrders: 0 };
-  }
-};
-
-/**
- * @desc    الوقت المفضل للطلب
- * @access  Internal
- */
-exports.getFavoriteTimeOfDay = async (userId) => {
-  try {
-    const result = await Order.aggregate([
-      { $match: { user: userId } },
-      {
-        $group: {
-          _id: { $hour: "$createdAt" },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { count: -1 } },
-      { $limit: 1 },
-    ]);
-
-    if (result.length === 0) return null;
-
-    const hour = result[0]._id;
-    let timeOfDay = "";
-
-    if (hour < 6) timeOfDay = "ليل";
-    else if (hour < 12) timeOfDay = "صباح";
-    else if (hour < 18) timeOfDay = "ظهر";
-    else timeOfDay = "مساء";
-
-    return {
-      hour,
-      timeOfDay,
-      count: result[0].count,
-    };
-  } catch (error) {
-    console.error("Favorite time error:", error);
-    return null;
-  }
-};
-
-/**
- * @desc    اليوم المفضل للطلب
- * @access  Internal
- */
-exports.getFavoriteDayOfWeek = async (userId) => {
-  try {
-    const days = ["الأحد", "الإثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
-
-    const result = await Order.aggregate([
-      { $match: { user: userId } },
-      {
-        $group: {
-          _id: { $dayOfWeek: "$createdAt" },
-          count: { $sum: 1 },
-        },
-      },
-      { $sort: { count: -1 } },
-      { $limit: 1 },
-    ]);
-
-    if (result.length === 0) return null;
-
-    const dayIndex = result[0]._id - 1;
-    return {
-      dayIndex,
-      dayName: days[dayIndex],
-      count: result[0].count,
-    };
-  } catch (error) {
-    console.error("Favorite day error:", error);
-    return null;
-  }
-};
-
-/**
- * @desc    متوسط سرعة التوصيل
- * @access  Internal
- */
-exports.getAverageDeliverySpeed = async (userId) => {
-  try {
-    const result = await Order.aggregate([
-      {
-        $match: {
-          user: userId,
-          status: "delivered",
-          createdAt: { $exists: true },
-          updatedAt: { $exists: true },
-        },
-      },
-      {
-        $project: {
-          deliveryTime: {
-            $divide: [
-              { $subtract: ["$updatedAt", "$createdAt"] },
-              60000,
-            ],
-          },
-        },
-      },
-      {
-        $group: {
-          _id: null,
-          averageDeliveryTime: { $avg: "$deliveryTime" },
-          fastestDelivery: { $min: "$deliveryTime" },
-          slowestDelivery: { $max: "$deliveryTime" },
-        },
-      },
-    ]);
-
-    return result[0] || {
-      averageDeliveryTime: 0,
-      fastestDelivery: 0,
-      slowestDelivery: 0,
-    };
-  } catch (error) {
-    console.error("Delivery speed error:", error);
-    return {
-      averageDeliveryTime: 0,
-      fastestDelivery: 0,
-      slowestDelivery: 0,
-    };
-  }
-};
-
-// ========== 8. دوال مستخدم واحد (للأدمن) - معاد توجيهها للدوال الأساسية ==========
-
-/**
- * @desc    الحصول على مستخدم محدد (للأدمن) - معاد توجيهها لـ getUserById
+ * @desc    الحصول على مستخدم محدد (للأدمن)
  * @route   GET /api/users/:id
  * @access  Admin
  */
 exports.getUser = exports.getUserById;
 
 /**
- * @desc    تحديث مستخدم (للأدمن) - معاد توجيهها لـ updateUserById
+ * @desc    تحديث مستخدم (للأدمن)
  * @route   PUT /api/users/:id
  * @access  Admin
  */
 exports.updateUser = exports.updateUserById;
 
 /**
- * @desc    حذف/تعطيل مستخدم (للأدمن) - معاد توجيهها لـ deleteUserById
+ * @desc    حذف/تعطيل مستخدم (للأدمن)
  * @route   DELETE /api/users/:id
  * @access  Admin
  */
 exports.deleteUser = exports.deleteUserById;
 
 /**
- * @desc    الحصول على جميع المستخدمين (للأدمن) - معاد توجيهها لـ getUsers
+ * @desc    الحصول على جميع المستخدمين (للأدمن)
  * @route   GET /api/admin/users
  * @access  Admin
  */

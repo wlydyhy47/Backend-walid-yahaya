@@ -4,7 +4,8 @@
 // ============================================
 
 const rateLimit = require('express-rate-limit');
-const redisClient = require('../config/redis-client');
+// ✅ تغيير من redis-client إلى redis
+const redisClient = require('../config/redis');
 const { businessLogger } = require("../utils/logger.util");
 
 class RateLimiterService {

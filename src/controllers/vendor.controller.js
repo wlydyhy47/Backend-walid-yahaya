@@ -1,15 +1,11 @@
 // ============================================
-// ملف: src/controllers/vendor.controller.js (مصحح)
+// ملف: src/controllers/vendor.controller.js (المصحح)
 // الوصف: التحكم في عمليات التجار (أصحاب المتاجر)
-// الإصدار: 2.0
 // ============================================
 
-const Store = require("../models/store.model");
-const StoreAddress = require("../models/storeAddress.model");
-const Product = require("../models/product.model");
-const User = require("../models/user.model");
-const Order = require("../models/order.model");
-const Review = require("../models/review.model");
+// ✅ استيراد موحد من models/index.js
+const { Store, StoreAddress, Product, User, Order, Review } = require('../models');
+
 const cache = require("../utils/cache.util");
 const fileService = require('../services/file.service');
 const { AppError } = require('../middlewares/errorHandler.middleware');
@@ -31,14 +27,14 @@ const invalidateVendorCache = (storeId, userId) => {
 /**
  * التحقق من ملكية المتجر
  */
-const checkStoreOwnership = async (storeId, userId) => {
+const checkStoreOwnership = async (storeId, userId, req = null) => {
   const store = await Store.findById(storeId);
   if (!store) {
     throw new AppError('المتجر غير موجود', 404);
   }
 
   // المشرف يمكنه الوصول لأي متجر
-  if (req.user?.role === 'admin') return { store };
+  if (req?.user?.role === 'admin') return { store };
 
   if (!store.owner || store.owner.toString() !== userId) {
     throw new AppError('غير مصرح لك بالوصول إلى هذا المتجر', 403);
@@ -1355,7 +1351,6 @@ exports.toggleVendorStatus = async (req, res) => {
     const { id } = req.params;
     const { isActive } = req.body;
 
-    // التحقق من وجود البيانات
     if (isActive === undefined) {
       return res.status(400).json({
         success: false,
@@ -1398,71 +1393,5 @@ exports.toggleVendorStatus = async (req, res) => {
     });
   }
 };
-
-
-/**
- * @desc    الحصول على جميع التجار (للمشرفين)
- */
-exports.getVendors = async (req, res) => {
-  try {
-    const User = require('../models/user.model');
-    const vendors = await User.find({ role: 'store_owner' })
-      .select('name phone email image storeOwnerInfo createdAt')
-      .lean();
-
-    res.json({
-      success: true,
-      data: vendors
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-/**
- * @desc    الحصول على تاجر محدد
- */
-exports.getVendorById = async (req, res) => {
-  try {
-    const User = require('../models/user.model');
-    const vendor = await User.findById(req.params.id)
-      .select('-password -verificationCode -resetPasswordToken')
-      .lean();
-
-    if (!vendor) {
-      return res.status(404).json({ success: false, message: 'التاجر غير موجود' });
-    }
-
-    res.json({
-      success: true,
-      data: vendor
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-/**
- * @desc    توثيق تاجر
- */
-exports.verifyVendor = async (req, res) => {
-  try {
-    const User = require('../models/user.model');
-    const vendor = await User.findByIdAndUpdate(
-      req.params.id,
-      { isVerified: true },
-      { new: true }
-    );
-
-    res.json({
-      success: true,
-      message: 'تم توثيق التاجر بنجاح',
-      data: { isVerified: vendor.isVerified }
-    });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
 
 module.exports = exports;

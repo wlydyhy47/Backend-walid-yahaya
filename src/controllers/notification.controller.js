@@ -4,9 +4,7 @@
 // الإصدار: 2.0 (موحد)
 // ============================================
 
-const Notification = require("../models/notification.model");
-const User = require("../models/user.model");
-const Device = require("../models/device.model");
+const { Notification, User, Device } = require('../models');
 const cache = require("../utils/cache.util");
 const PaginationUtils = require('../utils/pagination.util');
 const notificationService = require("../services/notification.service");

@@ -4,7 +4,7 @@
 // الإصدار: 2.0 (محدث)
 // ============================================
 
-const Address = require("../models/address.model");
+const { Address } = require('../models');
 const cache = require("../utils/cache.util");
 const { AppError } = require('../middlewares/errorHandler.middleware');
 

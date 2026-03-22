@@ -1,7 +1,6 @@
 // /opt/render/project/src/src/controllers/favorite.controller.js
 
-const Favorite = require("../models/favorite.model");
-
+const { Favorite } = require('../models');
 /**
  * GET مفضلات المستخدم
  */

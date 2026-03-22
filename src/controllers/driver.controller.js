@@ -4,9 +4,7 @@
 // الإصدار: 1.0 (جديد)
 // ============================================
 
-const User = require("../models/user.model");
-const Order = require("../models/order.model");
-const DriverLocation = require("../models/driverLocation.model");
+const { User, Order, DriverLocation } = require('../models');
 const cache = require("../utils/cache.util");
 const PaginationUtils = require('../utils/pagination.util');
 const { AppError } = require('../middlewares/errorHandler.middleware');

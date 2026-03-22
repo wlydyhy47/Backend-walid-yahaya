@@ -4,8 +4,7 @@
 // الإصدار: 1.0 (جديد)
 // ============================================
 
-const User = require("../models/user.model");
-const Order = require("../models/order.model");
+const { User, Order } = require('../models');
 const cache = require("../utils/cache.util");
 const { AppError } = require('../middlewares/errorHandler.middleware');
 

@@ -4,9 +4,7 @@
 // الإصدار: 2.0
 // ============================================
 
-const Review = require("../models/review.model");
-const Store = require("../models/store.model");
-const Order = require("../models/order.model");
+const { Review, Store, Order, User } = require('../models');
 const cache = require("../utils/cache.util");
 const { AppError } = require('../middlewares/errorHandler.middleware');
 

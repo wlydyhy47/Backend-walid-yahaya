@@ -1,5 +1,5 @@
 // ============================================
-// ملف: src/app.js (محدث - مع طباعة المسارات)
+// ملف: src/app.js (المصحح)
 // ============================================
 
 const express = require("express");
@@ -8,9 +8,8 @@ const cors = require("cors");
 const helmet = require('helmet');
 const compression = require('compression');
 
-// ✅ استيراد الإعدادات الجديدة
+// ✅ استيراد الإعدادات
 const apiConfig = require('./config/api.config');
-const { validateAllControllers, quickCheck } = require('./utils/controllerValidator');
 
 // ✅ استيراد المسارات المجمعة
 const apiRoutes = require('./routes/api');
@@ -69,48 +68,31 @@ app.use(helmet({
   contentSecurityPolicy: false
 }));
 
-
-// التحقق السريع عند بدء التشغيل (في بيئة التطوير فقط)
-// if (process.env.NODE_ENV !== 'production') {
-//   console.log('\n🔍 جاري التحقق من الـ Controllers...');
-  
-//   // تحقق سريع
-//   quickCheck();
-  
-//   // تحقق كامل (اختياري)
-//   const result = validateAllControllers();
-//   if (!result.success) {
-//     console.warn('⚠️ تحذير: بعض الـ Controllers تحتوي على دوال مفقودة');
-//   }
-// }
-
-
-
 // ========== 3. الملفات الثابتة ==========
 app.use('/public', express.static(path.join(__dirname, 'public'), {
-    maxAge: '7d',
-    immutable: true,
-    setHeaders: (res) => {
-        res.header('Access-Control-Allow-Origin', '*');
-        res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
-        res.header('Access-Control-Allow-Headers', '*');
-    }
+  maxAge: '7d',
+  immutable: true,
+  setHeaders: (res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.header('Access-Control-Allow-Headers', '*');
+  }
 }));
 
 app.use('/images', express.static(path.join(__dirname, 'public/images'), {
-    maxAge: '30d',
-    immutable: true,
-    setHeaders: (res) => {
-        res.header('Access-Control-Allow-Origin', '*');
-    }
+  maxAge: '30d',
+  immutable: true,
+  setHeaders: (res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
 }));
 
 app.use('/icons', express.static(path.join(__dirname, 'public/icons'), {
-    maxAge: '30d',
-    immutable: true,
-    setHeaders: (res) => {
-        res.header('Access-Control-Allow-Origin', '*');
-    }
+  maxAge: '30d',
+  immutable: true,
+  setHeaders: (res) => {
+    res.header('Access-Control-Allow-Origin', '*');
+  }
 }));
 
 // ========== 4. Logging & Performance ==========
@@ -144,11 +126,11 @@ if (process.env.NODE_ENV !== 'production') {
 
 // ========== 8. مسارات الملفات الثابتة ==========
 app.get('/favicon.ico', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/icons/favicon.ico'));
+  res.sendFile(path.join(__dirname, 'public/icons/favicon.ico'));
 });
 
 app.get('/logo.png', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/images/logo.png'));
+  res.sendFile(path.join(__dirname, 'public/images/logo.png'));
 });
 
 // ========== 9. المسار الرئيسي ==========
@@ -163,7 +145,7 @@ app.get("/", (req, res) => {
   });
 });
 
-// ========== 10. ✅ المسارات المجمعة (الأهم) ==========
+// ========== 10. المسارات المجمعة ==========
 app.use(`/${apiConfig.api.prefix}/${apiConfig.api.defaultVersion}`, apiRoutes);
 
 // ========== 11. Health Check ==========
@@ -195,12 +177,12 @@ if (process.env.NODE_ENV !== 'production') {
   }, 60 * 60 * 1000);
 }
 
-// ========== 14. Error Handling ==========
+// ========== 13. Error Handling ==========
 app.use(notFoundHandler);
 app.use(errorLogger);
 app.use(errorHandler);
 
-// ========== 15. مسار اختبار بسيط ==========
+// ========== 14. مسار اختبار ==========
 app.get('/test-routes', (req, res) => {
   res.json({
     success: true,

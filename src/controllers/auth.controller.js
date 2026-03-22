@@ -1,15 +1,16 @@
 // ============================================
-// ملف: src/controllers/auth.controller.js
-// الوصف: عمليات المصادقة الموحدة - نسخة نهائية
+// ملف: src/controllers/auth.controller.js (المصحح)
+// الوصف: عمليات المصادقة الموحدة
 // ============================================
 
-const User = require("../models/user.model");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const cache = require("../utils/cache.util");
-const RefreshToken = require("../models/refreshToken.model");
 const SecurityCheck = require('../utils/securityCheck.util');
+
+// ✅ استيراد موحد من models/index.js
+const { User, RefreshToken } = require('../models');
 
 // ========== 1. دوال مساعدة ==========
 
@@ -74,10 +75,10 @@ const generateVerificationCode = () => {
   return crypto.randomBytes(3).toString("hex").toUpperCase();
 };
 
-// ========== 2. التسجيل (موحد) ==========
+// ========== 2. التسجيل ==========
 
 /**
- * @desc    تسجيل مستخدم جديد (يدعم البيانات البسيطة والكاملة)
+ * @desc    تسجيل مستخدم جديد
  * @route   POST /api/auth/register
  * @access  Public
  */
@@ -85,8 +86,7 @@ exports.register = async (req, res) => {
   try {
     const { 
       name, phone, password, email, role = "client",
-      dateOfBirth, gender, city, preferences,
-      ...additionalData 
+      dateOfBirth, gender, city, preferences
     } = req.body;
 
     // التحقق من البيانات الأساسية
@@ -97,7 +97,7 @@ exports.register = async (req, res) => {
       });
     }
 
-    // 🔐 فحص قوة كلمة المرور
+    // فحص قوة كلمة المرور
     const passwordCheck = SecurityCheck.isPasswordStrong(password);
     if (!passwordCheck.isValid) {
       return res.status(400).json({
@@ -108,7 +108,7 @@ exports.register = async (req, res) => {
       });
     }
 
-    // 🔐 فحص الاسم من SQL Injection
+    // فحص الاسم من SQL Injection
     if (SecurityCheck.hasSqlInjection(name)) {
       return res.status(400).json({
         success: false,
@@ -189,7 +189,6 @@ exports.register = async (req, res) => {
     // إعداد الرد
     const userResponse = prepareUserResponse(user);
 
-    // تحديد الرسالة حسب ما إذا كان هناك بريد إلكتروني
     const message = email 
       ? "تم التسجيل بنجاح. يرجى تفعيل حسابك عبر البريد الإلكتروني"
       : "تم التسجيل بنجاح. يرجى تفعيل حسابك";
@@ -216,7 +215,7 @@ exports.register = async (req, res) => {
   }
 };
 
-// ========== 3. تسجيل الدخول (موحد) ==========
+// ========== 3. تسجيل الدخول ==========
 
 /**
  * @desc    تسجيل الدخول (يدعم الهاتف أو البريد الإلكتروني)

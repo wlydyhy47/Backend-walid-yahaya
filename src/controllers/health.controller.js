@@ -1,7 +1,6 @@
 // ============================================
-// ملف: src/controllers/health.controller.js
+// ملف: src/controllers/health.controller.js (المصحح)
 // الوصف: فحوصات صحة النظام
-// الإصدار: 1.0 (جديد)
 // ============================================
 
 const mongoose = require("mongoose");
@@ -61,7 +60,6 @@ const checkDatabase = async () => {
     const state = mongoose.connection.readyState;
     const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
     
-    // تجربة استعلام بسيط
     let responseTime = null;
     if (state === 1) {
       const start = Date.now();
@@ -365,15 +363,13 @@ exports.getMetrics = async (req, res) => {
  */
 const checkDiskSpace = async () => {
   try {
-    // محاولة استخدام check-disk-space إذا كان مثبتاً
     let diskSpace;
     try {
       const checkDiskSpaceModule = require('check-disk-space');
       diskSpace = await checkDiskSpaceModule('/');
     } catch (e) {
-      // إذا لم يكن مثبتاً، نستخدم معلومات تقريبية
       diskSpace = {
-        free: os.freemem() * 10, // تقدير تقريبي
+        free: os.freemem() * 10,
         size: os.totalmem() * 20
       };
     }

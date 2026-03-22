@@ -4,13 +4,7 @@
 // الإصدار: 1.0
 // ============================================
 
-const Store = require("../models/store.model");
-const StoreAddress = require("../models/storeAddress.model");
-const Product = require("../models/product.model");  // ✅ تغيير من Item
-const Review = require("../models/review.model");
-const Favorite = require("../models/favorite.model");
-const Order = require("../models/order.model");
-const User = require("../models/user.model");
+const { Store, StoreAddress, Product, Review, Favorite, Order, User } = require('../models');
 const cloudinary = require("../config/cloudinary");
 const cache = require("../utils/cache.util");
 const fileService = require('../services/file.service');

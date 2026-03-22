@@ -1,11 +1,12 @@
 // ============================================
-// ملف: src/controllers/security.controller.js
+// ملف: src/controllers/security.controller.js (المصحح)
 // الوصف: فحوصات الأمان والتحقق
-// الإصدار: 1.0 (جديد)
 // ============================================
 
+// ✅ استيراد موحد من models/index.js
+const { User } = require('../models');
+
 const SecurityCheck = require('../utils/securityCheck.util');
-const User = require("../models/user.model");
 const cache = require("../utils/cache.util");
 const { AppError } = require('../middlewares/errorHandler.middleware');
 
@@ -202,7 +203,7 @@ exports.getUserSecurityAudit = async (req, res) => {
     const { userId } = req.params;
 
     const user = await User.findById(userId)
-      .select('passwordChangedAt lastLogin loginAttempts isVerified isActive')
+      .select('passwordChangedAt lastLogin loginAttempts isVerified isActive createdAt')
       .lean();
 
     if (!user) {

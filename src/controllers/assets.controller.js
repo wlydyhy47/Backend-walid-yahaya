@@ -1,7 +1,6 @@
 // ============================================
-// ملف: src/controllers/assets.controller.js
+// ملف: src/controllers/assets.controller.js (المصحح)
 // الوصف: إدارة الملفات الثابتة والصور
-// الإصدار: 1.0 (جديد)
 // ============================================
 
 const path = require('path');
@@ -24,7 +23,7 @@ const getFilesInDirectory = async (dir, extensions = []) => {
   try {
     const fullPath = path.join(PUBLIC_DIR, dir);
     const files = await fs.readdir(fullPath);
-
+    
     return files
       .filter(file => {
         if (extensions.length === 0) return true;
@@ -36,7 +35,7 @@ const getFilesInDirectory = async (dir, extensions = []) => {
         path: `/${dir}/${file}`,
         fullUrl: `${process.env.API_URL || 'http://localhost:3000'}/${dir}/${file}`,
         extension: path.extname(file).toLowerCase().slice(1),
-        size: null // سنضيف الحجم لاحقاً
+        size: null
       }));
   } catch (error) {
     console.error(`Error reading directory ${dir}:`, error);
@@ -67,7 +66,7 @@ exports.getImages = async (req, res) => {
   try {
     const cacheKey = 'assets:images:all';
     const cachedData = cache.get(cacheKey);
-
+    
     if (cachedData) {
       return res.json({
         success: true,
@@ -78,14 +77,14 @@ exports.getImages = async (req, res) => {
 
     const imagesDir = path.join(PUBLIC_DIR, 'images');
     const files = await fs.readdir(imagesDir);
-
+    
     const images = await Promise.all(
       files
         .filter(file => /\.(png|jpg|jpeg|gif|svg|webp|avif)$/i.test(file))
         .map(async (file) => {
           const filePath = path.join(imagesDir, file);
           const size = await getFileSize(filePath);
-
+          
           return {
             id: file,
             filename: file,
@@ -99,7 +98,6 @@ exports.getImages = async (req, res) => {
         })
     );
 
-    // تجميع حسب الفئة
     const grouped = images.reduce((acc, img) => {
       if (!acc[img.category]) acc[img.category] = [];
       acc[img.category].push(img);
@@ -113,7 +111,7 @@ exports.getImages = async (req, res) => {
       all: images
     };
 
-    cache.set(cacheKey, responseData, 600); // 10 دقائق
+    cache.set(cacheKey, responseData, 600);
 
     res.json({
       success: true,
@@ -136,7 +134,7 @@ exports.getImages = async (req, res) => {
 exports.getImagesByCategory = async (req, res) => {
   try {
     const { category } = req.params;
-
+    
     const validCategories = ['stores', 'items', 'users', 'covers', 'icons', 'defaults'];
     if (!validCategories.includes(category)) {
       return res.status(400).json({
@@ -147,7 +145,7 @@ exports.getImagesByCategory = async (req, res) => {
 
     const cacheKey = `assets:images:${category}`;
     const cachedData = cache.get(cacheKey);
-
+    
     if (cachedData) {
       return res.json({
         success: true,
@@ -156,21 +154,20 @@ exports.getImagesByCategory = async (req, res) => {
       });
     }
 
-    // البحث عن الصور التي تطابق الفئة
     const imagesDir = path.join(PUBLIC_DIR, 'images');
     const files = await fs.readdir(imagesDir);
-
+    
     const images = await Promise.all(
       files
         .filter(file => {
-          const matches = file.toLowerCase().includes(category) ||
-            file.toLowerCase().includes(category.slice(0, -1));
+          const matches = file.toLowerCase().includes(category) || 
+                         file.toLowerCase().includes(category.slice(0, -1));
           return matches && /\.(png|jpg|jpeg|gif|svg|webp)$/i.test(file);
         })
         .map(async (file) => {
           const filePath = path.join(imagesDir, file);
           const size = await getFileSize(filePath);
-
+          
           return {
             filename: file,
             url: `/images/${file}`,
@@ -182,7 +179,7 @@ exports.getImagesByCategory = async (req, res) => {
         })
     );
 
-    cache.set(cacheKey, images, 300); // 5 دقائق
+    cache.set(cacheKey, images, 300);
 
     res.json({
       success: true,
@@ -212,7 +209,7 @@ exports.getIcons = async (req, res) => {
   try {
     const cacheKey = 'assets:icons:all';
     const cachedData = cache.get(cacheKey);
-
+    
     if (cachedData) {
       return res.json({
         success: true,
@@ -223,14 +220,14 @@ exports.getIcons = async (req, res) => {
 
     const iconsDir = path.join(PUBLIC_DIR, 'icons');
     const files = await fs.readdir(iconsDir);
-
+    
     const icons = await Promise.all(
       files
         .filter(file => /\.(png|ico|svg)$/i.test(file))
         .map(async (file) => {
           const filePath = path.join(iconsDir, file);
           const size = await getFileSize(filePath);
-
+          
           return {
             filename: file,
             url: `/icons/${file}`,
@@ -249,7 +246,7 @@ exports.getIcons = async (req, res) => {
       appleTouch: icons.find(i => i.filename.includes('apple')) || null
     };
 
-    cache.set(cacheKey, responseData, 600); // 10 دقائق
+    cache.set(cacheKey, responseData, 600);
 
     res.json({
       success: true,
@@ -275,7 +272,7 @@ exports.getDefaultImages = async (req, res) => {
   try {
     const cacheKey = 'assets:defaults';
     const cachedData = cache.get(cacheKey);
-
+    
     if (cachedData) {
       return res.json({
         success: true,
@@ -291,11 +288,11 @@ exports.getDefaultImages = async (req, res) => {
         type: 'png',
         description: 'Default user avatar'
       },
-      restaurant: {
-        url: '/images/default-restaurant.jpg',
-        fullUrl: `${process.env.API_URL || 'http://localhost:3000'}/images/default-restaurant.jpg`,
+      store: {
+        url: '/images/default-store.jpg',
+        fullUrl: `${process.env.API_URL || 'http://localhost:3000'}/images/default-store.jpg`,
         type: 'jpg',
-        description: 'Default restaurant image'
+        description: 'Default store image'
       },
       item: {
         url: '/images/default-item.jpg',
@@ -333,7 +330,6 @@ exports.getDefaultImages = async (req, res) => {
       }
     };
 
-    // التحقق من وجود الملفات
     for (const [key, value] of Object.entries(defaults)) {
       if (key === 'logo') {
         for (const [subKey, subValue] of Object.entries(value)) {
@@ -356,7 +352,7 @@ exports.getDefaultImages = async (req, res) => {
       }
     }
 
-    cache.set(cacheKey, defaults, 3600); // ساعة واحدة
+    cache.set(cacheKey, defaults, 3600);
 
     res.json({
       success: true,
@@ -379,8 +375,8 @@ exports.getDefaultImages = async (req, res) => {
 exports.getDefaultImageByType = async (req, res) => {
   try {
     const { type } = req.params;
-
-    const validTypes = ['avatar', 'restaurant', 'item', 'cover', 'logo', 'favicon'];
+    
+    const validTypes = ['avatar', 'store', 'item', 'cover', 'logo', 'favicon'];
     if (!validTypes.includes(type)) {
       return res.status(400).json({
         success: false,
@@ -389,7 +385,7 @@ exports.getDefaultImageByType = async (req, res) => {
     }
 
     const defaults = await exports.getDefaultImages();
-
+    
     if (type === 'logo') {
       return res.json({
         success: true,
@@ -426,7 +422,6 @@ exports.uploadImage = async (req, res) => {
       });
     }
 
-    // التحقق من نوع الملف
     const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     if (!allowedTypes.includes(req.file.mimetype)) {
       return res.status(400).json({
@@ -435,7 +430,6 @@ exports.uploadImage = async (req, res) => {
       });
     }
 
-    // التحقق من الحجم (5MB كحد أقصى)
     if (req.file.size > 5 * 1024 * 1024) {
       return res.status(400).json({
         success: false,
@@ -443,7 +437,6 @@ exports.uploadImage = async (req, res) => {
       });
     }
 
-    // إنشاء روابط للصور المحسنة
     const optimizedUrls = {};
     if (req.file.publicId) {
       optimizedUrls.thumbnail = fileService.getOptimizedUrl(req.file.publicId, 'thumbnail');
@@ -504,8 +497,6 @@ exports.deleteImage = async (req, res) => {
   }
 };
 
-// ========== 6. معلومات الملفات ==========
-
 /**
  * @desc    الحصول على معلومات ملف
  * @route   GET /api/assets/info/:publicId
@@ -537,21 +528,21 @@ exports.getFileInfo = async (req, res) => {
   }
 };
 
-// ========== 7. دوال مساعدة ==========
+// ========== 6. دوال مساعدة ==========
 
 /**
  * تحديد فئة الصورة من اسمها
  */
 const getImageCategory = (filename) => {
   const name = filename.toLowerCase();
-
-  if (name.includes('restaurant') || name.includes('resto')) return 'stores';
+  
+  if (name.includes('store') || name.includes('resto')) return 'stores';
   if (name.includes('item') || name.includes('food') || name.includes('meal')) return 'items';
   if (name.includes('user') || name.includes('avatar') || name.includes('profile')) return 'users';
   if (name.includes('cover') || name.includes('banner')) return 'covers';
   if (name.includes('icon') || name.includes('logo')) return 'icons';
   if (name.includes('default')) return 'defaults';
-
+  
   return 'other';
 };
 
@@ -560,13 +551,13 @@ const getImageCategory = (filename) => {
  */
 const getIconPurpose = (filename) => {
   const name = filename.toLowerCase();
-
+  
   if (name === 'favicon.ico') return 'favicon';
   if (name.includes('apple-touch-icon')) return 'apple-touch';
   if (name.includes('icon-192')) return 'android-192';
   if (name.includes('icon-512')) return 'android-512';
   if (name.includes('manifest')) return 'manifest';
-
+  
   return 'general';
 };
 

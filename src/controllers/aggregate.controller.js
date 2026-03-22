@@ -3,15 +3,7 @@
 // الوصف: التحكم في عمليات التجميع والتحليلات
 // الإصدار: 2.0 (محدث)
 // ============================================
-
-const User = require('../models/user.model');
-const Address = require('../models/address.model');
-const Order = require('../models/order.model');
-const Store = require('../models/store.model');
-const StoreAddress = require('../models/storeAddress.model');
-const Review = require('../models/review.model');
-const Item = require('../models/product.model');
-const DriverLocation = require('../models/driverLocation.model');
+const { User, Address, Order, Store, StoreAddress, Review, Product, DriverLocation, Notification} = require('../models');
 const cache = require('../utils/cache.util');
 const PaginationUtils = require('../utils/pagination.util');
 
@@ -79,7 +71,6 @@ exports.getDashboardData = async (req, res) => {
 
       // جلب عدد الإشعارات غير المقروءة
       (async () => {
-        const Notification = require('../models/notification.model');
         return await Notification.countDocuments({
           user: userId,
           status: 'unread',

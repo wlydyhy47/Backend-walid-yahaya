@@ -4,13 +4,7 @@
 // الإصدار: 4.0 (مصحح بالكامل)
 // ============================================
 
-const Order = require("../models/order.model");
-const User = require("../models/user.model");
-const Address = require("../models/address.model");
-const Store = require("../models/store.model");
-const DriverLocation = require("../models/driverLocation.model");
-const Review = require("../models/review.model");
-const Notification = require("../models/notification.model");
+const { Order, User, Address, Store, DriverLocation, Review, Notification } = require('../models');
 const cache = require("../utils/cache.util");
 const PaginationUtils = require('../utils/pagination.util');
 const notificationService = require("../services/notification.service");

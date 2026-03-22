@@ -4,11 +4,7 @@
 // الإصدار: 1.0 (جديد)
 // ============================================
 
-const User = require("../models/user.model");
-const Order = require("../models/order.model");
-const Restaurant = require("../models/store.model");
-const Item = require("../models/product.model");
-const Review = require("../models/review.model");
+const { User, Order, Store, Product, Review } = require('../models');
 const cache = require("../utils/cache.util");
 const performanceService = require("../services/performance.service");
 const { AppError } = require('../middlewares/errorHandler.middleware');
@@ -370,7 +366,7 @@ exports.getDashboardOverview = async (req, res) => {
       ]),
 
       // إحصائيات المطاعم
-      Restaurant.aggregate([
+      Store.aggregate([
         {
           $facet: {
             total: [{ $count: 'count' }],

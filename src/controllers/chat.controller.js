@@ -3,13 +3,8 @@
 // الوصف: التحكم الكامل في عمليات الدردشة
 // الإصدار: 2.0 (موحد)
 // ============================================
-
-const Conversation = require("../models/conversation.model");
-const Message = require("../models/message.model");
-const User = require("../models/user.model");
-const Order = require("../models/order.model");
-const Store = require("../models/store.model");
-const chatSocketService = require("../services/chat.socket.service");
+const { Conversation, Message, User, Order, Store } = require('../models');
+const socketService = require("../services/socket.service");
 const notificationService = require("../services/notification.service");
 const cache = require("../utils/cache.util");
 const PaginationUtils = require("../utils/pagination.util");
@@ -684,7 +679,7 @@ exports.updateConversation = async (req, res) => {
     invalidateConversationCache(conversationId, conversation.participants);
 
     // إرسال تحديث عبر Socket
-    chatSocketService.updateConversationStatus(conversationId, {
+    socketService.updateConversationStatus(conversationId, {
       type: "updated",
       updatedBy: userId,
       updates: Object.keys(filteredUpdates)
@@ -743,7 +738,7 @@ exports.deleteConversation = async (req, res) => {
     invalidateConversationCache(conversationId, conversation.participants);
 
     // إرسال تحديث عبر Socket
-    chatSocketService.updateConversationStatus(conversationId, {
+    socketService.updateConversationStatus(conversationId, {
       type: "deleted",
       deletedBy: userId
     });
@@ -947,7 +942,7 @@ exports.addParticipant = async (req, res) => {
     invalidateConversationCache(conversationId, [participantId, ...conversation.participants]);
 
     // إرسال تحديث عبر Socket
-    chatSocketService.addParticipantToChat(conversationId, participantId);
+    socketService.addParticipantToChat(conversationId, participantId);
 
     res.json({
       success: true,
@@ -1006,7 +1001,7 @@ exports.removeParticipant = async (req, res) => {
     invalidateConversationCache(conversationId, [participantId, ...conversation.participants]);
 
     // إرسال تحديث عبر Socket
-    chatSocketService.removeParticipantFromChat(conversationId, participantId);
+    socketService.removeParticipantFromChat(conversationId, participantId);
 
     res.json({
       success: true,
@@ -1371,7 +1366,7 @@ exports.sendTextMessage = async (req, res) => {
     invalidateConversationCache(conversationId, conversation.participants);
 
     // إرسال الرسالة عبر Socket
-    chatSocketService.sendMessage(conversationId, populatedMessage);
+    socketService.sendMessage(conversationId, populatedMessage);
 
     res.status(201).json({
       success: true,
@@ -1462,7 +1457,7 @@ exports.sendMediaMessage = async (req, res) => {
     invalidateConversationCache(conversationId, conversation.participants);
 
     // إرسال الرسالة عبر Socket
-    chatSocketService.sendMessage(conversationId, populatedMessage);
+    socketService.sendMessage(conversationId, populatedMessage);
 
     res.status(201).json({
       success: true,
@@ -1529,7 +1524,7 @@ exports.sendLocationMessage = async (req, res) => {
     invalidateConversationCache(conversationId, conversation.participants);
 
     // إرسال عبر Socket
-    chatSocketService.sendMessage(conversationId, populatedMessage);
+    socketService.sendMessage(conversationId, populatedMessage);
 
     res.status(201).json({
       success: true,
@@ -1580,7 +1575,7 @@ exports.sendContactMessage = async (req, res) => {
       .lean();
 
     invalidateConversationCache(conversationId, conversation.participants);
-    chatSocketService.sendMessage(conversationId, populatedMessage);
+    socketService.sendMessage(conversationId, populatedMessage);
 
     res.status(201).json({
       success: true,
@@ -1805,7 +1800,7 @@ exports.forwardMessage = async (req, res) => {
     invalidateConversationCache(toConversationId, [userId]);
 
     // إرسال عبر Socket
-    chatSocketService.sendMessage(toConversationId, populatedMessage);
+    socketService.sendMessage(toConversationId, populatedMessage);
 
     res.status(201).json({
       success: true,
@@ -3444,7 +3439,7 @@ exports.broadcastMessage = async (req, res) => {
         results.successful++;
 
         // إرسال عبر Socket
-        chatSocketService.sendMessage(conversation._id, message);
+        socketService.sendMessage(conversation._id, message);
 
       } catch (error) {
         results.failed++;
