@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/analytics.routes.js
 // الوصف: مسارات التحليلات والأداء الموحدة
+// الإصدار: 2.0
 // ============================================
 
 const express = require('express');
@@ -50,6 +51,15 @@ const performanceService = require('../services/performance.service');
  *     responses:
  *       200:
  *         description: تم تسجيل الحدث
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
  */
 router.post('/events', (req, res) => {
   const { eventName, userId, sessionId, properties, timestamp } = req.body;
@@ -95,6 +105,15 @@ router.post('/events', (req, res) => {
  *     responses:
  *       200:
  *         description: تم تسجيل الأحداث
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: integer
  */
 router.post('/events/batch', (req, res) => {
   const { events = [] } = req.body;
@@ -161,13 +180,17 @@ router.post('/identify', auth, (req, res) => {
  *                 data:
  *                   type: object
  *                   properties:
- *                     totalRequests:
- *                       type: integer
- *                     averageResponseTime:
- *                       type: number
- *                     errorRate:
- *                       type: number
- *                     requestsByEndpoint:
+ *                     summary:
+ *                       type: object
+ *                     slowest:
+ *                       type: object
+ *                     frequency:
+ *                       type: object
+ *                     distribution:
+ *                       type: object
+ *                     errors:
+ *                       type: object
+ *                     system:
  *                       type: object
  *                     recent:
  *                       type: object

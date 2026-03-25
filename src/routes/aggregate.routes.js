@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/aggregate.routes.js
 // الوصف: مسارات التجميع والبيانات المركبة (تتطلب توثيق)
+// الإصدار: 2.0
 // ============================================
 
 const express = require('express');
@@ -31,6 +32,28 @@ const PaginationUtils = require('../utils/pagination.util');
  *     responses:
  *       200:
  *         description: بيانات لوحة التحكم
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     addresses:
+ *                       type: array
+ *                     recentOrders:
+ *                       type: array
+ *                     topStores:
+ *                       type: array
+ *                     recentReviews:
+ *                       type: array
+ *                     stats:
+ *                       type: object
  */
 router.get('/dashboard', auth, aggregateController.getDashboardData);
 
@@ -42,6 +65,15 @@ router.get('/dashboard', auth, aggregateController.getDashboardData);
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تفاصيل المتجر الكاملة
  */
 router.get('/stores/:id/full', auth, aggregateController.getStoreDetails);
 
@@ -53,6 +85,15 @@ router.get('/stores/:id/full', auth, aggregateController.getStoreDetails);
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تفاصيل الطلب مع التتبع
  */
 router.get('/orders/:id/full', auth, aggregateController.getOrderWithTracking);
 
@@ -64,6 +105,30 @@ router.get('/orders/:id/full', auth, aggregateController.getOrderWithTracking);
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: minRating
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: tags
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: قائمة المتاجر
  */
 router.get('/stores', auth, PaginationUtils.validatePaginationParams, aggregateController.getStoresPaginated);
 
@@ -75,6 +140,34 @@ router.get('/stores', auth, PaginationUtils.validatePaginationParams, aggregateC
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: store
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: قائمة العناصر
  */
 router.get('/items', auth, PaginationUtils.validatePaginationParams, aggregateController.getItemsPaginated);
 
@@ -86,6 +179,32 @@ router.get('/items', auth, PaginationUtils.validatePaginationParams, aggregateCo
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: fromDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: toDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: قائمة الطلبات
  */
 router.get('/orders/me', auth, PaginationUtils.validatePaginationParams, aggregateController.getMyOrdersPaginated);
 
@@ -99,6 +218,9 @@ router.get('/orders/me', auth, PaginationUtils.validatePaginationParams, aggrega
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: بيانات لوحة تحكم المشرف
  */
 router.get('/admin/dashboard', auth, role('admin'), aggregateController.getAdminDashboard);
 
@@ -110,6 +232,9 @@ router.get('/admin/dashboard', auth, role('admin'), aggregateController.getAdmin
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: إحصائيات المستخدمين
  */
 router.get('/admin/stats/users', auth, role('admin'), aggregateController.getAdminUserStats);
 
@@ -121,6 +246,9 @@ router.get('/admin/stats/users', auth, role('admin'), aggregateController.getAdm
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: إحصائيات الطلبات
  */
 router.get('/admin/stats/orders', auth, role('admin'), aggregateController.getAdminOrderStats);
 
@@ -132,6 +260,9 @@ router.get('/admin/stats/orders', auth, role('admin'), aggregateController.getAd
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: إحصائيات الإيرادات
  */
 router.get('/admin/stats/revenue', auth, role('admin'), aggregateController.getAdminRevenueStats);
 
@@ -143,6 +274,44 @@ router.get('/admin/stats/revenue', auth, role('admin'), aggregateController.getA
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: store
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: driver
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: user
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: fromDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: toDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: قائمة الطلبات
  */
 router.get('/orders/admin', auth, role('admin'), PaginationUtils.validatePaginationParams, aggregateController.getOrdersPaginatedAdmin);
 
@@ -156,6 +325,26 @@ router.get('/orders/admin', auth, role('admin'), PaginationUtils.validatePaginat
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: format
+ *         schema:
+ *           type: string
+ *           enum: [json, csv]
+ *           default: json
+ *     responses:
+ *       200:
+ *         description: تقرير الطلبات
  */
 router.get('/reports/orders', auth, role('admin'), aggregateController.exportOrdersReport);
 
@@ -167,6 +356,9 @@ router.get('/reports/orders', auth, role('admin'), aggregateController.exportOrd
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: تقرير المستخدمين
  */
 router.get('/reports/users', auth, role('admin'), aggregateController.exportUsersReport);
 
@@ -178,6 +370,20 @@ router.get('/reports/users', auth, role('admin'), aggregateController.exportUser
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: تقرير الإيرادات
  */
 router.get('/reports/revenue', auth, role('admin'), aggregateController.exportRevenueReport);
 
@@ -189,6 +395,9 @@ router.get('/reports/revenue', auth, role('admin'), aggregateController.exportRe
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: تقرير المندوبين
  */
 router.get('/reports/drivers', auth, role('admin'), aggregateController.exportDriversReport);
 
@@ -200,6 +409,9 @@ router.get('/reports/drivers', auth, role('admin'), aggregateController.exportDr
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: تقرير المتاجر
  */
 router.get('/reports/stores', auth, role('admin'), aggregateController.exportStoresReport);
 
@@ -213,6 +425,9 @@ router.get('/reports/stores', auth, role('admin'), aggregateController.exportSto
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: إحصائيات اليوم
  */
 router.get('/advanced-stats/daily', auth, role('admin'), aggregateController.getDailyAdvancedStats);
 
@@ -224,6 +439,9 @@ router.get('/advanced-stats/daily', auth, role('admin'), aggregateController.get
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: إحصائيات الأسبوع
  */
 router.get('/advanced-stats/weekly', auth, role('admin'), aggregateController.getWeeklyAdvancedStats);
 
@@ -235,6 +453,18 @@ router.get('/advanced-stats/weekly', auth, role('admin'), aggregateController.ge
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: month
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: إحصائيات الشهر
  */
 router.get('/advanced-stats/monthly', auth, role('admin'), aggregateController.getMonthlyAdvancedStats);
 
@@ -246,6 +476,28 @@ router.get('/advanced-stats/monthly', auth, role('admin'), aggregateController.g
  *     tags: [📈 Aggregates]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: from
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: to
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: groupBy
+ *         schema:
+ *           type: string
+ *           enum: [hour, day, week, month]
+ *           default: day
+ *     responses:
+ *       200:
+ *         description: إحصائيات مخصصة
  */
 router.get('/advanced-stats/custom', auth, role('admin'), aggregateController.getCustomStats);
 

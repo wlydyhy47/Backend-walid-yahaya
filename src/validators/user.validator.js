@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/validators/user.validator.js
 // الوصف: مصادقات بيانات المستخدم
+// الإصدار: 2.0
 // ============================================
 
 const Joi = require('joi');
@@ -32,13 +33,6 @@ const updateProfileSchema = Joi.object({
       'string.pattern.base': 'رقم الهاتف غير صالح'
     }),
   
-  image: Joi.string()
-    .uri()
-    .optional()
-    .messages({
-      'string.uri': 'رابط الصورة غير صالح'
-    }),
-  
   bio: Joi.string()
     .max(500)
     .optional()
@@ -50,17 +44,24 @@ const updateProfileSchema = Joi.object({
     .max(100)
     .optional(),
   
-  preferredLanguage: Joi.string()
-    .valid('ar', 'en', 'fr')
-    .default('ar')
-    .messages({
-      'any.only': 'اللغة المفضلة يجب أن تكون ar, en, أو fr'
-    }),
+  dateOfBirth: Joi.date()
+    .optional(),
   
-  notificationPreferences: Joi.object({
-    email: Joi.boolean(),
-    sms: Joi.boolean(),
-    push: Joi.boolean()
+  gender: Joi.string()
+    .valid('male', 'female', 'other', 'prefer-not-to-say')
+    .optional(),
+  
+  preferences: Joi.object({
+    language: Joi.string().valid('ar', 'fr', 'en').optional(),
+    currency: Joi.string().valid('XOF', 'EUR', 'USD').optional(),
+    theme: Joi.string().valid('light', 'dark').optional(),
+    notifications: Joi.object({
+      email: Joi.boolean(),
+      sms: Joi.boolean(),
+      push: Joi.boolean(),
+      orderUpdates: Joi.boolean(),
+      promotions: Joi.boolean()
+    }).optional()
   }).optional()
 });
 
@@ -86,6 +87,20 @@ const presenceSchema = Joi.object({
     .messages({
       'any.required': 'حالة الاتصال مطلوبة'
     }),
+  
+  status: Joi.string()
+    .valid('online', 'away', 'busy', 'offline')
+    .optional(),
+  
+  latitude: Joi.number()
+    .min(-90)
+    .max(90)
+    .optional(),
+  
+  longitude: Joi.number()
+    .min(-180)
+    .max(180)
+    .optional(),
   
   lastSeen: Joi.date()
     .optional()
@@ -133,7 +148,8 @@ const updateUserByAdminSchema = Joi.object({
   phone: Joi.string().pattern(/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{4,6}$/).optional(),
   role: Joi.string().valid('client', 'driver', 'store_owner', 'admin').optional(),
   isActive: Joi.boolean().optional(),
-  isVerified: Joi.boolean().optional()
+  isVerified: Joi.boolean().optional(),
+  preferences: Joi.object().optional()
 });
 
 module.exports = {

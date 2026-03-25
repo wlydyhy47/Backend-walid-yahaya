@@ -1,7 +1,7 @@
 // ============================================
 // ملف: src/controllers/aggregate.controller.js
 // الوصف: التحكم في عمليات التجميع والتحليلات
-// الإصدار: 3.0 (مصحح - استخدام Product بدلاً من Item)
+// الإصدار: 3.0 (مصحح - استخدام Product بدلاً من )
 // ============================================
 const { User, Address, Order, Store, StoreAddress, Review, Product, DriverLocation, Notification } = require('../models');
 const cache = require('../utils/cache.util');
@@ -177,7 +177,7 @@ exports.getStoresPaginated = async (req, res) => {
           .limit(3)
           .lean();
 
-        // ✅ تم التصحيح: استخدام Product بدلاً من Item
+        // ✅ تم التصحيح: استخدام Product بدلاً من 
         const itemsCount = await Product.countDocuments({
           store: store._id,
           isAvailable: true

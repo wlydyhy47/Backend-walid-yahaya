@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/config/swagger.js
 // الوصف: إعدادات Swagger لتوثيق API بالكامل
+// الإصدار: 3.0
 // ============================================
 
 const swaggerJsdoc = require('swagger-jsdoc');
@@ -8,7 +9,6 @@ const path = require('path');
 
 /**
  * تحويل Joi Validator إلى Swagger Schema
- * هذه الدالة تستخدم لقراءة الـ Validators الفعلية وتحويلها تلقائياً
  */
 const convertJoiToSwagger = (joiSchema) => {
   if (!joiSchema || !joiSchema.describe) {
@@ -25,7 +25,6 @@ const convertJoiToSwagger = (joiSchema) => {
     };
 
     for (const [key, value] of Object.entries(keys)) {
-      // تحديد النوع الأساسي
       let type = 'string';
       if (value.type === 'number') type = 'number';
       if (value.type === 'boolean') type = 'boolean';
@@ -35,24 +34,20 @@ const convertJoiToSwagger = (joiSchema) => {
 
       swaggerSchema.properties[key] = { type };
 
-      // إضافة format للبريد الإلكتروني
       if (value.rules?.some(r => r.name === 'email')) {
         swaggerSchema.properties[key].format = 'email';
       }
 
-      // إضافة maxLength
       const maxRule = value.rules?.find(r => r.name === 'max');
       if (maxRule) {
         swaggerSchema.properties[key].maxLength = maxRule.args.limit;
       }
 
-      // إضافة minLength
       const minRule = value.rules?.find(r => r.name === 'min');
       if (minRule) {
         swaggerSchema.properties[key].minLength = minRule.args.limit;
       }
 
-      // إضافة minimum/maximum للأرقام
       if (type === 'number') {
         const minNumberRule = value.rules?.find(r => r.name === 'min');
         if (minNumberRule) {
@@ -64,23 +59,19 @@ const convertJoiToSwagger = (joiSchema) => {
         }
       }
 
-      // إضافة enum
       const validRule = value.rules?.find(r => r.name === 'valid');
       if (validRule && validRule.args?.value) {
         swaggerSchema.properties[key].enum = validRule.args.value;
       }
 
-      // إضافة default
       if (value.flags?.default !== undefined) {
         swaggerSchema.properties[key].default = value.flags.default;
       }
 
-      // إضافة required
       if (value.flags?.presence === 'required') {
         swaggerSchema.required.push(key);
       }
 
-      // معالجة الـ array
       if (type === 'array' && value.items) {
         swaggerSchema.properties[key].items = convertJoiToSwagger({ describe: () => ({ keys: { item: value.items } }) }).properties?.item || { type: 'string' };
       }
@@ -101,7 +92,7 @@ const swaggerOptions = {
     openapi: '3.0.0',
     info: {
       title: 'Food Delivery API',
-      version: '2.1.0',
+      version: '3.0.0',
       description: `
         🚀 **منصة توصيل الطعام المتكاملة**
         
@@ -168,11 +159,38 @@ const swaggerOptions = {
         }
       },
       schemas: {
-        // ========== Schemas من الـ Validators الفعلية ==========
-        
-        // Auth Schemas
+        // ========== Schemas من الـ Validators ==========
         RegisterInput: convertJoiToSwagger(require('../validators/auth.validator').registerSchema),
-        LoginInput: convertJoiToSwagger(require('../validators/auth.validator').loginSchema),
+        LoginInput: {
+          type: 'object',
+          required: ['password'],
+          properties: {
+            phone: {
+              type: 'string',
+              description: 'رقم الهاتف (مطلوب إذا لم يكن البريد موجوداً)',
+              example: '+966501234567',
+              pattern: '^[\\+]?[(]?[0-9]{3}[)]?[-\\s\\.]?[(]?[0-9]{3}[)]?[-\\s\\.]?[0-9]{4,6}$'
+            },
+            email: {
+              type: 'string',
+              format: 'email',
+              description: 'البريد الإلكتروني (اختياري، بديل عن الهاتف)',
+              example: 'user@example.com'
+            },
+            password: {
+              type: 'string',
+              format: 'password',
+              description: 'كلمة المرور (مطلوبة)',
+              minLength: 6,
+              example: 'Pass@123'
+            },
+            deviceId: {
+              type: 'string',
+              description: 'معرف الجهاز للإشعارات (اختياري)',
+              example: 'device_12345'
+            }
+          }
+        },
         ChangePasswordInput: convertJoiToSwagger(require('../validators/auth.validator').changePasswordSchema),
         ResetPasswordInput: convertJoiToSwagger(require('../validators/auth.validator').resetPasswordSchema),
         ForgotPasswordInput: convertJoiToSwagger(require('../validators/auth.validator').forgotPasswordSchema),
@@ -203,8 +221,6 @@ const swaggerOptions = {
         AssignDriverInput: convertJoiToSwagger(require('../validators/order.validator').assignDriverSchema),
         
         // ========== نماذج إضافية ==========
-        
-        // نموذج المستخدم الكامل
         User: {
           type: 'object',
           properties: {
@@ -225,14 +241,14 @@ const swaggerOptions = {
           }
         },
         
-        // نموذج العنوان الكامل
         Address: {
           type: 'object',
           properties: {
             id: { type: 'string', example: '60d21b4667d0d8992e610c90' },
             userId: { type: 'string', example: '60d21b4667d0d8992e610c89' },
-            title: { type: 'string', example: 'المنزل' },
-            address: { type: 'string', example: 'شارع الملك فهد، الرياض' },
+            label: { type: 'string', enum: ['home', 'work', 'other'], example: 'home' },
+            addressLine: { type: 'string', example: 'شارع الملك فهد، الرياض' },
+            city: { type: 'string', example: 'الرياض' },
             latitude: { type: 'number', example: 24.7136 },
             longitude: { type: 'number', example: 46.6753 },
             isDefault: { type: 'boolean', example: true },
@@ -241,67 +257,90 @@ const swaggerOptions = {
           }
         },
         
-        // نموذج المتجر الكامل
         Store: {
           type: 'object',
           properties: {
             id: { type: 'string', example: '60d21b4667d0d8992e610c85' },
-            vendorId: { type: 'string', example: '60d21b4667d0d8992e610c86' },
+            owner: { type: 'string', example: '60d21b4667d0d8992e610c86' },
             name: { type: 'string', example: 'مطعم الأندلس' },
             description: { type: 'string', example: 'أشهى المأكولات العربية' },
             logo: { type: 'string', example: 'https://api.fooddelivery.com/uploads/logo-123.jpg' },
             coverImage: { type: 'string', example: 'https://api.fooddelivery.com/uploads/cover-123.jpg' },
-            status: { type: 'string', enum: ['pending', 'active', 'closed', 'suspended'], example: 'active' },
+            category: { type: 'string', enum: ['restaurant', 'cafe', 'fast_food', 'bakery', 'grocery', 'pharmacy', 'other'], example: 'restaurant' },
             isOpen: { type: 'boolean', example: true },
+            isVerified: { type: 'boolean', example: true },
             rating: { type: 'number', format: 'float', minimum: 0, maximum: 5, example: 4.7 },
-            deliveryRadius: { type: 'integer', example: 5000 },
-            minimumOrder: { type: 'number', example: 50 },
-            deliveryFee: { type: 'number', example: 15 },
-            openingTime: { type: 'string', example: '09:00' },
-            closingTime: { type: 'string', example: '23:00' },
-            categories: { type: 'array', items: { type: 'string' }, example: ['وجبات سريعة', 'مشروبات'] },
+            deliveryInfo: {
+              type: 'object',
+              properties: {
+                hasDelivery: { type: 'boolean', example: true },
+                deliveryFee: { type: 'number', example: 15 },
+                minOrderAmount: { type: 'number', example: 50 },
+                estimatedDeliveryTime: { type: 'integer', example: 30 },
+                deliveryRadius: { type: 'integer', example: 10 }
+              }
+            },
+            address: {
+              type: 'object',
+              properties: {
+                street: { type: 'string' },
+                city: { type: 'string' },
+                country: { type: 'string' }
+              }
+            },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' }
           }
         },
         
-        // نموذج المنتج الكامل
         Product: {
           type: 'object',
           properties: {
             id: { type: 'string', example: '60d21b4667d0d8992e610c87' },
-            storeId: { type: 'string', example: '60d21b4667d0d8992e610c85' },
+            store: { type: 'string', example: '60d21b4667d0d8992e610c85' },
             name: { type: 'string', example: 'شاورما دجاج' },
             description: { type: 'string', example: 'شاورما دجاج مع صلصة الثوم' },
             price: { type: 'number', example: 25 },
-            discountPrice: { type: 'number', example: 20 },
-            images: { type: 'array', items: { type: 'string' }, example: ['image1.jpg'] },
+            discountedPrice: { type: 'number', example: 20 },
+            image: { type: 'string', example: 'image.jpg' },
             category: { type: 'string', example: 'وجبات رئيسية' },
             isAvailable: { type: 'boolean', example: true },
-            featured: { type: 'boolean', example: false },
-            inventory: { type: 'integer', example: 100 },
-            calories: { type: 'integer', example: 450 },
+            inventory: {
+              type: 'object',
+              properties: {
+                quantity: { type: 'integer', example: 100 },
+                unit: { type: 'string', example: 'piece' },
+                lowStockThreshold: { type: 'integer', example: 5 },
+                trackInventory: { type: 'boolean', example: false }
+              }
+            },
+            attributes: {
+              type: 'object',
+              properties: {
+                spicyLevel: { type: 'integer', minimum: 0, maximum: 3, example: 1 },
+                isVegetarian: { type: 'boolean', example: false },
+                isVegan: { type: 'boolean', example: false },
+                isGlutenFree: { type: 'boolean', example: false }
+              }
+            },
             preparationTime: { type: 'integer', example: 15 },
-            rating: { type: 'number', format: 'float', example: 4.8 },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' }
           }
         },
         
-        // نموذج الطلب الكامل
         Order: {
           type: 'object',
           properties: {
             id: { type: 'string', example: '60d21b4667d0d8992e610c88' },
-            clientId: { type: 'string', example: '60d21b4667d0d8992e610c89' },
-            storeId: { type: 'string', example: '60d21b4667d0d8992e610c85' },
-            driverId: { type: 'string', example: '60d21b4667d0d8992e610c8a' },
+            user: { type: 'string', example: '60d21b4667d0d8992e610c89' },
+            store: { type: 'string', example: '60d21b4667d0d8992e610c85' },
+            driver: { type: 'string', example: '60d21b4667d0d8992e610c8a' },
             items: {
               type: 'array',
               items: {
                 type: 'object',
                 properties: {
-                  productId: { type: 'string' },
                   name: { type: 'string' },
                   quantity: { type: 'integer' },
                   price: { type: 'number' },
@@ -309,23 +348,19 @@ const swaggerOptions = {
                 }
               }
             },
-            subtotal: { type: 'number', example: 100 },
-            deliveryFee: { type: 'number', example: 15 },
-            discount: { type: 'number', example: 10 },
-            total: { type: 'number', example: 105 },
+            totalPrice: { type: 'number', example: 105 },
             status: {
               type: 'string',
-              enum: ['pending', 'accepted', 'preparing', 'ready', 'picked', 'delivered', 'cancelled'],
+              enum: ['pending', 'accepted', 'ready', 'picked', 'delivered', 'cancelled'],
               example: 'pending'
             },
             paymentMethod: { type: 'string', enum: ['cash', 'card', 'wallet'], example: 'cash' },
-            address: { $ref: '#/components/schemas/Address' },
+            deliveryAddress: { $ref: '#/components/schemas/Address' },
             createdAt: { type: 'string', format: 'date-time' },
             deliveredAt: { type: 'string', format: 'date-time' }
           }
         },
         
-        // نموذج الموقع الجغرافي
         Location: {
           type: 'object',
           properties: {
@@ -335,7 +370,6 @@ const swaggerOptions = {
           }
         },
         
-        // نموذج المسار
         Route: {
           type: 'object',
           properties: {
@@ -348,51 +382,33 @@ const swaggerOptions = {
           }
         },
         
-        // نموذج الرسالة
         Message: {
           type: 'object',
           properties: {
             id: { type: 'string' },
-            conversationId: { type: 'string' },
+            conversation: { type: 'string' },
             sender: { $ref: '#/components/schemas/User' },
             type: { type: 'string', enum: ['text', 'image', 'video', 'audio', 'location', 'contact', 'file'] },
-            content: { type: 'string' },
-            mediaUrl: { type: 'string' },
+            content: { type: 'object' },
             isRead: { type: 'boolean' },
             createdAt: { type: 'string', format: 'date-time' }
           }
         },
         
-        // نموذج المحادثة
-        Conversation: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            type: { type: 'string', enum: ['direct', 'group', 'support', 'order'] },
-            name: { type: 'string' },
-            participants: { type: 'array', items: { $ref: '#/components/schemas/User' } },
-            lastMessage: { $ref: '#/components/schemas/Message' },
-            unreadCount: { type: 'integer' },
-            createdAt: { type: 'string', format: 'date-time' }
-          }
-        },
-        
-        // نموذج الإشعار
         Notification: {
           type: 'object',
           properties: {
             id: { type: 'string' },
-            userId: { type: 'string' },
+            user: { type: 'string' },
             type: { type: 'string', enum: ['order', 'promotion', 'system', 'chat', 'loyalty'] },
             title: { type: 'string' },
-            message: { type: 'string' },
+            content: { type: 'string' },
             data: { type: 'object' },
             isRead: { type: 'boolean' },
             createdAt: { type: 'string', format: 'date-time' }
           }
         },
         
-        // نموذج نقاط الولاء
         LoyaltyPoints: {
           type: 'object',
           properties: {
@@ -410,7 +426,6 @@ const swaggerOptions = {
           }
         },
         
-        // نموذج الخطأ
         Error: {
           type: 'object',
           properties: {
@@ -421,7 +436,6 @@ const swaggerOptions = {
           }
         },
         
-        // نموذج النجاح
         Success: {
           type: 'object',
           properties: {
@@ -431,7 +445,6 @@ const swaggerOptions = {
           }
         },
         
-        // نموذج الترحيل (Pagination)
         Pagination: {
           type: 'object',
           properties: {
@@ -507,6 +520,21 @@ const swaggerOptions = {
               }
             }
           }
+        },
+        TooManyRequests: {
+          description: 'طلبات كثيرة جداً',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/Error'
+              },
+              example: {
+                success: false,
+                message: 'محاولات كثيرة جداً، الرجاء المحاولة لاحقاً',
+                code: 'RATE_LIMIT_EXCEEDED'
+              }
+            }
+          }
         }
       }
     },
@@ -532,34 +560,13 @@ const swaggerOptions = {
     ]
   },
   apis: [
-    // مسارات التوثيق
     path.join(__dirname, '../routes/*.js'),
     path.join(__dirname, '../routes/**/*.js'),
-    // نماذج إضافية
     path.join(__dirname, '../models/*.js')
   ]
 };
 
-/**
- * إنشاء مواصفات Swagger
- */ 
 const swaggerSpecs = swaggerJsdoc(swaggerOptions);
 
-// إضافة بعض التحسينات للمواصفات
-swaggerSpecs.components = {
-  ...swaggerSpecs.components,
-  securitySchemes: {
-    bearerAuth: {
-      type: 'http',
-      scheme: 'bearer',
-      bearerFormat: 'JWT',
-      description: 'أدخل التوكن بصيغة: Bearer <token>'
-    }
-  }
-};
-
-// تصدير المواصفات
 module.exports = swaggerSpecs;
-
-// تصدير الدالة المساعدة للتحويل
 module.exports.convertJoiToSwagger = convertJoiToSwagger;

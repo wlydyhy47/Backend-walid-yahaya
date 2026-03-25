@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/health.routes.js
 // الوصف: مسارات فحص صحة النظام
+// الإصدار: 2.0
 // ============================================
 
 const express = require('express');
@@ -33,13 +34,19 @@ const { healthController } = require('../controllers');
  *                   type: boolean
  *                 status:
  *                   type: string
- *                   example: healthy
+ *                   example: ok
  *                 timestamp:
  *                   type: string
  *                   format: date-time
  *                 uptime:
  *                   type: number
+ *                 uptimeHuman:
+ *                   type: string
  *                 version:
+ *                   type: string
+ *                 environment:
+ *                   type: string
+ *                 database:
  *                   type: string
  */
 router.get('/', healthController.quickHealthCheck);
@@ -60,23 +67,32 @@ router.get('/', healthController.quickHealthCheck);
  *               properties:
  *                 success:
  *                   type: boolean
- *                 data:
+ *                 status:
+ *                   type: string
+ *                 timestamp:
+ *                   type: string
+ *                 responseTime:
+ *                   type: string
+ *                 uptime:
+ *                   type: number
+ *                 uptimeHuman:
+ *                   type: string
+ *                 version:
+ *                   type: string
+ *                 environment:
+ *                   type: string
+ *                 nodeVersion:
+ *                   type: string
+ *                 platform:
+ *                   type: string
+ *                 memory:
  *                   type: object
- *                   properties:
- *                     status:
- *                       type: string
- *                     uptime:
- *                       type: number
- *                     memory:
- *                       type: object
- *                     database:
- *                       type: object
- *                     redis:
- *                       type: object
- *                     services:
- *                       type: object
- *                     timestamp:
- *                       type: string
+ *                 cpu:
+ *                   type: object
+ *                 checks:
+ *                   type: array
+ *                 recommendations:
+ *                   type: array
  */
 router.get('/detailed', healthController.fullHealthCheck);
 
@@ -90,6 +106,15 @@ router.get('/detailed', healthController.fullHealthCheck);
  *     responses:
  *       200:
  *         description: النظام جاهز
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 ready:
+ *                   type: boolean
+ *                 timestamp:
+ *                   type: string
  *       503:
  *         description: النظام غير جاهز
  */
@@ -105,6 +130,17 @@ router.get('/ready', healthController.readinessProbe);
  *     responses:
  *       200:
  *         description: النظام يعمل
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 alive:
+ *                   type: boolean
+ *                 timestamp:
+ *                   type: string
+ *                 uptime:
+ *                   type: number
  *       503:
  *         description: النظام غير مستقر
  */

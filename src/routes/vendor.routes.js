@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/vendor.routes.js
 // الوصف: مسارات أصحاب المتاجر الموحدة
+// الإصدار: 3.0
 // ============================================
 
 const express = require('express');
@@ -60,6 +61,20 @@ router.use(storeOwnerMiddleware);
  *     responses:
  *       200:
  *         description: بيانات التاجر والمتجر
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     storeStats:
+ *                       type: object
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
@@ -76,21 +91,14 @@ router.get('/profile', vendorController.getMyProfile);
  *     security:
  *       - bearerAuth: []
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *               phone:
- *                 type: string
- *               businessName:
- *                 type: string
- *               taxNumber:
- *                 type: string
+ *             $ref: '#/components/schemas/UpdateProfileInput'
+ *     responses:
+ *       200:
+ *         description: تم تحديث الملف الشخصي
  */
 router.put('/profile', validate(updateProfileSchema), vendorController.updateProfile);
 
@@ -102,6 +110,19 @@ router.put('/profile', validate(updateProfileSchema), vendorController.updatePro
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: تم تحديث الصورة الشخصية
  */
 router.put('/profile/avatar', 
   validate(avatarSchema),
@@ -130,29 +151,7 @@ router.put('/profile/avatar',
  *                 success:
  *                   type: boolean
  *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                     name:
- *                       type: string
- *                     description:
- *                       type: string
- *                     logo:
- *                       type: string
- *                     coverImage:
- *                       type: string
- *                     status:
- *                       type: string
- *                       enum: [pending, active, closed, suspended]
- *                     rating:
- *                       type: number
- *                     categories:
- *                       type: array
- *                     deliveryRadius:
- *                       type: integer
- *                     minimumOrder:
- *                       type: number
+ *                   $ref: '#/components/schemas/Store'
  */
 router.get('/store', vendorController.getMyStore);
 
@@ -165,31 +164,14 @@ router.get('/store', vendorController.getMyStore);
  *     security:
  *       - bearerAuth: []
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               categories:
- *                 type: array
- *                 items:
- *                   type: string
- *               deliveryRadius:
- *                 type: integer
- *               minimumOrder:
- *                 type: number
- *               deliveryFee:
- *                 type: number
- *               openingTime:
- *                 type: string
- *               closingTime:
- *                 type: string
- *               isOpen:
- *                 type: boolean
+ *             $ref: '#/components/schemas/UpdateStoreInput'
+ *     responses:
+ *       200:
+ *         description: تم تحديث المتجر
  */
 router.put('/store', validate(updateStoreSchema), vendorController.updateStore);
 
@@ -211,6 +193,9 @@ router.put('/store', validate(updateStoreSchema), vendorController.updateStore);
  *               logo:
  *                 type: string
  *                 format: binary
+ *     responses:
+ *       200:
+ *         description: تم تحديث شعار المتجر
  */
 router.put('/store/logo', 
   upload('stores/logos', ['image']).single('logo'), 
@@ -225,6 +210,19 @@ router.put('/store/logo',
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               cover:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: تم تحديث صورة الغلاف
  */
 router.put('/store/cover', 
   upload('stores/covers', ['image']).single('cover'), 
@@ -242,6 +240,20 @@ router.put('/store/cover',
  *     responses:
  *       200:
  *         description: تم تغيير حالة المتجر
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     isOpen:
+ *                       type: boolean
+ *                     updatedAt:
+ *                       type: string
  */
 router.put('/store/toggle-status', vendorController.toggleStoreStatus);
 
@@ -255,6 +267,9 @@ router.put('/store/toggle-status', vendorController.toggleStoreStatus);
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: قائمة العناوين
  */
 router.get('/store/addresses', vendorController.getAddresses);
 
@@ -273,18 +288,29 @@ router.get('/store/addresses', vendorController.getAddresses);
  *           schema:
  *             type: object
  *             required:
- *               - address
+ *               - addressLine
  *               - latitude
  *               - longitude
  *             properties:
- *               address:
+ *               label:
+ *                 type: string
+ *                 default: Main Branch
+ *               addressLine:
+ *                 type: string
+ *               city:
  *                 type: string
  *               latitude:
  *                 type: number
  *               longitude:
  *                 type: number
- *               isMain:
+ *               phone:
+ *                 type: string
+ *               isDefault:
  *                 type: boolean
+ *                 default: false
+ *     responses:
+ *       201:
+ *         description: تم إنشاء العنوان
  */
 router.post('/store/addresses', vendorController.createAddress);
 
@@ -296,6 +322,35 @@ router.post('/store/addresses', vendorController.createAddress);
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               label:
+ *                 type: string
+ *               addressLine:
+ *                 type: string
+ *               city:
+ *                 type: string
+ *               latitude:
+ *                 type: number
+ *               longitude:
+ *                 type: number
+ *               phone:
+ *                 type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: تم تحديث العنوان
  */
 router.put('/store/addresses/:id', vendorController.updateAddress);
 
@@ -307,8 +362,37 @@ router.put('/store/addresses/:id', vendorController.updateAddress);
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم حذف العنوان
  */
 router.delete('/store/addresses/:id', vendorController.deleteAddress);
+
+/**
+ * @swagger
+ * /vendor/store/addresses/{id}:
+ *   get:
+ *     summary: تفاصيل عنوان محدد
+ *     tags: [🏪 Vendor]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تفاصيل العنوان
+ */
+router.get('/store/addresses/:id', vendorController.getAddressById);
 
 // ========== 4. المنتجات ==========
 
@@ -339,9 +423,36 @@ router.delete('/store/addresses/:id', vendorController.deleteAddress);
  *         schema:
  *           type: boolean
  *       - in: query
- *         name: featured
+ *         name: inStock
  *         schema:
  *           type: boolean
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *     responses:
+ *       200:
+ *         description: قائمة المنتجات
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     products:
+ *                       type: array
+ *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *                     stats:
+ *                       type: object
  */
 router.get('/products', PaginationUtils.validatePaginationParams, productController.getVendorProducts);
 
@@ -358,42 +469,21 @@ router.get('/products', PaginationUtils.validatePaginationParams, productControl
  *       content:
  *         multipart/form-data:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *               - price
- *             properties:
- *               name:
- *                 type: string
- *               description:
- *                 type: string
- *               price:
- *                 type: number
- *               discountPrice:
- *                 type: number
- *               category:
- *                 type: string
- *               images:
- *                 type: array
- *                 items:
- *                   type: string
- *               isAvailable:
- *                 type: boolean
- *                 default: true
- *               featured:
- *                 type: boolean
- *                 default: false
- *               inventory:
- *                 type: integer
- *               unit:
- *                 type: string
- *               calories:
- *                 type: integer
- *               preparationTime:
- *                 type: integer
- *               image:
- *                 type: string
- *                 format: binary
+ *             $ref: '#/components/schemas/CreateProductInput'
+ *     responses:
+ *       201:
+ *         description: تم إنشاء المنتج
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Product'
+ *       400:
+ *         description: بيانات غير صحيحة
  */
 router.post('/products', 
   validate(createProductSchema),
@@ -409,6 +499,24 @@ router.post('/products',
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تفاصيل المنتج
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Product'
  */
 router.get('/products/:id', productController.getProductById);
 
@@ -420,6 +528,21 @@ router.get('/products/:id', productController.getProductById);
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateProductInput'
+ *     responses:
+ *       200:
+ *         description: تم تحديث المنتج
  */
 router.put('/products/:id', validate(updateProductSchema), productController.updateProduct);
 
@@ -431,6 +554,25 @@ router.put('/products/:id', validate(updateProductSchema), productController.upd
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: تم تحديث صورة المنتج
  */
 router.put('/products/:id/image', 
   upload('products', ['image']).single('image'), 
@@ -445,6 +587,15 @@ router.put('/products/:id/image',
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم حذف المنتج
  */
 router.delete('/products/:id', productController.deleteProduct);
 
@@ -456,6 +607,15 @@ router.delete('/products/:id', productController.deleteProduct);
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم تغيير حالة التوفر
  */
 router.put('/products/:id/toggle-availability', productController.toggleAvailability);
 
@@ -467,21 +627,21 @@ router.put('/products/:id/toggle-availability', productController.toggleAvailabi
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - quantity
- *             properties:
- *               quantity:
- *                 type: integer
- *               operation:
- *                 type: string
- *                 enum: [set, add, subtract]
- *                 default: set
+ *             $ref: '#/components/schemas/UpdateInventoryInput'
+ *     responses:
+ *       200:
+ *         description: تم تحديث المخزون
  */
 router.put('/products/:id/inventory', validate(updateInventorySchema), productController.updateInventory);
 
@@ -495,6 +655,44 @@ router.put('/products/:id/inventory', validate(updateInventorySchema), productCo
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, accepted, ready, picked, delivered, cancelled]
+ *       - in: query
+ *         name: date
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: قائمة الطلبات
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     orders:
+ *                       type: array
+ *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *                     stats:
+ *                       type: object
  */
 router.get('/orders', PaginationUtils.validatePaginationParams, orderController.getVendorOrders);
 
@@ -506,6 +704,15 @@ router.get('/orders', PaginationUtils.validatePaginationParams, orderController.
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تفاصيل الطلب
  */
 router.get('/orders/:id', orderController.getOrderDetails);
 
@@ -517,6 +724,24 @@ router.get('/orders/:id', orderController.getOrderDetails);
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               estimatedTime:
+ *                 type: integer
+ *                 description: الوقت المتوقع بالدقائق
+ *     responses:
+ *       200:
+ *         description: تم قبول الطلب
  */
 router.put('/orders/:id/accept', orderController.acceptOrder);
 
@@ -528,14 +753,26 @@ router.put('/orders/:id/accept', orderController.acceptOrder);
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - reason
  *             properties:
  *               reason:
  *                 type: string
+ *     responses:
+ *       200:
+ *         description: تم رفض الطلب
  */
 router.put('/orders/:id/reject', orderController.rejectOrder);
 
@@ -547,6 +784,24 @@ router.put('/orders/:id/reject', orderController.rejectOrder);
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               estimatedTime:
+ *                 type: integer
+ *                 description: الوقت المتوقع بالدقائق
+ *     responses:
+ *       200:
+ *         description: تم بدء تحضير الطلب
  */
 router.put('/orders/:id/start-preparing', orderController.startPreparing);
 
@@ -558,6 +813,15 @@ router.put('/orders/:id/start-preparing', orderController.startPreparing);
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم تعليم الطلب جاهزاً
  */
 router.put('/orders/:id/mark-ready', orderController.markOrderReady);
 
@@ -569,6 +833,25 @@ router.put('/orders/:id/mark-ready', orderController.markOrderReady);
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: طلبات اليوم
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     orders:
+ *                       type: array
+ *                     stats:
+ *                       type: object
+ *                     date:
+ *                       type: string
  */
 router.get('/orders/today', orderController.getTodayOrders);
 
@@ -580,6 +863,27 @@ router.get('/orders/today', orderController.getTodayOrders);
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: إحصائيات الطلبات
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     today:
+ *                       type: object
+ *                     weekly:
+ *                       type: array
+ *                     total:
+ *                       type: object
+ *                     byStatus:
+ *                       type: object
  */
 router.get('/orders/stats', orderController.getVendorOrderStats);
 
@@ -612,7 +916,27 @@ router.get('/orders/stats', orderController.getVendorOrderStats);
  *           format: date
  *     responses:
  *       200:
- *         description: بيانات التحليلات (الطلبات، الإيرادات، العملاء)
+ *         description: بيانات التحليلات
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     today:
+ *                       type: object
+ *                     weekly:
+ *                       type: object
+ *                     monthly:
+ *                       type: object
+ *                     topProducts:
+ *                       type: array
+ *                     orderStatus:
+ *                       type: object
  */
 router.get('/analytics', vendorController.getAnalytics);
 
@@ -624,6 +948,16 @@ router.get('/analytics', vendorController.getAnalytics);
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [day, week, month, year]
+ *           default: month
+ *     responses:
+ *       200:
+ *         description: التقرير المالي
  */
 router.get('/analytics/financial', vendorController.getFinancialReport);
 
@@ -635,6 +969,9 @@ router.get('/analytics/financial', vendorController.getFinancialReport);
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: تقرير الأداء
  */
 router.get('/analytics/performance', vendorController.getPerformanceReport);
 
@@ -658,6 +995,25 @@ router.get('/analytics/performance', vendorController.getPerformanceReport);
  *           type: string
  *           enum: [sales, revenue, rating]
  *           default: sales
+ *     responses:
+ *       200:
+ *         description: تحليلات المنتجات
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     byCategory:
+ *                       type: array
+ *                     availability:
+ *                       type: object
+ *                     priceRange:
+ *                       type: object
  */
 router.get('/analytics/products', vendorController.getProductAnalytics);
 
@@ -671,6 +1027,24 @@ router.get('/analytics/products', vendorController.getProductAnalytics);
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: rating
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 5
+ *     responses:
+ *       200:
+ *         description: قائمة التقييمات
  */
 router.get('/reviews', PaginationUtils.validatePaginationParams, reviewController.getVendorReviews);
 
@@ -682,6 +1056,27 @@ router.get('/reviews', PaginationUtils.validatePaginationParams, reviewControlle
  *     tags: [🏪 Vendor]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: إحصائيات التقييمات
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     overview:
+ *                       type: object
+ *                     percentages:
+ *                       type: object
+ *                     monthly:
+ *                       type: array
+ *                     recent:
+ *                       type: array
  */
 router.get('/reviews/stats', reviewController.getVendorReviewStats);
 
@@ -710,6 +1105,11 @@ router.get('/reviews/stats', reviewController.getVendorReviewStats);
  *             properties:
  *               reply:
  *                 type: string
+ *                 minLength: 2
+ *                 maxLength: 500
+ *     responses:
+ *       200:
+ *         description: تم إضافة الرد
  */
 router.post('/reviews/:id/reply', reviewController.replyToReview);
 

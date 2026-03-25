@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/security.routes.js
 // الوصف: مسارات الأمان والفحوصات
+// الإصدار: 2.0
 // ============================================
 
 const express = require('express');
@@ -110,6 +111,10 @@ router.post('/check-password', rateLimiter.apiLimiter, securityController.checkP
  *                       type: string
  *                     hasMx:
  *                       type: boolean
+ *                     suggestions:
+ *                       type: array
+ *                       items:
+ *                         type: string
  *       400:
  *         description: البريد الإلكتروني مطلوب
  */
@@ -126,6 +131,24 @@ router.post('/check-email', rateLimiter.apiLimiter, securityController.checkEmai
  *     responses:
  *       200:
  *         description: رؤوس الأمان
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     current:
+ *                       type: object
+ *                     status:
+ *                       type: string
+ *                     recommendations:
+ *                       type: array
+ *                       items:
+ *                         type: string
  *       403:
  *         description: غير مصرح - يتطلب صلاحيات المشرف
  */

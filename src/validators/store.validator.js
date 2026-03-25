@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/validators/store.validator.js
 // الوصف: مصادقات بيانات المتاجر
+// الإصدار: 2.0
 // ============================================
 
 const Joi = require('joi');
@@ -27,8 +28,8 @@ const createStoreSchema = Joi.object({
       'any.required': 'الوصف مطلوب'
     }),
   
-  type: Joi.string()
-    .valid('restaurant', 'cafe', 'fast_food', 'bakery', 'other')
+  category: Joi.string()
+    .valid('restaurant', 'cafe', 'fast_food', 'bakery', 'grocery', 'supermarket', 'pharmacy', 'clothing', 'electronics', 'other')
     .required()
     .messages({
       'any.only': 'نوع المتجر غير صالح',
@@ -59,27 +60,31 @@ const createStoreSchema = Joi.object({
     .uri()
     .optional(),
   
-  deliveryFee: Joi.number()
-    .min(0)
-    .default(0),
+  address: Joi.object({
+    street: Joi.string().max(200),
+    city: Joi.string().max(100),
+    state: Joi.string().max(100),
+    country: Joi.string().max(100).default('Niger'),
+    postalCode: Joi.string().max(20)
+  }).optional(),
   
-  minimumOrder: Joi.number()
-    .min(0)
-    .default(0),
-  
-  estimatedDeliveryTime: Joi.number()
-    .min(5)
-    .max(120)
-    .default(30),
+  deliveryInfo: Joi.object({
+    hasDelivery: Joi.boolean().default(true),
+    deliveryFee: Joi.number().min(0).default(0),
+    minOrderAmount: Joi.number().min(0).default(0),
+    estimatedDeliveryTime: Joi.number().min(5).max(120).default(30),
+    deliveryRadius: Joi.number().min(1).max(50).default(10),
+    freeDeliveryThreshold: Joi.number().min(0).default(0)
+  }).optional(),
   
   openingHours: Joi.object({
-    monday: Joi.object({ open: Joi.string(), close: Joi.string() }),
-    tuesday: Joi.object({ open: Joi.string(), close: Joi.string() }),
-    wednesday: Joi.object({ open: Joi.string(), close: Joi.string() }),
-    thursday: Joi.object({ open: Joi.string(), close: Joi.string() }),
-    friday: Joi.object({ open: Joi.string(), close: Joi.string() }),
-    saturday: Joi.object({ open: Joi.string(), close: Joi.string() }),
-    sunday: Joi.object({ open: Joi.string(), close: Joi.string() })
+    monday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }),
+    tuesday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }),
+    wednesday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }),
+    thursday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }),
+    friday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }),
+    saturday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }),
+    sunday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() })
   }).optional(),
   
   tags: Joi.array()
@@ -103,8 +108,8 @@ const updateStoreSchema = Joi.object({
     .max(500)
     .optional(),
   
-  type: Joi.string()
-    .valid('restaurant', 'cafe', 'fast_food', 'bakery', 'other')
+  category: Joi.string()
+    .valid('restaurant', 'cafe', 'fast_food', 'bakery', 'grocery', 'supermarket', 'pharmacy', 'clothing', 'electronics', 'other')
     .optional(),
   
   phone: Joi.string()
@@ -127,18 +132,22 @@ const updateStoreSchema = Joi.object({
     .uri()
     .optional(),
   
-  deliveryFee: Joi.number()
-    .min(0)
-    .optional(),
+  address: Joi.object({
+    street: Joi.string().max(200),
+    city: Joi.string().max(100),
+    state: Joi.string().max(100),
+    country: Joi.string().max(100),
+    postalCode: Joi.string().max(20)
+  }).optional(),
   
-  minimumOrder: Joi.number()
-    .min(0)
-    .optional(),
-  
-  estimatedDeliveryTime: Joi.number()
-    .min(5)
-    .max(120)
-    .optional(),
+  deliveryInfo: Joi.object({
+    hasDelivery: Joi.boolean(),
+    deliveryFee: Joi.number().min(0),
+    minOrderAmount: Joi.number().min(0),
+    estimatedDeliveryTime: Joi.number().min(5).max(120),
+    deliveryRadius: Joi.number().min(1).max(50),
+    freeDeliveryThreshold: Joi.number().min(0)
+  }).optional(),
   
   openingHours: Joi.object().optional(),
   
@@ -147,13 +156,29 @@ const updateStoreSchema = Joi.object({
     .optional(),
   
   isOpen: Joi.boolean()
-    .optional()
+    .optional(),
+  
+  settings: Joi.object({
+    autoAcceptOrders: Joi.boolean(),
+    preparationTimeBuffer: Joi.number().min(0).max(30),
+    maxOrdersPerHour: Joi.number().min(1).max(200),
+    currency: Joi.string(),
+    taxRate: Joi.number().min(0).max(100),
+    notifications: Joi.object({
+      email: Joi.boolean(),
+      push: Joi.boolean(),
+      sms: Joi.boolean()
+    })
+  }).optional()
 });
 
 /**
  * عنوان المتجر
  */
 const storeAddressSchema = Joi.object({
+  label: Joi.string()
+    .default('Main Branch'),
+  
   addressLine: Joi.string()
     .min(5)
     .max(200)
@@ -164,8 +189,15 @@ const storeAddressSchema = Joi.object({
     .max(100)
     .required(),
   
-  area: Joi.string()
+  state: Joi.string()
     .max(100)
+    .optional(),
+  
+  country: Joi.string()
+    .default('Niger'),
+  
+  postalCode: Joi.string()
+    .max(20)
     .optional(),
   
   latitude: Joi.number()
@@ -178,8 +210,15 @@ const storeAddressSchema = Joi.object({
     .max(180)
     .required(),
   
-  isMain: Joi.boolean()
-    .default(false)
+  phone: Joi.string()
+    .pattern(/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{4,6}$/)
+    .optional(),
+  
+  isDefault: Joi.boolean()
+    .default(false),
+  
+  isActive: Joi.boolean()
+    .default(true)
 });
 
 module.exports = {

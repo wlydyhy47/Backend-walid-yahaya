@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/index.js
 // الوصف: تنظيم جميع المسارات بشكل مركزي
+// الإصدار: 3.0
 // ============================================
 
 const express = require('express');
@@ -68,29 +69,14 @@ router.use('/map', require('./map.routes'));
  *                   type: string
  *                 endpoints:
  *                   type: object
- *                   properties:
- *                     auth:
- *                       type: string
- *                     public:
- *                       type: string
- *                     client:
- *                       type: string
- *                     vendor:
- *                       type: string
- *                     driver:
- *                       type: string
- *                     admin:
- *                       type: string
- *                     map:
- *                       type: string
  *                 timestamp:
  *                   type: string
  */
 router.get('/', (req, res) => {
   res.json({
     success: true,
-    message: 'Food Delivery API v2.1',
-    version: '2.1.0',
+    message: 'Food Delivery API v3.0',
+    version: '3.0.0',
     documentation: '/api-docs',
     baseUrl: '/api/v1',
     endpoints: {
@@ -100,7 +86,9 @@ router.get('/', (req, res) => {
       vendor: '/api/v1/vendor',
       driver: '/api/v1/driver',
       admin: '/api/v1/admin',
-      map: '/api/v1/map'
+      map: '/api/v1/map',
+      chat: '/api/v1/chat',
+      orders: '/api/v1/orders'
     },
     timestamp: new Date().toISOString()
   });

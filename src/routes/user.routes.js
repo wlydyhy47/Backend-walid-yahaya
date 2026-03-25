@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/user.routes.js
 // الوصف: مسارات إدارة المستخدمين (للمشرف فقط)
+// الإصدار: 2.0
 // ============================================
 
 const express = require("express");
@@ -21,6 +22,64 @@ const PaginationUtils = require('../utils/pagination.util');
 // ========== جميع المسارات تحتاج توثيق ودور Admin ==========
 router.use(auth);
 router.use(role("admin"));
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     CreateUserInput:
+ *       type: object
+ *       required:
+ *         - name
+ *         - phone
+ *         - password
+ *         - role
+ *       properties:
+ *         name:
+ *           type: string
+ *           minLength: 3
+ *           maxLength: 100
+ *         phone:
+ *           type: string
+ *           pattern: '^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{4,6}$'
+ *         email:
+ *           type: string
+ *           format: email
+ *         password:
+ *           type: string
+ *           format: password
+ *           minLength: 6
+ *         role:
+ *           type: string
+ *           enum: [client, driver, store_owner, admin]
+ *         isActive:
+ *           type: boolean
+ *           default: true
+ *         isVerified:
+ *           type: boolean
+ *           default: false
+ *     
+ *     UpdateUserByAdminInput:
+ *       type: object
+ *       properties:
+ *         name:
+ *           type: string
+ *           minLength: 3
+ *           maxLength: 100
+ *         email:
+ *           type: string
+ *           format: email
+ *         phone:
+ *           type: string
+ *           pattern: '^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{4,6}$'
+ *         role:
+ *           type: string
+ *           enum: [client, driver, store_owner, admin]
+ *         isActive:
+ *           type: boolean
+ *         isVerified:
+ *           type: boolean
+ */
 
 /**
  * @swagger
@@ -51,6 +110,10 @@ router.use(role("admin"));
  *         schema:
  *           type: boolean
  *       - in: query
+ *         name: isActive
+ *         schema:
+ *           type: boolean
+ *       - in: query
  *         name: search
  *         schema:
  *           type: string
@@ -70,7 +133,11 @@ router.use(role("admin"));
  *                   properties:
  *                     users:
  *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/User'
  *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *                     stats:
  *                       type: object
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
@@ -96,6 +163,24 @@ router.get("/", PaginationUtils.validatePaginationParams, userController.getUser
  *     responses:
  *       200:
  *         description: تفاصيل المستخدم
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     orders:
+ *                       type: array
+ *                     addresses:
+ *                       type: array
+ *                     reviews:
+ *                       type: array
  *       404:
  *         description: المستخدم غير موجود
  */
@@ -114,35 +199,21 @@ router.get("/:id", userController.getUserById);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - name
- *               - email
- *               - phone
- *               - password
- *               - role
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *                 format: email
- *               phone:
- *                 type: string
- *               password:
- *                 type: string
- *                 format: password
- *               role:
- *                 type: string
- *                 enum: [client, vendor, driver, admin]
- *               isVerified:
- *                 type: boolean
- *                 default: true
+ *             $ref: '#/components/schemas/CreateUserInput'
  *     responses:
  *       201:
  *         description: تم إنشاء المستخدم
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/User'
  *       400:
- *         description: البريد الإلكتروني موجود مسبقاً
+ *         description: البريد الإلكتروني أو رقم الهاتف موجود مسبقاً
  */
 router.post("/", userController.createUser);
 
@@ -164,20 +235,7 @@ router.post("/", userController.createUser);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *               email:
- *                 type: string
- *               phone:
- *                 type: string
- *               role:
- *                 type: string
- *               isVerified:
- *                 type: boolean
- *               isActive:
- *                 type: boolean
+ *             $ref: '#/components/schemas/UpdateUserByAdminInput'
  *     responses:
  *       200:
  *         description: تم تحديث المستخدم

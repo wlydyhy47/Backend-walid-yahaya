@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/notification.routes.js
 // الوصف: مسارات الإشعارات الموحدة
+// الإصدار: 2.0
 // ============================================
 
 const express = require("express");
@@ -51,6 +52,11 @@ router.use(auth);
  *         name: isRead
  *         schema:
  *           type: boolean
+ *       - in: query
+ *         name: priority
+ *         schema:
+ *           type: string
+ *           enum: [low, medium, high, urgent]
  *     responses:
  *       200:
  *         description: قائمة الإشعارات
@@ -80,12 +86,18 @@ router.get("/", PaginationUtils.validatePaginationParams, notificationController
  *                 data:
  *                   type: object
  *                   properties:
- *                     total:
- *                       type: integer
- *                     unread:
- *                       type: integer
- *                     byType:
+ *                     totals:
  *                       type: object
+ *                     byStatus:
+ *                       type: array
+ *                     byType:
+ *                       type: array
+ *                     byPriority:
+ *                       type: array
+ *                     byDay:
+ *                       type: array
+ *                     readRate:
+ *                       type: string
  */
 router.get("/stats", notificationController.getNotificationStats);
 
@@ -100,6 +112,18 @@ router.get("/stats", notificationController.getNotificationStats);
  *     responses:
  *       200:
  *         description: عدد الإشعارات غير المقروءة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     unreadCount:
+ *                       type: integer
  */
 router.get("/unread-count", notificationController.getUnreadCount);
 
@@ -131,6 +155,15 @@ router.put("/:id/read", notificationController.markAsRead);
  *     tags: [🔔 Notifications]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم تعليم الإشعار كغير مقروء
  */
 router.put("/:id/unread", notificationController.markAsUnread);
 
@@ -142,6 +175,15 @@ router.put("/:id/unread", notificationController.markAsUnread);
  *     tags: [🔔 Notifications]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم أرشفة الإشعار
  */
 router.put("/:id/archive", notificationController.archive);
 
@@ -153,6 +195,15 @@ router.put("/:id/archive", notificationController.archive);
  *     tags: [🔔 Notifications]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم حذف الإشعار
  */
 router.delete("/:id", notificationController.deleteNotification);
 
@@ -164,6 +215,9 @@ router.delete("/:id", notificationController.deleteNotification);
  *     tags: [🔔 Notifications]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: تم تعليم جميع الإشعارات كمقروءة
  */
 router.put("/mark-all-read", notificationController.markAllAsRead);
 
@@ -175,6 +229,15 @@ router.put("/mark-all-read", notificationController.markAllAsRead);
  *     tags: [🔔 Notifications]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: olderThan
+ *         schema:
+ *           type: integer
+ *           description: حذف الإشعارات الأقدم من عدد الأيام
+ *     responses:
+ *       200:
+ *         description: تم حذف الإشعارات المقروءة
  */
 router.delete("/read/cleanup", notificationController.deleteReadNotifications);
 
@@ -205,6 +268,9 @@ router.delete("/read/cleanup", notificationController.deleteReadNotifications);
  *                 type: boolean
  *               system:
  *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: تم تحديث تفضيلات الإشعارات
  */
 router.put("/preferences", notificationController.updateNotificationPreferences);
 
@@ -237,6 +303,13 @@ router.put("/preferences", notificationController.updateNotificationPreferences)
  *                 type: string
  *               appVersion:
  *                 type: string
+ *               deviceModel:
+ *                 type: string
+ *               osVersion:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: تم تسجيل الجهاز
  */
 router.post("/devices", notificationController.registerDevice);
 
@@ -248,6 +321,15 @@ router.post("/devices", notificationController.registerDevice);
  *     tags: [🔔 Notifications]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: deviceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم إلغاء تسجيل الجهاز
  */
 router.delete("/devices/:deviceId", notificationController.unregisterDevice);
 
@@ -270,36 +352,53 @@ router.delete("/devices/:deviceId", notificationController.unregisterDevice);
  *             required:
  *               - title
  *               - message
+ *               - userIds
  *             properties:
  *               title:
  *                 type: string
  *               message:
  *                 type: string
+ *               userIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *               type:
  *                 type: string
  *                 enum: [order, promotion, system, chat, loyalty]
- *               recipients:
- *                 type: object
- *                 properties:
- *                   all:
- *                     type: boolean
- *                   roles:
- *                     type: array
- *                     items:
- *                       type: string
- *                       enum: [client, vendor, driver]
- *                   userIds:
- *                     type: array
- *                     items:
- *                       type: string
+ *               priority:
+ *                 type: string
+ *                 enum: [low, medium, high, urgent]
  *               data:
  *                 type: object
+ *               link:
+ *                 type: string
+ *               icon:
+ *                 type: string
+ *               campaignId:
+ *                 type: string
  *               schedule:
  *                 type: string
  *                 format: date-time
+ *               group:
+ *                 type: string
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               settings:
+ *                 type: object
+ *                 properties:
+ *                   push:
+ *                     type: boolean
+ *                   email:
+ *                     type: boolean
+ *                   sms:
+ *                     type: boolean
+ *                   inApp:
+ *                     type: boolean
  *     responses:
  *       201:
- *         description: تم إرسال الإشعار
+ *         description: تم إرسال الإشعارات
  *       403:
  *         description: غير مصرح - يتطلب صلاحيات المشرف
  */
@@ -313,6 +412,37 @@ router.post("/send", role("admin"), notificationController.sendCustomNotificatio
  *     tags: [🔔 Notifications]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: campaignId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: إحصائيات الحملة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     summary:
+ *                       type: object
+ *                     byType:
+ *                       type: object
+ *                     byPriority:
+ *                       type: object
+ *                     byDay:
+ *                       type: array
+ *                     delivery:
+ *                       type: object
+ *                     timeline:
+ *                       type: object
  */
 router.get("/campaign/:campaignId/stats", role("admin"), notificationController.getCampaignStats);
 
@@ -324,6 +454,20 @@ router.get("/campaign/:campaignId/stats", role("admin"), notificationController.
  *     tags: [🔔 Notifications]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: إحصائيات جميع الإشعارات
  */
 router.get("/all/stats", role("admin"), notificationController.getAllNotificationsStats);
 

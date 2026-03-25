@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/driver.routes.js
 // الوصف: مسارات المندوبين الموحدة
+// الإصدار: 3.0
 // ============================================
 
 const express = require('express');
@@ -106,6 +107,9 @@ router.get('/profile', driverController.getMyProfile);
  *               image:
  *                 type: string
  *                 format: binary
+ *     responses:
+ *       200:
+ *         description: تم تحديث الصورة الشخصية
  */
 router.put('/profile/avatar', 
   validate(avatarSchema),
@@ -126,13 +130,7 @@ router.put('/profile/avatar',
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               isAvailable:
- *                 type: boolean
- *               status:
- *                 type: string
- *                 enum: [online, offline, busy, on_break]
+ *             $ref: '#/components/schemas/PresenceInput'
  *     responses:
  *       200:
  *         description: تم تغيير حالة التوفر
@@ -165,10 +163,16 @@ router.put('/profile/availability', validate(presenceSchema), driverController.t
  *                 example: 46.6753
  *               accuracy:
  *                 type: number
+ *                 description: دقة الموقع بالمتر
  *               heading:
  *                 type: number
+ *                 description: الاتجاه بالدرجات
  *               speed:
  *                 type: number
+ *                 description: السرعة كم/ساعة
+ *     responses:
+ *       200:
+ *         description: تم تحديث الموقع
  */
 router.put('/profile/location', driverController.updateLocation);
 
@@ -211,6 +215,22 @@ router.put('/profile/location', driverController.updateLocation);
  *     responses:
  *       200:
  *         description: قائمة التوصيلات
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     orders:
+ *                       type: array
+ *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *                     stats:
+ *                       type: object
  */
 router.get('/deliveries', PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
 
@@ -225,6 +245,24 @@ router.get('/deliveries', PaginationUtils.validatePaginationParams, orderControl
  *     responses:
  *       200:
  *         description: بيانات التوصيل الحالي
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     order:
+ *                       $ref: '#/components/schemas/Order'
+ *                     driverLocation:
+ *                       type: object
+ *                     estimatedDelivery:
+ *                       type: string
+ *                     timeline:
+ *                       type: array
  *       204:
  *         description: لا يوجد توصيل حالي
  */
@@ -244,6 +282,9 @@ router.get('/deliveries/current', orderController.getCurrentDelivery);
  *         required: true
  *         schema:
  *           type: string
+ *     responses:
+ *       200:
+ *         description: تفاصيل التوصيل
  */
 router.get('/deliveries/:id', orderController.getOrderDetails);
 
@@ -266,19 +307,7 @@ router.get('/deliveries/:id', orderController.getOrderDetails);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - status
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [picked, delivered]
- *               location:
- *                 type: object
- *               reason:
- *                 type: string
- *               signature:
- *                 type: string
+ *             $ref: '#/components/schemas/UpdateStatusInput'
  *     responses:
  *       200:
  *         description: تم تحديث الحالة
@@ -313,6 +342,15 @@ router.put('/deliveries/:id/status', validate(updateStatusSchema), orderControll
  *                 type: number
  *               longitude:
  *                 type: number
+ *               accuracy:
+ *                 type: number
+ *               heading:
+ *                 type: number
+ *               speed:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: تم تحديث الموقع
  */
 router.post('/deliveries/:id/location', orderController.updateDriverLocation);
 
@@ -324,6 +362,15 @@ router.post('/deliveries/:id/location', orderController.updateDriverLocation);
  *     tags: [🚗 Driver]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: معلومات التتبع
  */
 router.get('/deliveries/:id/track', orderController.trackOrder);
 
@@ -367,16 +414,14 @@ router.get('/deliveries/:id/track', orderController.trackOrder);
  *                 data:
  *                   type: object
  *                   properties:
- *                     total:
- *                       type: number
- *                     pending:
- *                       type: number
- *                     paid:
- *                       type: number
- *                     breakdown:
- *                       type: object
- *                     history:
+ *                     period:
+ *                       type: string
+ *                     earnings:
  *                       type: array
+ *                     totals:
+ *                       type: object
+ *                     currency:
+ *                       type: string
  */
 router.get('/earnings', orderController.getDriverEarnings);
 
@@ -388,6 +433,27 @@ router.get('/earnings', orderController.getDriverEarnings);
  *     tags: [🚗 Driver]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: إحصائيات الأرباح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     today:
+ *                       type: object
+ *                     week:
+ *                       type: object
+ *                     month:
+ *                       type: object
+ *                     total:
+ *                       type: object
  */
 router.get('/earnings/stats', driverController.getMyStats);
 
@@ -410,6 +476,37 @@ router.get('/earnings/stats', driverController.getMyStats);
  *         schema:
  *           type: integer
  *           default: 20
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: سجل الأرباح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     earnings:
+ *                       type: array
+ *                     monthlyStats:
+ *                       type: array
+ *                     stats:
+ *                       type: object
+ *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
  */
 router.get('/earnings/history', PaginationUtils.validatePaginationParams, driverController.getEarningsHistory);
 
@@ -436,24 +533,16 @@ router.get('/earnings/history', PaginationUtils.validatePaginationParams, driver
  *                 data:
  *                   type: object
  *                   properties:
- *                     totalDeliveries:
- *                       type: integer
- *                     completedDeliveries:
- *                       type: integer
- *                     cancelledDeliveries:
- *                       type: integer
- *                     averageRating:
- *                       type: number
- *                     averageDeliveryTime:
- *                       type: integer
- *                     totalDistance:
- *                       type: number
- *                     totalEarnings:
- *                       type: number
- *                     thisWeekEarnings:
- *                       type: number
- *                     onlineTime:
- *                       type: integer
+ *                     today:
+ *                       type: object
+ *                     week:
+ *                       type: object
+ *                     month:
+ *                       type: object
+ *                     total:
+ *                       type: object
+ *                     recentOrders:
+ *                       type: array
  */
 router.get('/stats', driverController.getMyStats);
 
@@ -472,6 +561,25 @@ router.get('/stats', driverController.getMyStats);
  *           type: string
  *           enum: [day, week, month, year]
  *           default: week
+ *     responses:
+ *       200:
+ *         description: تقرير الأداء
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     period:
+ *                       type: object
+ *                     performance:
+ *                       type: object
+ *                     summary:
+ *                       type: object
  */
 router.get('/performance', driverController.getPerformanceReport);
 

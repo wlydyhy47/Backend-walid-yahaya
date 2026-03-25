@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/map.routes.js
 // الوصف: مسارات الخرائط والتتبع الموحدة
+// الإصدار: 3.0
 // ============================================
 
 const express = require('express');
@@ -41,21 +42,42 @@ const { driverMiddleware, storeOwnerMiddleware } = require('../middlewares/role.
  *         distance:
  *           type: number
  *           description: المسافة بالمتر
+ *           example: 1250
  *         distanceKm:
  *           type: number
  *           description: المسافة بالكيلومتر
+ *           example: 1.25
  *         duration:
  *           type: number
  *           description: المدة بالثواني
+ *           example: 540
  *         durationMinutes:
  *           type: number
  *           description: المدة بالدقائق
+ *           example: 9
  *         geometry:
  *           type: object
  *           description: مسار الخط على الخريطة
  *         steps:
  *           type: array
  *           description: خطوات التوجيه
+ *     
+ *     DriverLocation:
+ *       type: object
+ *       properties:
+ *         driverId:
+ *           type: string
+ *         location:
+ *           $ref: '#/components/schemas/Location'
+ *         accuracy:
+ *           type: number
+ *         speed:
+ *           type: number
+ *         heading:
+ *           type: number
+ *         updatedAt:
+ *           type: string
+ *           format: date-time
  */
 
 // جميع المسارات تحتاج توثيق
@@ -217,6 +239,26 @@ router.get('/geocode', mapController.geocode);
  *     responses:
  *       200:
  *         description: العنوان
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     address:
+ *                       type: string
+ *                     street:
+ *                       type: string
+ *                     city:
+ *                       type: string
+ *                     country:
+ *                       type: string
+ *                     coordinates:
+ *                       $ref: '#/components/schemas/Location'
  */
 router.get('/reverse-geocode', mapController.reverseGeocode);
 
@@ -254,6 +296,22 @@ router.get('/reverse-geocode', mapController.reverseGeocode);
  *     responses:
  *       200:
  *         description: المسافات المحسوبة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     matrix:
+ *                       type: array
+ *                     distances:
+ *                       type: array
+ *                     durations:
+ *                       type: array
  */
 router.post('/distance', mapController.calculateDistance);
 
@@ -362,6 +420,37 @@ router.get('/static', mapController.getStaticMap);
  *     responses:
  *       200:
  *         description: قائمة المتاجر مع مواقعها
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     stores:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           logo:
+ *                             type: string
+ *                           category:
+ *                             type: string
+ *                           rating:
+ *                             type: number
+ *                           deliveryFee:
+ *                             type: number
+ *                           location:
+ *                             $ref: '#/components/schemas/Location'
+ *                     count:
+ *                       type: integer
  */
 router.get('/stores', mapController.getStoresMap);
 
@@ -395,7 +484,7 @@ router.get('/stores', mapController.getStoresMap);
  *                   type: object
  *                   properties:
  *                     order:
- *                       type: object
+ *                       $ref: '#/components/schemas/Order'
  *                     driverLocation:
  *                       $ref: '#/components/schemas/Location'
  *                     route:
@@ -427,6 +516,15 @@ router.get('/order/:orderId/route', mapController.getOrderRoute);
  *     responses:
  *       200:
  *         description: موقع المندوب الحالي
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/DriverLocation'
  */
 router.get('/driver/:driverId/track', mapController.trackDriver);
 
@@ -474,6 +572,26 @@ router.get('/driver/:driverId/track', mapController.trackDriver);
  *     responses:
  *       200:
  *         description: تم تحديث الموقع
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     location:
+ *                       $ref: '#/components/schemas/Location'
+ *                     accuracy:
+ *                       type: number
+ *                     heading:
+ *                       type: number
+ *                     speed:
+ *                       type: number
+ *                     timestamp:
+ *                       type: string
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  *       403:
@@ -492,6 +610,22 @@ router.put('/driver/location', driverMiddleware, mapController.updateDriverLocat
  *     responses:
  *       200:
  *         description: مسار الطلب الحالي
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     order:
+ *                       $ref: '#/components/schemas/Order'
+ *                     route:
+ *                       $ref: '#/components/schemas/Route'
+ *                     currentLocation:
+ *                       $ref: '#/components/schemas/Location'
  *       204:
  *         description: لا يوجد طلب حالي
  */
@@ -535,13 +669,13 @@ router.get('/driver/current-route', driverMiddleware, async (req, res) => {
  *         schema:
  *           type: string
  *       - in: query
- *         name: duration
+ *         name: minutes
  *         schema:
  *           type: integer
- *           default: 30
+ *           default: 15
  *           description: وقت التوصيل بالدقائق
  *       - in: query
- *         name: mode
+ *         name: profile
  *         schema:
  *           type: string
  *           enum: [driving, walking, cycling]
@@ -549,6 +683,20 @@ router.get('/driver/current-route', driverMiddleware, async (req, res) => {
  *     responses:
  *       200:
  *         description: منطقة التوصيل على شكل مضلع
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     store:
+ *                       type: object
+ *                     isochrone:
+ *                       type: object
  */
 router.get('/store/:storeId/isochrone', storeOwnerMiddleware, mapController.getStoreIsochrone);
 
@@ -581,14 +729,48 @@ router.get('/store/:storeId/isochrone', storeOwnerMiddleware, mapController.getS
  *               limit:
  *                 type: integer
  *                 default: 10
- *               status:
- *                 type: array
- *                 items:
- *                   type: string
- *                   enum: [online, available]
+ *               filters:
+ *                 type: object
+ *                 properties:
+ *                   minRating:
+ *                     type: number
+ *                   isAvailable:
+ *                     type: boolean
+ *                   status:
+ *                     type: array
+ *                     items:
+ *                       type: string
+ *                       enum: [online, available]
  *     responses:
  *       200:
  *         description: قائمة أقرب المندوبين
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     drivers:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           driver:
+ *                             type: object
+ *                           distance:
+ *                             type: number
+ *                           distanceKm:
+ *                             type: number
+ *                           duration:
+ *                             type: number
+ *                           durationMinutes:
+ *                             type: number
+ *                     nearest:
+ *                       type: object
  */
 router.post('/store/nearest-driver', storeOwnerMiddleware, mapController.findNearestDriver);
 
@@ -662,6 +844,33 @@ router.post('/nearest-driver', role('admin'), mapController.findNearestDriver);
  *     responses:
  *       200:
  *         description: مواقع المندوبين
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       driver:
+ *                         type: object
+ *                       location:
+ *                         $ref: '#/components/schemas/Location'
+ *                       accuracy:
+ *                         type: number
+ *                       speed:
+ *                         type: number
+ *                       heading:
+ *                         type: number
+ *                       updatedAt:
+ *                         type: string
+ *                         format: date-time
+ *                 count:
+ *                   type: integer
  */
 router.get('/drivers/locations', role('admin'), async (req, res) => {
   try {
@@ -679,7 +888,6 @@ router.get('/drivers/locations', role('admin'), async (req, res) => {
       .limit(parseInt(limit))
       .lean();
 
-    // فلترة حسب الحالة إذا لزم الأمر
     let filteredLocations = locations;
     if (status) {
       filteredLocations = locations.filter(loc => 
@@ -718,6 +926,46 @@ router.get('/drivers/locations', role('admin'), async (req, res) => {
  *     responses:
  *       200:
  *         description: مواقع جميع المندوبين مع معلوماتهم
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       driver:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           name:
+ *                             type: string
+ *                           phone:
+ *                             type: string
+ *                           rating:
+ *                             type: number
+ *                           status:
+ *                             type: string
+ *                           isAvailable:
+ *                             type: boolean
+ *                       location:
+ *                         $ref: '#/components/schemas/Location'
+ *                       accuracy:
+ *                         type: number
+ *                       speed:
+ *                         type: number
+ *                       heading:
+ *                         type: number
+ *                       lastUpdate:
+ *                         type: string
+ *                         format: date-time
+ *                 count:
+ *                   type: integer
  */
 router.get('/drivers/track-all', role('admin'), async (req, res) => {
   try {

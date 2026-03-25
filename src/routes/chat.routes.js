@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/chat.routes.js
 // الوصف: مسارات الدردشة والمراسلة الموحدة
+// الإصدار: 2.0
 // ============================================
 
 const express = require("express");
@@ -31,23 +32,14 @@ const PaginationUtils = require('../utils/pagination.util');
  *         conversationId:
  *           type: string
  *         sender:
- *           type: object
- *           properties:
- *             id:
- *               type: string
- *             name:
- *               type: string
- *             avatar:
- *               type: string
+ *           $ref: '#/components/schemas/User'
  *         type:
  *           type: string
  *           enum: [text, image, video, audio, location, contact, file]
  *         content:
- *           type: string
+ *           type: object
  *         mediaUrl:
  *           type: string
- *         metadata:
- *           type: object
  *         isRead:
  *           type: boolean
  *         readBy:
@@ -55,6 +47,8 @@ const PaginationUtils = require('../utils/pagination.util');
  *         createdAt:
  *           type: string
  *           format: date-time
+ *         timeAgo:
+ *           type: string
  *     
  *     Conversation:
  *       type: object
@@ -64,10 +58,12 @@ const PaginationUtils = require('../utils/pagination.util');
  *         type:
  *           type: string
  *           enum: [direct, group, support, order]
- *         name:
+ *         title:
  *           type: string
  *         participants:
  *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/User'
  *         lastMessage:
  *           $ref: '#/components/schemas/Message'
  *         unreadCount:
@@ -77,6 +73,9 @@ const PaginationUtils = require('../utils/pagination.util');
  *         isMuted:
  *           type: boolean
  *         createdAt:
+ *           type: string
+ *           format: date-time
+ *         lastActivity:
  *           type: string
  *           format: date-time
  */
@@ -118,24 +117,6 @@ router.use(auth);
  *     responses:
  *       200:
  *         description: قائمة المحادثات
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     conversations:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Conversation'
- *                     pagination:
- *                       type: object
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.get("/conversations", PaginationUtils.validatePaginationParams, chatController.getUserConversations);
 
@@ -153,7 +134,6 @@ router.get("/conversations", PaginationUtils.validatePaginationParams, chatContr
  *         required: true
  *         schema:
  *           type: string
- *         description: معرف المستخدم المراد المراسلة
  *     requestBody:
  *       content:
  *         application/json:
@@ -162,23 +142,9 @@ router.get("/conversations", PaginationUtils.validatePaginationParams, chatContr
  *             properties:
  *               initialMessage:
  *                 type: string
- *                 example: مرحباً، كيف يمكنني مساعدتك؟
  *     responses:
  *       201:
  *         description: تم إنشاء المحادثة
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   $ref: '#/components/schemas/Conversation'
- *       400:
- *         description: لا يمكن إنشاء محادثة مع النفس
- *       404:
- *         description: المستخدم غير موجود
  */
 router.post("/conversations/direct/:userId", chatController.createDirectChat);
 
@@ -199,8 +165,6 @@ router.post("/conversations/direct/:userId", chatController.createDirectChat);
  *     responses:
  *       201:
  *         description: تم إنشاء محادثة الطلب
- *       404:
- *         description: الطلب غير موجود
  */
 router.post("/conversations/order/:orderId", chatController.createOrderChat);
 
@@ -223,14 +187,12 @@ router.post("/conversations/order/:orderId", chatController.createOrderChat);
  *             properties:
  *               subject:
  *                 type: string
- *                 example: مشكلة في الطلب
  *               initialMessage:
  *                 type: string
- *                 example: لم أستلم طلبي بعد
- *               priority:
+ *               department:
  *                 type: string
- *                 enum: [low, medium, high]
- *                 default: medium
+ *                 enum: [technical, billing, general, complaints]
+ *                 default: general
  *     responses:
  *       201:
  *         description: تم إنشاء تذكرة الدعم
@@ -252,21 +214,20 @@ router.post("/conversations/support", chatController.createSupportChat);
  *           schema:
  *             type: object
  *             required:
- *               - name
- *               - participants
+ *               - title
+ *               - participantIds
  *             properties:
- *               name:
- *                 type: string
- *                 example: فريق المطورين
- *               participants:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: قائمة معرفات المستخدمين
- *               avatar:
+ *               title:
  *                 type: string
  *               description:
  *                 type: string
+ *               participantIds:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               isPublic:
+ *                 type: boolean
+ *                 default: false
  *     responses:
  *       201:
  *         description: تم إنشاء المجموعة
@@ -290,10 +251,6 @@ router.post("/conversations/group", chatController.createGroupChat);
  *     responses:
  *       200:
  *         description: تفاصيل المحادثة
- *       403:
- *         description: ليس لديك صلاحية لهذه المحادثة
- *       404:
- *         description: المحادثة غير موجودة
  */
 router.get("/conversations/:id", chatController.getConversation);
 
@@ -312,18 +269,24 @@ router.get("/conversations/:id", chatController.getConversation);
  *         schema:
  *           type: string
  *     requestBody:
- *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
  *             properties:
- *               name:
- *                 type: string
- *               avatar:
+ *               title:
  *                 type: string
  *               description:
  *                 type: string
+ *               image:
+ *                 type: string
+ *               notificationSettings:
+ *                 type: object
+ *               privacySettings:
+ *                 type: object
+ *     responses:
+ *       200:
+ *         description: تم تحديث المحادثة
  */
 router.put("/conversations/:id", chatController.updateConversation);
 
@@ -355,6 +318,15 @@ router.delete("/conversations/:id", chatController.deleteConversation);
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم أرشفة المحادثة
  */
 router.put("/conversations/:id/archive", chatController.archiveConversation);
 
@@ -366,6 +338,12 @@ router.put("/conversations/:id/archive", chatController.archiveConversation);
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       content:
  *         application/json:
@@ -376,6 +354,9 @@ router.put("/conversations/:id/archive", chatController.archiveConversation);
  *                 type: string
  *                 enum: [1h, 8h, 24h, 7d, forever]
  *                 default: 24h
+ *     responses:
+ *       200:
+ *         description: تم كتم المحادثة
  */
 router.put("/conversations/:id/mute", chatController.muteConversation);
 
@@ -387,6 +368,15 @@ router.put("/conversations/:id/mute", chatController.muteConversation);
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم إلغاء كتم المحادثة
  */
 router.put("/conversations/:id/unmute", chatController.unmuteConversation);
 
@@ -420,8 +410,6 @@ router.put("/conversations/:id/unmute", chatController.unmuteConversation);
  *     responses:
  *       200:
  *         description: تمت إضافة المشارك
- *       403:
- *         description: ليس لديك صلاحية لإضافة مشاركين
  */
 router.post("/conversations/:id/participants", chatController.addParticipant);
 
@@ -433,6 +421,20 @@ router.post("/conversations/:id/participants", chatController.addParticipant);
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: participantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم إزالة المشارك
  */
 router.delete("/conversations/:id/participants/:participantId", chatController.removeParticipant);
 
@@ -444,6 +446,15 @@ router.delete("/conversations/:id/participants/:participantId", chatController.r
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: قائمة المشاركين
  */
 router.get("/conversations/:id/participants", chatController.getParticipants);
 
@@ -455,6 +466,20 @@ router.get("/conversations/:id/participants", chatController.getParticipants);
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: participantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم تعيين المشارك كمشرف
  */
 router.put("/conversations/:id/participants/:participantId/admin", chatController.makeAdmin);
 
@@ -466,6 +491,20 @@ router.put("/conversations/:id/participants/:participantId/admin", chatControlle
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: participantId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم إزالة صلاحيات المشرف
  */
 router.delete("/conversations/:id/participants/:participantId/admin", chatController.removeAdmin);
 
@@ -500,26 +539,9 @@ router.delete("/conversations/:id/participants/:participantId/admin", chatContro
  *         schema:
  *           type: string
  *           format: date-time
- *         description: جلب الرسائل قبل تاريخ معين
  *     responses:
  *       200:
  *         description: قائمة الرسائل
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     messages:
- *                       type: array
- *                       items:
- *                         $ref: '#/components/schemas/Message'
- *                     pagination:
- *                       type: object
  */
 router.get("/conversations/:id/messages", PaginationUtils.validatePaginationParams, chatController.getConversationMessages);
 
@@ -549,20 +571,15 @@ router.get("/conversations/:id/messages", PaginationUtils.validatePaginationPara
  *               content:
  *                 type: string
  *                 maxLength: 5000
- *                 example: مرحباً، هل وصل الطلب؟
  *               replyTo:
  *                 type: string
- *                 description: معرف الرسالة المراد الرد عليها
  *               mentions:
  *                 type: array
  *                 items:
  *                   type: string
- *                 description: معرفات المستخدمين المذكورين
  *     responses:
  *       201:
  *         description: تم إرسال الرسالة
- *       400:
- *         description: المحتوى مطلوب أو طويل جداً
  */
 router.post("/conversations/:id/messages/text", chatController.sendTextMessage);
 
@@ -586,8 +603,6 @@ router.post("/conversations/:id/messages/text", chatController.sendTextMessage);
  *         multipart/form-data:
  *           schema:
  *             type: object
- *             required:
- *               - file
  *             properties:
  *               file:
  *                 type: string
@@ -600,8 +615,6 @@ router.post("/conversations/:id/messages/text", chatController.sendTextMessage);
  *     responses:
  *       201:
  *         description: تم إرسال الملف
- *       413:
- *         description: حجم الملف كبير جداً
  */
 router.post("/conversations/:id/messages/media", upload("chat/media").single("file"), chatController.sendMediaMessage);
 
@@ -637,6 +650,9 @@ router.post("/conversations/:id/messages/media", upload("chat/media").single("fi
  *                 type: string
  *               name:
  *                 type: string
+ *     responses:
+ *       201:
+ *         description: تم مشاركة الموقع
  */
 router.post("/conversations/:id/messages/location", chatController.sendLocationMessage);
 
@@ -648,6 +664,12 @@ router.post("/conversations/:id/messages/location", chatController.sendLocationM
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -664,6 +686,9 @@ router.post("/conversations/:id/messages/location", chatController.sendLocationM
  *                 type: string
  *               email:
  *                 type: string
+ *     responses:
+ *       201:
+ *         description: تم مشاركة جهة الاتصال
  */
 router.post("/conversations/:id/messages/contact", chatController.sendContactMessage);
 
@@ -700,8 +725,6 @@ router.post("/conversations/:id/messages/contact", chatController.sendContactMes
  *     responses:
  *       200:
  *         description: تم تعديل الرسالة
- *       403:
- *         description: يمكن تعديل الرسالة الخاصة بك فقط
  */
 router.put("/conversations/:conversationId/messages/:messageId", chatController.updateMessage);
 
@@ -713,6 +736,17 @@ router.put("/conversations/:conversationId/messages/:messageId", chatController.
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: تم حذف الرسالة
@@ -759,6 +793,17 @@ router.put("/conversations/:conversationId/messages/:messageId/forward/:toConver
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
@@ -766,9 +811,9 @@ router.put("/conversations/:conversationId/messages/:messageId/forward/:toConver
  *           schema:
  *             type: object
  *             required:
- *               - reaction
+ *               - emoji
  *             properties:
- *               reaction:
+ *               emoji:
  *                 type: string
  *                 enum: [👍, 👎, ❤️, 😂, 😮, 😢, 😡, 🎉]
  *     responses:
@@ -785,14 +830,20 @@ router.post("/conversations/:conversationId/messages/:messageId/reactions", chat
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               reaction:
- *                 type: string
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم إزالة التفاعل
  */
 router.delete("/conversations/:conversationId/messages/:messageId/reactions", chatController.removeReaction);
 
@@ -804,6 +855,20 @@ router.delete("/conversations/:conversationId/messages/:messageId/reactions", ch
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم تثبيت الرسالة
  */
 router.post("/conversations/:conversationId/messages/:messageId/pin", chatController.pinMessage);
 
@@ -815,6 +880,20 @@ router.post("/conversations/:conversationId/messages/:messageId/pin", chatContro
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم إلغاء تثبيت الرسالة
  */
 router.post("/conversations/:conversationId/messages/:messageId/unpin", chatController.unpinMessage);
 
@@ -826,6 +905,20 @@ router.post("/conversations/:conversationId/messages/:messageId/unpin", chatCont
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم وضع علامة نجمة
  */
 router.post("/conversations/:conversationId/messages/:messageId/star", chatController.starMessage);
 
@@ -837,6 +930,20 @@ router.post("/conversations/:conversationId/messages/:messageId/star", chatContr
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: conversationId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم إزالة النجمة
  */
 router.post("/conversations/:conversationId/messages/:messageId/unstar", chatController.unstarMessage);
 
@@ -875,6 +982,9 @@ router.post("/conversations/:conversationId/messages/:messageId/unstar", chatCon
  *         name: senderId
  *         schema:
  *           type: string
+ *     responses:
+ *       200:
+ *         description: نتائج البحث
  */
 router.get("/conversations/:id/search", chatController.searchMessages);
 
@@ -897,6 +1007,9 @@ router.get("/conversations/:id/search", chatController.searchMessages);
  *         schema:
  *           type: integer
  *           default: 50
+ *     responses:
+ *       200:
+ *         description: نتائج البحث
  */
 router.get("/search", chatController.globalSearch);
 
@@ -923,6 +1036,9 @@ router.get("/search", chatController.globalSearch);
  *         name: page
  *         schema:
  *           type: integer
+ *     responses:
+ *       200:
+ *         description: قائمة الوسائط
  */
 router.get("/conversations/:id/media", chatController.getConversationMedia);
 
@@ -934,6 +1050,15 @@ router.get("/conversations/:id/media", chatController.getConversationMedia);
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: قائمة الملفات
  */
 router.get("/conversations/:id/files", chatController.getConversationFiles);
 
@@ -945,6 +1070,15 @@ router.get("/conversations/:id/files", chatController.getConversationFiles);
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: قائمة الروابط
  */
 router.get("/conversations/:id/links", chatController.getConversationLinks);
 
@@ -961,24 +1095,6 @@ router.get("/conversations/:id/links", chatController.getConversationLinks);
  *     responses:
  *       200:
  *         description: إحصائيات الدردشة
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     totalConversations:
- *                       type: integer
- *                     totalMessages:
- *                       type: integer
- *                     unreadCount:
- *                       type: integer
- *                     messagesByType:
- *                       type: object
  */
 router.get("/stats", chatController.getChatStats);
 
@@ -990,6 +1106,15 @@ router.get("/stats", chatController.getChatStats);
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: إحصائيات المحادثة
  */
 router.get("/conversations/:id/stats", chatController.getConversationStats);
 
@@ -1001,6 +1126,15 @@ router.get("/conversations/:id/stats", chatController.getConversationStats);
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: قائمة المشاركين المتصلين
  */
 router.get("/conversations/:id/online", chatController.getOnlineParticipants);
 
@@ -1012,6 +1146,9 @@ router.get("/conversations/:id/online", chatController.getOnlineParticipants);
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: عدد الرسائل غير المقروءة
  */
 router.get("/unread/total", chatController.getTotalUnreadCount);
 
@@ -1036,6 +1173,10 @@ router.get("/unread/total", chatController.getTotalUnreadCount);
  *         schema:
  *           type: string
  *           enum: [low, medium, high, urgent]
+ *       - in: query
+ *         name: department
+ *         schema:
+ *           type: string
  *       - in: query
  *         name: assignedTo
  *         schema:
@@ -1073,6 +1214,9 @@ router.get("/admin/support-conversations", role("admin"), chatController.getSupp
  *             properties:
  *               agentId:
  *                 type: string
+ *     responses:
+ *       200:
+ *         description: تم تعيين المحادثة
  */
 router.put("/admin/conversations/:id/assign", role("admin"), chatController.assignSupportAgent);
 
@@ -1084,6 +1228,12 @@ router.put("/admin/conversations/:id/assign", role("admin"), chatController.assi
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       content:
  *         application/json:
@@ -1096,6 +1246,9 @@ router.put("/admin/conversations/:id/assign", role("admin"), chatController.assi
  *                 type: integer
  *                 minimum: 1
  *                 maximum: 5
+ *     responses:
+ *       200:
+ *         description: تم إنهاء محادثة الدعم
  */
 router.put("/admin/conversations/:id/resolve", role("admin"), chatController.resolveSupportChat);
 
@@ -1107,6 +1260,9 @@ router.put("/admin/conversations/:id/resolve", role("admin"), chatController.res
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: إحصائيات الدعم
  */
 router.get("/admin/support-stats", role("admin"), chatController.getSupportStats);
 
@@ -1118,6 +1274,23 @@ router.get("/admin/support-stats", role("admin"), chatController.getSupportStats
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [direct, group, support, order]
+ *     responses:
+ *       200:
+ *         description: قائمة المحادثات
  */
 router.get("/admin/all-conversations", role("admin"), chatController.getAllConversations);
 
@@ -1129,6 +1302,15 @@ router.get("/admin/all-conversations", role("admin"), chatController.getAllConve
  *     tags: [💬 Chat]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم حذف المحادثة
  */
 router.delete("/admin/conversations/:id", role("admin"), chatController.adminDeleteConversation);
 
@@ -1163,6 +1345,9 @@ router.delete("/admin/conversations/:id", role("admin"), chatController.adminDel
  *                 type: string
  *               imageUrl:
  *                 type: string
+ *     responses:
+ *       200:
+ *         description: تم إرسال الرسالة الجماعية
  */
 router.post("/admin/broadcast", role("admin"), chatController.broadcastMessage);
 

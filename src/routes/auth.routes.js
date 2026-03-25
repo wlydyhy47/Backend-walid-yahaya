@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/auth.routes.js
 // الوصف: مسارات المصادقة والتوثيق المركزية
+// الإصدار: 3.0
 // ============================================
 
 const express = require("express");
@@ -41,20 +42,23 @@ const {
  *             type: object
  *             required:
  *               - name
- *               - email
  *               - phone
  *               - password
  *             properties:
  *               name:
  *                 type: string
+ *                 minLength: 3
+ *                 maxLength: 100
  *                 example: أحمد محمد
+ *               phone:
+ *                 type: string
+ *                 description: رقم الهاتف (يجب أن يكون فريداً)
+ *                 example: +966501234567
  *               email:
  *                 type: string
  *                 format: email
+ *                 description: البريد الإلكتروني (اختياري)
  *                 example: ahmed@example.com
- *               phone:
- *                 type: string
- *                 example: +966501234567
  *               password:
  *                 type: string
  *                 format: password
@@ -64,6 +68,25 @@ const {
  *                 type: string
  *                 enum: [client, vendor, driver]
  *                 default: client
+ *               dateOfBirth:
+ *                 type: string
+ *                 format: date
+ *               gender:
+ *                 type: string
+ *                 enum: [male, female, other]
+ *               city:
+ *                 type: string
+ *               preferences:
+ *                 type: object
+ *                 properties:
+ *                   language:
+ *                     type: string
+ *                     enum: [ar, fr, en]
+ *                     default: ar
+ *                   currency:
+ *                     type: string
+ *                     enum: [XOF, EUR, USD]
+ *                     default: XOF
  *     responses:
  *       201:
  *         description: تم التسجيل بنجاح
@@ -77,16 +100,22 @@ const {
  *                   example: true
  *                 message:
  *                   type: string
- *                   example: تم التسجيل بنجاح. يرجى تفعيل حسابك عبر البريد الإلكتروني
+ *                   example: تم التسجيل بنجاح. يرجى تفعيل حسابك
  *                 data:
  *                   type: object
  *                   properties:
  *                     user:
- *                       type: object
+ *                       $ref: '#/components/schemas/User'
+ *                     accessToken:
+ *                       type: string
+ *                     refreshToken:
+ *                       type: string
+ *                     expiresIn:
+ *                       type: string
  *                     verificationCode:
  *                       type: string
  *       400:
- *         description: بيانات غير صحيحة أو البريد موجود مسبقاً
+ *         description: بيانات غير صحيحة أو رقم الهاتف موجود مسبقاً
  *       429:
  *         description: محاولات كثيرة جداً
  */
@@ -96,7 +125,6 @@ router.post(
   validate(registerSchema),
   authController.register
 );
-
 
 /**
  * @swagger
@@ -111,17 +139,22 @@ router.post(
  *           schema:
  *             type: object
  *             required:
- *               - phone
  *               - password
  *             properties:
  *               phone:
  *                 type: string
- *                 description: رقم الهاتف (مطلوب)
+ *                 description: رقم الهاتف (مطلوب إذا لم يكن البريد موجوداً)
  *                 example: +966501234567
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: البريد الإلكتروني (اختياري، بديل عن الهاتف)
+ *                 example: user@example.com
  *               password:
  *                 type: string
  *                 format: password
- *                 description: كلمة المرور (مطلوب)
+ *                 description: كلمة المرور (مطلوبة)
+ *                 minLength: 6
  *                 example: Pass@123
  *               deviceId:
  *                 type: string
@@ -147,45 +180,21 @@ router.post(
  *                     refreshToken:
  *                       type: string
  *                       example: eyJhbGciOiJIUzI1NiIs...
+ *                     expiresIn:
+ *                       type: string
+ *                       example: 7d
  *                     user:
  *                       $ref: '#/components/schemas/User'
+ *                     verificationNeeded:
+ *                       type: boolean
  *       400:
- *         description: بيانات غير صحيحة
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *             example:
- *               success: false
- *               message: "رقم الهاتف أو البريد الإلكتروني وكلمة المرور مطلوبة"
+ *         description: رقم الهاتف أو البريد الإلكتروني وكلمة المرور مطلوبة
  *       401:
  *         description: بيانات الدخول غير صحيحة
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *             example:
- *               success: false
- *               message: "بيانات الدخول غير صحيحة"
  *       403:
  *         description: الحساب غير مفعل أو مقفل
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *             example:
- *               success: false
- *               message: "الحساب غير مفعل"
  *       429:
  *         description: محاولات كثيرة جداً
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *             example:
- *               success: false
- *               message: "محاولات تسجيل دخول كثيرة جداً، الرجاء المحاولة بعد ساعة"
- *               code: "RATE_LIMIT_EXCEEDED"
  */
 router.post(
   "/login",
@@ -193,7 +202,6 @@ router.post(
   validate(loginSchema),
   authController.login
 );
-
 
 /**
  * @swagger
@@ -208,20 +216,38 @@ router.post(
  *           schema:
  *             type: object
  *             required:
- *               - email
+ *               - phone
  *               - code
  *             properties:
- *               email:
+ *               phone:
  *                 type: string
- *                 format: email
+ *                 example: +966501234567
  *               code:
  *                 type: string
- *                 example: 123456
+ *                 minLength: 6
+ *                 maxLength: 6
+ *                 example: ABC123
  *     responses:
  *       200:
  *         description: تم تفعيل الحساب بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     accessToken:
+ *                       type: string
+ *                     refreshToken:
+ *                       type: string
  *       400:
- *         description: رمز التفعيل غير صحيح
+ *         description: رمز التفعيل غير صحيح أو منتهي الصلاحية
  */
 router.post(
   "/verify",
@@ -243,14 +269,32 @@ router.post(
  *           schema:
  *             type: object
  *             required:
- *               - email
+ *               - phone
  *             properties:
- *               email:
+ *               phone:
  *                 type: string
- *                 format: email
+ *                 example: +966501234567
  *     responses:
  *       200:
  *         description: تم إرسال رمز التفعيل
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     phone:
+ *                       type: string
+ *                     expiresIn:
+ *                       type: string
+ *       404:
+ *         description: المستخدم غير موجود أو تم تفعيل الحساب مسبقاً
  */
 router.post(
   "/resend-verification",
@@ -272,14 +316,32 @@ router.post(
  *           schema:
  *             type: object
  *             required:
- *               - email
+ *               - phone
  *             properties:
- *               email:
+ *               phone:
  *                 type: string
- *                 format: email
+ *                 example: +966501234567
  *     responses:
  *       200:
- *         description: تم إرسال رابط إعادة التعيين
+ *         description: تم إرسال تعليمات إعادة التعيين
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     phone:
+ *                       type: string
+ *                     expiresIn:
+ *                       type: string
+ *       404:
+ *         description: المستخدم غير موجود
  */
 router.post(
   "/forgot-password",
@@ -301,18 +363,26 @@ router.post(
  *           schema:
  *             type: object
  *             required:
+ *               - phone
  *               - token
  *               - newPassword
  *             properties:
+ *               phone:
+ *                 type: string
+ *                 example: +966501234567
  *               token:
  *                 type: string
+ *                 example: abc123def456
  *               newPassword:
  *                 type: string
  *                 format: password
  *                 minLength: 6
+ *                 example: NewPass@123
  *     responses:
  *       200:
- *         description: تم تغيير كلمة المرور بنجاح
+ *         description: تم إعادة تعيين كلمة المرور بنجاح
+ *       400:
+ *         description: رمز إعادة التعيين غير صالح أو منتهي الصلاحية
  */
 router.post(
   "/reset-password",
@@ -338,9 +408,28 @@ router.post(
  *             properties:
  *               refreshToken:
  *                 type: string
+ *                 example: eyJhbGciOiJIUzI1NiIs...
  *     responses:
  *       200:
  *         description: تم تحديث الرمز
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     accessToken:
+ *                       type: string
+ *                     refreshToken:
+ *                       type: string
+ *                     expiresIn:
+ *                       type: string
+ *       401:
+ *         description: Refresh token غير صالح أو منتهي الصلاحية
  */
 router.post(
   "/refresh",
@@ -356,9 +445,19 @@ router.post(
  *     tags: [🔐 Authentication]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               refreshToken:
+ *                 type: string
  *     responses:
  *       200:
  *         description: تم تسجيل الخروج بنجاح
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.post("/logout", auth, authController.logout);
 
@@ -384,9 +483,18 @@ router.post("/logout", auth, authController.logout);
  *                   type: object
  *                   properties:
  *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     tokenInfo:
  *                       type: object
- *                     exp:
- *                       type: integer
+ *                       properties:
+ *                         expiresAt:
+ *                           type: string
+ *                           format: date-time
+ *                         issuedAt:
+ *                           type: string
+ *                           format: date-time
+ *       401:
+ *         description: الرمز غير صالح أو منتهي الصلاحية
  */
 router.get("/validate", auth, authController.validateToken);
 
@@ -411,15 +519,19 @@ router.get("/validate", auth, authController.validateToken);
  *               currentPassword:
  *                 type: string
  *                 format: password
+ *                 example: OldPass@123
  *               newPassword:
  *                 type: string
  *                 format: password
  *                 minLength: 6
+ *                 example: NewPass@123
  *     responses:
  *       200:
  *         description: تم تغيير كلمة المرور
- *       401:
+ *       400:
  *         description: كلمة المرور الحالية غير صحيحة
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.post(
   "/change-password",
@@ -439,6 +551,20 @@ router.post(
  *     responses:
  *       200:
  *         description: تم إلغاء جميع الجلسات
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     revokedCount:
+ *                       type: integer
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
  */
 router.post("/revoke-all-sessions", auth, authController.revokeAllSessions);
 

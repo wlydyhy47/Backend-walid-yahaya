@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/order.routes.js
 // الوصف: مسارات الطلبات الموحدة لجميع الأدوار
+// الإصدار: 3.0
 // ============================================
 
 const express = require("express");
@@ -56,7 +57,17 @@ const {
  *         name: status
  *         schema:
  *           type: string
- *           enum: [pending, accepted, preparing, ready, picked, delivered, cancelled]
+ *           enum: [pending, accepted, ready, picked, delivered, cancelled]
+ *       - in: query
+ *         name: fromDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: toDate
+ *         schema:
+ *           type: string
+ *           format: date
  *     responses:
  *       200:
  *         description: قائمة الطلبات
@@ -73,6 +84,8 @@ const {
  *                     orders:
  *                       type: array
  *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *                     stats:
  *                       type: object
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
@@ -92,40 +105,28 @@ router.get('/me', auth, role('client'), PaginationUtils.validatePaginationParams
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - storeId
- *               - items
- *               - addressId
- *             properties:
- *               storeId:
- *                 type: string
- *                 example: 60d21b4667d0d8992e610c85
- *               items:
- *                 type: array
- *                 items:
- *                   type: object
- *                   properties:
- *                     productId:
- *                       type: string
- *                     quantity:
- *                       type: integer
- *                       minimum: 1
- *                     notes:
- *                       type: string
- *               addressId:
- *                 type: string
- *               paymentMethod:
- *                 type: string
- *                 enum: [cash, card, wallet]
- *                 default: cash
- *               deliveryInstructions:
- *                 type: string
- *               couponCode:
- *                 type: string
+ *             $ref: '#/components/schemas/CreateOrderInput'
  *     responses:
  *       201:
  *         description: تم إنشاء الطلب بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     order:
+ *                       $ref: '#/components/schemas/Order'
+ *                     assignedDriver:
+ *                       type: object
+ *                     timeline:
+ *                       type: array
+ *                     estimatedDelivery:
+ *                       type: string
  *       400:
  *         description: بيانات غير صحيحة أو المتجر مغلق
  *       401:
@@ -150,6 +151,24 @@ router.post("/", auth, role("client"), validate(createOrderSchema), orderControl
  *     responses:
  *       200:
  *         description: تفاصيل الطلب
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     order:
+ *                       $ref: '#/components/schemas/Order'
+ *                     tracking:
+ *                       type: object
+ *                     timeline:
+ *                       type: array
+ *                     permissions:
+ *                       type: object
  *       403:
  *         description: ليس لديك صلاحية لعرض هذا الطلب
  *       404:
@@ -172,14 +191,11 @@ router.get("/:id", auth, orderController.getOrderDetails);
  *         schema:
  *           type: string
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               reason:
- *                 type: string
- *                 example: changed my mind
+ *             $ref: '#/components/schemas/CancelOrderInput'
  *     responses:
  *       200:
  *         description: تم إلغاء الطلب
@@ -196,6 +212,12 @@ router.put("/:id/cancel", auth, role("client"), validate(cancelOrderSchema), ord
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: معلومات تتبع الطلب
@@ -228,25 +250,18 @@ router.get("/track/:id", auth, orderController.trackOrder);
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - rating
- *             properties:
- *               rating:
- *                 type: integer
- *                 minimum: 1
- *                 maximum: 5
- *               review:
- *                 type: string
- *               driverRating:
- *                 type: integer
- *                 minimum: 1
- *                 maximum: 5
+ *             $ref: '#/components/schemas/RateOrderInput'
  *     responses:
  *       200:
  *         description: تم إضافة التقييم
@@ -261,24 +276,18 @@ router.post("/:id/rate", auth, role('client'), validate(rateOrderSchema), orderC
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - issueType
- *             properties:
- *               issueType:
- *                 type: string
- *                 enum: [wrong_item, missing_item, damaged, late, other]
- *               description:
- *                 type: string
- *               images:
- *                 type: array
- *                 items:
- *                   type: string
+ *             $ref: '#/components/schemas/ReportIssueInput'
  *     responses:
  *       201:
  *         description: تم الإبلاغ عن المشكلة
@@ -293,6 +302,15 @@ router.post("/:id/report-issue", auth, validate(reportIssueSchema), orderControl
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: موقع المندوب
  */
 router.get("/:id/location", auth, orderController.getDriverLocation);
 
@@ -304,6 +322,15 @@ router.get("/:id/location", auth, orderController.getDriverLocation);
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: الجدول الزمني
  */
 router.get("/:id/timeline", auth, orderController.getOrderTimeline);
 
@@ -317,6 +344,33 @@ router.get("/:id/timeline", auth, orderController.getOrderTimeline);
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, accepted, picked, delivered, cancelled]
+ *       - in: query
+ *         name: fromDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: toDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: قائمة التوصيلات
  */
 router.get('/driver/deliveries', auth, driverMiddleware, PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
 
@@ -328,6 +382,11 @@ router.get('/driver/deliveries', auth, driverMiddleware, PaginationUtils.validat
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: بيانات التوصيل الحالي
+ *       204:
+ *         description: لا يوجد توصيل حالي
  */
 router.get('/driver/current-delivery', auth, driverMiddleware, orderController.getCurrentDelivery);
 
@@ -350,15 +409,7 @@ router.get('/driver/current-delivery', auth, driverMiddleware, orderController.g
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - status
- *             properties:
- *               status:
- *                 type: string
- *                 enum: [picked, delivered]
- *               location:
- *                 type: object
+ *             $ref: '#/components/schemas/UpdateStatusInput'
  *     responses:
  *       200:
  *         description: تم تحديث الحالة
@@ -373,6 +424,35 @@ router.put("/driver/:id/status", auth, driverMiddleware, noCache, validate(updat
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - latitude
+ *               - longitude
+ *             properties:
+ *               latitude:
+ *                 type: number
+ *               longitude:
+ *                 type: number
+ *               accuracy:
+ *                 type: number
+ *               heading:
+ *                 type: number
+ *               speed:
+ *                 type: number
+ *     responses:
+ *       200:
+ *         description: تم تحديث الموقع
  */
 router.post("/driver/:id/location", auth, driverMiddleware, orderController.updateDriverLocation);
 
@@ -384,6 +464,16 @@ router.post("/driver/:id/location", auth, driverMiddleware, orderController.upda
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: string
+ *           enum: [today, week, month, all]
+ *           default: week
+ *     responses:
+ *       200:
+ *         description: بيانات الأرباح
  */
 router.get('/driver/earnings', auth, driverMiddleware, orderController.getDriverEarnings);
 
@@ -399,15 +489,26 @@ router.get('/driver/earnings', auth, driverMiddleware, orderController.getDriver
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
  *         name: status
  *         schema:
  *           type: string
- *           enum: [pending, accepted, preparing, ready, picked, delivered, cancelled]
+ *           enum: [pending, accepted, ready, picked, delivered, cancelled]
  *       - in: query
  *         name: date
  *         schema:
  *           type: string
  *           format: date
+ *     responses:
+ *       200:
+ *         description: قائمة الطلبات
  */
 router.get('/vendor/orders', auth, storeOwnerMiddleware, PaginationUtils.validatePaginationParams, orderController.getVendorOrders);
 
@@ -419,6 +520,9 @@ router.get('/vendor/orders', auth, storeOwnerMiddleware, PaginationUtils.validat
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: إحصائيات الطلبات
  */
 router.get('/vendor/orders/stats', auth, storeOwnerMiddleware, orderController.getVendorOrderStats);
 
@@ -430,6 +534,9 @@ router.get('/vendor/orders/stats', auth, storeOwnerMiddleware, orderController.g
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: طلبات اليوم
  */
 router.get('/vendor/orders/today', auth, storeOwnerMiddleware, orderController.getTodayOrders);
 
@@ -441,6 +548,24 @@ router.get('/vendor/orders/today', auth, storeOwnerMiddleware, orderController.g
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               estimatedTime:
+ *                 type: integer
+ *                 description: الوقت المتوقع بالدقائق
+ *     responses:
+ *       200:
+ *         description: تم قبول الطلب
  */
 router.put("/vendor/:id/accept", auth, storeOwnerMiddleware, orderController.acceptOrder);
 
@@ -452,14 +577,26 @@ router.put("/vendor/:id/accept", auth, storeOwnerMiddleware, orderController.acc
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
  *             type: object
+ *             required:
+ *               - reason
  *             properties:
  *               reason:
  *                 type: string
+ *     responses:
+ *       200:
+ *         description: تم رفض الطلب
  */
 router.put("/vendor/:id/reject", auth, storeOwnerMiddleware, orderController.rejectOrder);
 
@@ -471,6 +608,15 @@ router.put("/vendor/:id/reject", auth, storeOwnerMiddleware, orderController.rej
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم تجهيز الطلب
  */
 router.put("/vendor/:id/mark-ready", auth, storeOwnerMiddleware, orderController.markOrderReady);
 
@@ -482,6 +628,23 @@ router.put("/vendor/:id/mark-ready", auth, storeOwnerMiddleware, orderController
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               estimatedTime:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: تم بدء تحضير الطلب
  */
 router.put("/vendor/:id/start-preparing", auth, storeOwnerMiddleware, orderController.startPreparing);
 
@@ -495,6 +658,45 @@ router.put("/vendor/:id/start-preparing", auth, storeOwnerMiddleware, orderContr
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, accepted, ready, picked, delivered, cancelled]
+ *       - in: query
+ *         name: store
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: driver
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: user
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: fromDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: toDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: قائمة الطلبات
  */
 router.get('/admin/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getAllOrdersPaginated);
 
@@ -506,6 +708,20 @@ router.get('/admin/orders', auth, role('admin'), PaginationUtils.validatePaginat
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: إحصائيات الطلبات
  */
 router.get('/admin/orders/stats/overview', auth, role('admin'), orderController.getOrderStats);
 
@@ -517,6 +733,9 @@ router.get('/admin/orders/stats/overview', auth, role('admin'), orderController.
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: إحصائيات اليوم
  */
 router.get('/admin/orders/stats/daily', auth, role('admin'), orderController.getDailyStats);
 
@@ -528,6 +747,18 @@ router.get('/admin/orders/stats/daily', auth, role('admin'), orderController.get
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: month
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: إحصائيات الشهر
  */
 router.get('/admin/orders/stats/monthly', auth, role('admin'), orderController.getMonthlyStats);
 
@@ -539,17 +770,21 @@ router.get('/admin/orders/stats/monthly', auth, role('admin'), orderController.g
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - driverId
- *             properties:
- *               driverId:
- *                 type: string
+ *             $ref: '#/components/schemas/AssignDriverInput'
+ *     responses:
+ *       200:
+ *         description: تم تعيين المندوب
  */
 router.put("/admin/:id/assign", auth, role("admin"), validate(assignDriverSchema), orderController.assignDriver);
 
@@ -561,6 +796,15 @@ router.put("/admin/:id/assign", auth, role("admin"), validate(assignDriverSchema
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم إعادة تعيين المندوب
  */
 router.put("/admin/:id/reassign", auth, role("admin"), orderController.reassignDriver);
 
@@ -572,6 +816,21 @@ router.put("/admin/:id/reassign", auth, role("admin"), orderController.reassignD
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/CancelOrderInput'
+ *     responses:
+ *       200:
+ *         description: تم إلغاء الطلب
  */
 router.put("/admin/:id/force-cancel", auth, role("admin"), validate(cancelOrderSchema), orderController.forceCancelOrder);
 
@@ -583,6 +842,27 @@ router.put("/admin/:id/force-cancel", auth, role("admin"), validate(cancelOrderS
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: قائمة طلبات المندوب
  */
 router.get('/admin/drivers/:id/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getDriverOrdersById);
 
@@ -594,6 +874,27 @@ router.get('/admin/drivers/:id/orders', auth, role('admin'), PaginationUtils.val
  *     tags: [📦 Orders]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: قائمة طلبات المتجر
  */
 router.get('/admin/stores/:id/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getStoreOrdersById);
 

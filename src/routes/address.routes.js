@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/address.routes.js
 // الوصف: مسارات إدارة العناوين
+// الإصدار: 2.0
 // ============================================
 
 const express = require("express");
@@ -31,38 +32,96 @@ const {
  *       properties:
  *         id:
  *           type: string
+ *           example: 60d21b4667d0d8992e610c90
  *         userId:
  *           type: string
- *         title:
+ *           example: 60d21b4667d0d8992e610c89
+ *         label:
  *           type: string
- *           example: المنزل
- *         address:
+ *           enum: [home, work, other]
+ *           example: home
+ *         addressLine:
  *           type: string
  *           example: شارع الملك فهد، الرياض
+ *         city:
+ *           type: string
+ *           example: الرياض
+ *         area:
+ *           type: string
+ *           example: العليا
+ *         building:
+ *           type: string
+ *           example: برج المملكة
+ *         floor:
+ *           type: string
+ *           example: 5
+ *         apartment:
+ *           type: string
+ *           example: 502
+ *         instructions:
+ *           type: string
+ *           example: البوابة اليمنى
  *         latitude:
  *           type: number
  *           example: 24.7136
  *         longitude:
  *           type: number
  *           example: 46.6753
- *         apartment:
- *           type: string
- *           example: شقة 5
- *         floor:
- *           type: string
- *           example: الطابق 3
- *         landmark:
- *           type: string
- *           example: بجوار مسجد الملك
  *         isDefault:
  *           type: boolean
- *           default: false
+ *           example: true
  *         createdAt:
  *           type: string
  *           format: date-time
  *         updatedAt:
  *           type: string
  *           format: date-time
+ *     
+ *     CreateAddressInput:
+ *       type: object
+ *       required:
+ *         - addressLine
+ *         - latitude
+ *         - longitude
+ *       properties:
+ *         label:
+ *           type: string
+ *           enum: [home, work, other]
+ *           default: home
+ *         addressLine:
+ *           type: string
+ *           minLength: 5
+ *           maxLength: 200
+ *         city:
+ *           type: string
+ *           minLength: 2
+ *           maxLength: 100
+ *         area:
+ *           type: string
+ *           maxLength: 100
+ *         building:
+ *           type: string
+ *           maxLength: 50
+ *         floor:
+ *           type: string
+ *           maxLength: 10
+ *         apartment:
+ *           type: string
+ *           maxLength: 10
+ *         instructions:
+ *           type: string
+ *           maxLength: 200
+ *         latitude:
+ *           type: number
+ *           minimum: -90
+ *           maximum: 90
+ *         longitude:
+ *           type: number
+ *           minimum: -180
+ *           maximum: 180
+ *         isDefault:
+ *           type: boolean
+ *           default: false
  */
 
 // جميع المسارات تحتاج توثيق
@@ -81,40 +140,7 @@ router.use(auth);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - title
- *               - address
- *               - latitude
- *               - longitude
- *             properties:
- *               title:
- *                 type: string
- *                 example: المنزل
- *               address:
- *                 type: string
- *                 example: شارع الملك فهد، الرياض
- *               latitude:
- *                 type: number
- *                 example: 24.7136
- *               longitude:
- *                 type: number
- *                 example: 46.6753
- *               apartment:
- *                 type: string
- *                 example: شقة 5
- *               floor:
- *                 type: string
- *                 example: الطابق 3
- *               landmark:
- *                 type: string
- *                 example: بجوار مسجد الملك
- *               isDefault:
- *                 type: boolean
- *                 default: false
- *               instructions:
- *                 type: string
- *                 example: البوابة اليمنى
+ *             $ref: '#/components/schemas/CreateAddressInput'
  *     responses:
  *       201:
  *         description: تم إضافة العنوان
@@ -177,27 +203,19 @@ router.get("/me", addressController.getMyAddresses);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               title:
- *                 type: string
- *               address:
- *                 type: string
- *               latitude:
- *                 type: number
- *               longitude:
- *                 type: number
- *               apartment:
- *                 type: string
- *               floor:
- *                 type: string
- *               landmark:
- *                 type: string
- *               instructions:
- *                 type: string
+ *             $ref: '#/components/schemas/UpdateAddressInput'
  *     responses:
  *       200:
  *         description: تم تحديث العنوان
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Address'
  *       403:
  *         description: ليس لديك صلاحية تعديل هذا العنوان
  *       404:

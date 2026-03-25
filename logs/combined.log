@@ -15371,3 +15371,742 @@ Error: phone is required
   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
   "userId": "guest"
 }
+2026-03-25 23:33:24 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-25 23:33:24 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-25 23:33:24 [info]: Business Action: Mapbox service initialized
+2026-03-25 23:33:24 [info]: Business Action: Creating Redis client...
+2026-03-25 23:33:24 [info]: Business Action: RateLimiterService initialized
+2026-03-25 23:33:26 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-25 23:33:27 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-25 23:33:27 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-25 23:33:27 [info]: Business Action: Socket.io initialized successfully
+2026-03-25 23:34:36 [warn]: HTTP Request Warning
+{
+  "method": "GET",
+  "url": "/api-docs",
+  "status": 301,
+  "duration": "209ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:34:37 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/",
+  "status": 200,
+  "duration": "24ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:34:37 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-init.js",
+  "status": 200,
+  "duration": "84ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:34:37 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui.css",
+  "status": 200,
+  "duration": "111ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:34:37 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-standalone-preset.js",
+  "status": 200,
+  "duration": "139ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:34:37 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-bundle.js",
+  "status": 200,
+  "duration": "193ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:34:37 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/favicon-32x32.png",
+  "status": 200,
+  "duration": "2ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:36:49 [warn]: Business Warning: Validation failed
+{
+  "errors": [
+    {
+      "field": "phone",
+      "message": "رقم الهاتف غير صالح",
+      "type": "string.pattern.base"
+    },
+    {
+      "field": "password",
+      "message": "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+      "type": "string.min"
+    }
+  ],
+  "property": "body",
+  "path": "/login"
+}
+2026-03-25 23:36:49 [error]: Unhandled Error رقم الهاتف غير صالح | كلمة المرور يجب أن تكون 6 أحرف على الأقل
+Error: رقم الهاتف غير صالح | كلمة المرور يجب أن تكون 6 أحرف على الأقل
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "url": "/api/v1/auth/login",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-25 23:36:49 [error]: Business Error: Error caught: رقم الهاتف غير صالح | كلمة المرور يجب أن تكون 6 أحرف على الأقل
+Error: رقم الهاتف غير صالح | كلمة المرور يجب أن تكون 6 أحرف على الأقل
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/auth/login",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-25 23:36:49 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 400,
+  "duration": "24ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:39:12 [warn]: Business Warning: Validation failed
+{
+  "errors": [
+    {
+      "field": "phone",
+      "message": "رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة",
+      "type": "string.pattern.base"
+    },
+    {
+      "field": "role",
+      "message": "الدور غير صالح. يجب أن يكون client, driver, أو store_owner",
+      "type": "any.only"
+    }
+  ],
+  "property": "body",
+  "path": "/register"
+}
+2026-03-25 23:39:12 [error]: Unhandled Error رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة | الدور غير صالح. يجب أن يكون client, driver, أو store_owner
+Error: رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة | الدور غير صالح. يجب أن يكون client, driver, أو store_owner
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-25 23:39:12 [error]: Business Error: Error caught: رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة | الدور غير صالح. يجب أن يكون client, driver, أو store_owner
+Error: رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة | الدور غير صالح. يجب أن يكون client, driver, أو store_owner
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-25 23:39:12 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 400,
+  "duration": "42ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:42:10 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-25 23:42:11 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-25 23:42:11 [info]: Business Action: Mapbox service initialized
+2026-03-25 23:42:12 [info]: Business Action: Creating Redis client...
+2026-03-25 23:42:12 [info]: Business Action: RateLimiterService initialized
+2026-03-25 23:42:15 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-25 23:42:19 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-25 23:42:19 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-25 23:42:19 [info]: Business Action: Socket.io initialized successfully
+2026-03-25 23:42:25 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-25 23:42:25 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-25 23:42:25 [info]: Business Action: Mapbox service initialized
+2026-03-25 23:42:25 [info]: Business Action: Creating Redis client...
+2026-03-25 23:42:25 [info]: Business Action: RateLimiterService initialized
+2026-03-25 23:42:27 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-25 23:42:28 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-25 23:42:28 [info]: Business Action: Socket.io initialized successfully
+2026-03-25 23:42:29 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-25 23:42:39 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-25 23:42:40 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-25 23:42:40 [info]: Business Action: Mapbox service initialized
+2026-03-25 23:42:40 [info]: Business Action: Creating Redis client...
+2026-03-25 23:42:40 [info]: Business Action: RateLimiterService initialized
+2026-03-25 23:42:42 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-25 23:42:46 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-25 23:42:50 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-25 23:42:50 [info]: Business Action: Socket.io initialized successfully
+2026-03-25 23:43:30 [warn]: HTTP Request Warning
+{
+  "method": "GET",
+  "url": "/api-docs/",
+  "status": 304,
+  "duration": "65ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:45:07 [warn]: Business Warning: Validation failed
+{
+  "errors": [
+    {
+      "field": "phone",
+      "message": "رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة",
+      "type": "string.pattern.base"
+    }
+  ],
+  "property": "body",
+  "path": "/register"
+}
+2026-03-25 23:45:07 [error]: Unhandled Error رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة
+Error: رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-25 23:45:07 [error]: Business Error: Error caught: رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة
+Error: رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-25 23:45:07 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 400,
+  "duration": "75ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:46:15 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 400,
+  "duration": "179ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:46:36 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 400,
+  "duration": "199ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:46:59 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 201,
+  "duration": "729ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:48:43 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/client/profile",
+  "status": 401,
+  "duration": "42ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:49:57 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 400,
+  "duration": "61ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:50:19 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "487ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:51:10 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "537ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:52:33 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/client/profile",
+  "status": 401,
+  "duration": "2ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:52:51 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/client/profile",
+  "status": 401,
+  "duration": "2ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:58:54 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "576ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-25 23:59:59 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/client/profile",
+  "status": 401,
+  "duration": "3ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:00:04 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/client/profile",
+  "status": 401,
+  "duration": "2ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:04:12 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/client/profile",
+  "status": 401,
+  "duration": "10ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:04:38 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/client/profile",
+  "status": 401,
+  "duration": "2ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:05:27 [warn]: Business Warning: Access denied - insufficient permissions
+{
+  "userId": "69c449c2503b23b80c89c23f",
+  "userRole": "admin",
+  "requiredRoles": [
+    "client"
+  ],
+  "path": "/api/v1/client/profile"
+}
+2026-03-26 00:05:27 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/client/profile",
+  "status": 403,
+  "duration": "125ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 00:06:14 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "status": 401,
+  "duration": "2ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:19:00 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-26 00:19:00 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-26 00:19:01 [info]: Business Action: Mapbox service initialized
+2026-03-26 00:19:01 [info]: Business Action: Creating Redis client...
+2026-03-26 00:19:01 [info]: Business Action: RateLimiterService initialized
+2026-03-26 00:19:03 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-26 00:19:04 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-26 00:19:04 [info]: Business Action: Socket.io initialized successfully
+2026-03-26 00:19:04 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-26 00:24:52 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-26 00:24:52 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-26 00:24:52 [info]: Business Action: Mapbox service initialized
+2026-03-26 00:24:53 [info]: Business Action: Creating Redis client...
+2026-03-26 00:24:53 [info]: Business Action: RateLimiterService initialized
+2026-03-26 00:24:55 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-26 00:24:56 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-26 00:24:57 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-26 00:24:57 [info]: Business Action: Socket.io initialized successfully
+2026-03-26 00:25:32 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-26 00:25:33 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-26 00:25:33 [info]: Business Action: Mapbox service initialized
+2026-03-26 00:25:33 [info]: Business Action: Creating Redis client...
+2026-03-26 00:25:33 [info]: Business Action: RateLimiterService initialized
+2026-03-26 00:25:37 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-26 00:25:38 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-26 00:25:38 [info]: Business Action: Socket.io initialized successfully
+2026-03-26 00:25:38 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-26 00:26:00 [warn]: HTTP Request Warning
+{
+  "method": "GET",
+  "url": "/api-docs/",
+  "status": 304,
+  "duration": "14ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:26:25 [warn]: HTTP Request Warning
+{
+  "method": "GET",
+  "url": "/api-docs/",
+  "status": 304,
+  "duration": "4ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:27:02 [warn]: HTTP Request Warning
+{
+  "method": "GET",
+  "url": "/api-docs",
+  "status": 301,
+  "duration": "20ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:27:02 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/",
+  "status": 200,
+  "duration": "34ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:27:02 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-init.js",
+  "status": 200,
+  "duration": "68ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:27:02 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui.css",
+  "status": 200,
+  "duration": "113ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:27:02 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-standalone-preset.js",
+  "status": 200,
+  "duration": "124ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:27:02 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-bundle.js",
+  "status": 200,
+  "duration": "207ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:27:03 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/favicon-32x32.png",
+  "status": 200,
+  "duration": "19ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:28:07 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "668ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:28:55 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stats/users",
+  "status": 401,
+  "duration": "50ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:31:43 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stats/users",
+  "status": 401,
+  "duration": "2ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:32:45 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "632ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:34:47 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stats/users",
+  "status": 200,
+  "duration": "244ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 00:37:01 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stats/revenue",
+  "status": 200,
+  "duration": "328ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 00:37:35 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "status": 200,
+  "duration": "621ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 00:38:36 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/vendors",
+  "status": 200,
+  "duration": "139ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}

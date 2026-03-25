@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/validators/order.validator.js
 // الوصف: مصادقات بيانات الطلبات
+// الإصدار: 2.0
 // ============================================
 
 const Joi = require('joi');
@@ -9,26 +10,20 @@ const Joi = require('joi');
  * إنشاء طلب جديد
  */
 const createOrderSchema = Joi.object({
+  storeId: Joi.string()
+    .required()
+    .messages({
+      'any.required': 'معرّف المتجر مطلوب'
+    }),
+  
   items: Joi.array()
     .items(
       Joi.object({
-        item: Joi.string()
+        productId: Joi.string()
           .required()
-          .messages({ 'any.required': 'معرّف العنصر مطلوب' }),
+          .messages({ 'any.required': 'معرّف المنتج مطلوب' }),
         
-        name: Joi.string()
-          .required()
-          .messages({ 'any.required': 'اسم العنصر مطلوب' }),
-        
-        price: Joi.number()
-          .positive()
-          .required()
-          .messages({
-            'number.positive': 'السعر يجب أن يكون موجباً',
-            'any.required': 'السعر مطلوب'
-          }),
-        
-        qty: Joi.number()
+        quantity: Joi.number()
           .integer()
           .min(1)
           .required()
@@ -39,10 +34,6 @@ const createOrderSchema = Joi.object({
         
         notes: Joi.string()
           .max(200)
-          .optional(),
-        
-        options: Joi.array()
-          .items(Joi.string())
           .optional()
       })
     )
@@ -53,29 +44,11 @@ const createOrderSchema = Joi.object({
       'any.required': 'عناصر الطلب مطلوبة'
     }),
   
-  totalPrice: Joi.number()
-    .positive()
+  addressId: Joi.string()
     .required()
     .messages({
-      'number.positive': 'السعر الإجمالي يجب أن يكون موجباً',
-      'any.required': 'السعر الإجمالي مطلوب'
+      'any.required': 'معرّف عنوان التوصيل مطلوب'
     }),
-  
-  pickupAddress: Joi.string()
-    .required()
-    .messages({ 'any.required': 'عنوان الاستلام مطلوب' }),
-  
-  deliveryAddress: Joi.string()
-    .required()
-    .messages({ 'any.required': 'عنوان التوصيل مطلوب' }),
-  
-  store: Joi.string()
-    .required()
-    .messages({ 'any.required': 'المتجر مطلوب' }),
-  
-  notes: Joi.string()
-    .max(500)
-    .optional(),
   
   paymentMethod: Joi.string()
     .valid('cash', 'card', 'wallet')
@@ -84,12 +57,16 @@ const createOrderSchema = Joi.object({
       'any.only': 'طريقة الدفع غير صالحة. اختر cash, card, أو wallet'
     }),
   
-  scheduledTime: Joi.date()
-    .min('now')
-    .optional()
-    .messages({
-      'date.min': 'الوقت المحدد يجب أن يكون في المستقبل'
-    })
+  deliveryInstructions: Joi.string()
+    .max(500)
+    .optional(),
+  
+  couponCode: Joi.string()
+    .max(20)
+    .optional(),
+  
+  useLoyaltyPoints: Joi.boolean()
+    .default(false)
 });
 
 /**
@@ -102,7 +79,19 @@ const updateStatusSchema = Joi.object({
     .messages({
       'any.only': 'الحالة غير صالحة',
       'any.required': 'الحالة مطلوبة'
-    })
+    }),
+  
+  location: Joi.object({
+    latitude: Joi.number().min(-90).max(90).required(),
+    longitude: Joi.number().min(-180).max(180).required()
+  }).optional(),
+  
+  reason: Joi.string()
+    .max(500)
+    .optional(),
+  
+  signature: Joi.string()
+    .optional()
 });
 
 /**
@@ -141,12 +130,12 @@ const rateOrderSchema = Joi.object({
       'string.max': 'التعليق يجب أن لا يتجاوز {#limit} حرف'
     }),
   
-  rateDriver: Joi.number()
+  driverRating: Joi.number()
     .min(1)
     .max(5)
     .optional(),
   
-  rateStore: Joi.number()
+  storeRating: Joi.number()
     .min(1)
     .max(5)
     .optional()
@@ -156,8 +145,8 @@ const rateOrderSchema = Joi.object({
  * الإبلاغ عن مشكلة في الطلب
  */
 const reportIssueSchema = Joi.object({
-  issue: Joi.string()
-    .valid('late_delivery', 'wrong_item', 'missing_item', 'bad_quality', 'other')
+  issueType: Joi.string()
+    .valid('wrong_item', 'missing_item', 'damaged', 'late', 'other')
     .required()
     .messages({
       'any.only': 'نوع المشكلة غير صالح',

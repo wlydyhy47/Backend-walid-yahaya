@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/client.routes.js
 // الوصف: مسارات العملاء الموحدة
+// الإصدار: 3.0
 // ============================================
 
 const express = require('express');
@@ -73,26 +74,7 @@ router.use(role('client'));
  *                 success:
  *                   type: boolean
  *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                     name:
- *                       type: string
- *                     email:
- *                       type: string
- *                     phone:
- *                       type: string
- *                     avatar:
- *                       type: string
- *                     coverImage:
- *                       type: string
- *                     role:
- *                       type: string
- *                     isVerified:
- *                       type: boolean
- *                     loyaltyPoints:
- *                       type: integer
+ *                   $ref: '#/components/schemas/User'
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
@@ -109,6 +91,30 @@ router.get('/profile', userController.getMyProfile);
  *     responses:
  *       200:
  *         description: الملف الشخصي الكامل
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     addresses:
+ *                       type: array
+ *                     recentOrders:
+ *                       type: array
+ *                     favoriteStores:
+ *                       type: array
+ *                     recentReviews:
+ *                       type: array
+ *                     stats:
+ *                       type: object
+ *                     summary:
+ *                       type: object
  */
 router.get('/profile/complete', userController.getMyCompleteProfile);
 
@@ -125,22 +131,7 @@ router.get('/profile/complete', userController.getMyCompleteProfile);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               name:
- *                 type: string
- *                 example: أحمد محمد
- *               email:
- *                 type: string
- *                 format: email
- *               phone:
- *                 type: string
- *               dateOfBirth:
- *                 type: string
- *                 format: date
- *               gender:
- *                 type: string
- *                 enum: [male, female]
+ *             $ref: '#/components/schemas/UpdateProfileInput'
  *     responses:
  *       200:
  *         description: تم تحديث الملف الشخصي
@@ -168,6 +159,20 @@ router.put('/profile', validate(updateProfileSchema), userController.updateMyPro
  *     responses:
  *       200:
  *         description: تم تحديث الصورة الشخصية
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     user:
+ *                       $ref: '#/components/schemas/User'
+ *                     image:
+ *                       type: object
  */
 router.put('/profile/avatar', 
   validate(avatarSchema),
@@ -192,6 +197,9 @@ router.put('/profile/avatar',
  *               image:
  *                 type: string
  *                 format: binary
+ *     responses:
+ *       200:
+ *         description: تم تحديث صورة الغلاف
  */
 router.put('/profile/cover', 
   upload('users/covers', ['image']).single('image'), 
@@ -206,6 +214,9 @@ router.put('/profile/cover',
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: تم حذف الصورة الشخصية
  */
 router.delete('/profile/avatar', userController.deleteAvatar);
 
@@ -218,16 +229,14 @@ router.delete('/profile/avatar', userController.deleteAvatar);
  *     security:
  *       - bearerAuth: []
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               isOnline:
- *                 type: boolean
- *               status:
- *                 type: string
- *                 enum: [online, away, busy, offline]
+ *             $ref: '#/components/schemas/PresenceInput'
+ *     responses:
+ *       200:
+ *         description: تم تحديث حالة التواجد
  */
 router.put('/profile/presence', validate(presenceSchema), userController.updatePresence);
 
@@ -256,7 +265,7 @@ router.put('/profile/presence', validate(presenceSchema), userController.updateP
  *         name: status
  *         schema:
  *           type: string
- *           enum: [pending, accepted, preparing, ready, picked, delivered, cancelled]
+ *           enum: [pending, accepted, ready, picked, delivered, cancelled]
  *       - in: query
  *         name: fromDate
  *         schema:
@@ -283,6 +292,8 @@ router.put('/profile/presence', validate(presenceSchema), userController.updateP
  *                     orders:
  *                       type: array
  *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *                     stats:
  *                       type: object
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
@@ -302,43 +313,28 @@ router.get('/orders', PaginationUtils.validatePaginationParams, orderController.
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - storeId
- *               - items
- *               - addressId
- *             properties:
- *               storeId:
- *                 type: string
- *                 example: 60d21b4667d0d8992e610c85
- *               items:
- *                 type: array
- *                 items:
- *                   type: object
- *                   properties:
- *                     productId:
- *                       type: string
- *                     quantity:
- *                       type: integer
- *                       minimum: 1
- *                     notes:
- *                       type: string
- *               addressId:
- *                 type: string
- *               paymentMethod:
- *                 type: string
- *                 enum: [cash, card, wallet]
- *                 default: cash
- *               deliveryInstructions:
- *                 type: string
- *               couponCode:
- *                 type: string
- *               useLoyaltyPoints:
- *                 type: boolean
- *                 default: false
+ *             $ref: '#/components/schemas/CreateOrderInput'
  *     responses:
  *       201:
  *         description: تم إنشاء الطلب بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     order:
+ *                       $ref: '#/components/schemas/Order'
+ *                     assignedDriver:
+ *                       type: object
+ *                     timeline:
+ *                       type: array
+ *                     estimatedDelivery:
+ *                       type: string
  *       400:
  *         description: بيانات غير صحيحة أو المتجر مغلق
  */
@@ -361,6 +357,26 @@ router.post('/orders', validate(createOrderSchema), orderController.createOrder)
  *     responses:
  *       200:
  *         description: تفاصيل الطلب
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     order:
+ *                       $ref: '#/components/schemas/Order'
+ *                     tracking:
+ *                       type: object
+ *                     timeline:
+ *                       type: array
+ *                     permissions:
+ *                       type: object
+ *       403:
+ *         description: ليس لديك صلاحية لعرض هذا الطلب
  *       404:
  *         description: الطلب غير موجود
  */
@@ -381,14 +397,11 @@ router.get('/orders/:id', orderController.getOrderDetails);
  *         schema:
  *           type: string
  *     requestBody:
+ *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             properties:
- *               reason:
- *                 type: string
- *                 example: changed my mind
+ *             $ref: '#/components/schemas/CancelOrderInput'
  *     responses:
  *       200:
  *         description: تم إلغاء الطلب
@@ -405,6 +418,12 @@ router.put('/orders/:id/cancel', validate(cancelOrderSchema), orderController.ca
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     responses:
  *       200:
  *         description: معلومات تتبع الطلب
@@ -422,16 +441,16 @@ router.put('/orders/:id/cancel', validate(cancelOrderSchema), orderController.ca
  *                       type: string
  *                     driverLocation:
  *                       type: object
- *                       properties:
- *                         latitude:
- *                           type: number
- *                         longitude:
- *                           type: number
  *                     estimatedArrival:
  *                       type: string
- *                       format: date-time
  *                     timeline:
  *                       type: array
+ *                     trackingPoints:
+ *                       type: array
+ *                     driver:
+ *                       type: object
+ *                     store:
+ *                       type: object
  */
 router.get('/orders/:id/track', orderController.trackOrder);
 
@@ -454,22 +473,10 @@ router.get('/orders/:id/track', orderController.trackOrder);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - rating
- *             properties:
- *               rating:
- *                 type: integer
- *                 minimum: 1
- *                 maximum: 5
- *                 example: 5
- *               review:
- *                 type: string
- *                 example: خدمة ممتازة وسرعة في التوصيل
- *               driverRating:
- *                 type: integer
- *                 minimum: 1
- *                 maximum: 5
+ *             $ref: '#/components/schemas/RateOrderInput'
+ *     responses:
+ *       200:
+ *         description: تم إضافة التقييم
  */
 router.post('/orders/:id/rate', validate(rateOrderSchema), orderController.rateOrder);
 
@@ -481,26 +488,63 @@ router.post('/orders/:id/rate', validate(rateOrderSchema), orderController.rateO
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - issueType
- *             properties:
- *               issueType:
- *                 type: string
- *                 enum: [wrong_item, missing_item, damaged, late, other]
- *               description:
- *                 type: string
- *               images:
- *                 type: array
- *                 items:
- *                   type: string
+ *             $ref: '#/components/schemas/ReportIssueInput'
+ *     responses:
+ *       201:
+ *         description: تم الإبلاغ عن المشكلة
  */
 router.post('/orders/:id/report-issue', validate(reportIssueSchema), orderController.reportOrderIssue);
+
+/**
+ * @swagger
+ * /client/orders/{id}/location:
+ *   get:
+ *     summary: موقع المندوب الحالي للطلب
+ *     tags: [👤 Client]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: موقع المندوب
+ */
+router.get('/orders/:id/location', orderController.getDriverLocation);
+
+/**
+ * @swagger
+ * /client/orders/{id}/timeline:
+ *   get:
+ *     summary: الجدول الزمني للطلب
+ *     tags: [👤 Client]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: الجدول الزمني
+ */
+router.get('/orders/:id/timeline', orderController.getOrderTimeline);
 
 // ========== 3. العناوين ==========
 
@@ -515,6 +559,17 @@ router.post('/orders/:id/report-issue', validate(reportIssueSchema), orderContro
  *     responses:
  *       200:
  *         description: قائمة العناوين
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Address'
  */
 router.get('/addresses', addressController.getMyAddresses);
 
@@ -531,34 +586,19 @@ router.get('/addresses', addressController.getMyAddresses);
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - title
- *               - address
- *               - latitude
- *               - longitude
- *             properties:
- *               title:
- *                 type: string
- *                 example: المنزل
- *               address:
- *                 type: string
- *                 example: شارع الملك فهد، الرياض
- *               latitude:
- *                 type: number
- *                 example: 24.7136
- *               longitude:
- *                 type: number
- *                 example: 46.6753
- *               apartment:
- *                 type: string
- *               floor:
- *                 type: string
- *               landmark:
- *                 type: string
- *               isDefault:
- *                 type: boolean
- *                 default: false
+ *             $ref: '#/components/schemas/CreateAddressInput'
+ *     responses:
+ *       201:
+ *         description: تم إضافة العنوان
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Address'
  */
 router.post('/addresses', validate(createAddressSchema), addressController.createAddress);
 
@@ -570,6 +610,21 @@ router.post('/addresses', validate(createAddressSchema), addressController.creat
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/UpdateAddressInput'
+ *     responses:
+ *       200:
+ *         description: تم تحديث العنوان
  */
 router.put('/addresses/:id', validate(updateAddressSchema), addressController.updateAddress);
 
@@ -581,6 +636,15 @@ router.put('/addresses/:id', validate(updateAddressSchema), addressController.up
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم حذف العنوان
  */
 router.delete('/addresses/:id', addressController.deleteAddress);
 
@@ -592,6 +656,15 @@ router.delete('/addresses/:id', addressController.deleteAddress);
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم تعيين العنوان كافتراضي
  */
 router.put('/addresses/:id/set-default', addressController.setDefaultAddress);
 
@@ -603,6 +676,15 @@ router.put('/addresses/:id/set-default', addressController.setDefaultAddress);
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تفاصيل العنوان
  */
 router.get('/addresses/:id', addressController.getAddressById);
 
@@ -616,6 +698,15 @@ router.get('/addresses/:id', addressController.getAddressById);
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
  *     responses:
  *       200:
  *         description: قائمة المتاجر المفضلة
@@ -636,6 +727,18 @@ router.get('/favorites', favoriteController.getUserFavorites);
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               notes:
+ *                 type: string
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
  *     responses:
  *       201:
  *         description: تمت الإضافة إلى المفضلة
@@ -650,6 +753,15 @@ router.post('/favorites/:storeId', favoriteController.addToFavorites);
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تمت الإزالة من المفضلة
  */
 router.delete('/favorites/:storeId', favoriteController.removeFromFavorites);
 
@@ -661,8 +773,65 @@ router.delete('/favorites/:storeId', favoriteController.removeFromFavorites);
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: حالة المفضلة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     isFavorite:
+ *                       type: boolean
+ *                     storeId:
+ *                       type: string
  */
 router.get('/favorites/:storeId/status', favoriteController.checkFavoriteStatus);
+
+/**
+ * @swagger
+ * /client/favorites/{storeId}:
+ *   put:
+ *     summary: تحديث المفضلة
+ *     tags: [👤 Client]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               notes:
+ *                 type: string
+ *               tags:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               isActive:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: تم تحديث المفضلة
+ */
+router.put('/favorites/:storeId', favoriteController.updateFavorite);
 
 // ========== 5. التقييمات ==========
 
@@ -699,6 +868,9 @@ router.get('/favorites/:storeId/status', favoriteController.checkFavoriteStatus)
  *                 type: array
  *                 items:
  *                   type: string
+ *     responses:
+ *       201:
+ *         description: تم إضافة التقييم
  */
 router.post('/reviews/:storeId', reviewController.addReview);
 
@@ -712,6 +884,18 @@ router.post('/reviews/:storeId', reviewController.addReview);
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: نقاط الولاء
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/LoyaltyPoints'
  */
 router.get('/loyalty/points', loyaltyController.getPoints);
 
@@ -723,6 +907,37 @@ router.get('/loyalty/points', loyaltyController.getPoints);
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *           enum: [discount, free_item, free_delivery, exclusive]
+ *       - in: query
+ *         name: minPoints
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: قائمة المكافآت
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     available:
+ *                       type: array
+ *                     upcoming:
+ *                       type: array
+ *                     special:
+ *                       type: array
+ *                     userPoints:
+ *                       type: integer
  */
 router.get('/loyalty/rewards', loyaltyController.getRewards);
 
@@ -734,6 +949,25 @@ router.get('/loyalty/rewards', loyaltyController.getRewards);
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [earned, redeemed, expired, adjusted]
+ *     responses:
+ *       200:
+ *         description: سجل المعاملات
  */
 router.get('/loyalty/transactions', loyaltyController.getTransactions);
 
@@ -758,6 +992,25 @@ router.get('/loyalty/transactions', loyaltyController.getTransactions);
  *                 type: string
  *               orderId:
  *                 type: string
+ *     responses:
+ *       200:
+ *         description: تم استبدال النقاط
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     reward:
+ *                       type: object
+ *                     pointsAfter:
+ *                       type: integer
+ *                     code:
+ *                       type: string
  */
 router.post('/loyalty/redeem', loyaltyController.redeemPoints);
 
@@ -769,6 +1022,35 @@ router.post('/loyalty/redeem', loyaltyController.redeemPoints);
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: إحصائيات الولاء
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     currentPoints:
+ *                       type: integer
+ *                     tier:
+ *                       type: string
+ *                     multiplier:
+ *                       type: number
+ *                     memberSince:
+ *                       type: string
+ *                     lastActivity:
+ *                       type: string
+ *                     totalTransactions:
+ *                       type: integer
+ *                     monthly:
+ *                       type: object
+ *                     nextTier:
+ *                       type: object
  */
 router.get('/loyalty/stats', loyaltyController.getStats);
 
@@ -782,6 +1064,29 @@ router.get('/loyalty/stats', loyaltyController.getStats);
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [order, promotion, system, chat, loyalty]
+ *       - in: query
+ *         name: isRead
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: قائمة الإشعارات
  */
 router.get('/notifications', PaginationUtils.validatePaginationParams, notificationController.getUserNotifications);
 
@@ -793,8 +1098,37 @@ router.get('/notifications', PaginationUtils.validatePaginationParams, notificat
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: عدد الإشعارات غير المقروءة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     unreadCount:
+ *                       type: integer
  */
 router.get('/notifications/unread-count', notificationController.getUnreadCount);
+
+/**
+ * @swagger
+ * /client/notifications/stats:
+ *   get:
+ *     summary: إحصائيات الإشعارات
+ *     tags: [👤 Client]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: إحصائيات الإشعارات
+ */
+router.get('/notifications/stats', notificationController.getNotificationStats);
 
 /**
  * @swagger
@@ -804,8 +1138,77 @@ router.get('/notifications/unread-count', notificationController.getUnreadCount)
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم تعليم الإشعار كمقروء
  */
 router.put('/notifications/:id/read', notificationController.markAsRead);
+
+/**
+ * @swagger
+ * /client/notifications/{id}/unread:
+ *   put:
+ *     summary: تعليم إشعار كغير مقروء
+ *     tags: [👤 Client]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم تعليم الإشعار كغير مقروء
+ */
+router.put('/notifications/:id/unread', notificationController.markAsUnread);
+
+/**
+ * @swagger
+ * /client/notifications/{id}/archive:
+ *   put:
+ *     summary: أرشفة إشعار
+ *     tags: [👤 Client]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم أرشفة الإشعار
+ */
+router.put('/notifications/:id/archive', notificationController.archive);
+
+/**
+ * @swagger
+ * /client/notifications/{id}:
+ *   delete:
+ *     summary: حذف إشعار
+ *     tags: [👤 Client]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم حذف الإشعار
+ */
+router.delete('/notifications/:id', notificationController.deleteNotification);
 
 /**
  * @swagger
@@ -815,8 +1218,25 @@ router.put('/notifications/:id/read', notificationController.markAsRead);
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: تم تعليم جميع الإشعارات كمقروءة
  */
 router.put('/notifications/mark-all-read', notificationController.markAllAsRead);
+
+/**
+ * @swagger
+ * /client/notifications/read/cleanup:
+ *   delete:
+ *     summary: حذف جميع الإشعارات المقروءة
+ *     tags: [👤 Client]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: تم حذف الإشعارات المقروءة
+ */
+router.delete('/notifications/read/cleanup', notificationController.deleteReadNotifications);
 
 /**
  * @swagger
@@ -826,6 +1246,28 @@ router.put('/notifications/mark-all-read', notificationController.markAllAsRead)
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: boolean
+ *               push:
+ *                 type: boolean
+ *               sms:
+ *                 type: boolean
+ *               orderUpdates:
+ *                 type: boolean
+ *               promotions:
+ *                 type: boolean
+ *               system:
+ *                 type: boolean
+ *     responses:
+ *       200:
+ *         description: تم تحديث تفضيلات الإشعارات
  */
 router.put('/notifications/preferences', notificationController.updateNotificationPreferences);
 
@@ -837,8 +1279,52 @@ router.put('/notifications/preferences', notificationController.updateNotificati
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - deviceId
+ *               - platform
+ *             properties:
+ *               deviceId:
+ *                 type: string
+ *               platform:
+ *                 type: string
+ *                 enum: [ios, android, web]
+ *               pushToken:
+ *                 type: string
+ *               model:
+ *                 type: string
+ *               appVersion:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: تم تسجيل الجهاز
  */
 router.post('/notifications/devices', notificationController.registerDevice);
+
+/**
+ * @swagger
+ * /client/notifications/devices/{deviceId}:
+ *   delete:
+ *     summary: إلغاء تسجيل جهاز
+ *     tags: [👤 Client]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: deviceId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم إلغاء تسجيل الجهاز
+ */
+router.delete('/notifications/devices/:deviceId', notificationController.unregisterDevice);
 
 // ========== 8. إحصائيات ==========
 
@@ -853,6 +1339,24 @@ router.post('/notifications/devices', notificationController.registerDevice);
  *     responses:
  *       200:
  *         description: إحصائيات الطلبات والنشاط
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     orders:
+ *                       type: object
+ *                     reviews:
+ *                       type: object
+ *                     memberSince:
+ *                       type: object
+ *                     lastActive:
+ *                       type: object
  */
 router.get('/stats', userController.getUserStats);
 
@@ -864,6 +1368,20 @@ router.get('/stats', userController.getUserStats);
  *     tags: [👤 Client]
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *     responses:
+ *       200:
+ *         description: سجل النشاطات
  */
 router.get('/activity', PaginationUtils.validatePaginationParams, userController.getActivityLog);
 

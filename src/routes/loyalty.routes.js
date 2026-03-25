@@ -1,6 +1,7 @@
 // ============================================
 // ملف: src/routes/loyalty.routes.js
 // الوصف: نظام الولاء والنقاط
+// الإصدار: 2.0
 // ============================================
 
 const express = require('express');
@@ -46,6 +47,43 @@ const role = require('../middlewares/role.middleware');
  *         lifetimePoints:
  *           type: integer
  *           example: 2500
+ *         expiringPoints:
+ *           type: integer
+ *           example: 100
+ *         history:
+ *           type: object
+ *           properties:
+ *             earned:
+ *               type: integer
+ *             redeemed:
+ *               type: integer
+ *     
+ *     LoyaltyReward:
+ *       type: object
+ *       properties:
+ *         id:
+ *           type: string
+ *         name:
+ *           type: string
+ *         description:
+ *           type: string
+ *         points:
+ *           type: integer
+ *         category:
+ *           type: string
+ *           enum: [discount, delivery, food, special]
+ *         image:
+ *           type: string
+ *         discountValue:
+ *           type: number
+ *         discountType:
+ *           type: string
+ *           enum: [percentage, fixed]
+ *         validUntil:
+ *           type: string
+ *           format: date-time
+ *         isSpecial:
+ *           type: boolean
  */
 
 // ========== مسارات المستخدم العادي ==========
@@ -88,7 +126,7 @@ router.get('/points', auth, loyaltyController.getPoints);
  *         name: category
  *         schema:
  *           type: string
- *           enum: [discount, free_item, free_delivery, exclusive]
+ *           enum: [discount, delivery, food, special]
  *       - in: query
  *         name: minPoints
  *         schema:
@@ -104,23 +142,22 @@ router.get('/points', auth, loyaltyController.getPoints);
  *                 success:
  *                   type: boolean
  *                 data:
- *                   type: array
- *                   items:
- *                     type: object
- *                     properties:
- *                       id:
- *                         type: string
- *                       name:
- *                         type: string
- *                       description:
- *                         type: string
- *                       pointsRequired:
- *                         type: integer
- *                       category:
- *                         type: string
- *                       expiresAt:
- *                         type: string
- *                         format: date-time
+ *                   type: object
+ *                   properties:
+ *                     available:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/LoyaltyReward'
+ *                     upcoming:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/LoyaltyReward'
+ *                     special:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/LoyaltyReward'
+ *                     userPoints:
+ *                       type: integer
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
@@ -149,10 +186,26 @@ router.get('/rewards', auth, loyaltyController.getRewards);
  *         name: type
  *         schema:
  *           type: string
- *           enum: [earned, redeemed, expired, adjusted]
+ *           enum: [earn, redeem, expire]
  *     responses:
  *       200:
  *         description: سجل المعاملات
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     transactions:
+ *                       type: array
+ *                     pagination:
+ *                       $ref: '#/components/schemas/Pagination'
+ *                     stats:
+ *                       type: object
  */
 router.get('/transactions', auth, loyaltyController.getTransactions);
 
@@ -193,7 +246,7 @@ router.get('/transactions', auth, loyaltyController.getTransactions);
  *                   type: object
  *                   properties:
  *                     reward:
- *                       type: object
+ *                       $ref: '#/components/schemas/LoyaltyReward'
  *                     pointsAfter:
  *                       type: integer
  *                     code:
@@ -216,6 +269,32 @@ router.post('/points/redeem', auth, loyaltyController.redeemPoints);
  *     responses:
  *       200:
  *         description: إحصائيات الولاء
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     currentPoints:
+ *                       type: integer
+ *                     tier:
+ *                       type: string
+ *                     multiplier:
+ *                       type: number
+ *                     memberSince:
+ *                       type: string
+ *                     lastActivity:
+ *                       type: string
+ *                     totalTransactions:
+ *                       type: integer
+ *                     monthly:
+ *                       type: object
+ *                     nextTier:
+ *                       type: object
  */
 router.get('/stats', auth, loyaltyController.getStats);
 
@@ -247,11 +326,33 @@ router.get('/stats', auth, loyaltyController.getStats);
  *               reason:
  *                 type: string
  *                 example: compensation for delayed order
+ *               orderId:
+ *                 type: string
  *     responses:
  *       200:
  *         description: تم إضافة النقاط
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     userId:
+ *                       type: string
+ *                     newBalance:
+ *                       type: integer
+ *                     transaction:
+ *                       type: object
  *       403:
  *         description: غير مصرح - يتطلب صلاحيات المشرف
+ *       404:
+ *         description: المستخدم غير موجود
  */
 router.post('/points/add', auth, role('admin'), loyaltyController.addPoints);
 
