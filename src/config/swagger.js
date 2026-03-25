@@ -1,40 +1,155 @@
 // ============================================
-// ملف: src/config/swagger.js (المصحح)
-// الوصف: توثيق API باستخدام Swagger
+// ملف: src/config/swagger.js
+// الوصف: إعدادات Swagger لتوثيق API بالكامل
 // ============================================
 
 const swaggerJsdoc = require('swagger-jsdoc');
 const path = require('path');
 
-const options = {
+/**
+ * تحويل Joi Validator إلى Swagger Schema
+ * هذه الدالة تستخدم لقراءة الـ Validators الفعلية وتحويلها تلقائياً
+ */
+const convertJoiToSwagger = (joiSchema) => {
+  if (!joiSchema || !joiSchema.describe) {
+    return { type: 'object', properties: {} };
+  }
+
+  try {
+    const describe = joiSchema.describe();
+    const keys = describe.keys || {};
+    const swaggerSchema = {
+      type: 'object',
+      properties: {},
+      required: []
+    };
+
+    for (const [key, value] of Object.entries(keys)) {
+      // تحديد النوع الأساسي
+      let type = 'string';
+      if (value.type === 'number') type = 'number';
+      if (value.type === 'boolean') type = 'boolean';
+      if (value.type === 'array') type = 'array';
+      if (value.type === 'object') type = 'object';
+      if (value.type === 'date') type = 'string';
+
+      swaggerSchema.properties[key] = { type };
+
+      // إضافة format للبريد الإلكتروني
+      if (value.rules?.some(r => r.name === 'email')) {
+        swaggerSchema.properties[key].format = 'email';
+      }
+
+      // إضافة maxLength
+      const maxRule = value.rules?.find(r => r.name === 'max');
+      if (maxRule) {
+        swaggerSchema.properties[key].maxLength = maxRule.args.limit;
+      }
+
+      // إضافة minLength
+      const minRule = value.rules?.find(r => r.name === 'min');
+      if (minRule) {
+        swaggerSchema.properties[key].minLength = minRule.args.limit;
+      }
+
+      // إضافة minimum/maximum للأرقام
+      if (type === 'number') {
+        const minNumberRule = value.rules?.find(r => r.name === 'min');
+        if (minNumberRule) {
+          swaggerSchema.properties[key].minimum = minNumberRule.args.limit;
+        }
+        const maxNumberRule = value.rules?.find(r => r.name === 'max');
+        if (maxNumberRule) {
+          swaggerSchema.properties[key].maximum = maxNumberRule.args.limit;
+        }
+      }
+
+      // إضافة enum
+      const validRule = value.rules?.find(r => r.name === 'valid');
+      if (validRule && validRule.args?.value) {
+        swaggerSchema.properties[key].enum = validRule.args.value;
+      }
+
+      // إضافة default
+      if (value.flags?.default !== undefined) {
+        swaggerSchema.properties[key].default = value.flags.default;
+      }
+
+      // إضافة required
+      if (value.flags?.presence === 'required') {
+        swaggerSchema.required.push(key);
+      }
+
+      // معالجة الـ array
+      if (type === 'array' && value.items) {
+        swaggerSchema.properties[key].items = convertJoiToSwagger({ describe: () => ({ keys: { item: value.items } }) }).properties?.item || { type: 'string' };
+      }
+    }
+
+    return swaggerSchema;
+  } catch (error) {
+    console.error('Error converting Joi schema:', error);
+    return { type: 'object', properties: {} };
+  }
+};
+
+/**
+ * إعدادات Swagger
+ */
+const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
       title: 'Food Delivery API',
-      version: '1.0.0',
-      description: 'توثيق API لتطبيق توصيل الطعام - النسخة المحدثة',
+      version: '2.1.0',
+      description: `
+        🚀 **منصة توصيل الطعام المتكاملة**
+        
+        ## المميزات الرئيسية:
+        - 🔐 **نظام مصادقة متكامل** (JWT, Refresh Tokens)
+        - 👤 **إدارة المستخدمين** (عملاء، مندوبين، تجار، مشرفين)
+        - 🏪 **إدارة المتاجر والمنتجات**
+        - 📦 **نظام الطلبات المتقدم** (تتبع، تقييم، إشعارات)
+        - 🗺️ **خدمات الخرائط والتتبع** (حساب المسافات، تتبع المندوبين)
+        - 💬 **نظام دردشة متكامل** (محادثات فردية، جماعية، دعم فني)
+        - 🎁 **نظام ولاء ونقاط** (مكافآت، خصومات)
+        - 📊 **تحليلات متقدمة** (تقارير، إحصائيات)
+        - 🔔 **إشعارات فورية** (Push, Email, SMS)
+        
+        ## كيفية الاستخدام:
+        1. قم بتسجيل حساب جديد عبر \`/auth/register\`
+        2. فعّل حسابك عبر \`/auth/verify\`
+        3. سجل الدخول عبر \`/auth/login\` للحصول على التوكن
+        4. استخدم التوكن في Header: \`Authorization: Bearer <token>\`
+        
+        ## الأدوار المدعومة:
+        - **client** 👤 عميل عادي
+        - **vendor** 🏪 صاحب متجر
+        - **driver** 🚗 مندوب توصيل
+        - **admin** 👑 مشرف كامل الصلاحيات
+      `,
       contact: {
-        name: 'فريق الدعم',
+        name: 'الدعم الفني',
         email: 'support@fooddelivery.com',
-        url: 'https://fooddelivery.com'
+        url: 'https://fooddelivery.com/support'
       },
       license: {
         name: 'MIT',
         url: 'https://opensource.org/licenses/MIT'
-      },
-      'x-logo': {
-        url: '/images/logo.png',
-        altText: 'Food Delivery Logo'
       }
     },
     servers: [
       {
-        url: process.env.API_URL || 'http://localhost:3000/api/v1',
-        description: process.env.NODE_ENV === 'production' ? 'سيرفر الإنتاج' : 'سيرفر التطوير'
+        url: 'http://localhost:3000/api/v1',
+        description: 'الخادم المحلي (Development)'
       },
       {
-        url: 'http://localhost:3000/api/v1',
-        description: 'سيرفر محلي'
+        url: 'https://staging-api.fooddelivery.com/api/v1',
+        description: 'خادم الاختبار (Staging)'
+      },
+      {
+        url: 'https://api.fooddelivery.com/api/v1',
+        description: 'خادم الإنتاج (Production)'
       }
     ],
     components: {
@@ -43,127 +158,408 @@ const options = {
           type: 'http',
           scheme: 'bearer',
           bearerFormat: 'JWT',
-          description: 'أدخل التوكن الخاص بك: Bearer <token>'
+          description: 'أدخل التوكن بصيغة: Bearer <token>'
+        },
+        apiKeyAuth: {
+          type: 'apiKey',
+          in: 'header',
+          name: 'X-API-Key',
+          description: 'مفتاح API للخدمات الخارجية'
         }
       },
       schemas: {
-        // ====== المستخدمين ======
+        // ========== Schemas من الـ Validators الفعلية ==========
+        
+        // Auth Schemas
+        RegisterInput: convertJoiToSwagger(require('../validators/auth.validator').registerSchema),
+        LoginInput: convertJoiToSwagger(require('../validators/auth.validator').loginSchema),
+        ChangePasswordInput: convertJoiToSwagger(require('../validators/auth.validator').changePasswordSchema),
+        ResetPasswordInput: convertJoiToSwagger(require('../validators/auth.validator').resetPasswordSchema),
+        ForgotPasswordInput: convertJoiToSwagger(require('../validators/auth.validator').forgotPasswordSchema),
+        VerifyAccountInput: convertJoiToSwagger(require('../validators/auth.validator').verifyAccountSchema),
+        
+        // Address Schemas
+        CreateAddressInput: convertJoiToSwagger(require('../validators/address.validator').createAddressSchema),
+        UpdateAddressInput: convertJoiToSwagger(require('../validators/address.validator').updateAddressSchema),
+        
+        // User Schemas
+        UpdateProfileInput: convertJoiToSwagger(require('../validators/user.validator').updateProfileSchema),
+        
+        // Store Schemas
+        CreateStoreInput: convertJoiToSwagger(require('../validators/store.validator').createStoreSchema),
+        UpdateStoreInput: convertJoiToSwagger(require('../validators/store.validator').updateStoreSchema),
+        
+        // Product Schemas
+        CreateProductInput: convertJoiToSwagger(require('../validators/product.validator').createProductSchema),
+        UpdateProductInput: convertJoiToSwagger(require('../validators/product.validator').updateProductSchema),
+        UpdateInventoryInput: convertJoiToSwagger(require('../validators/product.validator').updateInventorySchema),
+        
+        // Order Schemas
+        CreateOrderInput: convertJoiToSwagger(require('../validators/order.validator').createOrderSchema),
+        UpdateStatusInput: convertJoiToSwagger(require('../validators/order.validator').updateStatusSchema),
+        CancelOrderInput: convertJoiToSwagger(require('../validators/order.validator').cancelOrderSchema),
+        RateOrderInput: convertJoiToSwagger(require('../validators/order.validator').rateOrderSchema),
+        ReportIssueInput: convertJoiToSwagger(require('../validators/order.validator').reportIssueSchema),
+        AssignDriverInput: convertJoiToSwagger(require('../validators/order.validator').assignDriverSchema),
+        
+        // ========== نماذج إضافية ==========
+        
+        // نموذج المستخدم الكامل
         User: {
           type: 'object',
-          required: ['name', 'phone', 'password'],
           properties: {
-            id: { type: 'string', example: '60d21b4667d0d8992e610c85' },
-            name: { type: 'string', example: 'أحمد محمد', description: 'اسم المستخدم' },
-            phone: { type: 'string', example: '+212600000000', description: 'رقم الهاتف' },
-            email: { type: 'string', format: 'email', example: 'ahmed@example.com', description: 'البريد الإلكتروني (اختياري)' },
-            role: { type: 'string', enum: ['client', 'driver', 'admin', 'store_owner'], example: 'client', description: 'دور المستخدم' },
-            image: { type: 'string', example: 'https://res.cloudinary.com/.../avatar.jpg', description: 'صورة المستخدم' },
-            isVerified: { type: 'boolean', example: true, description: 'هل الحساب موثق؟' },
-            isActive: { type: 'boolean', example: true, description: 'هل الحساب نشط؟' },
-            createdAt: { type: 'string', format: 'date-time', description: 'تاريخ الإنشاء' }
+            id: { type: 'string', example: '60d21b4667d0d8992e610c89' },
+            name: { type: 'string', example: 'أحمد محمد' },
+            email: { type: 'string', format: 'email', example: 'ahmed@example.com' },
+            phone: { type: 'string', example: '+966501234567' },
+            role: { type: 'string', enum: ['client', 'vendor', 'driver', 'admin'], example: 'client' },
+            avatar: { type: 'string', example: 'https://api.fooddelivery.com/uploads/avatar-123.jpg' },
+            coverImage: { type: 'string', example: 'https://api.fooddelivery.com/uploads/cover-123.jpg' },
+            isVerified: { type: 'boolean', example: true },
+            isActive: { type: 'boolean', example: true },
+            isOnline: { type: 'boolean', example: false },
+            rating: { type: 'number', format: 'float', minimum: 0, maximum: 5, example: 4.5 },
+            loyaltyPoints: { type: 'integer', example: 1250 },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' }
           }
         },
+        
+        // نموذج العنوان الكامل
+        Address: {
+          type: 'object',
+          properties: {
+            id: { type: 'string', example: '60d21b4667d0d8992e610c90' },
+            userId: { type: 'string', example: '60d21b4667d0d8992e610c89' },
+            title: { type: 'string', example: 'المنزل' },
+            address: { type: 'string', example: 'شارع الملك فهد، الرياض' },
+            latitude: { type: 'number', example: 24.7136 },
+            longitude: { type: 'number', example: 46.6753 },
+            isDefault: { type: 'boolean', example: true },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' }
+          }
+        },
+        
+        // نموذج المتجر الكامل
         Store: {
           type: 'object',
-          required: ['name'],
           properties: {
-            id: { type: 'string', example: '60d21b4667d0d8992e610c86' },
-            name: { type: 'string', example: 'مطعم الأندلس', description: 'اسم المتجر' },
-            description: { type: 'string', example: 'أشهى المأكولات العربية', description: 'وصف المتجر' },
-            logo: { type: 'string', example: 'https://res.cloudinary.com/.../store.jpg', description: 'شعار المتجر' },
-            coverImage: { type: 'string', example: 'https://res.cloudinary.com/.../cover.jpg', description: 'صورة الغلاف' },
-            category: { type: 'string', enum: ['store', 'cafe', 'bakery', 'fast-food', 'grocery', 'supermarket', 'pharmacy', 'other'], example: 'store', description: 'نوع المتجر' },
-            isOpen: { type: 'boolean', example: true, description: 'هل المتجر مفتوح؟' },
-            averageRating: { type: 'number', example: 4.5, description: 'متوسط التقييمات' },
-            deliveryInfo: {
-              type: 'object',
-              properties: {
-                hasDelivery: { type: 'boolean', example: true },
-                deliveryFee: { type: 'number', example: 10 },
-                estimatedDeliveryTime: { type: 'number', example: 30 }
-              }
-            },
-            tags: { type: 'array', items: { type: 'string' }, example: ['عربي', 'مشاوي', 'بيتزا'], description: 'وسوم المتجر' }
+            id: { type: 'string', example: '60d21b4667d0d8992e610c85' },
+            vendorId: { type: 'string', example: '60d21b4667d0d8992e610c86' },
+            name: { type: 'string', example: 'مطعم الأندلس' },
+            description: { type: 'string', example: 'أشهى المأكولات العربية' },
+            logo: { type: 'string', example: 'https://api.fooddelivery.com/uploads/logo-123.jpg' },
+            coverImage: { type: 'string', example: 'https://api.fooddelivery.com/uploads/cover-123.jpg' },
+            status: { type: 'string', enum: ['pending', 'active', 'closed', 'suspended'], example: 'active' },
+            isOpen: { type: 'boolean', example: true },
+            rating: { type: 'number', format: 'float', minimum: 0, maximum: 5, example: 4.7 },
+            deliveryRadius: { type: 'integer', example: 5000 },
+            minimumOrder: { type: 'number', example: 50 },
+            deliveryFee: { type: 'number', example: 15 },
+            openingTime: { type: 'string', example: '09:00' },
+            closingTime: { type: 'string', example: '23:00' },
+            categories: { type: 'array', items: { type: 'string' }, example: ['وجبات سريعة', 'مشروبات'] },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' }
           }
         },
-        Order: {
+        
+        // نموذج المنتج الكامل
+        Product: {
           type: 'object',
-          required: ['items', 'totalPrice', 'store'],
           properties: {
             id: { type: 'string', example: '60d21b4667d0d8992e610c87' },
-            user: { type: 'string', example: '60d21b4667d0d8992e610c85', description: 'معرف المستخدم' },
-            store: { type: 'string', example: '60d21b4667d0d8992e610c86', description: 'معرف المتجر' },
-            driver: { type: 'string', example: '60d21b4667d0d8992e610c88', description: 'معرف المندوب (اختياري)' },
-            items: { type: 'array', items: { type: 'object', properties: { name: { type: 'string', example: 'برجر' }, qty: { type: 'number', example: 2 }, price: { type: 'number', example: 50 }, notes: { type: 'string', example: 'بدون بصل' } } } },
-            totalPrice: { type: 'number', example: 120, description: 'السعر الإجمالي' },
-            status: { type: 'string', enum: ['pending', 'accepted', 'picked', 'delivered', 'cancelled'], example: 'pending', description: 'حالة الطلب' },
-            createdAt: { type: 'string', format: 'date-time', description: 'تاريخ الإنشاء' }
+            storeId: { type: 'string', example: '60d21b4667d0d8992e610c85' },
+            name: { type: 'string', example: 'شاورما دجاج' },
+            description: { type: 'string', example: 'شاورما دجاج مع صلصة الثوم' },
+            price: { type: 'number', example: 25 },
+            discountPrice: { type: 'number', example: 20 },
+            images: { type: 'array', items: { type: 'string' }, example: ['image1.jpg'] },
+            category: { type: 'string', example: 'وجبات رئيسية' },
+            isAvailable: { type: 'boolean', example: true },
+            featured: { type: 'boolean', example: false },
+            inventory: { type: 'integer', example: 100 },
+            calories: { type: 'integer', example: 450 },
+            preparationTime: { type: 'integer', example: 15 },
+            rating: { type: 'number', format: 'float', example: 4.8 },
+            createdAt: { type: 'string', format: 'date-time' },
+            updatedAt: { type: 'string', format: 'date-time' }
           }
         },
-        ApiResponse: {
+        
+        // نموذج الطلب الكامل
+        Order: {
           type: 'object',
           properties: {
-            success: { type: 'boolean', example: true },
-            message: { type: 'string', example: 'تمت العملية بنجاح' },
-            data: { type: 'object', description: 'بيانات الاستجابة' },
-            timestamp: { type: 'string', format: 'date-time' }
+            id: { type: 'string', example: '60d21b4667d0d8992e610c88' },
+            clientId: { type: 'string', example: '60d21b4667d0d8992e610c89' },
+            storeId: { type: 'string', example: '60d21b4667d0d8992e610c85' },
+            driverId: { type: 'string', example: '60d21b4667d0d8992e610c8a' },
+            items: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  productId: { type: 'string' },
+                  name: { type: 'string' },
+                  quantity: { type: 'integer' },
+                  price: { type: 'number' },
+                  notes: { type: 'string' }
+                }
+              }
+            },
+            subtotal: { type: 'number', example: 100 },
+            deliveryFee: { type: 'number', example: 15 },
+            discount: { type: 'number', example: 10 },
+            total: { type: 'number', example: 105 },
+            status: {
+              type: 'string',
+              enum: ['pending', 'accepted', 'preparing', 'ready', 'picked', 'delivered', 'cancelled'],
+              example: 'pending'
+            },
+            paymentMethod: { type: 'string', enum: ['cash', 'card', 'wallet'], example: 'cash' },
+            address: { $ref: '#/components/schemas/Address' },
+            createdAt: { type: 'string', format: 'date-time' },
+            deliveredAt: { type: 'string', format: 'date-time' }
           }
         },
+        
+        // نموذج الموقع الجغرافي
+        Location: {
+          type: 'object',
+          properties: {
+            latitude: { type: 'number', example: 24.7136 },
+            longitude: { type: 'number', example: 46.6753 },
+            address: { type: 'string', example: 'شارع الملك فهد، الرياض' }
+          }
+        },
+        
+        // نموذج المسار
+        Route: {
+          type: 'object',
+          properties: {
+            distance: { type: 'number', description: 'المسافة بالمتر', example: 1250 },
+            distanceKm: { type: 'number', description: 'المسافة بالكيلومتر', example: 1.25 },
+            duration: { type: 'number', description: 'المدة بالثواني', example: 540 },
+            durationMinutes: { type: 'number', description: 'المدة بالدقائق', example: 9 },
+            geometry: { type: 'object', description: 'مسار الخط على الخريطة' },
+            steps: { type: 'array', description: 'خطوات التوجيه' }
+          }
+        },
+        
+        // نموذج الرسالة
+        Message: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            conversationId: { type: 'string' },
+            sender: { $ref: '#/components/schemas/User' },
+            type: { type: 'string', enum: ['text', 'image', 'video', 'audio', 'location', 'contact', 'file'] },
+            content: { type: 'string' },
+            mediaUrl: { type: 'string' },
+            isRead: { type: 'boolean' },
+            createdAt: { type: 'string', format: 'date-time' }
+          }
+        },
+        
+        // نموذج المحادثة
+        Conversation: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            type: { type: 'string', enum: ['direct', 'group', 'support', 'order'] },
+            name: { type: 'string' },
+            participants: { type: 'array', items: { $ref: '#/components/schemas/User' } },
+            lastMessage: { $ref: '#/components/schemas/Message' },
+            unreadCount: { type: 'integer' },
+            createdAt: { type: 'string', format: 'date-time' }
+          }
+        },
+        
+        // نموذج الإشعار
+        Notification: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            userId: { type: 'string' },
+            type: { type: 'string', enum: ['order', 'promotion', 'system', 'chat', 'loyalty'] },
+            title: { type: 'string' },
+            message: { type: 'string' },
+            data: { type: 'object' },
+            isRead: { type: 'boolean' },
+            createdAt: { type: 'string', format: 'date-time' }
+          }
+        },
+        
+        // نموذج نقاط الولاء
+        LoyaltyPoints: {
+          type: 'object',
+          properties: {
+            current: { type: 'integer', example: 1250 },
+            tier: { type: 'string', enum: ['bronze', 'silver', 'gold', 'platinum'], example: 'silver' },
+            nextTier: {
+              type: 'object',
+              properties: {
+                name: { type: 'string', example: 'gold' },
+                pointsNeeded: { type: 'integer', example: 750 },
+                progress: { type: 'number', example: 62.5 }
+              }
+            },
+            lifetimePoints: { type: 'integer', example: 2500 }
+          }
+        },
+        
+        // نموذج الخطأ
         Error: {
           type: 'object',
           properties: {
             success: { type: 'boolean', example: false },
-            message: { type: 'string', example: 'حدث خطأ في المعالجة' },
+            message: { type: 'string', example: 'حدث خطأ أثناء المعالجة' },
             code: { type: 'string', example: 'VALIDATION_ERROR' },
-            timestamp: { type: 'string', format: 'date-time' }
+            errors: { type: 'array', items: { type: 'object' } }
           }
         },
+        
+        // نموذج النجاح
+        Success: {
+          type: 'object',
+          properties: {
+            success: { type: 'boolean', example: true },
+            message: { type: 'string', example: 'تمت العملية بنجاح' },
+            data: { type: 'object' }
+          }
+        },
+        
+        // نموذج الترحيل (Pagination)
         Pagination: {
           type: 'object',
           properties: {
             page: { type: 'integer', example: 1 },
             limit: { type: 'integer', example: 20 },
             total: { type: 'integer', example: 100 },
-            totalPages: { type: 'integer', example: 5 },
-            hasNextPage: { type: 'boolean', example: true },
-            hasPrevPage: { type: 'boolean', example: false }
+            pages: { type: 'integer', example: 5 },
+            hasNext: { type: 'boolean', example: true },
+            hasPrev: { type: 'boolean', example: false }
           }
         }
       },
       responses: {
-        UnauthorizedError: { description: 'التوكن غير صالح أو منتهي الصلاحية', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
-        NotFoundError: { description: 'المورد غير موجود', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
-        ValidationError: { description: 'خطأ في التحقق من البيانات', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } },
-        RateLimitError: { description: 'تم تجاوز الحد المسموح من الطلبات', content: { 'application/json': { schema: { $ref: '#/components/schemas/Error' } } } }
+        UnauthorizedError: {
+          description: 'غير مصرح - يجب تسجيل الدخول',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/Error'
+              },
+              example: {
+                success: false,
+                message: 'يرجى تسجيل الدخول أولاً',
+                code: 'UNAUTHORIZED'
+              }
+            }
+          }
+        },
+        ForbiddenError: {
+          description: 'ممنوع - ليس لديك صلاحية كافية',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/Error'
+              },
+              example: {
+                success: false,
+                message: 'ليس لديك صلاحية للوصول إلى هذا المورد',
+                code: 'FORBIDDEN'
+              }
+            }
+          }
+        },
+        NotFoundError: {
+          description: 'المورد غير موجود',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/Error'
+              },
+              example: {
+                success: false,
+                message: 'المورد المطلوب غير موجود',
+                code: 'NOT_FOUND'
+              }
+            }
+          }
+        },
+        ValidationError: {
+          description: 'بيانات غير صحيحة',
+          content: {
+            'application/json': {
+              schema: {
+                $ref: '#/components/schemas/Error'
+              },
+              example: {
+                success: false,
+                message: 'بيانات غير صحيحة',
+                code: 'VALIDATION_ERROR',
+                errors: [
+                  { field: 'email', message: 'البريد الإلكتروني مطلوب' }
+                ]
+              }
+            }
+          }
+        }
       }
     },
     tags: [
-      { name: 'Auth', description: 'عمليات المصادقة والتسجيل' },
-      { name: 'Users', description: 'إدارة المستخدمين والملفات الشخصية' },
-      { name: 'Stores', description: 'إدارة المتاجر وقوائم الطعام' },
-      { name: 'Orders', description: 'إدارة الطلبات والتتبع' },
-      { name: 'Items', description: 'إدارة عناصر القائمة' },
-      { name: 'Addresses', description: 'إدارة العناوين' },
-      { name: 'Chat', description: 'الدردشة والمراسلة' },
-      { name: 'Notifications', description: 'إدارة الإشعارات' },
-      { name: 'Admin', description: 'لوحة تحكم المشرف' },
-      { name: 'Driver', description: 'لوحة تحكم المندوب' },
-      { name: 'Store Owner', description: 'لوحة تحكم صاحب المتجر' },
-      { name: 'Loyalty', description: 'برنامج الولاء والنقاط' },
-      { name: 'Analytics', description: 'التحليلات والإحصائيات' },
-      { name: 'Security', description: 'فحوصات الأمان' },
-      { name: 'Assets', description: 'الملفات الثابتة والصور' },
-      { name: 'Health', description: 'فحوصات صحة النظام' }
-    ],
-    externalDocs: { description: 'مستودع GitHub', url: 'https://github.com/yourusername/food-delivery-api' }
+      { name: '🚀 API', description: 'المسارات الرئيسية للتطبيق' },
+      { name: '🔐 Authentication', description: 'مسارات المصادقة وإدارة الحسابات' },
+      { name: '👤 Client', description: 'مسارات العملاء (المستخدمين العاديين)' },
+      { name: '🏪 Vendor', description: 'مسارات أصحاب المتاجر' },
+      { name: '🚗 Driver', description: 'مسارات المندوبين' },
+      { name: '👑 Admin', description: 'مسارات المشرف (صلاحيات كاملة)' },
+      { name: '📦 Orders', description: 'إدارة الطلبات لجميع الأدوار' },
+      { name: '🗺️ Map', description: 'خدمات الخرائط والتتبع والملاحة' },
+      { name: '💬 Chat', description: 'نظام الدردشة والمراسلة' },
+      { name: '📍 Addresses', description: 'إدارة عناوين المستخدمين' },
+      { name: '📊 Aggregates', description: 'البيانات المجمعة والتقارير' },
+      { name: '📊 Analytics', description: 'التحليلات وإحصائيات الأداء' },
+      { name: '🔔 Notifications', description: 'إدارة الإشعارات' },
+      { name: '🎁 Loyalty', description: 'نظام الولاء والمكافآت' },
+      { name: '👥 Users', description: 'إدارة المستخدمين (للمشرف فقط)' },
+      { name: '🔒 Security', description: 'مسارات الأمان والفحوصات' },
+      { name: '🏥 Health', description: 'فحص صحة النظام وحالته' },
+      { name: '📁 Assets', description: 'الملفات الثابتة والصور' }
+    ]
   },
   apis: [
+    // مسارات التوثيق
     path.join(__dirname, '../routes/*.js'),
-    path.join(__dirname, '../controllers/*.js'),
+    path.join(__dirname, '../routes/**/*.js'),
+    // نماذج إضافية
     path.join(__dirname, '../models/*.js')
   ]
 };
 
-const specs = swaggerJsdoc(options);
+/**
+ * إنشاء مواصفات Swagger
+ */ 
+const swaggerSpecs = swaggerJsdoc(swaggerOptions);
 
-module.exports = specs;
+// إضافة بعض التحسينات للمواصفات
+swaggerSpecs.components = {
+  ...swaggerSpecs.components,
+  securitySchemes: {
+    bearerAuth: {
+      type: 'http',
+      scheme: 'bearer',
+      bearerFormat: 'JWT',
+      description: 'أدخل التوكن بصيغة: Bearer <token>'
+    }
+  }
+};
+
+// تصدير المواصفات
+module.exports = swaggerSpecs;
+
+// تصدير الدالة المساعدة للتحويل
+module.exports.convertJoiToSwagger = convertJoiToSwagger;

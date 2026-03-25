@@ -19,7 +19,9 @@
     "validate:controllers": "node -e \"require('./src/utils/controllerValidator').validateAllControllers()\"",
     "validate:quick": "node -e \"require('./src/utils/controllerValidator').quickCheck()\"",
     "validate:export": "node -e \"require('./src/utils/controllerValidator').exportValidationReport()\"",
-    "extract-routes": "node scripts/extract-routes.js"
+    "extract-routes": "node tools/extract-routes.js",
+    "generate-postman": "node tools/generate-postman.js",
+    "postman-all": "node tools/index.js"
   },
   "keywords": [
     "food-delivery",
@@ -43,6 +45,7 @@
     "express": "^5.2.1",
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^8.2.1",
+    "glob": "13.0.6",
     "helmet": "^8.1.0",
     "hpp": "^0.2.3",
     "ioredis": "^5.10.0",
@@ -50,6 +53,7 @@
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.1.0",
     "mongoose": "^9.1.5",
+    "morgan": "1.10.1",
     "multer": "^2.0.2",
     "multer-storage-cloudinary": "^4.0.0",
     "node-cache": "^5.1.2",
@@ -60,7 +64,7 @@
     "sharp": "^0.34.5",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
-    "swagger-jsdoc": "^6.2.8",
+    "swagger-jsdoc": "6.2.8",
     "swagger-ui-express": "^5.0.1",
     "twilio": "5.13.0",
     "winston": "^3.19.0",

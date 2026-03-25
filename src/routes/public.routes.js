@@ -1,6 +1,6 @@
 // ============================================
 // ملف: src/routes/public.routes.js
-// الوصف: جميع المسارات العامة تحت /public
+// الوصف: جميع المسارات العامة (لا تحتاج توثيق)
 // ============================================
 
 const express = require('express');
@@ -10,148 +10,303 @@ const {
   healthController,
   assetsController,
   storeController,
-  authController,
   aggregateController,
   securityController
 } = require('../controllers');
 
-const auth = require('../middlewares/auth.middleware');
 const rateLimiter = require('../middlewares/rateLimit.middleware');
-// ✅ التصحيح: استيراد validate بشكل صحيح
 const validate = require('../middlewares/validate.middleware');
-const { registerSchema, loginSchema } = require("../validators/auth.validator");
 const PaginationUtils = require('../utils/pagination.util');
 
 // ========== 1. مسارات الصحة ==========
+/**
+ * @swagger
+ * tags:
+ *   name: 🏥 Health
+ *   description: التحقق من صحة النظام
+ */
+
+/**
+ * @swagger
+ * /public/health:
+ *   get:
+ *     summary: فحص صحة النظام (سريع)
+ *     tags: [🏥 Health]
+ *     responses:
+ *       200:
+ *         description: النظام يعمل بشكل طبيعي
+ */
 router.get('/health', healthController.quickHealthCheck);
+
+/**
+ * @swagger
+ * /public/health/detailed:
+ *   get:
+ *     summary: فحص صحة النظام (تفصيلي)
+ *     tags: [🏥 Health]
+ *     responses:
+ *       200:
+ *         description: تفاصيل حالة النظام
+ */
 router.get('/health/detailed', healthController.fullHealthCheck);
 router.get('/health/ready', healthController.readinessProbe);
 router.get('/health/live', healthController.livenessProbe);
 
-// ========== 2. مسارات المصادقة (تحت /public/auth) ==========
-// http://localhost:3000/api/v1/public/auth/register
-router.post("/auth/register", 
-  rateLimiter.authLimiter, 
-  validate(registerSchema), 
-  authController.register
-);
+// ========== 2. الملفات الثابتة ==========
+/**
+ * @swagger
+ * tags:
+ *   name: 📁 Assets
+ *   description: الملفات الثابتة والصور
+ */
 
-// http://localhost:3000/api/v1/public/auth/login
-router.post("/auth/login", 
-  rateLimiter.authLimiter, 
-  validate(loginSchema), 
-  authController.login
-);
-
-// http://localhost:3000/api/v1/public/auth/verify
-router.post("/auth/verify", 
-  rateLimiter.authLimiter, 
-  authController.verifyAccount
-);
-
-// http://localhost:3000/api/v1/public/auth/resend-verification
-router.post("/auth/resend-verification", 
-  rateLimiter.authLimiter, 
-  authController.resendVerification
-);
-
-// http://localhost:3000/api/v1/public/auth/forgot-password
-router.post("/auth/forgot-password", 
-  rateLimiter.strictLimiter, 
-  authController.forgotPassword
-);
-
-// http://localhost:3000/api/v1/public/auth/reset-password
-router.post("/auth/reset-password", 
-  rateLimiter.strictLimiter, 
-  authController.resetPassword
-);
-
-// http://localhost:3000/api/v1/public/auth/refresh
-router.post("/auth/refresh", 
-  rateLimiter.authLimiter, 
-  authController.refreshToken
-);
-
-// http://localhost:3000/api/v1/public/auth/logout (يتطلب توكن)
-router.post("/auth/logout", auth, authController.logout);
-
-// http://localhost:3000/api/v1/public/auth/validate (يتطلب توكن)
-router.get("/auth/validate", auth, authController.validateToken);
-
-// ========== 3. الملفات الثابتة ==========
+/**
+ * @swagger
+ * /public/assets/images:
+ *   get:
+ *     summary: الحصول على قائمة الصور المتاحة
+ *     tags: [📁 Assets]
+ */
 router.get('/assets/images', assetsController.getImages);
 router.get('/assets/icons', assetsController.getIcons);
 router.get('/assets/defaults', assetsController.getDefaultImages);
 
-// ========== 4. المتاجر (عام) ==========
+// ========== 3. المتاجر (عام) ==========
+/**
+ * @swagger
+ * tags:
+ *   name: 🏪 Stores
+ *   description: مسارات المتاجر العامة
+ */
+
+/**
+ * @swagger
+ * /public/stores:
+ *   get:
+ *     summary: الحصول على قائمة المتاجر
+ *     tags: [🏪 Stores]
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: lat
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: lng
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: radius
+ *         schema:
+ *           type: integer
+ *           default: 5000
+ *     responses:
+ *       200:
+ *         description: قائمة المتاجر
+ */
 router.get('/stores', PaginationUtils.validatePaginationParams, storeController.getStoresPaginated);
+
+/**
+ * @swagger
+ * /public/stores/smart:
+ *   get:
+ *     summary: الحصول على المتاجر بتصنيف ذكي
+ *     tags: [🏪 Stores]
+ */
 router.get('/stores/smart', storeController.getStoresSmart);
+
+/**
+ * @swagger
+ * /public/stores/search:
+ *   get:
+ *     summary: البحث في المتاجر
+ *     tags: [🏪 Stores]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: كلمة البحث
+ */
 router.get('/stores/search', storeController.searchStores);
+
+/**
+ * @swagger
+ * /public/stores/search/advanced:
+ *   get:
+ *     summary: بحث متقدم في المتاجر
+ *     tags: [🏪 Stores]
+ */
 router.get('/stores/search/advanced', PaginationUtils.validatePaginationParams, storeController.advancedSearch);
+
+/**
+ * @swagger
+ * /public/stores/{id}:
+ *   get:
+ *     summary: تفاصيل متجر محدد
+ *     tags: [🏪 Stores]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ */
 router.get('/stores/:id', storeController.getStoreDetails);
+
+/**
+ * @swagger
+ * /public/stores/{id}/products:
+ *   get:
+ *     summary: منتجات متجر محدد
+ *     tags: [🏪 Stores]
+ */
 router.get('/stores/:id/products', storeController.getStoreProducts);
+
+/**
+ * @swagger
+ * /public/stores/{storeId}/reviews:
+ *   get:
+ *     summary: تقييمات متجر محدد
+ *     tags: [🏪 Stores]
+ */
 router.get('/stores/:storeId/reviews', storeController.getStoreReviews);
 
-// ========== 5. البيانات العامة ==========
+// ========== 4. البيانات العامة ==========
+/**
+ * @swagger
+ * tags:
+ *   name: 📊 Public Data
+ *   description: البيانات العامة للتطبيق
+ */
+
+/**
+ * @swagger
+ * /public/home:
+ *   get:
+ *     summary: بيانات الصفحة الرئيسية
+ *     tags: [📊 Public Data]
+ *     responses:
+ *       200:
+ *         description: بيانات الصفحة الرئيسية (متاجر مميزة، تصنيفات، عروض)
+ */
 router.get('/home', aggregateController.getHomeData);
+
+/**
+ * @swagger
+ * /public/search:
+ *   get:
+ *     summary: بحث موحد في جميع المحتويات
+ *     tags: [📊 Public Data]
+ *     parameters:
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [all, stores, products, categories]
+ *           default: all
+ */
 router.get('/search', aggregateController.unifiedSearch);
+
+/**
+ * @swagger
+ * /public/stats:
+ *   get:
+ *     summary: إحصائيات عامة للتطبيق
+ *     tags: [📊 Public Data]
+ *     responses:
+ *       200:
+ *         description: إحصائيات (عدد المستخدمين، المتاجر، الطلبات)
+ */
 router.get('/stats', aggregateController.getPublicStats);
 
-// ========== 6. مسارات مع توثيق اختياري ==========
-router.get('/stores/:id/full', auth.optional, aggregateController.getStoreDetails);
+// ========== 5. فحص الأمان (عام) ==========
+/**
+ * @swagger
+ * tags:
+ *   name: 🛡️ Security
+ *   description: فحوصات الأمان العامة
+ */
 
-// ========== 7. التحليلات العامة ==========
-router.post('/analytics/events', (req, res) => {
-  const { eventName, ...data } = req.body;
-  console.log(`📊 [Analytics] Public Event: ${eventName}`, data);
-  res.json({ success: true });
-});
-
-router.post('/analytics/events/batch', (req, res) => {
-  const { events = [] } = req.body;
-  console.log(`📊 [Analytics] Public Batch: ${events.length} events`);
-  res.json({ success: true, count: events.length });
-});
-
-// ========== 8. فحص الأمان ==========
+/**
+ * @swagger
+ * /public/security/check-password:
+ *   post:
+ *     summary: فحص قوة كلمة المرور
+ *     tags: [🛡️ Security]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - password
+ *             properties:
+ *               password:
+ *                 type: string
+ */
 router.post('/security/check-password', 
   rateLimiter.apiLimiter, 
   securityController.checkPassword
 );
 
+/**
+ * @swagger
+ * /public/security/check-email:
+ *   post:
+ *     summary: فحص صحة البريد الإلكتروني
+ *     tags: [🛡️ Security]
+ */
 router.post('/security/check-email', 
   rateLimiter.apiLimiter, 
   securityController.checkEmail
 );
 
-// ========== 9. معلومات النظام ==========
+// ========== 6. معلومات النظام ==========
+/**
+ * @swagger
+ * /public/info:
+ *   get:
+ *     summary: معلومات النظام والإصدارات
+ *     tags: [📊 Public Data]
+ */
 router.get('/info', (req, res) => {
   res.json({
     success: true,
     data: {
       name: 'Food Delivery Platform',
-      version: '2.0.0',
+      version: '2.1.0',
       description: 'منصة توصيل طعام متكاملة',
       baseUrl: 'http://localhost:3000/api/v1',
+      documentation: '/api-docs',
       endpoints: {
-        auth: {
-          register: 'POST /public/auth/register',
-          login: 'POST /public/auth/login',
-          verify: 'POST /public/auth/verify',
-          forgotPassword: 'POST /public/auth/forgot-password',
-          resetPassword: 'POST /public/auth/reset-password',
-          refresh: 'POST /public/auth/refresh',
-          logout: 'POST /public/auth/logout',
-          validate: 'GET /public/auth/validate'
-        },
-        public: {
-          stores: 'GET /public/stores',
-          store: 'GET /public/stores/:id',
-          home: 'GET /public/home',
-          search: 'GET /public/search',
-          stats: 'GET /public/stats'
-        }
+        auth: '/api/v1/auth',
+        public: '/api/v1/public',
+        client: '/api/v1/client',
+        vendor: '/api/v1/vendor',
+        driver: '/api/v1/driver',
+        admin: '/api/v1/admin',
+        map: '/api/v1/map'
       }
     }
   });

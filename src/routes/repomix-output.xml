@@ -1,0 +1,2224 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+address.routes.js
+admin.routes.js
+aggregate.routes.js
+analytics.routes.js
+api.js
+assets.routes.js
+auth.routes.js
+chat.routes.js
+client.routes.js
+driver.routes.js
+health.routes.js
+index.js
+loyalty.routes.js
+map.routes.js
+notification.routes.js
+order.routes.js
+public.routes.js
+security.routes.js
+user.routes.js
+vendor.routes.js
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="address.routes.js">
+// ============================================
+// ملف: src/routes/address.routes.js (المصحح مع Validation)
+// ============================================
+
+const express = require("express");
+const router = express.Router();
+
+const { addressController } = require('../controllers');
+
+const auth = require("../middlewares/auth.middleware");
+const validate = require("../middlewares/validate.middleware");
+
+const {
+  createAddressSchema,
+  updateAddressSchema
+} = require('../validators/address.validator');
+
+// جميع المسارات تحتاج توثيق
+router.use(auth);
+
+router.post("/", validate(createAddressSchema), addressController.createAddress);
+router.get("/me", addressController.getMyAddresses);
+router.put("/:id", validate(updateAddressSchema), addressController.updateAddress);
+router.delete("/:id", addressController.deleteAddress);
+router.get("/:id", addressController.getAddressById);
+router.put("/:id/set-default", addressController.setDefaultAddress);
+
+module.exports = router;
+</file>
+
+<file path="admin.routes.js">
+// ============================================
+// ملف: src/routes/admin.routes.js (المصحح النهائي مع Validation)
+// ============================================
+
+const express = require('express');
+const router = express.Router();
+
+const { 
+  userController,
+  storeController,
+  productController,
+  orderController,
+  driverController,
+  vendorController,
+  aggregateController,
+  notificationController,
+  analyticsController
+} = require('../controllers');
+
+const auth = require('../middlewares/auth.middleware');
+const role = require('../middlewares/role.middleware');
+const validate = require('../middlewares/validate.middleware');
+const rateLimiter = require('../middlewares/rateLimit.middleware');
+const upload = require('../middlewares/upload');
+const PaginationUtils = require('../utils/pagination.util');
+
+// ✅ Validators
+const {
+  createUserSchema,
+  updateUserByAdminSchema
+} = require('../validators/user.validator');
+
+const {
+  createStoreSchema,
+  updateStoreSchema
+} = require('../validators/store.validator');
+
+const {
+  assignDriverSchema,
+  cancelOrderSchema
+} = require('../validators/order.validator');
+
+const {
+  createProductSchema,
+  updateProductSchema,
+  updateInventorySchema
+} = require('../validators/product.validator');
+
+// جميع مسارات المشرف تحتاج توثيق ودور admin
+router.use(auth);
+router.use(role('admin'));
+
+// ========== 1. لوحة التحكم ==========
+router.get('/dashboard', aggregateController.getAdminDashboard);
+router.get('/stats', aggregateController.getAdminStats);
+router.get('/stats/users', aggregateController.getAdminUserStats);
+router.get('/stats/orders', aggregateController.getAdminOrderStats);
+router.get('/stats/revenue', aggregateController.getAdminRevenueStats);
+
+// ========== 2. إدارة المستخدمين ==========
+router.get('/users', PaginationUtils.validatePaginationParams, userController.getUsers);
+router.get('/users/:id', userController.getUserById);
+router.post('/users', validate(createUserSchema), userController.createUser);
+router.put('/users/:id', validate(updateUserByAdminSchema), userController.updateUserById);
+router.delete('/users/:id', userController.deleteUserById);
+
+// ========== 3. إدارة التجار ==========
+router.get('/vendors', PaginationUtils.validatePaginationParams, vendorController.getVendors);
+router.get('/vendors/:id', vendorController.getVendorById);
+router.put('/vendors/:id/verify', vendorController.verifyVendor);
+router.put('/vendors/:id/status', vendorController.toggleVendorStatus);
+
+// ========== 4. إدارة المتاجر ==========
+router.get('/stores', PaginationUtils.validatePaginationParams, storeController.getStoresPaginated);
+router.get('/stores/:id', storeController.getStoreDetails);
+router.post('/stores', 
+  validate(createStoreSchema),
+  upload('stores', ['image']).fields([
+    { name: 'logo', maxCount: 1 },
+    { name: 'coverImage', maxCount: 1 }
+  ]), 
+  storeController.createStore
+);
+router.put('/stores/:id', validate(updateStoreSchema), storeController.updateStore);
+router.delete('/stores/:id', storeController.deleteStore);
+router.put('/stores/:id/verify', storeController.verifyStore);
+router.put('/stores/:id/toggle-status', storeController.toggleStoreStatus);
+
+
+// ========== 6. إدارة الطلبات ==========
+router.get('/orders', PaginationUtils.validatePaginationParams, orderController.getAllOrdersPaginated);
+router.get('/orders/:id', orderController.getOrderDetails);
+router.put('/orders/:id/assign', validate(assignDriverSchema), orderController.assignDriver);
+router.put('/orders/:id/reassign', orderController.reassignDriver);
+router.put('/orders/:id/force-cancel', validate(cancelOrderSchema), orderController.forceCancelOrder);
+router.get('/orders/stats/overview', orderController.getOrderStats);
+router.get('/orders/stats/daily', orderController.getDailyStats);
+router.get('/orders/stats/monthly', orderController.getMonthlyStats);
+
+// ========== 7. إدارة المندوبين ==========
+router.get('/drivers', PaginationUtils.validatePaginationParams, driverController.getDrivers);
+router.get('/drivers/:id', driverController.getDriverById);
+router.get('/drivers/:id/location', driverController.getDriverLocation);
+router.get('/drivers/:id/stats', driverController.getDriverStatsById);
+router.get('/drivers/:id/orders', PaginationUtils.validatePaginationParams, orderController.getDriverOrdersById);
+router.put('/drivers/:id/verify', driverController.verifyDriver);
+router.put('/drivers/:id/status', driverController.toggleDriverStatus);
+
+// ========== 8. إدارة Rate Limiting ==========
+router.get('/rate-limit/stats', rateLimiter.getStats);
+router.post('/rate-limit/reset/:userId', rateLimiter.resetUserLimits);
+router.delete('/rate-limit/clear-all', rateLimiter.clearAll);
+
+// ========== 9. إدارة الإشعارات ==========
+router.post('/notifications/send', notificationController.sendCustomNotification);
+router.get('/notifications/campaign/:campaignId/stats', notificationController.getCampaignStats);
+router.get('/notifications/all/stats', notificationController.getAllNotificationsStats);
+
+// ========== 10. إدارة الكاش ==========
+router.get('/cache/stats', aggregateController.getCacheStats);
+router.post('/cache/clear', aggregateController.clearCache);
+router.post('/cache/clear/:pattern', aggregateController.clearCachePattern);
+
+// ========== 11. التحليلات المتقدمة ==========
+router.get('/analytics/users', analyticsController.getUserAnalytics);
+router.get('/analytics/orders', analyticsController.getOrderAnalytics);
+router.get('/analytics/revenue', analyticsController.getRevenueAnalytics);
+
+// ========== 12. تصدير التقارير ==========
+router.get('/reports/orders', aggregateController.exportOrdersReport);
+router.get('/reports/users', aggregateController.exportUsersReport);
+router.get('/reports/revenue', aggregateController.exportRevenueReport);
+router.get('/reports/drivers', aggregateController.exportDriversReport);
+router.get('/reports/stores', aggregateController.exportStoresReport);
+
+// ========== 13. إحصائيات متقدمة ==========
+router.get('/advanced-stats/daily', aggregateController.getDailyAdvancedStats);
+router.get('/advanced-stats/weekly', aggregateController.getWeeklyAdvancedStats);
+router.get('/advanced-stats/monthly', aggregateController.getMonthlyAdvancedStats);
+router.get('/advanced-stats/custom', aggregateController.getCustomStats);
+
+
+
+// ========== 5. إدارة المنتجات (كاملة للأدمن) ==========
+
+// عرض المنتجات
+router.get('/products', PaginationUtils.validatePaginationParams, productController.getAllProducts);
+router.get('/products/:id', productController.getProductById);
+router.get('/products/stats', auth, role('admin'), productController.getProductStats); // ✅ جديد
+
+// إضافة وتعديل وحذف المنتجات
+router.post('/products', 
+  auth, 
+  role('admin'),
+  upload('products', ['image']).single('image'),
+  validate(createProductSchema),
+  productController.createProduct
+); 
+
+router.put('/products/:id', 
+  auth, 
+  role('admin'),
+  validate(updateProductSchema),
+  productController.updateProduct
+);
+
+router.delete('/products/:id', 
+  auth, 
+  role('admin'),
+  productController.deleteProduct
+); 
+
+// عمليات خاصة
+router.put('/products/:id/feature', productController.toggleFeatured); // موجود
+router.put('/products/:id/image', 
+  auth, 
+  role('admin'),
+  upload('products', ['image']).single('image'),
+  productController.updateProductImage
+);
+
+router.put('/products/:id/toggle-availability', 
+  auth, 
+  role('admin'),
+  productController.toggleAvailability
+); 
+
+router.put('/products/:id/inventory', 
+  auth, 
+  role('admin'),
+  validate(updateInventorySchema),
+  productController.updateInventory
+); 
+
+
+module.exports = router;
+</file>
+
+<file path="aggregate.routes.js">
+// ============================================
+// ملف: src/routes/aggregate.routes.js (المُنظم - بعد إزالة المسارات العامة)
+// الوصف: مسارات التجميع والبيانات المركبة (تتطلب توثيق)
+// ============================================
+
+const express = require('express');
+const router = express.Router();
+
+// ✅ استيراد موحد
+const { aggregateController } = require('../controllers');
+
+// الـ middlewares
+const auth = require('../middlewares/auth.middleware');
+const role = require('../middlewares/role.middleware');
+const PaginationUtils = require('../utils/pagination.util');
+
+// ========== ملاحظة: المسارات العامة (home, search, stats) ==========
+// تم نقلها إلى public.routes.js
+
+// ========== 1. مسارات تحتاج توثيق (مستخدمين مسجلين) ==========
+/**
+ * @route   GET /api/aggregate/dashboard
+ * @desc    لوحة تحكم المستخدم (بيانات مخصصة حسب الدور)
+ * @access  Private (Client, Vendor, Driver)
+ */
+router.get('/dashboard', auth, aggregateController.getDashboardData);
+
+/**
+ * @route   GET /api/aggregate/stores/:id/full
+ * @desc    تفاصيل كاملة للمتجر مع بيانات إضافية للمستخدم المسجل
+ * @access  Private (مع معلومات إضافية)
+ */
+router.get('/stores/:id/full', auth, aggregateController.getStoreDetails);
+
+/**
+ * @route   GET /api/aggregate/orders/:id/full
+ * @desc    تفاصيل كاملة للطلب مع التتبع
+ * @access  Private (Client, Vendor, Driver, Admin حسب الصلاحية)
+ */
+router.get('/orders/:id/full', auth, aggregateController.getOrderWithTracking);
+
+// ========== 2. مسارات Pagination ==========
+/**
+ * @route   GET /api/aggregate/stores
+ * @desc    المتاجر مع pagination (بيانات محسنة للمستخدمين المسجلين)
+ * @access  Private
+ */
+router.get('/stores', auth, PaginationUtils.validatePaginationParams, aggregateController.getStoresPaginated);
+
+/**
+ * @route   GET /api/aggregate/items
+ * @desc    العناصر مع pagination
+ * @access  Private
+ */
+router.get('/items', auth, PaginationUtils.validatePaginationParams, aggregateController.getItemsPaginated);
+
+/**
+ * @route   GET /api/aggregate/orders/me
+ * @desc    طلبات المستخدم الحالي مع pagination
+ * @access  Private
+ */
+router.get('/orders/me', auth, PaginationUtils.validatePaginationParams, aggregateController.getMyOrdersPaginated);
+
+// ========== 3. مسارات الأدمن فقط ==========
+/**
+ * @route   GET /api/aggregate/admin/dashboard
+ * @desc    لوحة تحكم المشرف
+ * @access  Admin
+ */
+router.get('/admin/dashboard', auth, role('admin'), aggregateController.getAdminDashboard);
+
+/**
+ * @route   GET /api/aggregate/admin/stats/users
+ * @desc    إحصائيات المستخدمين للمشرف
+ * @access  Admin
+ */
+router.get('/admin/stats/users', auth, role('admin'), aggregateController.getAdminUserStats);
+
+/**
+ * @route   GET /api/aggregate/admin/stats/orders
+ * @desc    إحصائيات الطلبات للمشرف
+ * @access  Admin
+ */
+router.get('/admin/stats/orders', auth, role('admin'), aggregateController.getAdminOrderStats);
+
+/**
+ * @route   GET /api/aggregate/admin/stats/revenue
+ * @desc    إحصائيات الإيرادات للمشرف
+ * @access  Admin
+ */
+router.get('/admin/stats/revenue', auth, role('admin'), aggregateController.getAdminRevenueStats);
+
+/**
+ * @route   GET /api/aggregate/orders/admin
+ * @desc    جميع الطلبات للمشرف مع pagination
+ * @access  Admin
+ */
+router.get('/orders/admin', auth, role('admin'), PaginationUtils.validatePaginationParams, aggregateController.getOrdersPaginatedAdmin);
+
+// ========== 4. إدارة الكاش (Admin فقط) ==========
+/**
+ * @route   GET /api/aggregate/cache/stats
+ * @desc    إحصائيات الكاش
+ * @access  Admin
+ */
+router.get('/cache/stats', auth, role('admin'), aggregateController.getCacheStats);
+
+/**
+ * @route   POST /api/aggregate/cache/clear
+ * @desc    مسح الكاش بالكامل
+ * @access  Admin
+ */
+router.post('/cache/clear', auth, role('admin'), aggregateController.clearCache);
+
+/**
+ * @route   POST /api/aggregate/cache/clear/:pattern
+ * @desc    مسح الكاش حسب النمط
+ * @access  Admin
+ */
+router.post('/cache/clear/:pattern', auth, role('admin'), aggregateController.clearCachePattern);
+
+// ========== 5. تقارير متقدمة (Admin فقط) ==========
+/**
+ * @route   GET /api/aggregate/reports/orders
+ * @desc    تصدير تقرير الطلبات
+ * @access  Admin
+ */
+router.get('/reports/orders', auth, role('admin'), aggregateController.exportOrdersReport);
+
+/**
+ * @route   GET /api/aggregate/reports/users
+ * @desc    تصدير تقرير المستخدمين
+ * @access  Admin
+ */
+router.get('/reports/users', auth, role('admin'), aggregateController.exportUsersReport);
+
+/**
+ * @route   GET /api/aggregate/reports/revenue
+ * @desc    تصدير تقرير الإيرادات
+ * @access  Admin
+ */
+router.get('/reports/revenue', auth, role('admin'), aggregateController.exportRevenueReport);
+
+/**
+ * @route   GET /api/aggregate/reports/drivers
+ * @desc    تصدير تقرير المندوبين
+ * @access  Admin
+ */
+router.get('/reports/drivers', auth, role('admin'), aggregateController.exportDriversReport);
+
+/**
+ * @route   GET /api/aggregate/reports/stores
+ * @desc    تصدير تقرير المتاجر
+ * @access  Admin
+ */
+router.get('/reports/stores', auth, role('admin'), aggregateController.exportStoresReport);
+
+// ========== 6. إحصائيات متقدمة (Admin فقط) ==========
+/**
+ * @route   GET /api/aggregate/advanced-stats/daily
+ * @desc    إحصائيات يومية متقدمة
+ * @access  Admin
+ */
+router.get('/advanced-stats/daily', auth, role('admin'), aggregateController.getDailyAdvancedStats);
+
+/**
+ * @route   GET /api/aggregate/advanced-stats/weekly
+ * @desc    إحصائيات أسبوعية متقدمة
+ * @access  Admin
+ */
+router.get('/advanced-stats/weekly', auth, role('admin'), aggregateController.getWeeklyAdvancedStats);
+
+/**
+ * @route   GET /api/aggregate/advanced-stats/monthly
+ * @desc    إحصائيات شهرية متقدمة
+ * @access  Admin
+ */
+router.get('/advanced-stats/monthly', auth, role('admin'), aggregateController.getMonthlyAdvancedStats);
+
+/**
+ * @route   GET /api/aggregate/advanced-stats/custom
+ * @desc    إحصائيات مخصصة حسب الفترة
+ * @access  Admin
+ */
+router.get('/advanced-stats/custom', auth, role('admin'), aggregateController.getCustomStats);
+
+module.exports = router;
+</file>
+
+<file path="analytics.routes.js">
+// ============================================
+// ملف: src/routes/analytics.routes.js (المُحدث)
+// الوصف: مسارات التحليلات والأداء الموحدة
+// ============================================
+
+const express = require('express');
+const router = express.Router();
+const auth = require('../middlewares/auth.middleware');
+const role = require('../middlewares/role.middleware');
+const performanceService = require('../services/performance.service');
+
+// ========== 1. مسارات عامة (لا تحتاج تسجيل) ==========
+
+// تسجيل حدث
+router.post('/events', (req, res) => {
+  const { eventName, ...data } = req.body;
+  
+  console.log(`📊 [Analytics] Event: ${eventName}`, {
+    ...data,
+    ip: req.ip,
+    timestamp: new Date().toISOString()
+  });
+  
+  res.json({ success: true });
+});
+
+// أحداث متعددة
+router.post('/events/batch', (req, res) => {
+  const { events = [] } = req.body;
+  console.log(`📊 [Analytics] Batch: ${events.length} events`);
+  res.json({ success: true, count: events.length });
+});
+
+// ========== 2. مسارات محمية (للمستخدمين) ==========
+
+// تعريف المستخدم
+router.post('/identify', auth, (req, res) => {
+  const { userId = req.user.id, ...properties } = req.body;
+  console.log(`👤 [Analytics] User ${userId} identified`);
+  res.json({ success: true });
+});
+
+// ========== 3. مسارات الأدمن فقط (دمج performance) ==========
+
+// إحصائيات الأداء
+router.get('/performance/stats', auth, role('admin'), (req, res) => {
+  const stats = performanceService.getStats();
+  res.json({ success: true, data: stats });
+});
+
+// تقرير الأداء
+router.get('/performance/report', auth, role('admin'), (req, res) => {
+  const report = performanceService.getReport();
+  res.set('Content-Type', 'text/plain');
+  res.send(report);
+});
+
+// آخر الطلبات
+router.get('/performance/requests/recent', auth, role('admin'), (req, res) => {
+  const stats = performanceService.getStats();
+  res.json({ success: true, data: stats.recent.requests });
+});
+
+// إعادة تعيين الإحصائيات
+router.post('/performance/reset', auth, role('admin'), (req, res) => {
+  performanceService.reset();
+  res.json({ success: true, message: 'Performance stats reset' });
+});
+
+module.exports = router;
+</file>
+
+<file path="api.js">
+// ============================================
+// ملف: src/routes/api.js
+// الوصف: تنظيم المسارات حسب الإصدارات
+// ============================================
+
+const express = require('express');
+const router = express.Router();
+
+// ========== الإصدار الأول ==========
+const v1Routes = require('./index');
+
+// ========== استخدام الإصدارات ==========
+router.use('/v1', v1Routes);
+
+// ========== مسار للإصدار الافتراضي ==========
+router.use('/', v1Routes);
+
+// ========== معلومات الإصدارات ==========
+router.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Food Delivery API',
+    versions: {
+      v1: {
+        status: 'active',
+        url: '/api/v1',
+        docs: '/api-docs',
+        endpoints: {
+          public: '/api/v1/public',
+          client: '/api/v1/client',
+          vendor: '/api/v1/vendor',
+          driver: '/api/v1/driver',
+          admin: '/api/v1/admin'
+        }
+      }
+    },
+    documentation: '/api-docs'
+  });
+});
+
+module.exports = router;
+</file>
+
+<file path="assets.routes.js">
+const express = require('express');
+const router = express.Router();
+
+// ✅ استيراد موحد
+const { assetsController } = require('../controllers');
+
+router.get('/images', assetsController.getImages);
+router.get('/icons', assetsController.getIcons);
+router.get('/defaults', assetsController.getDefaultImages);
+
+module.exports = router;
+</file>
+
+<file path="auth.routes.js">
+// ============================================
+// ملف: src/routes/auth.routes.js (المصحح مع Validation)
+// ============================================
+
+const express = require("express");
+const router = express.Router();
+
+const { authController } = require('../controllers');
+
+const auth = require("../middlewares/auth.middleware");
+const rateLimiter = require("../middlewares/rateLimit.middleware");
+const validate = require("../middlewares/validate.middleware");
+
+const {
+  registerSchema,
+  loginSchema,
+  changePasswordSchema,
+  resetPasswordSchema,
+  resendVerificationSchema,
+  verifyAccountSchema,
+  forgotPasswordSchema
+} = require("../validators/auth.validator");
+
+// ========== المسارات العامة (موحدة) ==========
+
+router.post(
+  "/register", 
+  rateLimiter.authLimiter, 
+  validate(registerSchema), 
+  authController.register
+);
+
+router.post(
+  "/login", 
+  rateLimiter.authLimiter, 
+  validate(loginSchema), 
+  authController.login
+);
+
+router.post(
+  "/verify", 
+  rateLimiter.authLimiter, 
+  validate(verifyAccountSchema), 
+  authController.verifyAccount
+);
+
+router.post(
+  "/resend-verification", 
+  rateLimiter.authLimiter, 
+  validate(resendVerificationSchema), 
+  authController.resendVerification
+);
+
+router.post(
+  "/forgot-password", 
+  rateLimiter.strictLimiter, 
+  validate(forgotPasswordSchema), 
+  authController.forgotPassword
+);
+
+router.post(
+  "/reset-password", 
+  rateLimiter.strictLimiter, 
+  validate(resetPasswordSchema), 
+  authController.resetPassword
+);
+
+router.post(
+  "/refresh", 
+  rateLimiter.authLimiter, 
+  authController.refreshToken
+);
+
+// ========== المسارات المحمية (تتطلب توكن) ==========
+
+router.post("/logout", auth, authController.logout);
+
+router.get("/validate", auth, authController.validateToken);
+
+router.post(
+  "/change-password", 
+  auth, 
+  validate(changePasswordSchema), 
+  authController.changePassword
+);
+
+router.post("/revoke-all-sessions", auth, authController.revokeAllSessions);
+
+module.exports = router;
+</file>
+
+<file path="chat.routes.js">
+// ============================================
+// ملف: src/routes/chat.routes.js (محدث)
+// ============================================
+
+// src/routes/chat.routes.js (إضافة Swagger)
+
+/**
+ * @swagger
+ * tags:
+ *   name: 💬 Chat
+ *   description: الدردشة والمراسلة
+ */
+
+/**
+ * @swagger
+ * /chat/conversations:
+ *   get:
+ *     summary: الحصول على محادثات المستخدم
+ *     tags: [💬 Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [direct, support, order, group]
+ *     responses:
+ *       200:
+ *         description: قائمة المحادثات
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+
+/**
+ * @swagger
+ * /chat/conversations/{id}/messages:
+ *   get:
+ *     summary: الحصول على رسائل المحادثة
+ *     tags: [💬 Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *     responses:
+ *       200:
+ *         description: قائمة الرسائل
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+
+/**
+ * @swagger
+ * /chat/conversations/{id}/messages/text:
+ *   post:
+ *     summary: إرسال رسالة نصية
+ *     tags: [💬 Chat]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - content
+ *             properties:
+ *               content:
+ *                 type: string
+ *                 example: مرحباً، هل وصل الطلب؟
+ *               replyTo:
+ *                 type: string
+ *                 example: 60d21b4667d0d8992e610c92
+ *     responses:
+ *       201:
+ *         description: تم إرسال الرسالة
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+
+const express = require("express");
+const router = express.Router();
+
+// ✅ استيراد موحد
+const { chatController } = require('../controllers');
+
+// الـ middlewares
+const auth = require("../middlewares/auth.middleware");
+const role = require("../middlewares/role.middleware");
+const upload = require("../middlewares/upload");
+const PaginationUtils = require('../utils/pagination.util');
+
+// جميع المسارات تحتاج توثيق
+router.use(auth);
+
+// ========== 1. إدارة المحادثات ==========
+router.get("/conversations", PaginationUtils.validatePaginationParams, chatController.getUserConversations);
+router.post("/conversations/direct/:userId", chatController.createDirectChat);
+router.post("/conversations/order/:orderId", chatController.createOrderChat);
+router.post("/conversations/support", chatController.createSupportChat);
+router.post("/conversations/group", chatController.createGroupChat);
+router.get("/conversations/:id", chatController.getConversation);
+router.put("/conversations/:id", chatController.updateConversation);
+router.delete("/conversations/:id", chatController.deleteConversation);
+router.put("/conversations/:id/archive", chatController.archiveConversation);
+router.put("/conversations/:id/mute", chatController.muteConversation);
+router.put("/conversations/:id/unmute", chatController.unmuteConversation);
+
+// ========== 2. إدارة المشاركين ==========
+router.post("/conversations/:id/participants", chatController.addParticipant);
+router.delete("/conversations/:id/participants/:participantId", chatController.removeParticipant);
+router.get("/conversations/:id/participants", chatController.getParticipants);
+router.put("/conversations/:id/participants/:participantId/admin", chatController.makeAdmin);
+router.delete("/conversations/:id/participants/:participantId/admin", chatController.removeAdmin);
+
+// ========== 3. إدارة الرسائل ==========
+router.get("/conversations/:id/messages", PaginationUtils.validatePaginationParams, chatController.getConversationMessages);
+router.post("/conversations/:id/messages/text", chatController.sendTextMessage);
+router.post("/conversations/:id/messages/media", upload("chat/media").single("file"), chatController.sendMediaMessage);
+router.post("/conversations/:id/messages/location", chatController.sendLocationMessage);
+router.post("/conversations/:id/messages/contact", chatController.sendContactMessage);
+router.put("/conversations/:conversationId/messages/:messageId", chatController.updateMessage);
+router.delete("/conversations/:conversationId/messages/:messageId", chatController.deleteMessage);
+router.put("/conversations/:conversationId/messages/:messageId/forward/:toConversationId", chatController.forwardMessage);
+
+// ========== 4. التفاعلات ==========
+router.post("/conversations/:conversationId/messages/:messageId/reactions", chatController.addReaction);
+router.delete("/conversations/:conversationId/messages/:messageId/reactions", chatController.removeReaction);
+router.post("/conversations/:conversationId/messages/:messageId/pin", chatController.pinMessage);
+router.post("/conversations/:conversationId/messages/:messageId/unpin", chatController.unpinMessage);
+router.post("/conversations/:conversationId/messages/:messageId/star", chatController.starMessage);
+router.post("/conversations/:conversationId/messages/:messageId/unstar", chatController.unstarMessage);
+
+// ========== 5. البحث والوسائط ==========
+router.get("/conversations/:id/search", chatController.searchMessages);
+router.get("/search", chatController.globalSearch);
+router.get("/conversations/:id/media", chatController.getConversationMedia);
+router.get("/conversations/:id/files", chatController.getConversationFiles);
+router.get("/conversations/:id/links", chatController.getConversationLinks);
+
+// ========== 6. الإحصائيات ==========
+router.get("/stats", chatController.getChatStats);
+router.get("/conversations/:id/stats", chatController.getConversationStats);
+router.get("/conversations/:id/online", chatController.getOnlineParticipants);
+router.get("/unread/total", chatController.getTotalUnreadCount);
+
+// ========== 7. مسارات الأدمن ==========
+router.get("/admin/support-conversations", role("admin"), chatController.getSupportConversations);
+router.put("/admin/conversations/:id/assign", role("admin"), chatController.assignSupportAgent);
+router.put("/admin/conversations/:id/resolve", role("admin"), chatController.resolveSupportChat);
+router.get("/admin/support-stats", role("admin"), chatController.getSupportStats);
+router.get("/admin/all-conversations", role("admin"), chatController.getAllConversations);
+router.delete("/admin/conversations/:id", role("admin"), chatController.adminDeleteConversation);
+router.post("/admin/broadcast", role("admin"), chatController.broadcastMessage);
+
+module.exports = router;
+</file>
+
+<file path="client.routes.js">
+// ============================================
+// ملف: src/routes/client.routes.js (المصحح النهائي مع Validation)
+// ============================================
+
+const express = require('express');
+const router = express.Router();
+
+const { 
+  userController,
+  orderController,
+  addressController,
+  favoriteController,
+  reviewController,
+  loyaltyController,
+  notificationController
+} = require('../controllers');
+
+const auth = require('../middlewares/auth.middleware');
+const role = require('../middlewares/role.middleware');
+const validate = require('../middlewares/validate.middleware');
+const upload = require('../middlewares/upload');
+const PaginationUtils = require('../utils/pagination.util');
+
+// ✅ Validators
+const {
+  updateProfileSchema,
+  avatarSchema,
+  presenceSchema
+} = require('../validators/user.validator');
+
+const {
+  createOrderSchema,
+  cancelOrderSchema,
+  rateOrderSchema,
+  reportIssueSchema
+} = require('../validators/order.validator');
+
+const {
+  createAddressSchema,
+  updateAddressSchema
+} = require('../validators/address.validator');
+
+// ✅ فقط التحقق من التوكن
+router.use(auth);
+
+// ========== 1. الملف الشخصي (متاح لجميع المستخدمين) ==========
+router.get('/profile', userController.getMyProfile);
+router.get('/profile/complete', userController.getMyCompleteProfile);
+router.put('/profile', validate(updateProfileSchema), userController.updateMyProfile);
+router.put('/profile/complete', validate(updateProfileSchema), userController.updateCompleteProfile);
+router.put('/profile/avatar', 
+  validate(avatarSchema),
+  upload('users/avatars', ['image']).single('image'), 
+  userController.uploadAvatar
+);
+router.put('/profile/cover', 
+  upload('users/covers', ['image']).single('image'), 
+  userController.updateCoverImage
+);
+router.delete('/profile/avatar', userController.deleteAvatar);
+router.put('/profile/password', userController.changePassword);
+router.put('/profile/presence', validate(presenceSchema), userController.updatePresence);
+
+// ========== 2. الطلبات (فقط العملاء) ==========
+router.get('/orders', role('client'), PaginationUtils.validatePaginationParams, orderController.getMyOrdersPaginated);
+router.post('/orders', role('client'), validate(createOrderSchema), orderController.createOrder);
+router.get('/orders/:id', role('client'), orderController.getOrderDetails);
+router.put('/orders/:id/cancel', role('client'), validate(cancelOrderSchema), orderController.cancelOrder);
+router.get('/orders/:id/track', role('client'), orderController.trackOrder);
+router.post('/orders/:id/rate', role('client'), validate(rateOrderSchema), orderController.rateOrder);
+router.post('/orders/:id/report-issue', role('client'), validate(reportIssueSchema), orderController.reportOrderIssue);
+
+// ========== 3. العناوين (فقط العملاء) ==========
+router.get('/addresses', role('client'), addressController.getMyAddresses);
+router.post('/addresses', role('client'), validate(createAddressSchema), addressController.createAddress);
+router.put('/addresses/:id', role('client'), validate(updateAddressSchema), addressController.updateAddress);
+router.delete('/addresses/:id', role('client'), addressController.deleteAddress);
+router.put('/addresses/:id/set-default', role('client'), addressController.setDefaultAddress);
+router.get('/addresses/:id', role('client'), addressController.getAddressById);
+
+// ========== 4. المفضلة (فقط العملاء) ==========
+router.get('/favorites', role('client'), favoriteController.getUserFavorites);
+router.post('/favorites/:storeId', role('client'), favoriteController.addToFavorites);
+router.delete('/favorites/:storeId', role('client'), favoriteController.removeFromFavorites);
+router.get('/favorites/:storeId/status', role('client'), favoriteController.checkFavoriteStatus);
+router.put('/favorites/:storeId', role('client'), favoriteController.updateFavorite);
+
+// ========== 5. التقييمات (فقط العملاء) ==========
+router.post('/reviews/:storeId', role('client'), reviewController.addReview);
+
+// ========== 6. نقاط الولاء (فقط العملاء) ==========
+router.get('/loyalty/points', role('client'), loyaltyController.getPoints);
+router.get('/loyalty/rewards', role('client'), loyaltyController.getRewards);
+router.get('/loyalty/transactions', role('client'), loyaltyController.getTransactions);
+router.post('/loyalty/redeem', role('client'), loyaltyController.redeemPoints);
+router.get('/loyalty/stats', role('client'), loyaltyController.getStats);
+
+// ========== 7. الإشعارات (متاح لجميع المستخدمين) ==========
+router.get('/notifications', PaginationUtils.validatePaginationParams, notificationController.getUserNotifications);
+router.get('/notifications/unread-count', notificationController.getUnreadCount);
+router.get('/notifications/stats', notificationController.getNotificationStats);
+router.put('/notifications/:id/read', notificationController.markAsRead);
+router.put('/notifications/:id/unread', notificationController.markAsUnread);
+router.put('/notifications/:id/archive', notificationController.archive);
+router.delete('/notifications/:id', notificationController.deleteNotification);
+router.put('/notifications/mark-all-read', notificationController.markAllAsRead);
+router.delete('/notifications/read/cleanup', notificationController.deleteReadNotifications);
+router.put('/notifications/preferences', notificationController.updateNotificationPreferences);
+router.post('/notifications/devices', notificationController.registerDevice);
+router.delete('/notifications/devices/:deviceId', notificationController.unregisterDevice);
+
+// ========== 8. إحصائيات (متاح لجميع المستخدمين) ==========
+router.get('/stats', userController.getUserStats);
+router.get('/activity', PaginationUtils.validatePaginationParams, userController.getActivityLog);
+
+module.exports = router;
+</file>
+
+<file path="driver.routes.js">
+// ============================================
+// ملف: src/routes/driver.routes.js (المصحح النهائي مع Validation)
+// ============================================
+
+const express = require('express');
+const router = express.Router();
+
+const { 
+  driverController,
+  orderController
+} = require('../controllers');
+
+const auth = require('../middlewares/auth.middleware');
+const { driverMiddleware } = require('../middlewares/role.middleware');
+const validate = require('../middlewares/validate.middleware');
+const upload = require('../middlewares/upload');
+const PaginationUtils = require('../utils/pagination.util');
+
+// ✅ Validators
+const {
+  avatarSchema,
+  presenceSchema
+} = require('../validators/user.validator');
+
+const {
+  updateStatusSchema
+} = require('../validators/order.validator');
+
+router.use(auth);
+
+// ========== 1. ملف المندوب الشخصي (فقط المندوبين) ==========
+router.get('/profile', driverMiddleware, driverController.getMyProfile);
+router.put('/profile/avatar', 
+  driverMiddleware,
+  validate(avatarSchema),
+  upload('users/avatars', ['image']).single('image'), 
+  driverController.updateAvatar
+);
+router.put('/profile/availability', driverMiddleware, validate(presenceSchema), driverController.toggleAvailability);
+router.put('/profile/location', driverMiddleware, driverController.updateLocation);
+
+// ========== 2. التوصيلات (فقط المندوبين) ==========
+router.get('/deliveries', driverMiddleware, PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
+router.get('/deliveries/current', driverMiddleware, orderController.getCurrentDelivery);
+router.get('/deliveries/:id', driverMiddleware, orderController.getOrderDetails);
+router.put('/deliveries/:id/status', driverMiddleware, validate(updateStatusSchema), orderController.updateStatus);
+router.post('/deliveries/:id/location', driverMiddleware, orderController.updateDriverLocation);
+router.get('/deliveries/:id/track', driverMiddleware, orderController.trackOrder);
+
+// ========== 3. الأرباح (فقط المندوبين) ==========
+router.get('/earnings', driverMiddleware, orderController.getDriverEarnings);
+router.get('/earnings/stats', driverMiddleware, driverController.getMyStats);
+router.get('/earnings/history', driverMiddleware, PaginationUtils.validatePaginationParams, driverController.getEarningsHistory);
+
+// ========== 4. إحصائيات (فقط المندوبين) ==========
+router.get('/stats', driverMiddleware, driverController.getMyStats);
+router.get('/performance', driverMiddleware, driverController.getPerformanceReport);
+
+module.exports = router;
+</file>
+
+<file path="health.routes.js">
+const express = require('express');
+const router = express.Router();
+
+// ✅ استيراد موحد
+const { healthController } = require('../controllers');
+
+router.get('/', healthController.quickHealthCheck);
+router.get('/detailed', healthController.fullHealthCheck);
+router.get('/ready', healthController.readinessProbe);
+router.get('/live', healthController.livenessProbe);
+
+module.exports = router;
+</file>
+
+<file path="index.js">
+// ============================================
+// ملف: src/routes/index.js
+// ============================================
+
+const express = require('express');
+const router = express.Router();
+
+// ========== مسارات عامة (كلها تحت /public) ==========
+router.use('/public', require('./public.routes'));
+
+// ========== مسارات محمية حسب الدور ==========
+router.use('/admin', require('./admin.routes'));
+router.use('/client', require('./client.routes'));
+router.use('/driver', require('./driver.routes'));
+router.use('/vendor', require('./vendor.routes'));
+
+// ========== مسارات مشتركة ==========
+router.use('/addresses', require('./address.routes'));
+router.use('/aggregate', require('./aggregate.routes'));
+router.use('/analytics', require('./analytics.routes'));
+router.use('/assets', require('./assets.routes'));
+router.use('/chat', require('./chat.routes'));
+router.use('/health', require('./health.routes'));
+router.use('/loyalty', require('./loyalty.routes'));
+router.use('/notification', require('./notification.routes'));
+router.use('/orders', require('./order.routes'));
+router.use('/security', require('./security.routes'));
+router.use('/users', require('./user.routes'));
+
+// ========== مسارات الخرائط ==========
+router.use('/map', require('./map.routes'));  // ✅ إضافة مسارات الخرائط
+
+// ========== مسار ترحيب ==========
+router.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'Food Delivery API v1',
+    version: '2.1.0',
+    documentation: '/api-docs',
+    baseUrl: '/api/v1',
+    endpoints: {
+      auth: '/api/v1/public/auth',
+      public: '/api/v1/public',
+      client: '/api/v1/client',
+      vendor: '/api/v1/vendor',
+      driver: '/api/v1/driver',
+      admin: '/api/v1/admin',
+      map: '/api/v1/map'  // ✅ إضافة map
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
+module.exports = router;
+</file>
+
+<file path="loyalty.routes.js">
+// ============================================
+// ملف: src/routes/loyalty.routes.js (المُصلح)
+// ============================================
+// src/routes/loyalty.routes.js (إضافة Swagger)
+
+/**
+ * @swagger
+ * tags:
+ *   name: 🎁 Loyalty
+ *   description: نظام الولاء والنقاط
+ */
+
+/**
+ * @swagger
+ * /loyalty/points:
+ *   get:
+ *     summary: الحصول على نقاط الولاء الخاصة بي
+ *     tags: [🎁 Loyalty]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: نقاط الولاء
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     current: { type: number }
+ *                     tier: { type: string }
+ *                     nextTier:
+ *                       type: object
+ *                       properties:
+ *                         name: { type: string }
+ *                         pointsNeeded: { type: number }
+ *                         progress: { type: number }
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+
+/**
+ * @swagger
+ * /loyalty/rewards:
+ *   get:
+ *     summary: الحصول على قائمة المكافآت المتاحة
+ *     tags: [🎁 Loyalty]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: قائمة المكافآت
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+
+/**
+ * @swagger
+ * /loyalty/points/redeem:
+ *   post:
+ *     summary: استبدال النقاط بمكافأة
+ *     tags: [🎁 Loyalty]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - amount
+ *               - rewardId
+ *             properties:
+ *               amount:
+ *                 type: number
+ *                 example: 100
+ *               rewardId:
+ *                 type: string
+ *                 example: discount_10
+ *               orderId:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: تم استبدال النقاط
+ *       400:
+ *         description: نقاط غير كافية
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+
+const express = require('express');
+const router = express.Router();
+
+// ✅ استيراد موحد
+const { loyaltyController } = require('../controllers');
+
+const auth = require('../middlewares/auth.middleware');
+const role = require('../middlewares/role.middleware'); // ✅ إضافة role middleware
+
+// ========== مسارات المستخدم العادي ==========
+router.get('/points', auth, loyaltyController.getPoints);
+router.get('/rewards', auth, loyaltyController.getRewards);
+router.get('/transactions', auth, loyaltyController.getTransactions);
+router.post('/points/redeem', auth, loyaltyController.redeemPoints);
+router.get('/stats', auth, loyaltyController.getStats);
+
+// ✅ ✅ ✅ تم تعديل هذا المسار ليكون محمي بـ Admin فقط ✅ ✅ ✅
+router.post('/points/add', auth, role('admin'), loyaltyController.addPoints);
+
+module.exports = router;
+</file>
+
+<file path="map.routes.js">
+// ============================================
+// ملف: src/routes/map.routes.js
+// الوصف: مسارات الخرائط لجميع الأدوار
+// ============================================
+
+// src/routes/map.routes.js (إضافة تعليقات Swagger)
+
+/**
+ * @swagger
+ * tags:
+ *   name: 🗺️ Map
+ *   description: خدمات الخرائط والتتبع
+ */
+
+/**
+ * @swagger
+ * /map/directions:
+ *   post:
+ *     summary: حساب المسار بين نقطتين
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - origin
+ *               - destination
+ *             properties:
+ *               origin:
+ *                 type: object
+ *                 properties:
+ *                   latitude: { type: number, example: 13.5126 }
+ *                   longitude: { type: number, example: 2.1098 }
+ *               destination:
+ *                 type: object
+ *                 properties:
+ *                   latitude: { type: number, example: 13.5200 }
+ *                   longitude: { type: number, example: 2.1150 }
+ *               profile:
+ *                 type: string
+ *                 enum: [driving, walking, cycling]
+ *                 default: driving
+ *     responses:
+ *       200:
+ *         description: تم حساب المسار بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     distance: { type: number }
+ *                     distanceKm: { type: number }
+ *                     duration: { type: number }
+ *                     durationMinutes: { type: number }
+ *                     geometry: { type: object }
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+
+/**
+ * @swagger
+ * /map/geocode:
+ *   get:
+ *     summary: تحويل عنوان إلى إحداثيات
+ *     tags: [🗺️ Map]
+ *     parameters:
+ *       - in: query
+ *         name: address
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: شارع محمد الخامس، الدار البيضاء
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *     responses:
+ *       200:
+ *         description: تم تحويل العنوان بنجاح
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ */
+
+/**
+ * @swagger
+ * /map/reverse-geocode:
+ *   get:
+ *     summary: تحويل إحداثيات إلى عنوان
+ *     tags: [🗺️ Map]
+ *     parameters:
+ *       - in: query
+ *         name: latitude
+ *         required: true
+ *         schema:
+ *           type: number
+ *         example: 13.5126
+ *       - in: query
+ *         name: longitude
+ *         required: true
+ *         schema:
+ *           type: number
+ *         example: 2.1098
+ *     responses:
+ *       200:
+ *         description: تم تحويل الإحداثيات بنجاح
+ *       400:
+ *         $ref: '#/components/responses/ValidationError'
+ */
+
+/**
+ * @swagger
+ * /map/nearest-driver:
+ *   post:
+ *     summary: العثور على أقرب مندوب
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - latitude
+ *               - longitude
+ *             properties:
+ *               latitude:
+ *                 type: number
+ *                 example: 13.5126
+ *               longitude:
+ *                 type: number
+ *                 example: 2.1098
+ *               radius:
+ *                 type: number
+ *                 default: 5000
+ *                 description: نصف القطر بالمتر
+ *               limit:
+ *                 type: integer
+ *                 default: 10
+ *     responses:
+ *       200:
+ *         description: تم العثور على أقرب مندوب
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
+
+/**
+ * @swagger
+ * /map/driver/location:
+ *   put:
+ *     summary: تحديث موقع المندوب
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - latitude
+ *               - longitude
+ *             properties:
+ *               latitude:
+ *                 type: number
+ *                 example: 13.5126
+ *               longitude:
+ *                 type: number
+ *                 example: 2.1098
+ *               accuracy:
+ *                 type: number
+ *                 example: 10
+ *               heading:
+ *                 type: number
+ *                 example: 180
+ *               speed:
+ *                 type: number
+ *                 example: 45
+ *     responses:
+ *       200:
+ *         description: تم تحديث الموقع بنجاح
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ */
+
+/**
+ * @swagger
+ * /map/driver/{driverId}/track:
+ *   get:
+ *     summary: تتبع مندوب في الوقت الحقيقي
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: driverId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: 60d21b4667d0d8992e610c89
+ *     responses:
+ *       200:
+ *         description: تم جلب موقع المندوب
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success: { type: boolean }
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     driver: { $ref: '#/components/schemas/User' }
+ *                     currentLocation: { $ref: '#/components/schemas/Location' }
+ *                     history:
+ *                       type: array
+ *                       items: { $ref: '#/components/schemas/Location' }
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /map/stores:
+ *   get:
+ *     summary: الحصول على جميع المتاجر على الخريطة
+ *     tags: [🗺️ Map]
+ *     parameters:
+ *       - in: query
+ *         name: lat
+ *         schema:
+ *           type: number
+ *         example: 13.5126
+ *       - in: query
+ *         name: lng
+ *         schema:
+ *           type: number
+ *         example: 2.1098
+ *       - in: query
+ *         name: radius
+ *         schema:
+ *           type: integer
+ *           default: 5000
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: openNow
+ *         schema:
+ *           type: boolean
+ *     responses:
+ *       200:
+ *         description: قائمة المتاجر
+ */
+
+/**
+ * @swagger
+ * /map/order/{orderId}/route:
+ *   get:
+ *     summary: الحصول على مسار طلب معين
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: مسار الطلب
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         $ref: '#/components/responses/NotFoundError'
+ */
+
+/**
+ * @swagger
+ * /map/distance:
+ *   post:
+ *     summary: حساب المسافة بين عدة نقاط
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - points
+ *             properties:
+ *               points:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     latitude: { type: number }
+ *                     longitude: { type: number }
+ *     responses:
+ *       200:
+ *         description: تم حساب المسافات
+ */
+
+/**
+ * @swagger
+ * /map/static:
+ *   get:
+ *     summary: الحصول على صورة ثابتة للخريطة
+ *     tags: [🗺️ Map]
+ *     parameters:
+ *       - in: query
+ *         name: lat
+ *         required: true
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: lng
+ *         required: true
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: zoom
+ *         schema:
+ *           type: integer
+ *           default: 13
+ *       - in: query
+ *         name: width
+ *         schema:
+ *           type: integer
+ *           default: 600
+ *       - in: query
+ *         name: height
+ *         schema:
+ *           type: integer
+ *           default: 400
+ *     responses:
+ *       200:
+ *         description: رابط الصورة
+ */
+
+const express = require('express');
+const router = express.Router();
+
+const mapController = require('../controllers/map.controller');
+const auth = require('../middlewares/auth.middleware');
+const role = require('../middlewares/role.middleware');
+const { driverMiddleware, storeOwnerMiddleware } = require('../middlewares/role.middleware');
+
+// جميع المسارات تحتاج توثيق
+router.use(auth);
+
+// ========== 1. مسارات عامة (لجميع المستخدمين) ==========
+
+// حساب المسار بين نقطتين
+router.post('/directions', mapController.getDirections);
+
+// البحث عن عنوان
+router.get('/geocode', mapController.geocode);
+
+// الحصول على عنوان من إحداثيات
+router.get('/reverse-geocode', mapController.reverseGeocode);
+
+// حساب المسافة بين نقاط
+router.post('/distance', mapController.calculateDistance);
+
+// الحصول على صورة ثابتة للخريطة
+router.get('/static', mapController.getStaticMap);
+
+// الحصول على جميع المتاجر على الخريطة
+router.get('/stores', mapController.getStoresMap);
+
+// ========== 2. مسارات العملاء ==========
+
+// تتبع طلب محدد (مسار كامل)
+router.get('/order/:orderId/route', mapController.getOrderRoute);
+
+// تتبع مندوب محدد
+router.get('/driver/:driverId/track', mapController.trackDriver);
+
+// ========== 3. مسارات المندوبين ==========
+
+// تحديث موقع المندوب
+router.put('/driver/location', driverMiddleware, mapController.updateDriverLocation);
+
+// الحصول على مسار الطلب الحالي
+router.get('/driver/current-route', driverMiddleware, async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const currentOrder = await require('../models/order.model').findOne({
+      driver: driverId,
+      status: { $in: ['accepted', 'picked'] }
+    });
+
+    if (!currentOrder) {
+      return res.json({ success: true, data: null });
+    }
+
+    const route = await mapController.getOrderRoute({
+      params: { orderId: currentOrder._id },
+      user: req.user
+    }, res);
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// ========== 4. مسارات أصحاب المتاجر ==========
+
+// الحصول على منطقة التوصيل (Isochrone)
+router.get('/store/:storeId/isochrone', storeOwnerMiddleware, mapController.getStoreIsochrone);
+
+// العثور على أقرب مندوب للمتجر
+router.post('/store/nearest-driver', storeOwnerMiddleware, mapController.findNearestDriver);
+
+// ========== 5. مسارات الأدمن ==========
+
+// العثور على أقرب مندوب
+router.post('/nearest-driver', role('admin'), mapController.findNearestDriver);
+
+// إحصائيات مواقع المندوبين
+router.get('/drivers/locations', role('admin'), async (req, res) => {
+  try {
+    const DriverLocation = require('../models/driverLocation.model');
+    
+    const locations = await DriverLocation.find()
+      .populate('driver', 'name phone rating driverInfo.isAvailable')
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    res.json({
+      success: true,
+      data: locations.map(loc => ({
+        driver: loc.driver,
+        location: {
+          latitude: loc.location.coordinates[1],
+          longitude: loc.location.coordinates[0]
+        },
+        accuracy: loc.accuracy,
+        speed: loc.speed,
+        updatedAt: loc.createdAt
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+// تتبع جميع المندوبين
+router.get('/drivers/track-all', role('admin'), async (req, res) => {
+  try {
+    const DriverLocation = require('../models/driverLocation.model');
+    
+    const drivers = await DriverLocation.find()
+      .populate('driver', 'name phone rating')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({
+      success: true,
+      data: drivers.map(d => ({
+        driver: d.driver,
+        location: {
+          latitude: d.location.coordinates[1],
+          longitude: d.location.coordinates[0]
+        },
+        lastUpdate: d.createdAt
+      }))
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
+module.exports = router;
+</file>
+
+<file path="notification.routes.js">
+// ============================================
+// ملف: src/routes/notification.routes.js (محدث)
+// ============================================
+
+const express = require("express");
+const router = express.Router();
+
+// ✅ استيراد موحد
+const { notificationController } = require('../controllers');
+
+// الـ middlewares
+const auth = require("../middlewares/auth.middleware");
+const role = require("../middlewares/role.middleware");
+const PaginationUtils = require('../utils/pagination.util');
+
+// ========== جميع المسارات تحتاج توثيق ==========
+router.use(auth);
+
+// ========== 1. مسارات المستخدم العادي ==========
+router.get("/", PaginationUtils.validatePaginationParams, notificationController.getUserNotifications);
+router.get("/stats", notificationController.getNotificationStats);
+router.get("/unread-count", notificationController.getUnreadCount);
+router.put("/:id/read", notificationController.markAsRead);
+router.put("/:id/unread", notificationController.markAsUnread);
+router.put("/:id/archive", notificationController.archive);
+router.delete("/:id", notificationController.deleteNotification);
+router.put("/mark-all-read", notificationController.markAllAsRead);
+router.delete("/read/cleanup", notificationController.deleteReadNotifications);
+router.put("/preferences", notificationController.updateNotificationPreferences);
+router.post("/devices", notificationController.registerDevice);
+router.delete("/devices/:deviceId", notificationController.unregisterDevice);
+
+// ========== 2. مسارات الأدمن ==========
+router.post("/send", role("admin"), notificationController.sendCustomNotification);
+router.get("/campaign/:campaignId/stats", role("admin"), notificationController.getCampaignStats);
+router.get("/all/stats", role("admin"), notificationController.getAllNotificationsStats);
+
+module.exports = router;
+</file>
+
+<file path="order.routes.js">
+// ============================================
+// ملف: src/routes/order.routes.js (المصحح النهائي مع Validation)
+// ============================================
+
+const express = require("express");
+const router = express.Router();
+
+const { orderController } = require('../controllers');
+
+const auth = require("../middlewares/auth.middleware");
+const role = require("../middlewares/role.middleware");
+const validate = require('../middlewares/validate.middleware');
+const { storeOwnerMiddleware, driverMiddleware } = require("../middlewares/role.middleware");
+const { noCache } = require('../middlewares/cache.middleware');
+const PaginationUtils = require('../utils/pagination.util');
+
+// ✅ Validators
+const {
+  createOrderSchema,
+  updateStatusSchema,
+  cancelOrderSchema,
+  rateOrderSchema,
+  reportIssueSchema,
+  assignDriverSchema
+} = require('../validators/order.validator');
+
+// ========== 1. مسارات العملاء (الأكثر تحديداً أولاً) ==========
+
+// مسارات ثابتة (بدون معاملات)
+router.get('/me', auth, role('client'), PaginationUtils.validatePaginationParams, orderController.getMyOrdersPaginated);
+
+// مسارات ذات معاملات محددة (تأتي قبل المسار العام)
+router.get("/track/:id", auth, orderController.trackOrder);
+router.get("/:id/location", auth, orderController.getDriverLocation);
+router.get("/:id/timeline", auth, orderController.getOrderTimeline);
+
+// إنشاء طلب
+router.post("/", auth, role("client"), validate(createOrderSchema), orderController.createOrder);
+
+// مسار عام (يجب أن يكون في النهاية)
+router.get("/:id", auth, orderController.getOrderDetails);
+
+// تحديثات الطلب
+router.put("/:id/cancel", auth, role("client"), validate(cancelOrderSchema), orderController.cancelOrder);
+router.post("/:id/rate", auth, role('client'), validate(rateOrderSchema), orderController.rateOrder);
+router.post("/:id/report-issue", auth, validate(reportIssueSchema), orderController.reportOrderIssue);
+
+// ========== 2. مسارات المندوبين ==========
+router.get('/driver/deliveries', auth, driverMiddleware, PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
+router.get('/driver/current-delivery', auth, driverMiddleware, orderController.getCurrentDelivery);
+router.put("/driver/:id/status", auth, driverMiddleware, noCache, validate(updateStatusSchema), orderController.updateStatus);
+router.post("/driver/:id/location", auth, driverMiddleware, orderController.updateDriverLocation);
+router.get('/driver/earnings', auth, driverMiddleware, orderController.getDriverEarnings);
+
+// ========== 3. مسارات أصحاب المتاجر ==========
+router.get('/vendor/orders', auth, storeOwnerMiddleware, PaginationUtils.validatePaginationParams, orderController.getVendorOrders);
+router.get('/vendor/orders/stats', auth, storeOwnerMiddleware, orderController.getVendorOrderStats);
+router.get('/vendor/orders/today', auth, storeOwnerMiddleware, orderController.getTodayOrders);
+router.put("/vendor/:id/accept", auth, storeOwnerMiddleware, orderController.acceptOrder);
+router.put("/vendor/:id/reject", auth, storeOwnerMiddleware, orderController.rejectOrder);
+router.put("/vendor/:id/mark-ready", auth, storeOwnerMiddleware, orderController.markOrderReady);
+router.put("/vendor/:id/start-preparing", auth, storeOwnerMiddleware, orderController.startPreparing);
+
+// ========== 4. مسارات الأدمن ==========
+router.get('/admin/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getAllOrdersPaginated);
+router.get('/admin/orders/stats/overview', auth, role('admin'), orderController.getOrderStats);
+router.get('/admin/orders/stats/daily', auth, role('admin'), orderController.getDailyStats);
+router.get('/admin/orders/stats/monthly', auth, role('admin'), orderController.getMonthlyStats);
+router.put("/admin/:id/assign", auth, role("admin"), validate(assignDriverSchema), orderController.assignDriver);
+router.put("/admin/:id/reassign", auth, role("admin"), orderController.reassignDriver);
+router.put("/admin/:id/force-cancel", auth, role("admin"), validate(cancelOrderSchema), orderController.forceCancelOrder);
+router.get('/admin/drivers/:id/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getDriverOrdersById);
+router.get('/admin/stores/:id/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getStoreOrdersById);
+
+module.exports = router;
+</file>
+
+<file path="public.routes.js">
+// ============================================
+// ملف: src/routes/public.routes.js
+// الوصف: جميع المسارات العامة تحت /public
+// ============================================
+
+const express = require('express');
+const router = express.Router();
+
+const { 
+  healthController,
+  assetsController,
+  storeController,
+  authController,
+  aggregateController,
+  securityController
+} = require('../controllers');
+
+const auth = require('../middlewares/auth.middleware');
+const rateLimiter = require('../middlewares/rateLimit.middleware');
+// ✅ التصحيح: استيراد validate بشكل صحيح
+const validate = require('../middlewares/validate.middleware');
+const { registerSchema, loginSchema } = require("../validators/auth.validator");
+const PaginationUtils = require('../utils/pagination.util');
+
+// ========== 1. مسارات الصحة ==========
+router.get('/health', healthController.quickHealthCheck);
+router.get('/health/detailed', healthController.fullHealthCheck);
+router.get('/health/ready', healthController.readinessProbe);
+router.get('/health/live', healthController.livenessProbe);
+
+// ========== 2. مسارات المصادقة (تحت /public/auth) ==========
+// http://localhost:3000/api/v1/public/auth/register
+router.post("/auth/register", 
+  rateLimiter.authLimiter, 
+  validate(registerSchema), 
+  authController.register
+);
+
+// http://localhost:3000/api/v1/public/auth/login
+router.post("/auth/login", 
+  rateLimiter.authLimiter, 
+  validate(loginSchema), 
+  authController.login
+);
+
+// http://localhost:3000/api/v1/public/auth/verify
+router.post("/auth/verify", 
+  rateLimiter.authLimiter, 
+  authController.verifyAccount
+);
+
+// http://localhost:3000/api/v1/public/auth/resend-verification
+router.post("/auth/resend-verification", 
+  rateLimiter.authLimiter, 
+  authController.resendVerification
+);
+
+// http://localhost:3000/api/v1/public/auth/forgot-password
+router.post("/auth/forgot-password", 
+  rateLimiter.strictLimiter, 
+  authController.forgotPassword
+);
+
+// http://localhost:3000/api/v1/public/auth/reset-password
+router.post("/auth/reset-password", 
+  rateLimiter.strictLimiter, 
+  authController.resetPassword
+);
+
+// http://localhost:3000/api/v1/public/auth/refresh
+router.post("/auth/refresh", 
+  rateLimiter.authLimiter, 
+  authController.refreshToken
+);
+
+// http://localhost:3000/api/v1/public/auth/logout (يتطلب توكن)
+router.post("/auth/logout", auth, authController.logout);
+
+// http://localhost:3000/api/v1/public/auth/validate (يتطلب توكن)
+router.get("/auth/validate", auth, authController.validateToken);
+
+// ========== 3. الملفات الثابتة ==========
+router.get('/assets/images', assetsController.getImages);
+router.get('/assets/icons', assetsController.getIcons);
+router.get('/assets/defaults', assetsController.getDefaultImages);
+
+// ========== 4. المتاجر (عام) ==========
+router.get('/stores', PaginationUtils.validatePaginationParams, storeController.getStoresPaginated);
+router.get('/stores/smart', storeController.getStoresSmart);
+router.get('/stores/search', storeController.searchStores);
+router.get('/stores/search/advanced', PaginationUtils.validatePaginationParams, storeController.advancedSearch);
+router.get('/stores/:id', storeController.getStoreDetails);
+router.get('/stores/:id/products', storeController.getStoreProducts);
+router.get('/stores/:storeId/reviews', storeController.getStoreReviews);
+
+// ========== 5. البيانات العامة ==========
+router.get('/home', aggregateController.getHomeData);
+router.get('/search', aggregateController.unifiedSearch);
+router.get('/stats', aggregateController.getPublicStats);
+
+// ========== 6. مسارات مع توثيق اختياري ==========
+router.get('/stores/:id/full', auth.optional, aggregateController.getStoreDetails);
+
+// ========== 7. التحليلات العامة ==========
+router.post('/analytics/events', (req, res) => {
+  const { eventName, ...data } = req.body;
+  console.log(`📊 [Analytics] Public Event: ${eventName}`, data);
+  res.json({ success: true });
+});
+
+router.post('/analytics/events/batch', (req, res) => {
+  const { events = [] } = req.body;
+  console.log(`📊 [Analytics] Public Batch: ${events.length} events`);
+  res.json({ success: true, count: events.length });
+});
+
+// ========== 8. فحص الأمان ==========
+router.post('/security/check-password', 
+  rateLimiter.apiLimiter, 
+  securityController.checkPassword
+);
+
+router.post('/security/check-email', 
+  rateLimiter.apiLimiter, 
+  securityController.checkEmail
+);
+
+// ========== 9. معلومات النظام ==========
+router.get('/info', (req, res) => {
+  res.json({
+    success: true,
+    data: {
+      name: 'Food Delivery Platform',
+      version: '2.0.0',
+      description: 'منصة توصيل طعام متكاملة',
+      baseUrl: 'http://localhost:3000/api/v1',
+      endpoints: {
+        auth: {
+          register: 'POST /public/auth/register',
+          login: 'POST /public/auth/login',
+          verify: 'POST /public/auth/verify',
+          forgotPassword: 'POST /public/auth/forgot-password',
+          resetPassword: 'POST /public/auth/reset-password',
+          refresh: 'POST /public/auth/refresh',
+          logout: 'POST /public/auth/logout',
+          validate: 'GET /public/auth/validate'
+        },
+        public: {
+          stores: 'GET /public/stores',
+          store: 'GET /public/stores/:id',
+          home: 'GET /public/home',
+          search: 'GET /public/search',
+          stats: 'GET /public/stats'
+        }
+      }
+    }
+  });
+});
+
+module.exports = router;
+</file>
+
+<file path="security.routes.js">
+const express = require('express');
+const router = express.Router();
+
+// ✅ استيراد موحد
+const { securityController } = require('../controllers');
+
+const auth = require('../middlewares/auth.middleware');
+const role = require('../middlewares/role.middleware');
+const rateLimiter = require('../middlewares/rateLimit.middleware');
+
+router.post('/check-password', rateLimiter.apiLimiter, securityController.checkPassword);
+router.post('/check-email', rateLimiter.apiLimiter, securityController.checkEmail);
+router.get('/headers', auth, role('admin'), securityController.getSecurityHeaders);
+
+module.exports = router;
+</file>
+
+<file path="user.routes.js">
+// ============================================
+// ملف: src/routes/user.routes.js (المُصلح - تم إزالة الازدواجية)
+// الوصف: مسارات المستخدمين - فقط مسارات الأدمن
+// الإصدار: 5.0
+// ============================================
+
+const express = require("express");
+const router = express.Router();
+
+const { 
+  userController 
+} = require('../controllers');
+
+const auth = require("../middlewares/auth.middleware");
+const role = require("../middlewares/role.middleware");
+const upload = require("../middlewares/upload");
+const PaginationUtils = require('../utils/pagination.util');
+
+// ========== 1. مسارات المسؤول فقط ==========
+
+router.get("/admin/users", auth, role("admin"), PaginationUtils.validatePaginationParams, userController.getUsers);
+
+router.get("/admin/users/:id", auth, role("admin"), userController.getUserById);
+
+router.post("/admin/users", auth, role("admin"), userController.createUser);
+
+router.put("/admin/users/:id", auth, role("admin"), userController.updateUserById);
+
+router.delete("/admin/users/:id", auth, role("admin"), userController.deleteUserById);
+
+module.exports = router;
+</file>
+
+<file path="vendor.routes.js">
+// ============================================
+// ملف: src/routes/vendor.routes.js (المصحح النهائي مع Validation)
+// ============================================
+
+const express = require('express');
+const router = express.Router();
+
+const { 
+  vendorController,
+  productController,
+  orderController,
+  reviewController
+} = require('../controllers');
+
+const auth = require('../middlewares/auth.middleware');
+const { storeOwnerMiddleware } = require('../middlewares/role.middleware');
+const validate = require('../middlewares/validate.middleware');
+const upload = require('../middlewares/upload');
+const PaginationUtils = require('../utils/pagination.util');
+
+// ✅ Validators
+const {
+  updateProfileSchema,
+  avatarSchema
+} = require('../validators/user.validator');
+
+const {
+  createStoreSchema,
+  updateStoreSchema
+} = require('../validators/store.validator');
+
+const {
+  createProductSchema,
+  updateProductSchema,
+  updateInventorySchema
+} = require('../validators/product.validator');
+
+router.use(auth);
+
+// ========== 1. ملف التاجر الشخصي (فقط التاجر) ==========
+router.get('/profile', storeOwnerMiddleware, vendorController.getMyProfile);
+router.put('/profile', storeOwnerMiddleware, validate(updateProfileSchema), vendorController.updateProfile);
+router.put('/profile/avatar', 
+  storeOwnerMiddleware,
+  validate(avatarSchema),
+  upload('users/avatars', ['image']).single('image'), 
+  vendorController.updateAvatar
+);
+
+// ========== 2. إدارة المتجر (فقط أصحاب المتاجر) ==========
+router.get('/store', storeOwnerMiddleware, vendorController.getMyStore);
+router.put('/store', storeOwnerMiddleware, validate(updateStoreSchema), vendorController.updateStore);
+router.put('/store/logo', 
+  storeOwnerMiddleware,
+  upload('stores/logos', ['image']).single('logo'), 
+  vendorController.updateStoreLogo
+);
+router.put('/store/cover', 
+  storeOwnerMiddleware,
+  upload('stores/covers', ['image']).single('cover'), 
+  vendorController.updateStoreCover
+);
+router.put('/store/toggle-status', storeOwnerMiddleware, vendorController.toggleStoreStatus);
+
+// ========== 3. عناوين المتجر (فقط أصحاب المتاجر) ==========
+router.get('/store/addresses', storeOwnerMiddleware, vendorController.getAddresses);
+router.post('/store/addresses', storeOwnerMiddleware, vendorController.createAddress);
+router.put('/store/addresses/:id', storeOwnerMiddleware, vendorController.updateAddress);
+router.delete('/store/addresses/:id', storeOwnerMiddleware, vendorController.deleteAddress);
+router.get('/store/addresses/:id', storeOwnerMiddleware, vendorController.getAddressById);
+
+// ========== 4. المنتجات (فقط أصحاب المتاجر) ==========
+router.get('/products', storeOwnerMiddleware, PaginationUtils.validatePaginationParams, productController.getVendorProducts);
+router.post('/products', 
+  storeOwnerMiddleware,
+  validate(createProductSchema),
+  upload('products', ['image']).single('image'), 
+  productController.createProduct
+);
+router.get('/products/:id', storeOwnerMiddleware, productController.getProductById);
+router.put('/products/:id', storeOwnerMiddleware, validate(updateProductSchema), productController.updateProduct);
+router.put('/products/:id/image', 
+  storeOwnerMiddleware,
+  upload('products', ['image']).single('image'), 
+  productController.updateProductImage
+);
+router.delete('/products/:id', storeOwnerMiddleware, productController.deleteProduct);
+router.put('/products/:id/toggle-availability', storeOwnerMiddleware, productController.toggleAvailability);
+router.put('/products/:id/inventory', storeOwnerMiddleware, validate(updateInventorySchema), productController.updateInventory);
+
+// ========== 5. الطلبات (فقط أصحاب المتاجر) ==========
+router.get('/orders', storeOwnerMiddleware, PaginationUtils.validatePaginationParams, orderController.getVendorOrders);
+router.get('/orders/:id', storeOwnerMiddleware, orderController.getOrderDetails);
+router.put('/orders/:id/accept', storeOwnerMiddleware, orderController.acceptOrder);
+router.put('/orders/:id/reject', storeOwnerMiddleware, orderController.rejectOrder);
+router.put('/orders/:id/mark-ready', storeOwnerMiddleware, orderController.markOrderReady);
+router.put('/orders/:id/start-preparing', storeOwnerMiddleware, orderController.startPreparing);
+router.get('/orders/today', storeOwnerMiddleware, orderController.getTodayOrders);
+router.get('/orders/stats', storeOwnerMiddleware, orderController.getVendorOrderStats);
+
+// ========== 6. التحليلات (فقط أصحاب المتاجر) ==========
+router.get('/analytics', storeOwnerMiddleware, vendorController.getAnalytics);
+router.get('/analytics/financial', storeOwnerMiddleware, vendorController.getFinancialReport);
+router.get('/analytics/performance', storeOwnerMiddleware, vendorController.getPerformanceReport);
+router.get('/analytics/products', storeOwnerMiddleware, vendorController.getProductAnalytics);
+
+// ========== 7. التقييمات (فقط أصحاب المتاجر) ==========
+router.get('/reviews', storeOwnerMiddleware, PaginationUtils.validatePaginationParams, reviewController.getVendorReviews);
+router.get('/reviews/stats', storeOwnerMiddleware, reviewController.getVendorReviewStats);
+router.post('/reviews/:id/reply', storeOwnerMiddleware, reviewController.replyToReview);
+
+module.exports = router;
+</file>
+
+</files>

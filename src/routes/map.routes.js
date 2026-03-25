@@ -1,6 +1,6 @@
 // ============================================
 // ملف: src/routes/map.routes.js
-// الوصف: مسارات الخرائط لجميع الأدوار
+// الوصف: مسارات الخرائط والتتبع الموحدة
 // ============================================
 
 const express = require('express');
@@ -11,53 +11,502 @@ const auth = require('../middlewares/auth.middleware');
 const role = require('../middlewares/role.middleware');
 const { driverMiddleware, storeOwnerMiddleware } = require('../middlewares/role.middleware');
 
+/**
+ * @swagger
+ * tags:
+ *   name: 🗺️ Map
+ *   description: خدمات الخرائط والتتبع والملاحة
+ */
+
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     Location:
+ *       type: object
+ *       properties:
+ *         latitude:
+ *           type: number
+ *           example: 24.7136
+ *         longitude:
+ *           type: number
+ *           example: 46.6753
+ *         address:
+ *           type: string
+ *           example: شارع الملك فهد، الرياض
+ *     
+ *     Route:
+ *       type: object
+ *       properties:
+ *         distance:
+ *           type: number
+ *           description: المسافة بالمتر
+ *         distanceKm:
+ *           type: number
+ *           description: المسافة بالكيلومتر
+ *         duration:
+ *           type: number
+ *           description: المدة بالثواني
+ *         durationMinutes:
+ *           type: number
+ *           description: المدة بالدقائق
+ *         geometry:
+ *           type: object
+ *           description: مسار الخط على الخريطة
+ *         steps:
+ *           type: array
+ *           description: خطوات التوجيه
+ */
+
 // جميع المسارات تحتاج توثيق
 router.use(auth);
 
 // ========== 1. مسارات عامة (لجميع المستخدمين) ==========
 
-// حساب المسار بين نقطتين
+/**
+ * @swagger
+ * /map/directions:
+ *   post:
+ *     summary: حساب المسار بين نقطتين
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - origin
+ *               - destination
+ *             properties:
+ *               origin:
+ *                 type: object
+ *                 required:
+ *                   - latitude
+ *                   - longitude
+ *                 properties:
+ *                   latitude:
+ *                     type: number
+ *                     example: 24.7136
+ *                   longitude:
+ *                     type: number
+ *                     example: 46.6753
+ *                   address:
+ *                     type: string
+ *               destination:
+ *                 type: object
+ *                 required:
+ *                   - latitude
+ *                   - longitude
+ *                 properties:
+ *                   latitude:
+ *                     type: number
+ *                     example: 24.7210
+ *                   longitude:
+ *                     type: number
+ *                     example: 46.6820
+ *               profile:
+ *                 type: string
+ *                 enum: [driving, walking, cycling]
+ *                 default: driving
+ *               alternatives:
+ *                 type: boolean
+ *                 default: false
+ *                 description: إظهار مسارات بديلة
+ *     responses:
+ *       200:
+ *         description: تم حساب المسار بنجاح
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   $ref: '#/components/schemas/Route'
+ *       400:
+ *         description: إحداثيات غير صحيحة
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ */
 router.post('/directions', mapController.getDirections);
 
-// البحث عن عنوان
+/**
+ * @swagger
+ * /map/geocode:
+ *   get:
+ *     summary: تحويل عنوان إلى إحداثيات (Geocoding)
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: address
+ *         required: true
+ *         schema:
+ *           type: string
+ *         example: شارع الملك فهد، الرياض
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 5
+ *           maximum: 20
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           default: ar
+ *     responses:
+ *       200:
+ *         description: قائمة النتائج
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       latitude:
+ *                         type: number
+ *                       longitude:
+ *                         type: number
+ *                       formattedAddress:
+ *                         type: string
+ *                       confidence:
+ *                         type: number
+ *       400:
+ *         description: العنوان مطلوب
+ */
 router.get('/geocode', mapController.geocode);
 
-// الحصول على عنوان من إحداثيات
+/**
+ * @swagger
+ * /map/reverse-geocode:
+ *   get:
+ *     summary: تحويل إحداثيات إلى عنوان (Reverse Geocoding)
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: latitude
+ *         required: true
+ *         schema:
+ *           type: number
+ *         example: 24.7136
+ *       - in: query
+ *         name: longitude
+ *         required: true
+ *         schema:
+ *           type: number
+ *         example: 46.6753
+ *       - in: query
+ *         name: language
+ *         schema:
+ *           type: string
+ *           default: ar
+ *     responses:
+ *       200:
+ *         description: العنوان
+ */
 router.get('/reverse-geocode', mapController.reverseGeocode);
 
-// حساب المسافة بين نقاط
+/**
+ * @swagger
+ * /map/distance:
+ *   post:
+ *     summary: حساب المسافة بين عدة نقاط
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - points
+ *             properties:
+ *               points:
+ *                 type: array
+ *                 minItems: 2
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     latitude:
+ *                       type: number
+ *                     longitude:
+ *                       type: number
+ *               profile:
+ *                 type: string
+ *                 enum: [driving, walking, cycling]
+ *                 default: driving
+ *     responses:
+ *       200:
+ *         description: المسافات المحسوبة
+ */
 router.post('/distance', mapController.calculateDistance);
 
-// الحصول على صورة ثابتة للخريطة
+/**
+ * @swagger
+ * /map/static:
+ *   get:
+ *     summary: الحصول على صورة ثابتة للخريطة
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: lat
+ *         required: true
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: lng
+ *         required: true
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: zoom
+ *         schema:
+ *           type: integer
+ *           default: 13
+ *           minimum: 1
+ *           maximum: 19
+ *       - in: query
+ *         name: width
+ *         schema:
+ *           type: integer
+ *           default: 600
+ *           maximum: 2000
+ *       - in: query
+ *         name: height
+ *         schema:
+ *           type: integer
+ *           default: 400
+ *           maximum: 2000
+ *       - in: query
+ *         name: markers
+ *         schema:
+ *           type: string
+ *         description: علامات على الخريطة (lat,lng,color,label)
+ *       - in: query
+ *         name: path
+ *         schema:
+ *           type: string
+ *         description: مسار على الخريطة
+ *     responses:
+ *       200:
+ *         description: رابط الصورة
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     url:
+ *                       type: string
+ */
 router.get('/static', mapController.getStaticMap);
 
-// الحصول على جميع المتاجر على الخريطة
+/**
+ * @swagger
+ * /map/stores:
+ *   get:
+ *     summary: الحصول على جميع المتاجر على الخريطة
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: lat
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: lng
+ *         schema:
+ *           type: number
+ *       - in: query
+ *         name: radius
+ *         schema:
+ *           type: integer
+ *           default: 5000
+ *           description: نصف القطر بالمتر
+ *       - in: query
+ *         name: category
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: openNow
+ *         schema:
+ *           type: boolean
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 50
+ *     responses:
+ *       200:
+ *         description: قائمة المتاجر مع مواقعها
+ */
 router.get('/stores', mapController.getStoresMap);
 
 // ========== 2. مسارات العملاء ==========
 
-// تتبع طلب محدد (مسار كامل)
+/**
+ * @swagger
+ * /map/order/{orderId}/route:
+ *   get:
+ *     summary: تتبع مسار طلب محدد (للعميل)
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: orderId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: مسار الطلب وموقع المندوب
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     order:
+ *                       type: object
+ *                     driverLocation:
+ *                       $ref: '#/components/schemas/Location'
+ *                     route:
+ *                       $ref: '#/components/schemas/Route'
+ *                     estimatedArrival:
+ *                       type: string
+ *                       format: date-time
+ *       403:
+ *         description: ليس لديك صلاحية لتتبع هذا الطلب
+ *       404:
+ *         description: الطلب غير موجود
+ */
 router.get('/order/:orderId/route', mapController.getOrderRoute);
 
-// تتبع مندوب محدد
+/**
+ * @swagger
+ * /map/driver/{driverId}/track:
+ *   get:
+ *     summary: تتبع مندوب محدد في الوقت الحقيقي
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: driverId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: موقع المندوب الحالي
+ */
 router.get('/driver/:driverId/track', mapController.trackDriver);
 
 // ========== 3. مسارات المندوبين ==========
 
-// تحديث موقع المندوب
+/**
+ * @swagger
+ * /map/driver/location:
+ *   put:
+ *     summary: تحديث موقع المندوب الحالي
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - latitude
+ *               - longitude
+ *             properties:
+ *               latitude:
+ *                 type: number
+ *                 example: 24.7136
+ *               longitude:
+ *                 type: number
+ *                 example: 46.6753
+ *               accuracy:
+ *                 type: number
+ *                 example: 10
+ *                 description: دقة الموقع بالمتر
+ *               heading:
+ *                 type: number
+ *                 example: 180
+ *                 description: الاتجاه بالدرجات
+ *               speed:
+ *                 type: number
+ *                 example: 45
+ *                 description: السرعة كم/ساعة
+ *               timestamp:
+ *                 type: string
+ *                 format: date-time
+ *     responses:
+ *       200:
+ *         description: تم تحديث الموقع
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         description: غير مصرح - يتطلب دور مندوب
+ */
 router.put('/driver/location', driverMiddleware, mapController.updateDriverLocation);
 
-// الحصول على مسار الطلب الحالي
+/**
+ * @swagger
+ * /map/driver/current-route:
+ *   get:
+ *     summary: الحصول على مسار الطلب الحالي للمندوب
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: مسار الطلب الحالي
+ *       204:
+ *         description: لا يوجد طلب حالي
+ */
 router.get('/driver/current-route', driverMiddleware, async (req, res) => {
   try {
     const driverId = req.user.id;
-    const currentOrder = await require('../models/order.model').findOne({
+    const Order = require('../models/order.model');
+    
+    const currentOrder = await Order.findOne({
       driver: driverId,
       status: { $in: ['accepted', 'picked'] }
     });
 
     if (!currentOrder) {
-      return res.json({ success: true, data: null });
+      return res.json({ success: true, data: null, message: 'لا يوجد طلب حالي' });
     }
 
     const route = await mapController.getOrderRoute({
@@ -71,31 +520,176 @@ router.get('/driver/current-route', driverMiddleware, async (req, res) => {
 
 // ========== 4. مسارات أصحاب المتاجر ==========
 
-// الحصول على منطقة التوصيل (Isochrone)
+/**
+ * @swagger
+ * /map/store/{storeId}/isochrone:
+ *   get:
+ *     summary: الحصول على منطقة التوصيل للمتجر (Isochrone)
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: storeId
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: duration
+ *         schema:
+ *           type: integer
+ *           default: 30
+ *           description: وقت التوصيل بالدقائق
+ *       - in: query
+ *         name: mode
+ *         schema:
+ *           type: string
+ *           enum: [driving, walking, cycling]
+ *           default: driving
+ *     responses:
+ *       200:
+ *         description: منطقة التوصيل على شكل مضلع
+ */
 router.get('/store/:storeId/isochrone', storeOwnerMiddleware, mapController.getStoreIsochrone);
 
-// العثور على أقرب مندوب للمتجر
+/**
+ * @swagger
+ * /map/store/nearest-driver:
+ *   post:
+ *     summary: العثور على أقرب مندوب للمتجر
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - latitude
+ *               - longitude
+ *             properties:
+ *               latitude:
+ *                 type: number
+ *               longitude:
+ *                 type: number
+ *               radius:
+ *                 type: integer
+ *                 default: 5000
+ *                 description: نصف القطر بالمتر
+ *               limit:
+ *                 type: integer
+ *                 default: 10
+ *               status:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   enum: [online, available]
+ *     responses:
+ *       200:
+ *         description: قائمة أقرب المندوبين
+ */
 router.post('/store/nearest-driver', storeOwnerMiddleware, mapController.findNearestDriver);
 
 // ========== 5. مسارات الأدمن ==========
 
-// العثور على أقرب مندوب
+/**
+ * @swagger
+ * /map/nearest-driver:
+ *   post:
+ *     summary: العثور على أقرب مندوب (للمشرف)
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - latitude
+ *               - longitude
+ *             properties:
+ *               latitude:
+ *                 type: number
+ *               longitude:
+ *                 type: number
+ *               radius:
+ *                 type: integer
+ *                 default: 5000
+ *               limit:
+ *                 type: integer
+ *                 default: 10
+ *               filters:
+ *                 type: object
+ *                 properties:
+ *                   minRating:
+ *                     type: number
+ *                   isAvailable:
+ *                     type: boolean
+ *     responses:
+ *       200:
+ *         description: قائمة أقرب المندوبين
+ */
 router.post('/nearest-driver', role('admin'), mapController.findNearestDriver);
 
-// إحصائيات مواقع المندوبين
+/**
+ * @swagger
+ * /map/drivers/locations:
+ *   get:
+ *     summary: مواقع جميع المندوبين (للمشرف)
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 100
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [online, offline, busy]
+ *       - in: query
+ *         name: updatedAfter
+ *         schema:
+ *           type: string
+ *           format: date-time
+ *     responses:
+ *       200:
+ *         description: مواقع المندوبين
+ */
 router.get('/drivers/locations', role('admin'), async (req, res) => {
   try {
     const DriverLocation = require('../models/driverLocation.model');
+    const { limit = 100, status, updatedAfter } = req.query;
     
-    const locations = await DriverLocation.find()
-      .populate('driver', 'name phone rating driverInfo.isAvailable')
+    let query = {};
+    if (updatedAfter) {
+      query.createdAt = { $gte: new Date(updatedAfter) };
+    }
+    
+    const locations = await DriverLocation.find(query)
+      .populate('driver', 'name phone email rating driverInfo.isAvailable driverInfo.status')
       .sort({ createdAt: -1 })
-      .limit(100)
+      .limit(parseInt(limit))
       .lean();
+
+    // فلترة حسب الحالة إذا لزم الأمر
+    let filteredLocations = locations;
+    if (status) {
+      filteredLocations = locations.filter(loc => 
+        loc.driver?.driverInfo?.status === status
+      );
+    }
 
     res.json({
       success: true,
-      data: locations.map(loc => ({
+      data: filteredLocations.map(loc => ({
         driver: loc.driver,
         location: {
           latitude: loc.location.coordinates[1],
@@ -103,34 +697,79 @@ router.get('/drivers/locations', role('admin'), async (req, res) => {
         },
         accuracy: loc.accuracy,
         speed: loc.speed,
+        heading: loc.heading,
         updatedAt: loc.createdAt
-      }))
+      })),
+      count: filteredLocations.length
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 });
 
-// تتبع جميع المندوبين
+/**
+ * @swagger
+ * /map/drivers/track-all:
+ *   get:
+ *     summary: تتبع جميع المندوبين في الوقت الحقيقي
+ *     tags: [🗺️ Map]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: مواقع جميع المندوبين مع معلوماتهم
+ */
 router.get('/drivers/track-all', role('admin'), async (req, res) => {
   try {
     const DriverLocation = require('../models/driverLocation.model');
     
-    const drivers = await DriverLocation.find()
-      .populate('driver', 'name phone rating')
-      .sort({ createdAt: -1 })
-      .lean();
+    const drivers = await DriverLocation.aggregate([
+      {
+        $sort: { createdAt: -1 }
+      },
+      {
+        $group: {
+          _id: '$driver',
+          lastLocation: { $first: '$$ROOT' }
+        }
+      },
+      {
+        $lookup: {
+          from: 'users',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'driverInfo'
+        }
+      },
+      {
+        $unwind: '$driverInfo'
+      },
+      {
+        $project: {
+          driver: {
+            id: '$_id',
+            name: '$driverInfo.name',
+            phone: '$driverInfo.phone',
+            rating: '$driverInfo.rating',
+            status: '$driverInfo.driverInfo.status',
+            isAvailable: '$driverInfo.driverInfo.isAvailable'
+          },
+          location: {
+            latitude: { $arrayElemAt: ['$lastLocation.location.coordinates', 1] },
+            longitude: { $arrayElemAt: ['$lastLocation.location.coordinates', 0] }
+          },
+          accuracy: '$lastLocation.accuracy',
+          speed: '$lastLocation.speed',
+          heading: '$lastLocation.heading',
+          lastUpdate: '$lastLocation.createdAt'
+        }
+      }
+    ]);
 
     res.json({
       success: true,
-      data: drivers.map(d => ({
-        driver: d.driver,
-        location: {
-          latitude: d.location.coordinates[1],
-          longitude: d.location.coordinates[0]
-        },
-        lastUpdate: d.createdAt
-      }))
+      data: drivers,
+      count: drivers.length
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
