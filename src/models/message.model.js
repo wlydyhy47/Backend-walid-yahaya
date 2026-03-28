@@ -534,4 +534,128 @@ messageSchema.statics.getUnreadCount = async function(conversationId, userId) {
   });
 };
 
+
+/**
+ * تعديل رسالة
+ */
+messageSchema.methods.edit = async function(newContent) {
+  this.edited = {
+    isEdited: true,
+    editCount: (this.edited?.editCount || 0) + 1,
+    lastEditedAt: new Date(),
+    history: [
+      ...(this.edited?.history || []),
+      { content: this.content, editedAt: new Date() }
+    ].slice(-5)
+  };
+  this.content.text = newContent;
+  await this.save();
+  return this;
+};
+
+/**
+ * حذف ناعم لرسالة
+ */
+messageSchema.methods.softDelete = async function(deletedBy, deleteType = 'sender') {
+  this.deleted = {
+    isDeleted: true,
+    deletedAt: new Date(),
+    deletedBy,
+    deleteType
+  };
+  await this.save();
+  return this;
+};
+
+/**
+ * إضافة رد فعل
+ */
+messageSchema.methods.addReaction = async function(userId, emoji) {
+  const existingReaction = this.reactions.find(
+    r => r.user.toString() === userId.toString() && r.emoji === emoji
+  );
+  
+  if (!existingReaction) {
+    this.reactions.push({ user: userId, emoji, reactedAt: new Date() });
+    await this.save();
+  }
+  return this;
+};
+
+/**
+ * إزالة رد فعل
+ */
+messageSchema.methods.removeReaction = async function(userId, emoji = null) {
+  if (emoji) {
+    this.reactions = this.reactions.filter(
+      r => !(r.user.toString() === userId.toString() && r.emoji === emoji)
+    );
+  } else {
+    this.reactions = this.reactions.filter(
+      r => r.user.toString() !== userId.toString()
+    );
+  }
+  await this.save();
+  return this;
+};
+
+/**
+ * تثبيت رسالة
+ */
+messageSchema.methods.pin = async function(userId) {
+  this.pinned = {
+    isPinned: true,
+    pinnedAt: new Date(),
+    pinnedBy: userId
+  };
+  await this.save();
+  return this;
+};
+
+/**
+ * إلغاء تثبيت رسالة
+ */
+messageSchema.methods.unpin = async function() {
+  this.pinned = {
+    isPinned: false,
+    pinnedAt: null,
+    pinnedBy: null
+  };
+  await this.save();
+  return this;
+};
+
+/**
+ * تبديل وضع النجمة
+ */
+messageSchema.methods.toggleStar = async function(userId) {
+  const index = this.starredBy.findIndex(id => id.toString() === userId.toString());
+  
+  if (index === -1) {
+    this.starredBy.push(userId);
+  } else {
+    this.starredBy.splice(index, 1);
+  }
+  
+  await this.save();
+  return this;
+};
+
+/**
+ * إنشاء رسالة نظام
+ */
+messageSchema.statics.createSystemMessage = async function(conversationId, action, data = {}) {
+  const message = await this.create({
+    conversation: conversationId,
+    sender: null,
+    type: "system",
+    content: {
+      system: { action, data }
+    },
+    delivery: { sentAt: new Date() }
+  });
+  
+  return message;
+};
+
 module.exports = mongoose.model("Message", messageSchema);

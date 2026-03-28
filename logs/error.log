@@ -8224,3 +8224,902 @@ Error: رقم الهاتف غير صالح. يجب أن يكون بصيغة دو
   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
   "userId": "guest"
 }
+2026-03-26 00:57:07 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/notifications/send",
+  "status": 400,
+  "duration": "99ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:02:45 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/notifications/send",
+  "status": 400,
+  "duration": "169ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:05:52 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/notifications/send",
+  "status": 400,
+  "duration": "82ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "6988bab8c62ec57051328940",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "6988bb28c62ec5705132894e",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69b2c3b437a89ce570055704",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69b33f45be52063b25a1b29c",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69bca1108ebaa204df4c1a6e",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69bca22a8ebaa204df4c1a77",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69bca2a58ebaa204df4c1a80",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69bca8e6be66aed898a61c53",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69bca96fbe66aed898a61c5f",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69bcaa44be66aed898a61c77",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69bedfd8c6163f769fe9d36c",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69c426582ec650f04d97aa6b",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69c449c2503b23b80c89c23f",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378045",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:19:33 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/notifications/send",
+  "status": 403,
+  "duration": "71ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c426582ec650f04d97aa6b"
+}
+2026-03-26 01:21:49 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca81
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca81
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 5)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:49 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca81",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca81"
+}
+2026-03-26 01:21:49 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca82
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca82
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 6)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:49 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca82",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca82"
+}
+2026-03-26 01:21:49 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca80
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca80
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 4)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:49 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca80",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca80"
+}
+2026-03-26 01:21:49 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca83
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca83
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 7)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:49 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca83",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca83"
+}
+2026-03-26 01:21:49 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca87
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca87
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 11)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:49 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca87",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca87"
+}
+2026-03-26 01:21:49 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca84
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca84
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 8)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:49 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca84",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca84"
+}
+2026-03-26 01:21:49 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca88
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca88
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 12)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:49 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca88",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca88"
+}
+2026-03-26 01:21:50 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca85
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca85
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 9)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:50 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca85",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca85"
+}
+2026-03-26 01:21:50 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca86
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca86
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 10)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:50 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca86",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca86"
+}
+2026-03-26 01:26:48 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/notifications?page=1&limit=20",
+  "status": 401,
+  "duration": "6ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 01:31:34 [error]: Business Error: Update notification status error: Cast to ObjectId failed for value "34567" (type string) at path "_id" for model "Notification"
+CastError: Cast to ObjectId failed for value "34567" (type string) at path "_id" for model "Notification"
+    at SchemaObjectId.cast (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\schema\objectId.js:253:11)
+    at SchemaType.applySetters (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\schemaType.js:1287:12)
+    at SchemaType.castForQuery (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\schemaType.js:1713:17)
+    at cast (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\cast.js:386:32)
+    at Query.cast (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:5127:12)
+    at Query._castConditions (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:2376:10)
+    at model.Query._findOne (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:2716:8)
+    at model.Query.exec (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:4726:80)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NotificationService.updateNotificationStatus (C:\project\Backend-walid-yahaya\src\services\notification.service.js:801:28)
+{
+  "stringValue": "\"34567\"",
+  "kind": "ObjectId",
+  "value": "34567",
+  "path": "_id",
+  "reason": {},
+  "valueType": "string"
+}
+2026-03-26 01:31:34 [error]: HTTP Request Error
+{
+  "method": "PUT",
+  "url": "/api/v1/client/notifications/34567/read",
+  "status": 404,
+  "duration": "76ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c426582ec650f04d97aa6b"
+}
+2026-03-29 00:58:55 [error]: Unhandled Error رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة
+Error: رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-29 00:58:55 [error]: Business Error: Error caught: رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة
+Error: رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-29 00:58:55 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 400,
+  "duration": "90ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-29 01:09:10 [error]: Unhandled Error العنوان يجب أن يكون 5 أحرف على الأقل
+Error: العنوان يجب أن يكون 5 أحرف على الأقل
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:09:10 [error]: Business Error: Error caught: العنوان يجب أن يكون 5 أحرف على الأقل
+Error: العنوان يجب أن يكون 5 أحرف على الأقل
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:09:10 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "125ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:09:32 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "71ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:10:23 [error]: Unhandled Error التصنيف يجب أن يكون home, work, أو other
+Error: التصنيف يجب أن يكون home, work, أو other
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:10:23 [error]: Business Error: Error caught: التصنيف يجب أن يكون home, work, أو other
+Error: التصنيف يجب أن يكون home, work, أو other
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:10:23 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "113ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:10:40 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "86ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:12:23 [error]: Unhandled Error التصنيف يجب أن يكون home, work, أو other
+Error: التصنيف يجب أن يكون home, work, أو other
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:12:23 [error]: Business Error: Error caught: التصنيف يجب أن يكون home, work, أو other
+Error: التصنيف يجب أن يكون home, work, أو other
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:12:23 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "108ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:15:31 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "183ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:18:34 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "146ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:19:16 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "103ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:19:28 [error]: Unhandled Error التصنيف يجب أن يكون home, work, أو other
+Error: التصنيف يجب أن يكون home, work, أو other
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:19:28 [error]: Business Error: Error caught: التصنيف يجب أن يكون home, work, أو other
+Error: التصنيف يجب أن يكون home, work, أو other
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:19:28 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "171ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:20:22 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "95ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:21:34 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "170ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:25:46 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=2521&limit=2521&category=string&isOpen=true&isVerified=true",
+  "status": 401,
+  "duration": "17ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-29 01:26:01 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=2521&limit=2521&category=string&isOpen=true&isVerified=true",
+  "status": 403,
+  "duration": "78ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:26:42 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/public/stores?page=1&limit=20&category=string&lat=9111.740770146169&lng=9111.740770146169&radius=5000&minRating=2.463580141630992&tags=string",
+  "status": 500,
+  "duration": "34ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-29 01:39:22 [error]: Unhandled Error رقم الهاتف غير صالح | كلمة المرور يجب أن تكون 6 أحرف على الأقل
+Error: رقم الهاتف غير صالح | كلمة المرور يجب أن تكون 6 أحرف على الأقل
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "url": "/api/v1/auth/login",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-29 01:39:22 [error]: Business Error: Error caught: رقم الهاتف غير صالح | كلمة المرور يجب أن تكون 6 أحرف على الأقل
+Error: رقم الهاتف غير صالح | كلمة المرور يجب أن تكون 6 أحرف على الأقل
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/auth/login",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-29 01:39:22 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 400,
+  "duration": "49ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}

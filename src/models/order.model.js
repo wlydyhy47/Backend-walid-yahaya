@@ -13,21 +13,42 @@ const orderSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    
+
     store: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Store",
       required: true,
       index: true,
     },
-    
+
     driver: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       default: null,
       index: true,
     },
-    
+
+    paymentMethod: {
+      type: String,
+      enum: ['cash', 'card', 'wallet'],
+      default: 'cash',
+      required: true,
+    },
+
+    paymentStatus: {
+      type: String,
+      enum: ['pending', 'paid', 'failed', 'refunded'],
+      default: 'pending',
+    },
+
+    paymentDetails: {
+      transactionId: String,
+      paymentIntent: String,
+      paidAt: Date,
+    },
+
+
+
     items: [
       {
         name: {
@@ -57,15 +78,15 @@ const orderSchema = new mongoose.Schema(
         }]
       },
     ],
-    
+
     totalPrice: {
       type: Number,
       required: true,
       min: 0,
     },
-    
+
     // ========== 🔥 إضافات جديدة ==========
-    
+
     /**
      * المسافة المقدرة للتوصيل
      */
@@ -73,7 +94,7 @@ const orderSchema = new mongoose.Schema(
       type: Number, // بالأمتار
       min: 0,
     },
-    
+
     /**
      * وقت التوصيل المقدر
      */
@@ -81,7 +102,7 @@ const orderSchema = new mongoose.Schema(
       type: Number, // بالدقائق
       default: 30,
     },
-    
+
     /**
      * وقت التحضير المقدر
      */
@@ -89,14 +110,14 @@ const orderSchema = new mongoose.Schema(
       type: Number, // بالدقائق
       default: 15,
     },
-    
+
     /**
      * وقت التوصيل الفعلي
      */
     deliveryTime: {
       type: Number, // بالدقائق
     },
-    
+
     /**
      * ملاحظات الطلب
      */
@@ -105,7 +126,7 @@ const orderSchema = new mongoose.Schema(
       trim: true,
       maxlength: 500,
     },
-    
+
     /**
      * سبب الإلغاء
      */
@@ -113,7 +134,7 @@ const orderSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    
+
     /**
      * من قام بالإلغاء
      */
@@ -121,39 +142,39 @@ const orderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    
+
     /**
      * وقت الإلغاء
      */
     cancelledAt: Date,
-    
+
     /**
      * وقت التوصيل
      */
     deliveredAt: Date,
-    
+
     // ========== نهاية الإضافات ==========
-    
+
     pickupAddress: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Address",
       required: true,
     },
-    
+
     deliveryAddress: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Address",
       required: true,
     },
-    
+
     status: {
       type: String,
-      enum: ["pending", "accepted", "picked", "delivered", "cancelled"],
+      enum: ["pending", "accepted", "ready", "picked", "delivered", "cancelled"],
       default: "pending",
       index: true,
     },
   },
-  { 
+  {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
@@ -203,24 +224,24 @@ orderSchema.virtual("timeSinceCreation").get(function () {
 /**
  * قبل الحفظ
  */
-orderSchema.pre("save", function(next) {
+orderSchema.pre("save", function (next) {
   // حساب إجمالي السعر من العناصر إذا لم يكن موجوداً
   if (!this.totalPrice && this.items.length > 0) {
     this.totalPrice = this.items.reduce((sum, item) => {
       return sum + (item.price * item.qty);
     }, 0);
   }
-  
+
   // تحديث وقت التوصيل عند اكتمال الطلب
   if (this.isModified("status") && this.status === "delivered" && !this.deliveredAt) {
     this.deliveredAt = new Date();
-    
+
     // حساب وقت التوصيل الفعلي
     if (this.createdAt) {
       this.deliveryTime = Math.round((this.deliveredAt - this.createdAt) / 60000);
     }
   }
-  
+
   next();
 });
 
@@ -229,22 +250,22 @@ orderSchema.pre("save", function(next) {
 /**
  * تحديث حالة الطلب
  */
-orderSchema.methods.updateStatus = async function(newStatus, userId) {
+orderSchema.methods.updateStatus = async function (newStatus, userId) {
   const oldStatus = this.status;
   this.status = newStatus;
-  
+
   if (newStatus === "cancelled") {
     this.cancelledAt = new Date();
     this.cancelledBy = userId;
   }
-  
+
   if (newStatus === "delivered") {
     this.deliveredAt = new Date();
     if (this.createdAt) {
       this.deliveryTime = Math.round((this.deliveredAt - this.createdAt) / 60000);
     }
   }
-  
+
   await this.save();
   return { oldStatus, newStatus };
 };
@@ -252,7 +273,7 @@ orderSchema.methods.updateStatus = async function(newStatus, userId) {
 /**
  * إضافة ملاحظة
  */
-orderSchema.methods.addNote = async function(note, addedBy) {
+orderSchema.methods.addNote = async function (note, addedBy) {
   if (!this.notes) {
     this.notes = note;
   } else {

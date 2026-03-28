@@ -24,6 +24,7 @@ const notificationSchema = new mongoose.Schema(
         "review_reminder", "promotion", "announcement", "security",
         "support", "welcome", "password_changed", "profile_updated",
         "new_message", "loyalty_points_earned", "loyalty_points_redeemed",
+        "order_ready",
         "reward_available", "reward_expiring"
       ],
       index: true,

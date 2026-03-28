@@ -52,13 +52,14 @@ module.exports = {
     CLIENT: 'client',
     DRIVER: 'driver',
     ADMIN: 'admin',
-    STORE_OWNER: 'store_owner'
+    VENDOR: 'vendor'
   },
 
   // حالات الطلب
   orderStatus: {
     PENDING: 'pending',
     ACCEPTED: 'accepted',
+    READY: 'ready',
     PICKED: 'picked',
     DELIVERED: 'delivered',
     CANCELLED: 'cancelled'
@@ -70,6 +71,7 @@ module.exports = {
     ORDER_CREATED: 'order_created',
     ORDER_ACCEPTED: 'order_accepted',
     ORDER_PICKED: 'order_picked',
+    ORDER_READY: 'order_ready',
     ORDER_DELIVERED: 'order_delivered',
     ORDER_CANCELLED: 'order_cancelled',
     DRIVER_ASSIGNED: 'driver_assigned',

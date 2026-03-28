@@ -19,8 +19,6 @@
     "validate:controllers": "node -e \"require('./src/utils/controllerValidator').validateAllControllers()\"",
     "validate:quick": "node -e \"require('./src/utils/controllerValidator').quickCheck()\"",
     "validate:export": "node -e \"require('./src/utils/controllerValidator').exportValidationReport()\"",
-    "extract-routes": "node tools/extract-routes.js",
-    "generate-postman": "node tools/generate-postman.js",
     "postman-all": "node tools/index.js"
   },
   "keywords": [

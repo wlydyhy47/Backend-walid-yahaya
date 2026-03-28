@@ -35,14 +35,18 @@ exports.getStoresPaginated = async (req, res) => {
       ];
     }
 
-    if (filters.category) {  // ✅ تغيير من type
+    if (filters.category) {
       query.category = filters.category;
     }
 
     if (filters.tags) {
-      query.tags = { $in: filters.tags.split(',') };
+      // التحقق من نوع tags
+      if (Array.isArray(filters.tags)) {
+        query.tags = { $in: filters.tags };
+      } else if (typeof filters.tags === 'string') {
+        query.tags = { $in: filters.tags.split(',') };
+      }
     }
-
     if (filters.minRating) {
       query.averageRating = { $gte: Number(filters.minRating) };
     }
@@ -288,7 +292,7 @@ exports.getStoreDetails = async (req, res) => {
       store,
       addresses,
       reviews,
-      products,  // ✅ items -> products
+      products,
       categories,
       stats
     ] = await Promise.all([
@@ -1142,9 +1146,13 @@ exports.advancedSearch = async (req, res) => {
     }
 
     if (filters.tags) {
-      query.tags = { $in: filters.tags.split(',') };
+      // التحقق من نوع tags
+      if (Array.isArray(filters.tags)) {
+        query.tags = { $in: filters.tags };
+      } else if (typeof filters.tags === 'string') {
+        query.tags = { $in: filters.tags.split(',') };
+      }
     }
-
     if (filters.city) {
       query['address.city'] = { $regex: filters.city, $options: 'i' };
     }

@@ -22,7 +22,7 @@ const registerSchema = Joi.object({
       'string.max': 'الاسم يجب أن لا يتجاوز {#limit} حرف',
       'any.required': 'الاسم مطلوب'
     }),
-  
+
   phone: Joi.string()
     .pattern(/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{4,6}$/)
     .required()
@@ -30,14 +30,14 @@ const registerSchema = Joi.object({
       'string.pattern.base': 'رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة',
       'any.required': 'رقم الهاتف مطلوب'
     }),
-  
+
   email: Joi.string()
     .email()
     .optional()
     .messages({
       'string.email': 'البريد الإلكتروني غير صالح'
     }),
-  
+
   password: Joi.string()
     .min(6)
     .max(100)
@@ -47,25 +47,25 @@ const registerSchema = Joi.object({
       'string.max': 'كلمة المرور يجب أن لا تتجاوز {#limit} حرف',
       'any.required': 'كلمة المرور مطلوبة'
     }),
-  
+
   role: Joi.string()
-    .valid('client', 'driver', 'store_owner' , 'admin')
+    .valid('client', 'driver', 'vendor', 'admin')
     .default('client')
     .messages({
-      'any.only': 'الدور غير صالح. يجب أن يكون client, driver, أو store_owner'
+      'any.only': 'الدور غير صالح. يجب أن يكون client, driver, أو vendor'
     }),
-  
+
   dateOfBirth: Joi.date()
     .optional(),
-  
+
   gender: Joi.string()
     .valid('male', 'female', 'other')
     .optional(),
-  
+
   city: Joi.string()
     .max(100)
     .optional(),
-  
+
   preferences: Joi.object({
     language: Joi.string().valid('ar', 'fr', 'en').default('ar'),
     currency: Joi.string().valid('XOF', 'EUR', 'USD').default('XOF'),
@@ -91,14 +91,14 @@ const loginSchema = Joi.object({
     .messages({
       'string.pattern.base': 'رقم الهاتف غير صالح'
     }),
-  
+
   email: Joi.string()
     .email()
     .optional()
     .messages({
       'string.email': 'البريد الإلكتروني غير صالح'
     }),
-  
+
   password: Joi.string()
     .required()
     .min(6)
@@ -108,7 +108,7 @@ const loginSchema = Joi.object({
       'string.max': 'كلمة المرور يجب أن لا تتجاوز {#limit} حرف',
       'any.required': 'كلمة المرور مطلوبة'
     }),
-  
+
   deviceId: Joi.string()
     .optional()
     .max(255)
@@ -123,7 +123,7 @@ const changePasswordSchema = Joi.object({
     .messages({
       'any.required': 'كلمة المرور الحالية مطلوبة'
     }),
-  
+
   newPassword: Joi.string()
     .min(6)
     .max(100)
@@ -133,7 +133,7 @@ const changePasswordSchema = Joi.object({
       'string.max': 'كلمة المرور الجديدة يجب أن لا تتجاوز {#limit} حرف',
       'any.required': 'كلمة المرور الجديدة مطلوبة'
     }),
-  
+
   confirmPassword: Joi.string()
     .valid(Joi.ref('newPassword'))
     .required()
@@ -154,13 +154,13 @@ const resetPasswordSchema = Joi.object({
       'string.pattern.base': 'رقم الهاتف غير صالح',
       'any.required': 'رقم الهاتف مطلوب'
     }),
-  
+
   token: Joi.string()
     .required()
     .messages({
       'any.required': 'رمز إعادة التعيين مطلوب'
     }),
-  
+
   newPassword: Joi.string()
     .min(6)
     .max(100)
@@ -196,7 +196,7 @@ const verifyAccountSchema = Joi.object({
       'string.pattern.base': 'رقم الهاتف غير صالح',
       'any.required': 'رقم الهاتف مطلوب'
     }),
-  
+
   code: Joi.string()
     .length(6)
     .pattern(/^[A-Z0-9]{6}$/)

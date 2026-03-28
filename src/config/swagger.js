@@ -195,23 +195,23 @@ const swaggerOptions = {
         ResetPasswordInput: convertJoiToSwagger(require('../validators/auth.validator').resetPasswordSchema),
         ForgotPasswordInput: convertJoiToSwagger(require('../validators/auth.validator').forgotPasswordSchema),
         VerifyAccountInput: convertJoiToSwagger(require('../validators/auth.validator').verifyAccountSchema),
-        
+
         // Address Schemas
         CreateAddressInput: convertJoiToSwagger(require('../validators/address.validator').createAddressSchema),
         UpdateAddressInput: convertJoiToSwagger(require('../validators/address.validator').updateAddressSchema),
-        
+
         // User Schemas
         UpdateProfileInput: convertJoiToSwagger(require('../validators/user.validator').updateProfileSchema),
-        
+
         // Store Schemas
         CreateStoreInput: convertJoiToSwagger(require('../validators/store.validator').createStoreSchema),
         UpdateStoreInput: convertJoiToSwagger(require('../validators/store.validator').updateStoreSchema),
-        
+
         // Product Schemas
         CreateProductInput: convertJoiToSwagger(require('../validators/product.validator').createProductSchema),
         UpdateProductInput: convertJoiToSwagger(require('../validators/product.validator').updateProductSchema),
         UpdateInventoryInput: convertJoiToSwagger(require('../validators/product.validator').updateInventorySchema),
-        
+
         // Order Schemas
         CreateOrderInput: convertJoiToSwagger(require('../validators/order.validator').createOrderSchema),
         UpdateStatusInput: convertJoiToSwagger(require('../validators/order.validator').updateStatusSchema),
@@ -219,7 +219,7 @@ const swaggerOptions = {
         RateOrderInput: convertJoiToSwagger(require('../validators/order.validator').rateOrderSchema),
         ReportIssueInput: convertJoiToSwagger(require('../validators/order.validator').reportIssueSchema),
         AssignDriverInput: convertJoiToSwagger(require('../validators/order.validator').assignDriverSchema),
-        
+
         // ========== نماذج إضافية ==========
         User: {
           type: 'object',
@@ -228,8 +228,11 @@ const swaggerOptions = {
             name: { type: 'string', example: 'أحمد محمد' },
             email: { type: 'string', format: 'email', example: 'ahmed@example.com' },
             phone: { type: 'string', example: '+966501234567' },
-            role: { type: 'string', enum: ['client', 'vendor', 'driver', 'admin'], example: 'client' },
-            avatar: { type: 'string', example: 'https://api.fooddelivery.com/uploads/avatar-123.jpg' },
+            role: {
+              type: 'string',
+              enum: ['client', 'driver', 'vendor', 'admin'],
+              example: 'client'
+            }, avatar: { type: 'string', example: 'https://api.fooddelivery.com/uploads/avatar-123.jpg' },
             coverImage: { type: 'string', example: 'https://api.fooddelivery.com/uploads/cover-123.jpg' },
             isVerified: { type: 'boolean', example: true },
             isActive: { type: 'boolean', example: true },
@@ -240,7 +243,7 @@ const swaggerOptions = {
             updatedAt: { type: 'string', format: 'date-time' }
           }
         },
-        
+
         Address: {
           type: 'object',
           properties: {
@@ -256,7 +259,7 @@ const swaggerOptions = {
             updatedAt: { type: 'string', format: 'date-time' }
           }
         },
-        
+
         Store: {
           type: 'object',
           properties: {
@@ -266,7 +269,11 @@ const swaggerOptions = {
             description: { type: 'string', example: 'أشهى المأكولات العربية' },
             logo: { type: 'string', example: 'https://api.fooddelivery.com/uploads/logo-123.jpg' },
             coverImage: { type: 'string', example: 'https://api.fooddelivery.com/uploads/cover-123.jpg' },
-            category: { type: 'string', enum: ['restaurant', 'cafe', 'fast_food', 'bakery', 'grocery', 'pharmacy', 'other'], example: 'restaurant' },
+            category: {
+              type: 'string',
+              enum: ['restaurant', 'cafe', 'fast_food', 'bakery', 'grocery', 'pharmacy', 'store', 'other'],
+              example: 'restaurant'
+            },
             isOpen: { type: 'boolean', example: true },
             isVerified: { type: 'boolean', example: true },
             rating: { type: 'number', format: 'float', minimum: 0, maximum: 5, example: 4.7 },
@@ -277,7 +284,8 @@ const swaggerOptions = {
                 deliveryFee: { type: 'number', example: 15 },
                 minOrderAmount: { type: 'number', example: 50 },
                 estimatedDeliveryTime: { type: 'integer', example: 30 },
-                deliveryRadius: { type: 'integer', example: 10 }
+                deliveryRadius: { type: 'integer', example: 10 },
+                freeDeliveryThreshold: { type: 'number', example: 0 }
               }
             },
             address: {
@@ -288,11 +296,21 @@ const swaggerOptions = {
                 country: { type: 'string' }
               }
             },
+            tags: { type: 'array', items: { type: 'string' }, example: ['مأكولات', 'سريع'] },
+            gallery: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  url: { type: 'string' },
+                  caption: { type: 'string' }
+                }
+              }
+            },
             createdAt: { type: 'string', format: 'date-time' },
             updatedAt: { type: 'string', format: 'date-time' }
           }
         },
-        
         Product: {
           type: 'object',
           properties: {
@@ -328,7 +346,7 @@ const swaggerOptions = {
             updatedAt: { type: 'string', format: 'date-time' }
           }
         },
-        
+
         Order: {
           type: 'object',
           properties: {
@@ -342,9 +360,20 @@ const swaggerOptions = {
                 type: 'object',
                 properties: {
                   name: { type: 'string' },
-                  quantity: { type: 'integer' },
+                  qty: { type: 'integer' },
                   price: { type: 'number' },
-                  notes: { type: 'string' }
+                  notes: { type: 'string' },
+                  options: {
+                    type: 'array',
+                    items: {
+                      type: 'object',
+                      properties: {
+                        name: { type: 'string' },
+                        choice: { type: 'string' },
+                        price: { type: 'number' }
+                      }
+                    }
+                  }
                 }
               }
             },
@@ -354,13 +383,25 @@ const swaggerOptions = {
               enum: ['pending', 'accepted', 'ready', 'picked', 'delivered', 'cancelled'],
               example: 'pending'
             },
-            paymentMethod: { type: 'string', enum: ['cash', 'card', 'wallet'], example: 'cash' },
+            paymentMethod: {
+              type: 'string',
+              enum: ['cash', 'card', 'wallet'],
+              example: 'cash'
+            },
+            paymentStatus: {
+              type: 'string',
+              enum: ['pending', 'paid', 'failed', 'refunded'],
+              example: 'pending'
+            },
+            estimatedDeliveryTime: { type: 'integer', example: 30 },
+            estimatedDistance: { type: 'number', example: 1250 },
+            notes: { type: 'string', example: 'من فضلك لا تنسى الصوص' },
             deliveryAddress: { $ref: '#/components/schemas/Address' },
             createdAt: { type: 'string', format: 'date-time' },
-            deliveredAt: { type: 'string', format: 'date-time' }
+            deliveredAt: { type: 'string', format: 'date-time' },
+            cancelledAt: { type: 'string', format: 'date-time' }
           }
         },
-        
         Location: {
           type: 'object',
           properties: {
@@ -369,7 +410,7 @@ const swaggerOptions = {
             address: { type: 'string', example: 'شارع الملك فهد، الرياض' }
           }
         },
-        
+
         Route: {
           type: 'object',
           properties: {
@@ -381,7 +422,7 @@ const swaggerOptions = {
             steps: { type: 'array', description: 'خطوات التوجيه' }
           }
         },
-        
+
         Message: {
           type: 'object',
           properties: {
@@ -394,7 +435,7 @@ const swaggerOptions = {
             createdAt: { type: 'string', format: 'date-time' }
           }
         },
-        
+
         Notification: {
           type: 'object',
           properties: {
@@ -408,7 +449,7 @@ const swaggerOptions = {
             createdAt: { type: 'string', format: 'date-time' }
           }
         },
-        
+
         LoyaltyPoints: {
           type: 'object',
           properties: {
@@ -425,7 +466,7 @@ const swaggerOptions = {
             lifetimePoints: { type: 'integer', example: 2500 }
           }
         },
-        
+
         Error: {
           type: 'object',
           properties: {
@@ -435,7 +476,7 @@ const swaggerOptions = {
             errors: { type: 'array', items: { type: 'object' } }
           }
         },
-        
+
         Success: {
           type: 'object',
           properties: {
@@ -444,7 +485,7 @@ const swaggerOptions = {
             data: { type: 'object' }
           }
         },
-        
+
         Pagination: {
           type: 'object',
           properties: {

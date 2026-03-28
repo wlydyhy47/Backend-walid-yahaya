@@ -11,12 +11,12 @@ const Joi = require('joi');
  */
 const createAddressSchema = Joi.object({
   label: Joi.string()
-    .valid('home', 'work', 'other')
+    .valid('Home', 'Work', 'Office', 'Other', 'home', 'work', 'office', 'other')
     .default('home')
     .messages({
       'any.only': 'التصنيف يجب أن يكون home, work, أو other'
     }),
-  
+
   addressLine: Joi.string()
     .min(5)
     .max(200)
@@ -26,7 +26,7 @@ const createAddressSchema = Joi.object({
       'string.max': 'العنوان يجب أن لا يتجاوز {#limit} حرف',
       'any.required': 'العنوان مطلوب'
     }),
-  
+
   city: Joi.string()
     .min(2)
     .max(100)
@@ -36,27 +36,27 @@ const createAddressSchema = Joi.object({
       'string.max': 'المدينة يجب أن لا تتجاوز {#limit} حرف',
       'any.required': 'المدينة مطلوبة'
     }),
-  
+
   area: Joi.string()
     .max(100)
     .optional(),
-  
+
   building: Joi.string()
     .max(50)
     .optional(),
-  
+
   floor: Joi.string()
     .max(10)
     .optional(),
-  
+
   apartment: Joi.string()
     .max(10)
     .optional(),
-  
+
   instructions: Joi.string()
     .max(200)
     .optional(),
-  
+
   latitude: Joi.number()
     .min(-90)
     .max(90)
@@ -66,7 +66,7 @@ const createAddressSchema = Joi.object({
       'number.max': 'خط العرض يجب أن يكون بين -90 و 90',
       'any.required': 'خط العرض مطلوب'
     }),
-  
+
   longitude: Joi.number()
     .min(-180)
     .max(180)
@@ -76,7 +76,7 @@ const createAddressSchema = Joi.object({
       'number.max': 'خط الطول يجب أن يكون بين -180 و 180',
       'any.required': 'خط الطول مطلوب'
     }),
-  
+
   isDefault: Joi.boolean()
     .default(false)
 });
@@ -86,49 +86,49 @@ const createAddressSchema = Joi.object({
  */
 const updateAddressSchema = Joi.object({
   label: Joi.string()
-    .valid('home', 'work', 'other')
+    .valid('Home', 'Work', 'Office', 'Other', 'home', 'work', 'office', 'other')
     .optional(),
-  
+
   addressLine: Joi.string()
     .min(5)
     .max(200)
     .optional(),
-  
+
   city: Joi.string()
     .min(2)
     .max(100)
     .optional(),
-  
+
   area: Joi.string()
     .max(100)
     .optional(),
-  
+
   building: Joi.string()
     .max(50)
     .optional(),
-  
+
   floor: Joi.string()
     .max(10)
     .optional(),
-  
+
   apartment: Joi.string()
     .max(10)
     .optional(),
-  
+
   instructions: Joi.string()
     .max(200)
     .optional(),
-  
+
   latitude: Joi.number()
     .min(-90)
     .max(90)
     .optional(),
-  
+
   longitude: Joi.number()
     .min(-180)
     .max(180)
     .optional(),
-  
+
   isDefault: Joi.boolean()
     .optional()
 });

@@ -39,7 +39,7 @@ exports.createAddress = async (req, res) => {
     }
 
     // التحقق من صحة التسمية
-    const validLabels = ['Home', 'Work', 'Office', 'Other'];
+    const validLabels = ['home', 'work', 'office', 'other'];
     if (!validLabels.includes(label)) {
       return res.status(400).json({
         success: false,
@@ -157,7 +157,7 @@ exports.updateAddress = async (req, res) => {
 
     // تحديث الحقول
     if (label) {
-      const validLabels = ['Home', 'Work', 'Office', 'Other'];
+      const validLabels = ['home', 'work', 'office', 'other'];
       if (!validLabels.includes(label)) {
         return res.status(400).json({
           success: false,

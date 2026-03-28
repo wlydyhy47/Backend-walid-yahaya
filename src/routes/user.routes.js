@@ -51,7 +51,7 @@ router.use(role("admin"));
  *           minLength: 6
  *         role:
  *           type: string
- *           enum: [client, driver, store_owner, admin]
+ *           enum: [client, driver, vendor, admin]
  *         isActive:
  *           type: boolean
  *           default: true
@@ -74,7 +74,7 @@ router.use(role("admin"));
  *           pattern: '^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{4,6}$'
  *         role:
  *           type: string
- *           enum: [client, driver, store_owner, admin]
+ *           enum: [client, driver, vendor, admin]
  *         isActive:
  *           type: boolean
  *         isVerified:

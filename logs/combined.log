@@ -16110,3 +16110,2096 @@ Error: رقم الهاتف غير صالح. يجب أن يكون بصيغة دو
   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
   "userId": "69c449c2503b23b80c89c23f"
 }
+2026-03-26 00:46:32 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-26 00:46:32 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-26 00:46:32 [info]: Business Action: Mapbox service initialized
+2026-03-26 00:46:32 [info]: Business Action: Creating Redis client...
+2026-03-26 00:46:32 [info]: Business Action: RateLimiterService initialized
+2026-03-26 00:46:34 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-26 00:46:36 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-26 00:46:36 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-26 00:46:36 [info]: Business Action: Socket.io initialized successfully
+2026-03-26 00:47:02 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-26 00:47:02 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-26 00:47:02 [info]: Business Action: Mapbox service initialized
+2026-03-26 00:47:02 [info]: Business Action: Creating Redis client...
+2026-03-26 00:47:02 [info]: Business Action: RateLimiterService initialized
+2026-03-26 00:47:03 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-26 00:47:04 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-26 00:47:04 [info]: Business Action: Socket.io initialized successfully
+2026-03-26 00:47:04 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-26 00:48:17 [warn]: HTTP Request Warning
+{
+  "method": "GET",
+  "url": "/api-docs",
+  "status": 301,
+  "duration": "61ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:48:18 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/",
+  "status": 200,
+  "duration": "23ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:48:18 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-init.js",
+  "status": 200,
+  "duration": "51ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:48:18 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui.css",
+  "status": 200,
+  "duration": "86ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:48:18 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-standalone-preset.js",
+  "status": 200,
+  "duration": "108ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:48:18 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-bundle.js",
+  "status": 200,
+  "duration": "184ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:48:18 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/favicon-32x32.png",
+  "status": 200,
+  "duration": "3ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:48:55 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "988ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 00:51:40 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=client",
+  "status": 200,
+  "duration": "490ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 00:57:07 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/notifications/send",
+  "status": 400,
+  "duration": "99ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:02:45 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/notifications/send",
+  "status": 400,
+  "duration": "169ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:05:52 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/notifications/send",
+  "status": 400,
+  "duration": "82ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:06:18 [info]: Business Action: Sending 13 bulk notifications
+2026-03-26 01:06:18 [info]: Business Action: Sending notification
+{
+  "user": "6988bab8c62ec57051328940",
+  "type": "order"
+}
+2026-03-26 01:06:18 [info]: Business Action: Sending notification
+{
+  "user": "6988bb28c62ec5705132894e",
+  "type": "order"
+}
+2026-03-26 01:06:18 [info]: Business Action: Sending notification
+{
+  "user": "69b2c3b437a89ce570055704",
+  "type": "order"
+}
+2026-03-26 01:06:18 [info]: Business Action: Sending notification
+{
+  "user": "69b33f45be52063b25a1b29c",
+  "type": "order"
+}
+2026-03-26 01:06:18 [info]: Business Action: Sending notification
+{
+  "user": "69bca1108ebaa204df4c1a6e",
+  "type": "order"
+}
+2026-03-26 01:06:18 [info]: Business Action: Sending notification
+{
+  "user": "69bca22a8ebaa204df4c1a77",
+  "type": "order"
+}
+2026-03-26 01:06:18 [info]: Business Action: Sending notification
+{
+  "user": "69bca2a58ebaa204df4c1a80",
+  "type": "order"
+}
+2026-03-26 01:06:18 [info]: Business Action: Sending notification
+{
+  "user": "69bca8e6be66aed898a61c53",
+  "type": "order"
+}
+2026-03-26 01:06:18 [info]: Business Action: Sending notification
+{
+  "user": "69bca96fbe66aed898a61c5f",
+  "type": "order"
+}
+2026-03-26 01:06:18 [info]: Business Action: Sending notification
+{
+  "user": "69bcaa44be66aed898a61c77",
+  "type": "order"
+}
+2026-03-26 01:06:18 [info]: Business Action: Sending notification
+{
+  "user": "69bedfd8c6163f769fe9d36c",
+  "type": "order"
+}
+2026-03-26 01:06:18 [info]: Business Action: Sending notification
+{
+  "user": "69c426582ec650f04d97aa6b",
+  "type": "order"
+}
+2026-03-26 01:06:18 [info]: Business Action: Sending notification
+{
+  "user": "69c449c2503b23b80c89c23f",
+  "type": "order"
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "6988bab8c62ec57051328940",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "6988bb28c62ec5705132894e",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69b2c3b437a89ce570055704",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69b33f45be52063b25a1b29c",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69bca1108ebaa204df4c1a6e",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69bca22a8ebaa204df4c1a77",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69bca2a58ebaa204df4c1a80",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69bca8e6be66aed898a61c53",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69bca96fbe66aed898a61c5f",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69bcaa44be66aed898a61c77",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69bedfd8c6163f769fe9d36c",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69c426582ec650f04d97aa6b",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378044",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [error]: Business Error: Notification sending failed
+{
+  "error": "Notification validation failed: type: `order` is not a valid enum value for path `type`.",
+  "data": {
+    "user": "69c449c2503b23b80c89c23f",
+    "type": "order",
+    "title": "إشعار جديد",
+    "content": "تم إرسال هذا الإشعار إلى جميع المستخدمين النشطين",
+    "priority": "low",
+    "data": {},
+    "icon": "🔔",
+    "campaignId": "campaign-1774476378045",
+    "tags": [
+      "custom",
+      "admin_sent"
+    ],
+    "settings": {
+      "push": true,
+      "email": true,
+      "sms": false,
+      "inApp": true
+    }
+  }
+}
+2026-03-26 01:06:18 [info]: Business Action: Bulk notifications completed
+{
+  "total": 13,
+  "successful": 0,
+  "failed": 13
+}
+2026-03-26 01:06:18 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/notifications/send",
+  "status": 200,
+  "duration": "205ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:08:06 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/notifications/stats",
+  "status": 200,
+  "duration": "152ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:08:52 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/notifications?page=1&limit=20",
+  "status": 200,
+  "duration": "231ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:11:52 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/notifications/all/stats",
+  "status": 200,
+  "duration": "199ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:13:18 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "587ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 01:14:23 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/notifications?page=1&limit=20",
+  "status": 200,
+  "duration": "220ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c426582ec650f04d97aa6b"
+}
+2026-03-26 01:17:40 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/notifications?page=1&limit=20",
+  "status": 200,
+  "duration": "231ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c426582ec650f04d97aa6b"
+}
+2026-03-26 01:19:33 [warn]: Business Warning: Access denied - insufficient permissions
+{
+  "userId": "69c426582ec650f04d97aa6b",
+  "userRole": "client",
+  "requiredRoles": [
+    "admin"
+  ],
+  "path": "/api/v1/notifications/send"
+}
+2026-03-26 01:19:33 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/notifications/send",
+  "status": 403,
+  "duration": "71ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c426582ec650f04d97aa6b"
+}
+2026-03-26 01:20:19 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "503ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 01:21:49 [info]: Business Action: Sending 13 bulk notifications
+2026-03-26 01:21:49 [info]: Business Action: Sending notification
+{
+  "user": "6988bab8c62ec57051328940",
+  "type": "system"
+}
+2026-03-26 01:21:49 [info]: Business Action: Sending notification
+{
+  "user": "6988bb28c62ec5705132894e",
+  "type": "system"
+}
+2026-03-26 01:21:49 [info]: Business Action: Sending notification
+{
+  "user": "69b2c3b437a89ce570055704",
+  "type": "system"
+}
+2026-03-26 01:21:49 [info]: Business Action: Sending notification
+{
+  "user": "69b33f45be52063b25a1b29c",
+  "type": "system"
+}
+2026-03-26 01:21:49 [info]: Business Action: Sending notification
+{
+  "user": "69bca1108ebaa204df4c1a6e",
+  "type": "system"
+}
+2026-03-26 01:21:49 [info]: Business Action: Sending notification
+{
+  "user": "69bca22a8ebaa204df4c1a77",
+  "type": "system"
+}
+2026-03-26 01:21:49 [info]: Business Action: Sending notification
+{
+  "user": "69bca2a58ebaa204df4c1a80",
+  "type": "system"
+}
+2026-03-26 01:21:49 [info]: Business Action: Sending notification
+{
+  "user": "69bca8e6be66aed898a61c53",
+  "type": "system"
+}
+2026-03-26 01:21:49 [info]: Business Action: Sending notification
+{
+  "user": "69bca96fbe66aed898a61c5f",
+  "type": "system"
+}
+2026-03-26 01:21:49 [info]: Business Action: Sending notification
+{
+  "user": "69bcaa44be66aed898a61c77",
+  "type": "system"
+}
+2026-03-26 01:21:49 [info]: Business Action: Sending notification
+{
+  "user": "69bedfd8c6163f769fe9d36c",
+  "type": "system"
+}
+2026-03-26 01:21:49 [info]: Business Action: Sending notification
+{
+  "user": "69c426582ec650f04d97aa6b",
+  "type": "system"
+}
+2026-03-26 01:21:49 [info]: Business Action: Sending notification
+{
+  "user": "69c449c2503b23b80c89c23f",
+  "type": "system"
+}
+2026-03-26 01:21:49 [info]: Business Action: [SIMULATED] Email to said@driver.com: 🔔 إشعار جديد
+{
+  "messageId": "simulated-0654408f9b378d12",
+  "htmlLength": 4117,
+  "textLength": 0
+}
+2026-03-26 01:21:49 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca81
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca81
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 5)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:49 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca81",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca81"
+}
+2026-03-26 01:21:49 [info]: Business Action: [SIMULATED] Email to khaled@admin.com: 🔔 إشعار جديد
+{
+  "messageId": "simulated-09f3dd960cb1375d",
+  "htmlLength": 4116,
+  "textLength": 0
+}
+2026-03-26 01:21:49 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca82
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca82
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 6)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:49 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca82",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca82"
+}
+2026-03-26 01:21:49 [info]: Business Action: [SIMULATED] Email to ahmed@example.com: 🔔 إشعار جديد
+{
+  "messageId": "simulated-a7dc56e7fb513c25",
+  "htmlLength": 4114,
+  "textLength": 0
+}
+2026-03-26 01:21:49 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca80
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca80
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 4)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:49 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca80",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca80"
+}
+2026-03-26 01:21:49 [info]: Business Action: [SIMULATED] Email to mohamed@vendor.com: 🔔 إشعار جديد
+{
+  "messageId": "simulated-108fe6fd0bf10c11",
+  "htmlLength": 4116,
+  "textLength": 0
+}
+2026-03-26 01:21:49 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca83
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca83
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 7)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:49 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca83",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca83"
+}
+2026-03-26 01:21:49 [info]: Business Action: [SIMULATED] Email to ahmed16@example.com: 🔔 إشعار جديد
+{
+  "messageId": "simulated-b8576e6815c5d393",
+  "htmlLength": 4114,
+  "textLength": 0
+}
+2026-03-26 01:21:49 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca87
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca87
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 11)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:49 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca87",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca87"
+}
+2026-03-26 01:21:49 [info]: Business Action: [SIMULATED] Email to mohed@vendor.com: 🔔 إشعار جديد
+{
+  "messageId": "simulated-d4bad22981debf7d",
+  "htmlLength": 4116,
+  "textLength": 0
+}
+2026-03-26 01:21:49 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca84
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca84
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 8)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:49 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca84",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca84"
+}
+2026-03-26 01:21:49 [info]: Business Action: No active devices for user
+{
+  "userId": "6988bab8c62ec57051328940"
+}
+2026-03-26 01:21:49 [info]: Business Action: No active devices for user
+{
+  "userId": "69bca22a8ebaa204df4c1a77"
+}
+2026-03-26 01:21:49 [info]: Business Action: No active devices for user
+{
+  "userId": "69bca1108ebaa204df4c1a6e"
+}
+2026-03-26 01:21:49 [info]: Business Action: [SIMULATED] Email to ttttt@example.com: 🔔 إشعار جديد
+{
+  "messageId": "simulated-ae0e781cf6effd0e",
+  "htmlLength": 4111,
+  "textLength": 0
+}
+2026-03-26 01:21:49 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca88
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca88
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 12)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:49 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca88",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca88"
+}
+2026-03-26 01:21:49 [info]: Business Action: No active devices for user
+{
+  "userId": "69bca2a58ebaa204df4c1a80"
+}
+2026-03-26 01:21:49 [info]: Business Action: No active devices for user
+{
+  "userId": "69bca8e6be66aed898a61c53"
+}
+2026-03-26 01:21:49 [info]: Business Action: No active devices for user
+{
+  "userId": "6988bb28c62ec5705132894e"
+}
+2026-03-26 01:21:49 [info]: Business Action: No active devices for user
+{
+  "userId": "69c426582ec650f04d97aa6b"
+}
+2026-03-26 01:21:49 [info]: Business Action: No active devices for user
+{
+  "userId": "69b33f45be52063b25a1b29c"
+}
+2026-03-26 01:21:49 [info]: Business Action: No active devices for user
+{
+  "userId": "69b2c3b437a89ce570055704"
+}
+2026-03-26 01:21:49 [info]: Business Action: No active devices for user
+{
+  "userId": "69bca96fbe66aed898a61c5f"
+}
+2026-03-26 01:21:49 [info]: Business Action: No active devices for user
+{
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:21:49 [info]: Business Action: Notification sent successfully
+{
+  "id": "69c45ffdad806caad798ca81",
+  "user": "69bca22a8ebaa204df4c1a77"
+}
+2026-03-26 01:21:49 [info]: Business Action: Notification sent successfully
+{
+  "id": "69c45ffdad806caad798ca7c",
+  "user": "6988bab8c62ec57051328940"
+}
+2026-03-26 01:21:49 [info]: Business Action: Notification sent successfully
+{
+  "id": "69c45ffdad806caad798ca80",
+  "user": "69bca1108ebaa204df4c1a6e"
+}
+2026-03-26 01:21:49 [info]: Business Action: Notification sent successfully
+{
+  "id": "69c45ffdad806caad798ca82",
+  "user": "69bca2a58ebaa204df4c1a80"
+}
+2026-03-26 01:21:49 [info]: Business Action: Notification sent successfully
+{
+  "id": "69c45ffdad806caad798ca83",
+  "user": "69bca8e6be66aed898a61c53"
+}
+2026-03-26 01:21:50 [info]: Business Action: Notification sent successfully
+{
+  "id": "69c45ffdad806caad798ca87",
+  "user": "69c426582ec650f04d97aa6b"
+}
+2026-03-26 01:21:50 [info]: Business Action: [SIMULATED] Email to mohd@vendor.com: 🔔 إشعار جديد
+{
+  "messageId": "simulated-362f6490e377d91e",
+  "htmlLength": 4116,
+  "textLength": 0
+}
+2026-03-26 01:21:50 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca85
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca85
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 9)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:50 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca85",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca85"
+}
+2026-03-26 01:21:50 [info]: Business Action: Notification sent successfully
+{
+  "id": "69c45ffdad806caad798ca7e",
+  "user": "69b2c3b437a89ce570055704"
+}
+2026-03-26 01:21:50 [info]: Business Action: Notification sent successfully
+{
+  "id": "69c45ffdad806caad798ca7d",
+  "user": "6988bb28c62ec5705132894e"
+}
+2026-03-26 01:21:50 [info]: Business Action: Notification sent successfully
+{
+  "id": "69c45ffdad806caad798ca7f",
+  "user": "69b33f45be52063b25a1b29c"
+}
+2026-03-26 01:21:50 [info]: Business Action: No active devices for user
+{
+  "userId": "69bcaa44be66aed898a61c77"
+}
+2026-03-26 01:21:50 [info]: Business Action: Notification sent successfully
+{
+  "id": "69c45ffdad806caad798ca88",
+  "user": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:21:50 [info]: Business Action: Notification sent successfully
+{
+  "id": "69c45ffdad806caad798ca85",
+  "user": "69bcaa44be66aed898a61c77"
+}
+2026-03-26 01:21:50 [info]: Business Action: [SIMULATED] Email to newuser@example.com: 🔔 إشعار جديد
+{
+  "messageId": "simulated-7fbf761a40538dc0",
+  "htmlLength": 4113,
+  "textLength": 0
+}
+2026-03-26 01:21:50 [error]: Business Error: Email notification error: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca86
+ParallelSaveError: Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca86
+    at model.save (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\model.js:635:20)
+    at NotificationService.sendEmailNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:250:26)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async Promise.allSettled (index 2)
+    at async NotificationService.sendNotification (C:\project\Backend-walid-yahaya\src\services\notification.service.js:77:7)
+    at async Promise.allSettled (index 10)
+    at async NotificationService.sendBulkNotifications (C:\project\Backend-walid-yahaya\src\services\notification.service.js:119:30)
+    at async exports.sendCustomNotification (C:\project\Backend-walid-yahaya\src\controllers\notification.controller.js:772:20)
+2026-03-26 01:21:50 [error]: Business Error: Delivery error for email
+{
+  "notificationId": "69c45ffdad806caad798ca86",
+  "error": "Can't save() the same doc multiple times in parallel. Document: 69c45ffdad806caad798ca86"
+}
+2026-03-26 01:21:50 [info]: Business Action: No active devices for user
+{
+  "userId": "69bedfd8c6163f769fe9d36c"
+}
+2026-03-26 01:21:50 [info]: Business Action: Notification sent successfully
+{
+  "id": "69c45ffdad806caad798ca86",
+  "user": "69bedfd8c6163f769fe9d36c"
+}
+2026-03-26 01:21:50 [info]: Business Action: Notification sent successfully
+{
+  "id": "69c45ffdad806caad798ca84",
+  "user": "69bca96fbe66aed898a61c5f"
+}
+2026-03-26 01:21:50 [info]: Business Action: Bulk notifications completed
+{
+  "total": 13,
+  "successful": 13,
+  "failed": 0
+}
+2026-03-26 01:21:50 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/admin/notifications/send",
+  "status": 200,
+  "duration": "964ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:22:37 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/notifications/all/stats",
+  "status": 200,
+  "duration": "215ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:25:14 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "473ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 01:26:48 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/notifications?page=1&limit=20",
+  "status": 401,
+  "duration": "6ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-26 01:28:47 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/client/notifications?page=1&limit=20",
+  "status": 200,
+  "duration": "173ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c426582ec650f04d97aa6b"
+}
+2026-03-26 01:29:51 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/client/notifications/stats",
+  "status": 200,
+  "duration": "149ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c426582ec650f04d97aa6b"
+}
+2026-03-26 01:30:46 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/client/notifications?page=1&limit=20",
+  "status": 200,
+  "duration": "155ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c426582ec650f04d97aa6b"
+}
+2026-03-26 01:31:34 [error]: Business Error: Update notification status error: Cast to ObjectId failed for value "34567" (type string) at path "_id" for model "Notification"
+CastError: Cast to ObjectId failed for value "34567" (type string) at path "_id" for model "Notification"
+    at SchemaObjectId.cast (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\schema\objectId.js:253:11)
+    at SchemaType.applySetters (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\schemaType.js:1287:12)
+    at SchemaType.castForQuery (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\schemaType.js:1713:17)
+    at cast (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\cast.js:386:32)
+    at Query.cast (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:5127:12)
+    at Query._castConditions (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:2376:10)
+    at model.Query._findOne (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:2716:8)
+    at model.Query.exec (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:4726:80)
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async NotificationService.updateNotificationStatus (C:\project\Backend-walid-yahaya\src\services\notification.service.js:801:28)
+{
+  "stringValue": "\"34567\"",
+  "kind": "ObjectId",
+  "value": "34567",
+  "path": "_id",
+  "reason": {},
+  "valueType": "string"
+}
+2026-03-26 01:31:34 [error]: HTTP Request Error
+{
+  "method": "PUT",
+  "url": "/api/v1/client/notifications/34567/read",
+  "status": 404,
+  "duration": "76ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c426582ec650f04d97aa6b"
+}
+2026-03-26 01:32:26 [info]: HTTP Request
+{
+  "method": "PUT",
+  "url": "/api/v1/client/notifications/69c45ffdad806caad798ca87/read",
+  "status": 200,
+  "duration": "134ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c426582ec650f04d97aa6b"
+}
+2026-03-26 01:33:54 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/notifications?page=1&limit=20",
+  "status": 200,
+  "duration": "195ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-26 01:34:46 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/notifications/all/stats",
+  "status": 200,
+  "duration": "284ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c449c2503b23b80c89c23f"
+}
+2026-03-28 23:22:34 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-28 23:22:35 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-28 23:22:35 [info]: Business Action: Mapbox service initialized
+2026-03-28 23:22:36 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-28 23:23:31 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-28 23:23:31 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-28 23:23:31 [info]: Business Action: Mapbox service initialized
+2026-03-28 23:23:32 [info]: Business Action: Creating Redis client...
+2026-03-28 23:23:32 [info]: Business Action: RateLimiterService initialized
+2026-03-28 23:23:33 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-28 23:23:34 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-28 23:23:34 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-28 23:23:34 [info]: Business Action: Socket.io initialized successfully
+2026-03-28 23:24:02 [warn]: HTTP Request Warning
+{
+  "method": "GET",
+  "url": "/api-docs/",
+  "status": 304,
+  "duration": "27ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-28 23:24:03 [warn]: HTTP Request Warning
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui.css",
+  "status": 304,
+  "duration": "8ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-28 23:24:03 [warn]: HTTP Request Warning
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-bundle.js",
+  "status": 304,
+  "duration": "6ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-28 23:24:03 [warn]: HTTP Request Warning
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-standalone-preset.js",
+  "status": 304,
+  "duration": "59ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-28 23:24:03 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-init.js",
+  "status": 200,
+  "duration": "70ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-29 00:37:59 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-29 00:37:59 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-29 00:37:59 [info]: Business Action: Mapbox service initialized
+2026-03-29 00:38:00 [info]: Business Action: Creating Redis client...
+2026-03-29 00:38:00 [info]: Business Action: RateLimiterService initialized
+2026-03-29 00:38:02 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-29 00:38:03 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-29 00:38:03 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-29 00:38:03 [info]: Business Action: Socket.io initialized successfully
+2026-03-29 00:39:50 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/swagger.json",
+  "status": 200,
+  "duration": "357ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-29 00:45:13 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/health",
+  "status": 200,
+  "duration": "112ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-29 00:58:55 [warn]: Business Warning: Validation failed
+{
+  "errors": [
+    {
+      "field": "phone",
+      "message": "رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة",
+      "type": "string.pattern.base"
+    }
+  ],
+  "property": "body",
+  "path": "/register"
+}
+2026-03-29 00:58:55 [error]: Unhandled Error رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة
+Error: رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-29 00:58:55 [error]: Business Error: Error caught: رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة
+Error: رقم الهاتف غير صالح. يجب أن يكون بصيغة دولية صحيحة
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/auth/register",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-29 00:58:55 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 400,
+  "duration": "90ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-29 01:01:41 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 201,
+  "duration": "1052ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-29 01:01:41 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774735300249-fsq17z",
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "duration": "1061.52ms",
+  "status": 201
+}
+2026-03-29 01:03:22 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 200,
+  "duration": "556ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-29 01:06:35 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/client/orders?page=1&limit=20&status=ready&fromDate=2014-09-16&toDate=2014-09-16",
+  "status": 200,
+  "duration": "295ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:08:03 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/client/addresses",
+  "status": 200,
+  "duration": "237ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:09:10 [warn]: Business Warning: Validation failed
+{
+  "errors": [
+    {
+      "field": "addressLine",
+      "message": "العنوان يجب أن يكون 5 أحرف على الأقل",
+      "type": "string.min"
+    }
+  ],
+  "property": "body",
+  "path": "/addresses"
+}
+2026-03-29 01:09:10 [error]: Unhandled Error العنوان يجب أن يكون 5 أحرف على الأقل
+Error: العنوان يجب أن يكون 5 أحرف على الأقل
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:09:10 [error]: Business Error: Error caught: العنوان يجب أن يكون 5 أحرف على الأقل
+Error: العنوان يجب أن يكون 5 أحرف على الأقل
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:09:10 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "125ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:09:32 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "71ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:10:23 [warn]: Business Warning: Validation failed
+{
+  "errors": [
+    {
+      "field": "label",
+      "message": "التصنيف يجب أن يكون home, work, أو other",
+      "type": "any.only"
+    }
+  ],
+  "property": "body",
+  "path": "/addresses"
+}
+2026-03-29 01:10:23 [error]: Unhandled Error التصنيف يجب أن يكون home, work, أو other
+Error: التصنيف يجب أن يكون home, work, أو other
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:10:23 [error]: Business Error: Error caught: التصنيف يجب أن يكون home, work, أو other
+Error: التصنيف يجب أن يكون home, work, أو other
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:10:23 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "113ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:10:40 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "86ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:12:23 [warn]: Business Warning: Validation failed
+{
+  "errors": [
+    {
+      "field": "label",
+      "message": "التصنيف يجب أن يكون home, work, أو other",
+      "type": "any.only"
+    }
+  ],
+  "property": "body",
+  "path": "/addresses"
+}
+2026-03-29 01:12:23 [error]: Unhandled Error التصنيف يجب أن يكون home, work, أو other
+Error: التصنيف يجب أن يكون home, work, أو other
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:12:23 [error]: Business Error: Error caught: التصنيف يجب أن يكون home, work, أو other
+Error: التصنيف يجب أن يكون home, work, أو other
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:12:23 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "108ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:15:31 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "183ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:17:15 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-29 01:17:16 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-29 01:17:16 [info]: Business Action: Mapbox service initialized
+2026-03-29 01:17:16 [info]: Business Action: Creating Redis client...
+2026-03-29 01:17:16 [info]: Business Action: RateLimiterService initialized
+2026-03-29 01:17:18 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-29 01:17:19 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-29 01:17:19 [info]: Business Action: Socket.io initialized successfully
+2026-03-29 01:17:19 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-29 01:17:29 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-29 01:17:30 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-29 01:17:30 [info]: Business Action: Mapbox service initialized
+2026-03-29 01:17:30 [info]: Business Action: Creating Redis client...
+2026-03-29 01:17:30 [info]: Business Action: RateLimiterService initialized
+2026-03-29 01:17:32 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-29 01:17:33 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-29 01:17:33 [info]: Business Action: Socket.io initialized successfully
+2026-03-29 01:17:33 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-29 01:17:53 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-29 01:17:53 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-29 01:17:53 [info]: Business Action: Mapbox service initialized
+2026-03-29 01:17:53 [info]: Business Action: Creating Redis client...
+2026-03-29 01:17:53 [info]: Business Action: RateLimiterService initialized
+2026-03-29 01:17:55 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-29 01:17:55 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-29 01:17:55 [info]: Business Action: Socket.io initialized successfully
+2026-03-29 01:17:56 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-29 01:18:22 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-29 01:18:22 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-29 01:18:22 [info]: Business Action: Mapbox service initialized
+2026-03-29 01:18:23 [info]: Business Action: Creating Redis client...
+2026-03-29 01:18:23 [info]: Business Action: RateLimiterService initialized
+2026-03-29 01:18:24 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-29 01:18:25 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-29 01:18:25 [info]: Business Action: Socket.io initialized successfully
+2026-03-29 01:18:25 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-29 01:18:34 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "146ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:19:16 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "103ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:19:28 [warn]: Business Warning: Validation failed
+{
+  "errors": [
+    {
+      "field": "label",
+      "message": "التصنيف يجب أن يكون home, work, أو other",
+      "type": "any.only"
+    }
+  ],
+  "property": "body",
+  "path": "/addresses"
+}
+2026-03-29 01:19:28 [error]: Unhandled Error التصنيف يجب أن يكون home, work, أو other
+Error: التصنيف يجب أن يكون home, work, أو other
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:19:28 [error]: Business Error: Error caught: التصنيف يجب أن يكون home, work, أو other
+Error: التصنيف يجب أن يكون home, work, أو other
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/client/addresses",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:19:28 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "171ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:20:22 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "95ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:21:02 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-29 01:21:03 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-29 01:21:03 [info]: Business Action: Mapbox service initialized
+2026-03-29 01:21:03 [info]: Business Action: Creating Redis client...
+2026-03-29 01:21:03 [info]: Business Action: RateLimiterService initialized
+2026-03-29 01:21:06 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-29 01:21:07 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-29 01:21:07 [info]: Business Action: Socket.io initialized successfully
+2026-03-29 01:21:07 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-29 01:21:21 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-29 01:21:21 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-29 01:21:21 [info]: Business Action: Mapbox service initialized
+2026-03-29 01:21:21 [info]: Business Action: Creating Redis client...
+2026-03-29 01:21:21 [info]: Business Action: RateLimiterService initialized
+2026-03-29 01:21:22 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-29 01:21:23 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-29 01:21:23 [info]: Business Action: Socket.io initialized successfully
+2026-03-29 01:21:23 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-29 01:21:34 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 400,
+  "duration": "170ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:23:25 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-29 01:23:25 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-29 01:23:25 [info]: Business Action: Mapbox service initialized
+2026-03-29 01:23:25 [info]: Business Action: Creating Redis client...
+2026-03-29 01:23:25 [info]: Business Action: RateLimiterService initialized
+2026-03-29 01:23:26 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-29 01:23:27 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-29 01:23:27 [info]: Business Action: Socket.io initialized successfully
+2026-03-29 01:23:32 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-29 01:23:32 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-29 01:23:32 [info]: Business Action: Mapbox service initialized
+2026-03-29 01:23:32 [info]: Business Action: Creating Redis client...
+2026-03-29 01:23:32 [info]: Business Action: RateLimiterService initialized
+2026-03-29 01:23:33 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-29 01:23:34 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-29 01:23:34 [info]: Business Action: Socket.io initialized successfully
+2026-03-29 01:23:34 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-29 01:23:39 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-29 01:23:39 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-29 01:23:39 [info]: Business Action: Mapbox service initialized
+2026-03-29 01:23:39 [info]: Business Action: Creating Redis client...
+2026-03-29 01:23:39 [info]: Business Action: RateLimiterService initialized
+2026-03-29 01:23:41 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-29 01:23:42 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-29 01:23:42 [info]: Business Action: Socket.io initialized successfully
+2026-03-29 01:23:42 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-29 01:24:01 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-29 01:24:02 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-29 01:24:02 [info]: Business Action: Mapbox service initialized
+2026-03-29 01:24:02 [info]: Business Action: Creating Redis client...
+2026-03-29 01:24:02 [info]: Business Action: RateLimiterService initialized
+2026-03-29 01:24:03 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-29 01:24:04 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-29 01:24:04 [info]: Business Action: Socket.io initialized successfully
+2026-03-29 01:24:04 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-29 01:24:13 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/client/addresses",
+  "status": 201,
+  "duration": "236ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:25:46 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=2521&limit=2521&category=string&isOpen=true&isVerified=true",
+  "status": 401,
+  "duration": "17ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-29 01:26:01 [warn]: Business Warning: Access denied - insufficient permissions
+{
+  "userId": "69c84fc45b74f5cad08b00e0",
+  "userRole": "client",
+  "requiredRoles": [
+    "admin"
+  ],
+  "path": "/api/v1/admin/stores?page=2521&limit=2521&category=string&isOpen=true&isVerified=true"
+}
+2026-03-29 01:26:01 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=2521&limit=2521&category=string&isOpen=true&isVerified=true",
+  "status": 403,
+  "duration": "78ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "69c84fc45b74f5cad08b00e0"
+}
+2026-03-29 01:26:42 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/public/stores?page=1&limit=20&category=string&lat=9111.740770146169&lng=9111.740770146169&radius=5000&minRating=2.463580141630992&tags=string",
+  "status": 500,
+  "duration": "34ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-29 01:30:29 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-29 01:30:29 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-29 01:30:29 [info]: Business Action: Mapbox service initialized
+2026-03-29 01:30:30 [info]: Business Action: Creating Redis client...
+2026-03-29 01:30:30 [info]: Business Action: RateLimiterService initialized
+2026-03-29 01:30:32 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-29 01:30:33 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-29 01:30:33 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-29 01:30:33 [info]: Business Action: Socket.io initialized successfully
+2026-03-29 01:31:40 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-29 01:31:40 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-29 01:31:40 [info]: Business Action: Mapbox service initialized
+2026-03-29 01:31:40 [info]: Business Action: Creating Redis client...
+2026-03-29 01:31:40 [info]: Business Action: RateLimiterService initialized
+2026-03-29 01:31:42 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-29 01:31:43 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-29 01:31:43 [info]: Business Action: Socket.io initialized successfully
+2026-03-29 01:31:43 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-29 01:31:54 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-29 01:31:54 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-29 01:31:54 [info]: Business Action: Mapbox service initialized
+2026-03-29 01:31:54 [info]: Business Action: Creating Redis client...
+2026-03-29 01:31:54 [info]: Business Action: RateLimiterService initialized
+2026-03-29 01:31:55 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-29 01:31:56 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-29 01:31:56 [info]: Business Action: Socket.io initialized successfully
+2026-03-29 01:31:56 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-29 01:32:29 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/public/stores?page=1&limit=20&category=string&lat=9111.740770146169&lng=9111.740770146169&radius=5000&minRating=2.463580141630992&tags=string",
+  "status": 200,
+  "duration": "630ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-29 01:39:22 [warn]: Business Warning: Validation failed
+{
+  "errors": [
+    {
+      "field": "phone",
+      "message": "رقم الهاتف غير صالح",
+      "type": "string.pattern.base"
+    },
+    {
+      "field": "password",
+      "message": "كلمة المرور يجب أن تكون 6 أحرف على الأقل",
+      "type": "string.min"
+    }
+  ],
+  "property": "body",
+  "path": "/login"
+}
+2026-03-29 01:39:22 [error]: Unhandled Error رقم الهاتف غير صالح | كلمة المرور يجب أن تكون 6 أحرف على الأقل
+Error: رقم الهاتف غير صالح | كلمة المرور يجب أن تكون 6 أحرف على الأقل
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "url": "/api/v1/auth/login",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-29 01:39:22 [error]: Business Error: Error caught: رقم الهاتف غير صالح | كلمة المرور يجب أن تكون 6 أحرف على الأقل
+Error: رقم الهاتف غير صالح | كلمة المرور يجب أن تكون 6 أحرف على الأقل
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:40:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:947:7
+    at process.processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at async C:\project\Backend-walid-yahaya\node_modules\express-rate-limit\dist\index.cjs:830:5
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/auth/login",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-29 01:39:22 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 400,
+  "duration": "49ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}

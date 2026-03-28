@@ -1251,7 +1251,7 @@ exports.getProductAnalytics = async (req, res) => {
 exports.getVendors = async (req, res) => {
   try {
     const vendors = await User.find({
-      role: 'store_owner',
+      role: 'vendor',
       isActive: true
     })
       .select('name phone email image storeOwnerInfo createdAt')
@@ -1285,7 +1285,7 @@ exports.getVendorById = async (req, res) => {
       .populate('storeOwnerInfo.store')
       .lean();
 
-    if (!vendor || vendor.role !== 'store_owner') {
+    if (!vendor || vendor.role !== 'vendor') {
       return res.status(404).json({
         success: false,
         message: "التاجر غير موجود"

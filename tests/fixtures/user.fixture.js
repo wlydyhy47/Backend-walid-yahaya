@@ -24,7 +24,7 @@ const users = {
   storeOwner: {
     _id: storeOwnerId,
     name: "Store Owner",
-    role: "store_owner",
+    role: "vendor",
     storeOwnerInfo: {
       store: new mongoose.Types.ObjectId().toString()
     },

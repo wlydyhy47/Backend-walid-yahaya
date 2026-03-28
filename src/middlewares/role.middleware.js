@@ -13,15 +13,15 @@ const ROLES = {
   CLIENT: 'client',
   DRIVER: 'driver',
   ADMIN: 'admin',
-  STORE_OWNER: 'store_owner'  // ✅ تغيير من RESTAURANT_OWNER
+  VENDOR: 'vendor'  
 };
 
 /**
  * هرمية الأدوار (كل دور له صلاحية الأدوار الأدنى)
  */
 const ROLE_HIERARCHY = {
-  [ROLES.ADMIN]: [ROLES.ADMIN, ROLES.STORE_OWNER, ROLES.DRIVER, ROLES.CLIENT],
-  [ROLES.STORE_OWNER]: [ROLES.STORE_OWNER, ROLES.DRIVER, ROLES.CLIENT],
+  [ROLES.ADMIN]: [ROLES.ADMIN, ROLES.VENDOR, ROLES.DRIVER, ROLES.CLIENT],
+  [ROLES.VENDOR]: [ROLES.VENDOR, ROLES.DRIVER, ROLES.CLIENT],
   [ROLES.DRIVER]: [ROLES.DRIVER, ROLES.CLIENT],
   [ROLES.CLIENT]: [ROLES.CLIENT]
 };
@@ -41,7 +41,7 @@ const ROLE_PERMISSIONS = {
     'manage_loyalty',
     'view_logs'
   ],
-  [ROLES.STORE_OWNER]: [  // ✅ تغيير من RESTAURANT_OWNER
+  [ROLES.VENDOR]: [  // ✅ تغيير من RESTAURANT_OWNER
     'manage_own_store',    // ✅ تغيير من manage_own_store
     'view_own_orders',
     'update_order_status',
@@ -180,7 +180,7 @@ const storeOwnerMiddleware = async (req, res, next) => {
       return next();
     }
 
-    if (req.user.role !== ROLES.STORE_OWNER) {
+    if (req.user.role !== ROLES.VENDOR) {
       return res.status(403).json({
         success: false,
         message: "هذا المسار مخصص لأصحاب المتاجر فقط",

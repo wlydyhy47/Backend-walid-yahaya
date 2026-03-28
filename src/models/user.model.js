@@ -53,7 +53,7 @@ const userSchema = new mongoose.Schema(
     // الأدوار والصلاحيات
     role: {
       type: String,
-      enum: ["client", "driver", "admin", "store_owner"],
+      enum: ["client", "driver", "admin", "vendor"],
       default: "client",
     },
 

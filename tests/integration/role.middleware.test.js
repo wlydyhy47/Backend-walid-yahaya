@@ -30,7 +30,7 @@ describe('Role Middleware', () => {
     it('should block unauthenticated requests (no req.user)', () => {
       const middleware = roleMiddleware('admin');
       middleware(req, res, next);
-      
+
       expect(res.status).toHaveBeenCalledWith(401);
       expect(next).not.toHaveBeenCalled();
     });
@@ -38,9 +38,9 @@ describe('Role Middleware', () => {
     it('should block users without the required role', () => {
       req.user = { role: 'client', id: users.client._id };
       const middleware = roleMiddleware('admin', 'driver');
-      
+
       middleware(req, res, next);
-      
+
       expect(res.status).toHaveBeenCalledWith(403);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({
         code: 'FORBIDDEN'
@@ -50,10 +50,10 @@ describe('Role Middleware', () => {
 
     it('should allow users with a required role', () => {
       req.user = { role: 'admin', id: users.admin._id };
-      const middleware = roleMiddleware('admin', 'store_owner');
-      
+      const middleware = roleMiddleware('admin', 'vendor');
+
       middleware(req, res, next);
-      
+
       expect(next).toHaveBeenCalled();
     });
   });
@@ -62,7 +62,7 @@ describe('Role Middleware', () => {
     it('should allow if user role has the required permission', () => {
       req.user = { role: 'client', id: users.client._id };
       const middleware = roleMiddleware.hasPermission('create_orders');
-      
+
       middleware(req, res, next);
       expect(next).toHaveBeenCalled();
     });
@@ -70,7 +70,7 @@ describe('Role Middleware', () => {
     it('should block if user role lacks the required permission', () => {
       req.user = { role: 'client', id: users.client._id };
       const middleware = roleMiddleware.hasPermission('manage_users');
-      
+
       middleware(req, res, next);
       expect(res.status).toHaveBeenCalledWith(403);
       expect(next).not.toHaveBeenCalled();
@@ -80,27 +80,27 @@ describe('Role Middleware', () => {
   describe('storeOwnerMiddleware', () => {
     it('should allow admins without checking store ownership', async () => {
       req.user = { role: 'admin', id: users.admin._id };
-      
+
       await roleMiddleware.storeOwnerMiddleware(req, res, next);
       expect(next).toHaveBeenCalled();
     });
 
     it('should block non-store-owners', async () => {
       req.user = { role: 'client', id: users.client._id };
-      
+
       await roleMiddleware.storeOwnerMiddleware(req, res, next);
       expect(res.status).toHaveBeenCalledWith(403);
       expect(next).not.toHaveBeenCalled();
     });
 
     it('should allow store owners with a linked store', async () => {
-      req.user = { role: 'store_owner', id: users.storeOwner._id };
+      req.user = { role: 'vendor', id: users.storeOwner._id };
       User.findById = jest.fn().mockReturnValue({
         select: jest.fn().mockResolvedValue(users.storeOwner)
       });
-      
+
       await roleMiddleware.storeOwnerMiddleware(req, res, next);
-      
+
       expect(next).toHaveBeenCalled();
       expect(req.storeId).toBeDefined();
     });
