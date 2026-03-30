@@ -38,16 +38,17 @@ const productSchema = new mongoose.Schema(
     category: {
       type: String,
       required: true,
-      enum: [
-        // للمطاعم
-        "appetizer", "main", "dessert", "drink", "side", "special",
-        // للبقالة
-        "fruits", "vegetables", "dairy", "meat", "bakery", "beverages", "snacks",
-        // للصيدليات
-        "medicines", "supplements", "personal-care", "baby-care",
-        // عام
-        "electronics", "clothing", "books", "other"
-      ],
+      trim: true,
+      // enum: [
+      //   // للمطاعم
+      //   "appetizer", "main", "dessert", "drink", "side", "special",
+      //   // للبقالة
+      //   "fruits", "vegetables", "dairy", "meat", "bakery", "beverages", "snacks",
+      //   // للصيدليات
+      //   "medicines", "supplements", "personal-care", "baby-care",
+      //   // عام
+      //   "electronics", "clothing", "books", "other"
+      // ],
     },
 
     store: {  // 🔄 كان store
