@@ -9181,3 +9181,624 @@ Error: لا يمكن العثور على /login في هذا الخادم
   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
   "userId": "guest"
 }
+2026-03-30 18:32:02 [error]: Unhandled Error لا يمكن العثور على /products في هذا الخادم
+Error: لا يمكن العثور على /products في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\project\Backend-walid-yahaya\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+{
+  "url": "/products",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-30 18:32:02 [error]: Business Error: Error caught: لا يمكن العثور على /products في هذا الخادم
+Error: لا يمكن العثور على /products في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\project\Backend-walid-yahaya\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/products",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-30 18:32:02 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/products",
+  "status": 404,
+  "duration": "7ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-30 18:32:03 [error]: Unhandled Error لا يمكن العثور على /.well-known/appspecific/com.chrome.devtools.json في هذا الخادم
+Error: لا يمكن العثور على /.well-known/appspecific/com.chrome.devtools.json في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\project\Backend-walid-yahaya\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+{
+  "url": "/.well-known/appspecific/com.chrome.devtools.json",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-30 18:32:03 [error]: Business Error: Error caught: لا يمكن العثور على /.well-known/appspecific/com.chrome.devtools.json في هذا الخادم
+Error: لا يمكن العثور على /.well-known/appspecific/com.chrome.devtools.json في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\project\Backend-walid-yahaya\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/.well-known/appspecific/com.chrome.devtools.json",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-30 18:32:03 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/.well-known/appspecific/com.chrome.devtools.json",
+  "status": 404,
+  "duration": "4ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-30 19:22:04 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/reports/orders?from=2026-02-28&to=2026-03-30&format=json",
+  "status": 500,
+  "duration": "232ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:22:05 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/reports/orders?from=2026-02-28&to=2026-03-30&format=json",
+  "status": 500,
+  "duration": "218ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:22:47 [error]: Business Error: Error getting rate limit stats: Cannot read properties of undefined (reading 'stats')
+TypeError: Cannot read properties of undefined (reading 'stats')
+    at getStats (C:\project\Backend-walid-yahaya\src\middlewares\rateLimit.middleware.js:389:28)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+2026-03-30 19:22:47 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/rate-limit/stats",
+  "status": 500,
+  "duration": "125ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:39:18 [error]: Business Error: Unexpected error in auth middleware: connection <monitor> to 159.41.79.67:27017 timed out
+MongoServerSelectionError: connection <monitor> to 159.41.79.67:27017 timed out
+    at Topology.selectServer (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\sdam\topology.js:347:38)
+    at async tryOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:199:22)
+    at async executeOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:80:16)
+    at async FindCursor._initialize (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\find_cursor.js:62:26)
+    at async FindCursor.cursorInit (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:620:27)
+    at async FindCursor.fetchBatch (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:654:13)
+    at async FindCursor.next (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:326:17)
+    at async Collection.findOne (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\collection.js:313:24)
+    at async model.Query._findOne (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:2731:15)
+    at async model.Query.exec (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:4726:63)
+{
+  "errorLabelSet": {},
+  "reason": {
+    "type": "ReplicaSetNoPrimary",
+    "servers": {
+      "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168193,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168107,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168139,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      }
+    },
+    "stale": false,
+    "compatible": true,
+    "heartbeatFrequencyMS": 10000,
+    "localThresholdMS": 15,
+    "setName": "atlas-i26uie-shard-0",
+    "maxElectionId": {
+      "$oid": "7fffffff0000000000000057"
+    },
+    "maxSetVersion": 20,
+    "commonWireVersion": 25,
+    "logicalSessionTimeoutMinutes": null
+  },
+  "cause": {
+    "errorLabelSet": {},
+    "beforeHandshake": false
+  }
+}
+2026-03-30 20:39:18 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver&isActive=true",
+  "status": 500,
+  "duration": "16452ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-30 20:39:21 [error]: Business Error: Unexpected error in auth middleware: connection <monitor> to 159.41.79.67:27017 timed out
+MongoServerSelectionError: connection <monitor> to 159.41.79.67:27017 timed out
+    at Topology.selectServer (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\sdam\topology.js:347:38)
+    at async tryOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:150:18)
+    at async executeOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:80:16)
+    at async FindCursor._initialize (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\find_cursor.js:62:26)
+    at async FindCursor.cursorInit (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:620:27)
+    at async FindCursor.fetchBatch (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:654:13)
+    at async FindCursor.next (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:326:17)
+    at async Collection.findOne (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\collection.js:313:24)
+    at async model.Query._findOne (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:2731:15)
+    at async model.Query.exec (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:4726:63)
+{
+  "errorLabelSet": {},
+  "reason": {
+    "type": "ReplicaSetNoPrimary",
+    "servers": {
+      "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168193,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168107,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168139,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      }
+    },
+    "stale": false,
+    "compatible": true,
+    "heartbeatFrequencyMS": 10000,
+    "localThresholdMS": 15,
+    "setName": "atlas-i26uie-shard-0",
+    "maxElectionId": {
+      "$oid": "7fffffff0000000000000057"
+    },
+    "maxSetVersion": 20,
+    "commonWireVersion": 25,
+    "logicalSessionTimeoutMinutes": null
+  },
+  "cause": {
+    "errorLabelSet": {},
+    "beforeHandshake": false
+  }
+}
+2026-03-30 20:39:21 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver&isActive=false",
+  "status": 500,
+  "duration": "5066ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-30 20:39:27 [error]: Business Error: Unexpected error in auth middleware: connection <monitor> to 159.41.79.67:27017 timed out
+MongoServerSelectionError: connection <monitor> to 159.41.79.67:27017 timed out
+    at Topology.selectServer (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\sdam\topology.js:347:38)
+    at async tryOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:150:18)
+    at async executeOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:80:16)
+    at async FindCursor._initialize (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\find_cursor.js:62:26)
+    at async FindCursor.cursorInit (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:620:27)
+    at async FindCursor.fetchBatch (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:654:13)
+    at async FindCursor.next (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:326:17)
+    at async Collection.findOne (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\collection.js:313:24)
+    at async model.Query._findOne (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:2731:15)
+    at async model.Query.exec (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:4726:63)
+{
+  "errorLabelSet": {},
+  "reason": {
+    "type": "ReplicaSetNoPrimary",
+    "servers": {
+      "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168193,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168107,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 180934,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      }
+    },
+    "stale": false,
+    "compatible": true,
+    "heartbeatFrequencyMS": 10000,
+    "localThresholdMS": 15,
+    "setName": "atlas-i26uie-shard-0",
+    "maxElectionId": {
+      "$oid": "7fffffff0000000000000057"
+    },
+    "maxSetVersion": 20,
+    "commonWireVersion": 25,
+    "logicalSessionTimeoutMinutes": null
+  },
+  "cause": {
+    "errorLabelSet": {},
+    "beforeHandshake": false
+  }
+}
+2026-03-30 20:39:27 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver&isActive=false",
+  "status": 500,
+  "duration": "5030ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-30 20:40:30 [error]: Unhandled Error email is not allowed to be empty
+Error: email is not allowed to be empty
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:72:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/admin/users",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:40:30 [error]: Business Error: Error caught: email is not allowed to be empty
+Error: email is not allowed to be empty
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:72:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/admin/users",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:40:30 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/users",
+  "status": 400,
+  "duration": "325ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:40:42 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/users",
+  "status": 400,
+  "duration": "291ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:19:24 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "123ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:20:29 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "102ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}

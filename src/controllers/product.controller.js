@@ -448,6 +448,14 @@ exports.createProduct = async (req, res) => {
         optimizedImages
       }
     });
+
+    console.log('📸 File upload check:', {
+    hasFile: !!req.file,
+    filePath: req.file?.path,
+    fileCloudinary: req.file?.cloudinary?.url,
+    contentType: req.headers['content-type'],
+    bodyKeys: Object.keys(req.body)
+  });
     
   } catch (error) {
     console.error("❌ Create product error:", error);

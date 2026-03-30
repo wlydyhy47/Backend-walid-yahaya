@@ -18380,3 +18380,3568 @@ Error: لا يمكن العثور على /login في هذا الخادم
   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
   "userId": "guest"
 }
+2026-03-30 18:31:44 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-30 18:31:44 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-30 18:31:44 [info]: Business Action: Mapbox service initialized
+2026-03-30 18:31:44 [info]: Business Action: Creating Redis client...
+2026-03-30 18:31:44 [info]: Business Action: RateLimiterService initialized
+2026-03-30 18:31:45 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-30 18:31:46 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-30 18:31:46 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-30 18:31:46 [info]: Business Action: Socket.io initialized successfully
+2026-03-30 18:32:01 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/",
+  "status": 200,
+  "duration": "31ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-30 18:32:02 [warn]: Business Warning: Route not found: GET /products
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+}
+2026-03-30 18:32:02 [error]: Unhandled Error لا يمكن العثور على /products في هذا الخادم
+Error: لا يمكن العثور على /products في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\project\Backend-walid-yahaya\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+{
+  "url": "/products",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-30 18:32:02 [error]: Business Error: Error caught: لا يمكن العثور على /products في هذا الخادم
+Error: لا يمكن العثور على /products في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\project\Backend-walid-yahaya\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/products",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-30 18:32:02 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/products",
+  "status": 404,
+  "duration": "7ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-30 18:32:03 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/favicon.ico",
+  "status": 200,
+  "duration": "57ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-30 18:32:03 [warn]: Business Warning: Route not found: GET /.well-known/appspecific/com.chrome.devtools.json
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"
+}
+2026-03-30 18:32:03 [error]: Unhandled Error لا يمكن العثور على /.well-known/appspecific/com.chrome.devtools.json في هذا الخادم
+Error: لا يمكن العثور على /.well-known/appspecific/com.chrome.devtools.json في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\project\Backend-walid-yahaya\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+{
+  "url": "/.well-known/appspecific/com.chrome.devtools.json",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-30 18:32:03 [error]: Business Error: Error caught: لا يمكن العثور على /.well-known/appspecific/com.chrome.devtools.json في هذا الخادم
+Error: لا يمكن العثور على /.well-known/appspecific/com.chrome.devtools.json في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\project\Backend-walid-yahaya\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/.well-known/appspecific/com.chrome.devtools.json",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-30 18:32:03 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/.well-known/appspecific/com.chrome.devtools.json",
+  "status": 404,
+  "duration": "4ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-30 18:40:03 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-30 18:40:03 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-30 18:40:03 [info]: Business Action: Mapbox service initialized
+2026-03-30 18:40:03 [info]: Business Action: Creating Redis client...
+2026-03-30 18:40:03 [info]: Business Action: RateLimiterService initialized
+2026-03-30 18:40:08 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-30 18:40:11 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-30 18:40:11 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-30 18:40:11 [info]: Business Action: Socket.io initialized successfully
+2026-03-30 18:40:59 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-30 18:40:59 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-30 18:40:59 [info]: Business Action: Mapbox service initialized
+2026-03-30 18:40:59 [info]: Business Action: Creating Redis client...
+2026-03-30 18:40:59 [info]: Business Action: RateLimiterService initialized
+2026-03-30 18:41:01 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-30 18:41:02 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-30 18:41:02 [info]: Business Action: Socket.io initialized successfully
+2026-03-30 18:41:02 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-30 18:41:33 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "1624ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:41:33 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774885292185-odpvkq",
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "duration": "1619.22ms",
+  "status": 200
+}
+2026-03-30 18:41:41 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/vendors?page=1&limit=20",
+  "status": 200,
+  "duration": "299ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:41:46 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products/stats",
+  "status": 200,
+  "duration": "867ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:41:46 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "status": 200,
+  "duration": "923ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:41:46 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "1002ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:41:46 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774885305807-z5d9qe",
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "duration": "1002.95ms",
+  "status": 200
+}
+2026-03-30 18:42:39 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/admin/products",
+  "status": 201,
+  "duration": "520ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:42:40 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "status": 200,
+  "duration": "558ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:52:40 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products/stats",
+  "status": 200,
+  "duration": "594ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:52:41 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "status": 200,
+  "duration": "1630ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:52:41 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774885960226-kybfxx",
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "duration": "1689.35ms",
+  "status": 200
+}
+2026-03-30 18:52:42 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "2351ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:52:42 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774885960257-qj5crz",
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "duration": "2359.97ms",
+  "status": 200
+}
+2026-03-30 18:53:10 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products/stats",
+  "status": 200,
+  "duration": "730ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:53:10 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "587ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:53:11 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "status": 200,
+  "duration": "1417ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:53:11 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774885990187-nvz06m",
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "duration": "1420.21ms",
+  "status": 200
+}
+2026-03-30 18:55:51 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products/stats",
+  "status": 200,
+  "duration": "564ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:55:51 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "569ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:55:52 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "status": 200,
+  "duration": "1391ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:55:52 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774886151321-aslm3y",
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "duration": "1449.75ms",
+  "status": 200
+}
+2026-03-30 18:56:04 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "170ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:56:04 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products/stats",
+  "status": 200,
+  "duration": "550ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:56:04 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "status": 200,
+  "duration": "638ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:56:08 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "284ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:56:08 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products/stats",
+  "status": 200,
+  "duration": "179ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:56:08 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "status": 200,
+  "duration": "579ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:56:15 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "112ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:56:15 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "status": 200,
+  "duration": "526ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 18:56:15 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products/stats",
+  "status": 200,
+  "duration": "543ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:04:34 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products/stats",
+  "status": 200,
+  "duration": "1554ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:04:34 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774886672792-xmrz4l",
+  "method": "GET",
+  "url": "/api/v1/admin/products/stats",
+  "duration": "1571.68ms",
+  "status": 200
+}
+2026-03-30 19:04:34 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "status": 200,
+  "duration": "2244ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:04:34 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774886672242-hzsnbx",
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "duration": "2245.24ms",
+  "status": 200
+}
+2026-03-30 19:04:34 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "1750ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:04:34 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774886672787-29crbc",
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "duration": "1761.48ms",
+  "status": 200
+}
+2026-03-30 19:06:06 [info]: Business Action: File uploaded to Cloudinary
+{
+  "publicId": "food-delivery/products/1774886726975-0d7b92a42400e1d4",
+  "folder": "products",
+  "size": 35506
+}
+2026-03-30 19:07:56 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "status": 200,
+  "duration": "1185ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:07:56 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774886874845-r9jxgg",
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "duration": "1319.80ms",
+  "status": 200
+}
+2026-03-30 19:07:56 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products/stats",
+  "status": 200,
+  "duration": "1113ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:07:56 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774886875210-adz6a6",
+  "method": "GET",
+  "url": "/api/v1/admin/products/stats",
+  "duration": "1114.18ms",
+  "status": 200
+}
+2026-03-30 19:07:56 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "1132ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:07:56 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774886875207-ogz6lc",
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "duration": "1133.03ms",
+  "status": 200
+}
+2026-03-30 19:08:06 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "182ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:08:06 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products/stats",
+  "status": 200,
+  "duration": "345ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:08:06 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "status": 200,
+  "duration": "750ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:08:45 [info]: Business Action: File uploaded to Cloudinary
+{
+  "publicId": "food-delivery/products/1774886921828-6a992d5cfda60cbc",
+  "folder": "products",
+  "size": 38804
+}
+2026-03-30 19:08:45 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/admin/products",
+  "status": 201,
+  "duration": "4109ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:08:45 [warn]: Business Warning: Slow request detected
+{
+  "requestId": "1774886921563-yzib2n",
+  "method": "POST",
+  "url": "/api/v1/admin/products",
+  "duration": "4110.05ms",
+  "status": 201
+}
+2026-03-30 19:08:46 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "status": 200,
+  "duration": "480ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:14:40 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-30 19:14:40 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-30 19:14:40 [info]: Business Action: Mapbox service initialized
+2026-03-30 19:14:40 [info]: Business Action: Creating Redis client...
+2026-03-30 19:14:40 [info]: Business Action: RateLimiterService initialized
+2026-03-30 19:14:41 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-30 19:14:42 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-30 19:14:42 [info]: Business Action: Socket.io initialized successfully
+2026-03-30 19:14:42 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-30 19:16:14 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-30 19:16:15 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-30 19:16:15 [info]: Business Action: Mapbox service initialized
+2026-03-30 19:16:15 [info]: Business Action: Creating Redis client...
+2026-03-30 19:16:15 [info]: Business Action: RateLimiterService initialized
+2026-03-30 19:16:17 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-30 19:16:18 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-30 19:16:18 [info]: Business Action: Socket.io initialized successfully
+2026-03-30 19:16:18 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-30 19:19:40 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "status": 200,
+  "duration": "997ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:19:40 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774887579611-vggamp",
+  "method": "GET",
+  "url": "/api/v1/admin/products?page=1&limit=20",
+  "duration": "1001.26ms",
+  "status": 200
+}
+2026-03-30 19:19:41 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/products/stats",
+  "status": 200,
+  "duration": "919ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:19:41 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "970ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:20:19 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/orders?page=1&limit=20",
+  "status": 200,
+  "duration": "267ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:20:27 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/drivers?page=1&limit=20",
+  "status": 200,
+  "duration": "430ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:20:45 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/notifications/all/stats",
+  "status": 200,
+  "duration": "177ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:20:45 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?limit=20",
+  "status": 200,
+  "duration": "556ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:03 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=6&limit=20",
+  "status": 200,
+  "duration": "479ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:08 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=9&limit=20",
+  "status": 200,
+  "duration": "438ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:09 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=96&limit=20",
+  "status": 200,
+  "duration": "422ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:09 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=966&limit=20",
+  "status": 200,
+  "duration": "398ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:14 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=9661&limit=20",
+  "status": 200,
+  "duration": "446ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:14 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=96611&limit=20",
+  "status": 200,
+  "duration": "381ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:15 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=966111&limit=20",
+  "status": 200,
+  "duration": "448ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:15 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=9661111&limit=20",
+  "status": 200,
+  "duration": "430ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:15 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=96611111&limit=20",
+  "status": 200,
+  "duration": "431ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:15 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=966111111&limit=20",
+  "status": 200,
+  "duration": "415ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:17 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=9661111111&limit=20",
+  "status": 200,
+  "duration": "667ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:17 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=96611111111&limit=20",
+  "status": 200,
+  "duration": "560ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:17 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=966111111111&limit=20",
+  "status": 200,
+  "duration": "405ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:17 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=9661111111111&limit=20",
+  "status": 200,
+  "duration": "495ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:17 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=96611111111111&limit=20",
+  "status": 200,
+  "duration": "446ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:19 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=966111111111111&limit=20",
+  "status": 200,
+  "duration": "379ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:19 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?search=9661111111111111&limit=20",
+  "status": 200,
+  "duration": "414ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:21:43 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/analytics/users?period=week",
+  "status": 200,
+  "duration": "151ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:22:04 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/reports/orders?from=2026-02-28&to=2026-03-30&format=json",
+  "status": 500,
+  "duration": "232ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:22:05 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/reports/orders?from=2026-02-28&to=2026-03-30&format=json",
+  "status": 500,
+  "duration": "218ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:22:36 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/advanced-stats/daily",
+  "status": 200,
+  "duration": "191ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:22:40 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/advanced-stats/weekly",
+  "status": 200,
+  "duration": "211ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:22:42 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/advanced-stats/monthly",
+  "status": 200,
+  "duration": "565ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:22:43 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/advanced-stats/custom?from=2026-02-28&to=2026-03-30&groupBy=day",
+  "status": 200,
+  "duration": "282ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:22:47 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/security/headers",
+  "status": 200,
+  "duration": "77ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:22:47 [error]: Business Error: Error getting rate limit stats: Cannot read properties of undefined (reading 'stats')
+TypeError: Cannot read properties of undefined (reading 'stats')
+    at getStats (C:\project\Backend-walid-yahaya\src\middlewares\rateLimit.middleware.js:389:28)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+2026-03-30 19:22:47 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/rate-limit/stats",
+  "status": 500,
+  "duration": "125ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:22:47 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/cache/stats",
+  "status": 200,
+  "duration": "171ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:22:51 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "200ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:23:19 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "status": 200,
+  "duration": "801ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:23:58 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "status": 200,
+  "duration": "458ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:25:18 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "610ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:25:49 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "318ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:26:19 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "179ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:26:49 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "166ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:27:19 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "184ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:27:49 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "181ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:28:20 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "165ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:28:50 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "183ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:29:20 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "204ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:29:50 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "173ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:30:21 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "132ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:30:51 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "222ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:31:21 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "165ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:31:52 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "407ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:32:22 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "173ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:32:52 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "166ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:33:51 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "551ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:34:22 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "325ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:34:52 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "221ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:35:28 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "936ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:35:58 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "236ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:36:28 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "381ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:36:59 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "241ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:37:18 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "status": 200,
+  "duration": "833ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:37:30 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=vendor",
+  "status": 200,
+  "duration": "754ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:37:40 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver",
+  "status": 200,
+  "duration": "765ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:42:13 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "501ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:42:25 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "status": 200,
+  "duration": "1116ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:42:25 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774888944433-par8pz",
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "duration": "1118.49ms",
+  "status": 200
+}
+2026-03-30 19:48:19 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "1227ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:48:19 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774889298346-vffaag",
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "duration": "1236.72ms",
+  "status": 200
+}
+2026-03-30 19:48:25 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "status": 200,
+  "duration": "647ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:48:29 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=admin",
+  "status": 200,
+  "duration": "1358ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 19:48:29 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774889308403-ymimk4",
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=admin",
+  "duration": "1361.15ms",
+  "status": 200
+}
+2026-03-30 20:06:47 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "status": 200,
+  "duration": "1587ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:06:47 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774890405981-x7385c",
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "duration": "1577.39ms",
+  "status": 200
+}
+2026-03-30 20:07:02 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver",
+  "status": 200,
+  "duration": "568ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:07:23 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=admin",
+  "status": 200,
+  "duration": "612ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:11:46 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "status": 200,
+  "duration": "784ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:11:54 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "status": 200,
+  "duration": "514ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:12:00 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=vendor",
+  "status": 200,
+  "duration": "408ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:16:14 [info]: Business Action: Cleaned up 0 old temp files
+2026-03-30 20:16:15 [info]: Business Action: Performance metrics cleaned up
+{
+  "queries": 0,
+  "requests": 74,
+  "errors": 0
+}
+2026-03-30 20:16:17 [info]: Business Action: Cache Smart Cleanup
+{
+  "cleaned": 0,
+  "totalKeys": 0
+}
+2026-03-30 20:20:14 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=admin",
+  "status": 200,
+  "duration": "3777ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:20:14 [warn]: Business Warning: Slow request detected
+{
+  "requestId": "1774891210848-55hjee",
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=admin",
+  "duration": "3779.08ms",
+  "status": 200
+}
+2026-03-30 20:21:47 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "status": 200,
+  "duration": "583ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:22:59 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver",
+  "status": 200,
+  "duration": "1056ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:22:59 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774891378659-ktbllr",
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver",
+  "duration": "1076.46ms",
+  "status": 200
+}
+2026-03-30 20:26:50 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=admin",
+  "status": 200,
+  "duration": "607ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:36:27 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-03-30 20:36:28 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-03-30 20:36:28 [info]: Business Action: Mapbox service initialized
+2026-03-30 20:36:28 [info]: Business Action: Creating Redis client...
+2026-03-30 20:36:28 [info]: Business Action: RateLimiterService initialized
+2026-03-30 20:36:30 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-03-30 20:36:31 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net",
+  "name": "test"
+}
+2026-03-30 20:36:31 [info]: Business Action: Socket.io initialized successfully
+2026-03-30 20:36:32 [info]: Business Action: Cloudinary connected successfully ✅
+2026-03-30 20:36:52 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "status": 200,
+  "duration": "1686ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:36:52 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774892211083-3f2pm1",
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "duration": "1685.75ms",
+  "status": 200
+}
+2026-03-30 20:37:03 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=admin",
+  "status": 200,
+  "duration": "684ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:37:10 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=vendor",
+  "status": 200,
+  "duration": "991ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:37:15 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver",
+  "status": 200,
+  "duration": "617ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:37:19 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=client",
+  "status": 200,
+  "duration": "487ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:39:18 [error]: Business Error: Unexpected error in auth middleware: connection <monitor> to 159.41.79.67:27017 timed out
+MongoServerSelectionError: connection <monitor> to 159.41.79.67:27017 timed out
+    at Topology.selectServer (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\sdam\topology.js:347:38)
+    at async tryOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:199:22)
+    at async executeOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:80:16)
+    at async FindCursor._initialize (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\find_cursor.js:62:26)
+    at async FindCursor.cursorInit (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:620:27)
+    at async FindCursor.fetchBatch (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:654:13)
+    at async FindCursor.next (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:326:17)
+    at async Collection.findOne (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\collection.js:313:24)
+    at async model.Query._findOne (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:2731:15)
+    at async model.Query.exec (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:4726:63)
+{
+  "errorLabelSet": {},
+  "reason": {
+    "type": "ReplicaSetNoPrimary",
+    "servers": {
+      "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168193,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168107,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168139,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      }
+    },
+    "stale": false,
+    "compatible": true,
+    "heartbeatFrequencyMS": 10000,
+    "localThresholdMS": 15,
+    "setName": "atlas-i26uie-shard-0",
+    "maxElectionId": {
+      "$oid": "7fffffff0000000000000057"
+    },
+    "maxSetVersion": 20,
+    "commonWireVersion": 25,
+    "logicalSessionTimeoutMinutes": null
+  },
+  "cause": {
+    "errorLabelSet": {},
+    "beforeHandshake": false
+  }
+}
+2026-03-30 20:39:18 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver&isActive=true",
+  "status": 500,
+  "duration": "16452ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-30 20:39:18 [warn]: Business Warning: Slow request detected
+{
+  "requestId": "1774892342250-uvqwk3",
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver&isActive=true",
+  "duration": "16453.61ms",
+  "status": 500
+}
+2026-03-30 20:39:21 [error]: Business Error: Unexpected error in auth middleware: connection <monitor> to 159.41.79.67:27017 timed out
+MongoServerSelectionError: connection <monitor> to 159.41.79.67:27017 timed out
+    at Topology.selectServer (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\sdam\topology.js:347:38)
+    at async tryOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:150:18)
+    at async executeOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:80:16)
+    at async FindCursor._initialize (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\find_cursor.js:62:26)
+    at async FindCursor.cursorInit (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:620:27)
+    at async FindCursor.fetchBatch (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:654:13)
+    at async FindCursor.next (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:326:17)
+    at async Collection.findOne (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\collection.js:313:24)
+    at async model.Query._findOne (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:2731:15)
+    at async model.Query.exec (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:4726:63)
+{
+  "errorLabelSet": {},
+  "reason": {
+    "type": "ReplicaSetNoPrimary",
+    "servers": {
+      "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168193,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168107,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168139,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      }
+    },
+    "stale": false,
+    "compatible": true,
+    "heartbeatFrequencyMS": 10000,
+    "localThresholdMS": 15,
+    "setName": "atlas-i26uie-shard-0",
+    "maxElectionId": {
+      "$oid": "7fffffff0000000000000057"
+    },
+    "maxSetVersion": 20,
+    "commonWireVersion": 25,
+    "logicalSessionTimeoutMinutes": null
+  },
+  "cause": {
+    "errorLabelSet": {},
+    "beforeHandshake": false
+  }
+}
+2026-03-30 20:39:21 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver&isActive=false",
+  "status": 500,
+  "duration": "5066ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-30 20:39:21 [warn]: Business Warning: Slow request detected
+{
+  "requestId": "1774892356505-sabdl8",
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver&isActive=false",
+  "duration": "5068.02ms",
+  "status": 500
+}
+2026-03-30 20:39:27 [error]: Business Error: Unexpected error in auth middleware: connection <monitor> to 159.41.79.67:27017 timed out
+MongoServerSelectionError: connection <monitor> to 159.41.79.67:27017 timed out
+    at Topology.selectServer (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\sdam\topology.js:347:38)
+    at async tryOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:150:18)
+    at async executeOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:80:16)
+    at async FindCursor._initialize (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\find_cursor.js:62:26)
+    at async FindCursor.cursorInit (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:620:27)
+    at async FindCursor.fetchBatch (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:654:13)
+    at async FindCursor.next (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:326:17)
+    at async Collection.findOne (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\collection.js:313:24)
+    at async model.Query._findOne (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:2731:15)
+    at async model.Query.exec (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:4726:63)
+{
+  "errorLabelSet": {},
+  "reason": {
+    "type": "ReplicaSetNoPrimary",
+    "servers": {
+      "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168193,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 168107,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 180934,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      }
+    },
+    "stale": false,
+    "compatible": true,
+    "heartbeatFrequencyMS": 10000,
+    "localThresholdMS": 15,
+    "setName": "atlas-i26uie-shard-0",
+    "maxElectionId": {
+      "$oid": "7fffffff0000000000000057"
+    },
+    "maxSetVersion": 20,
+    "commonWireVersion": 25,
+    "logicalSessionTimeoutMinutes": null
+  },
+  "cause": {
+    "errorLabelSet": {},
+    "beforeHandshake": false
+  }
+}
+2026-03-30 20:39:27 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver&isActive=false",
+  "status": 500,
+  "duration": "5030ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-30 20:39:27 [warn]: Business Warning: Slow request detected
+{
+  "requestId": "1774892362592-23uqwe",
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver&isActive=false",
+  "duration": "5029.78ms",
+  "status": 500
+}
+2026-03-30 20:40:29 [warn]: Business Warning: Validation failed
+{
+  "errors": [
+    {
+      "field": "email",
+      "message": "email is not allowed to be empty",
+      "type": "string.empty"
+    }
+  ],
+  "property": "body",
+  "path": "/users"
+}
+2026-03-30 20:40:30 [error]: Unhandled Error email is not allowed to be empty
+Error: email is not allowed to be empty
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:72:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/admin/users",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:40:30 [error]: Business Error: Error caught: email is not allowed to be empty
+Error: email is not allowed to be empty
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:72:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/admin/users",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:40:30 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/users",
+  "status": 400,
+  "duration": "325ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:40:42 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/users",
+  "status": 400,
+  "duration": "291ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:40:52 [info]: HTTP Request
+{
+  "method": "POST",
+  "url": "/api/v1/admin/users",
+  "status": 201,
+  "duration": "784ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:40:53 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver&isActive=false",
+  "status": 200,
+  "duration": "1042ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:40:53 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774892452196-12612q",
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver&isActive=false",
+  "duration": "1044.50ms",
+  "status": 200
+}
+2026-03-30 20:41:05 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=admin&isActive=false",
+  "status": 200,
+  "duration": "680ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:41:09 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=client&isActive=false",
+  "status": 200,
+  "duration": "807ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:41:20 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=vendor&isActive=false",
+  "status": 200,
+  "duration": "542ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:41:28 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&isActive=false",
+  "status": 200,
+  "duration": "476ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:41:37 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "status": 200,
+  "duration": "1403ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:41:37 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774892496452-w9mycl",
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "duration": "1405.73ms",
+  "status": 200
+}
+2026-03-30 20:41:52 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=admin",
+  "status": 200,
+  "duration": "436ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:41:59 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&role=driver",
+  "status": 200,
+  "duration": "455ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:43:22 [info]: HTTP Request
+{
+  "method": "DELETE",
+  "url": "/api/v1/admin/users/69cab5a35e81e5c481c061e3",
+  "status": 200,
+  "duration": "198ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:43:22 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20",
+  "status": 200,
+  "duration": "543ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:43:35 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&isActive=true",
+  "status": 200,
+  "duration": "478ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:43:53 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/users?page=1&limit=20&isActive=false",
+  "status": 200,
+  "duration": "525ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:44:15 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/vendors?page=1&limit=20",
+  "status": 200,
+  "duration": "177ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:44:23 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "status": 200,
+  "duration": "836ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:44:53 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "status": 200,
+  "duration": "163ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:46:45 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "status": 200,
+  "duration": "184ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:48:04 [info]: HTTP Request
+{
+  "method": "PUT",
+  "url": "/api/v1/admin/stores/69bf6413a11c4993e1f92348/verify",
+  "status": 200,
+  "duration": "248ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:48:05 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "status": 200,
+  "duration": "1154ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:48:05 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774892884799-utakip",
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "duration": "1154.37ms",
+  "status": 200
+}
+2026-03-30 20:48:25 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20&category=restaurant",
+  "status": 200,
+  "duration": "762ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:48:29 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20&category=cafe",
+  "status": 200,
+  "duration": "365ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:48:34 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20&category=grocery",
+  "status": 200,
+  "duration": "398ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:49:05 [info]: HTTP Request
+{
+  "method": "DELETE",
+  "url": "/api/v1/admin/stores/69bf03c9ed8a00f036b0ffad",
+  "status": 200,
+  "duration": "239ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:49:06 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "status": 200,
+  "duration": "781ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:55:32 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "status": 200,
+  "duration": "1443ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 20:55:32 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774893331057-llaoky",
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "duration": "1450.99ms",
+  "status": 200
+}
+2026-03-30 20:57:41 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "status": 200,
+  "duration": "471ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:23:12 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "status": 200,
+  "duration": "1527ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:23:12 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774894991073-lk8l03",
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "duration": "1572.63ms",
+  "status": 200
+}
+2026-03-30 21:26:03 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/dashboard",
+  "status": 200,
+  "duration": "357ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:36:27 [info]: Business Action: Cleaned up 0 old temp files
+2026-03-30 21:36:28 [info]: Business Action: Performance metrics cleaned up
+{
+  "queries": 0,
+  "requests": 38,
+  "errors": 0
+}
+2026-03-30 21:36:30 [info]: Business Action: Cache Smart Cleanup
+{
+  "cleaned": 0,
+  "totalKeys": 0
+}
+2026-03-30 21:42:53 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "602ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:46:02 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "1433ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:46:02 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774896361485-pwt2z3",
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "duration": "1459.76ms",
+  "status": 200
+}
+2026-03-30 21:46:17 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "2923ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:46:17 [warn]: Business Warning: Slow request detected
+{
+  "requestId": "1774896374205-qe8jey",
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "duration": "3002.15ms",
+  "status": 200
+}
+2026-03-30 21:46:27 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/orders?page=1&limit=50&status=accepted%2Cready%2Cpicked",
+  "status": 200,
+  "duration": "570ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:46:35 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "1091ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:46:35 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774896394693-8vcii3",
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "duration": "1098.27ms",
+  "status": 200
+}
+2026-03-30 21:47:25 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "334ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:47:36 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "432ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:47:46 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "292ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:47:50 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "129ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:47:58 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/orders?page=1&limit=50&status=accepted%2Cready%2Cpicked",
+  "status": 200,
+  "duration": "292ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:48:12 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "215ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:48:15 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "175ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:48:25 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "142ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:48:35 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "152ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:53:55 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "361ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:54:06 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "132ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:54:17 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "480ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:54:27 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "130ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:54:37 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "199ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:54:47 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "235ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:54:57 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "183ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:55:07 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "87ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:55:12 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "97ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:55:23 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "142ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:55:33 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "224ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:55:43 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "166ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:55:53 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "130ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:56:03 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "116ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:56:14 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "171ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:56:24 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "376ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:56:34 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "185ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:56:44 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "217ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:56:55 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "185ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:57:05 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "228ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:57:15 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "252ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:57:25 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "146ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:57:35 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "258ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:57:40 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "1287ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:57:40 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774897059680-vaavfh",
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "duration": "1286.64ms",
+  "status": 200
+}
+2026-03-30 21:57:41 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/orders?page=1&limit=50&status=accepted%2Cready%2Cpicked",
+  "status": 200,
+  "duration": "325ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:57:54 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "165ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:58:04 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "173ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:58:14 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "205ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:58:24 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "163ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:58:34 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "127ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:58:44 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "152ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:58:55 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "151ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:59:05 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "168ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:59:15 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "161ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:59:25 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "174ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:59:36 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "179ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:59:46 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "182ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 21:59:56 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "182ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:00:06 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "106ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:00:16 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "158ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:00:26 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "130ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:00:37 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "322ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:00:47 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "141ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:00:57 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "145ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:01:07 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "167ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:01:18 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "338ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:01:28 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "619ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:01:39 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "771ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:02:10 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "20749ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:02:10 [warn]: Business Warning: Slow request detected
+{
+  "requestId": "1774897309661-sa5kmr",
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "duration": "20752.57ms",
+  "status": 200
+}
+2026-03-30 22:02:20 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "316ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:02:31 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "217ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:02:41 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "372ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:02:51 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "333ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:03:02 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "237ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:03:12 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "228ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:03:23 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "509ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:03:30 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "179ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:03:32 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/orders?page=1&limit=50&status=accepted%2Cready%2Cpicked",
+  "status": 200,
+  "duration": "318ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:03:35 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "status": 200,
+  "duration": "1632ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:03:35 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774897414073-y6drvq",
+  "method": "GET",
+  "url": "/api/v1/admin/stores?limit=100",
+  "duration": "1632.49ms",
+  "status": 200
+}
+2026-03-30 22:03:51 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "260ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:04:02 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "765ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:04:13 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "931ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:04:13 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774897452187-9lxpwg",
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "duration": "1064.49ms",
+  "status": 200
+}
+2026-03-30 22:04:23 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "397ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:04:33 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "448ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:04:43 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "189ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:04:53 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "143ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:05:04 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "268ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:05:14 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "271ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:05:24 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "191ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:05:34 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "240ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:05:45 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "350ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:05:55 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "169ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:06:05 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "430ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:06:16 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "308ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:06:26 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "284ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:06:36 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "231ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:06:46 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "222ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:06:57 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "301ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:07:07 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "294ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:07:17 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "233ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:07:28 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/drivers/locations?limit=100",
+  "status": 200,
+  "duration": "259ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:14:35 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "status": 200,
+  "duration": "844ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:14:51 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "status": 200,
+  "duration": "174ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:18:35 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/map/reverse-geocode?latitude=24.60713365888869&longitude=46.68750165680044",
+  "status": 200,
+  "duration": "1408ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:18:35 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774898313953-bjav8p",
+  "method": "GET",
+  "url": "/api/v1/map/reverse-geocode?latitude=24.60713365888869&longitude=46.68750165680044",
+  "duration": "1413.80ms",
+  "status": 200
+}
+2026-03-30 22:19:24 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "123ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:20:29 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "102ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:22:44 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "status": 200,
+  "duration": "1298ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 22:22:44 [info]: Business Action: Slow request detected
+{
+  "requestId": "1774898562882-tamm3m",
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "duration": "1329.84ms",
+  "status": 200
+}

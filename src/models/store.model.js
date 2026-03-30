@@ -293,19 +293,41 @@ storeSchema.pre('save', async function (next) {
   }
 });
 
-// ✅ Middleware للتحديث
-storeSchema.pre('findOneAndUpdate', function (next) {
+// ========== Middleware مصحح ==========
+
+// ✅ Pre-save middleware - يستخدم next لأنه متزامن
+storeSchema.pre('save', function(next) {
   try {
-    if (typeof next !== 'function') {
-      console.warn('⚠️ next is not a function in store findOneAndUpdate middleware');
-      return;
+    // تحديث slug إذا كان جديداً
+    if (this.isNew && this.name) {
+      const slug = this.name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+
+      if (this.schema.paths.slug) {
+        this.slug = slug;
+      }
     }
     next();
   } catch (error) {
-    console.error('❌ Error in findOneAndUpdate middleware:', error);
-    if (typeof next === 'function') {
-      next(error);
-    }
+    next(error);
+  }
+});
+
+// ✅ Pre-findOneAndUpdate middleware - لا يحتاج next
+storeSchema.pre('findOneAndUpdate', function() {
+  // إضافة updatedAt تلقائياً عند التحديث
+  const update = this.getUpdate();
+  if (update && !update.updatedAt) {
+    this.set({ updatedAt: new Date() });
+  }
+});
+
+// ✅ Post middleware - مثال
+storeSchema.post('findOneAndUpdate', function(doc) {
+  if (doc) {
+    console.log(`Store ${doc._id} was updated`);
   }
 });
 

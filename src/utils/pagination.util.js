@@ -17,12 +17,33 @@ class PaginationUtils {
       const sortOrder = req.query.sortOrder === 'desc' ? -1 : 1;
       sort[req.query.sortBy] = sortOrder;
     } else {
-      sort = { createdAt: -1 }; // الترتيب الافتراضي
+      sort = { createdAt: -1 };
     }
     
     // البحث النصي
     const search = req.query.search || '';
     const searchFields = req.query.searchFields ? req.query.searchFields.split(',') : [];
+    
+    // ✅ استخراج الفلاتر المباشرة (الأكثر استخداماً)
+    const directFilters = {};
+    const commonFilterFields = ['role', 'isActive', 'isVerified', 'category', 'status', 'type', 'store'];
+    
+    commonFilterFields.forEach(field => {
+      const value = req.query[field];
+      if (value !== undefined && value !== null && value !== '' && value !== 'all') {
+        // تحويل القيم المنطقية
+        if (value === 'true') directFilters[field] = true;
+        else if (value === 'false') directFilters[field] = false;
+        // تحويل القيم الرقمية
+        else if (!isNaN(value) && value !== '') directFilters[field] = Number(value);
+        // النصوص العادية
+        else directFilters[field] = value;
+      }
+    });
+    
+    // دمج الفلاتر (المباشرة + المصفوفية)
+    const parsedFilters = this.parseFilters(req.query);
+    const filters = { ...directFilters, ...parsedFilters };
     
     return {
       page,
@@ -31,56 +52,48 @@ class PaginationUtils {
       sort,
       search,
       searchFields,
-      filters: this.parseFilters(req.query),
+      filters,
     };
   }
 
   /**
-   * تحويل query filters إلى كائن قابل للاستخدام
+   * تحويل query filters إلى كائن قابل للاستخدام (الصيغة المصفوفية)
    */
   static parseFilters(query) {
     const filters = {};
     
-    // فلترة حسب الحقول البسيطة
+    // دعم الصيغة: filter[role]=vendor
     Object.keys(query).forEach(key => {
       if (key.startsWith('filter[') && key.endsWith(']')) {
         const field = key.substring(7, key.length - 1);
         const value = query[key];
         
-        if (value !== undefined && value !== '') {
-          // معالجة القيم الخاصة
-          if (value === 'true' || value === 'false') {
-            filters[field] = value === 'true';
-          } else if (!isNaN(value) && value !== '') {
-            filters[field] = Number(value);
-          } else {
-            filters[field] = value;
-          }
+        if (value !== undefined && value !== '' && value !== 'all') {
+          if (value === 'true') filters[field] = true;
+          else if (value === 'false') filters[field] = false;
+          else if (!isNaN(value) && value !== '') filters[field] = Number(value);
+          else filters[field] = value;
         }
       }
     });
 
-    // فلترة النطاقات (between)
+    // فلترة النطاقات السعرية
     if (query.minPrice || query.maxPrice) {
       filters.price = {};
       if (query.minPrice) filters.price.$gte = Number(query.minPrice);
       if (query.maxPrice) filters.price.$lte = Number(query.maxPrice);
     }
 
+    // فلترة النطاقات الزمنية
     if (query.minDate || query.maxDate) {
       filters.createdAt = {};
       if (query.minDate) filters.createdAt.$gte = new Date(query.minDate);
       if (query.maxDate) filters.createdAt.$lte = new Date(query.maxDate);
     }
 
-    // فلترة المصفوفات (array)
-    if (query.tags) {
-      filters.tags = { $in: query.tags.split(',') };
-    }
-
-    if (query.categories) {
-      filters.category = { $in: query.categories.split(',') };
-    }
+    // فلترة المصفوفات
+    if (query.tags) filters.tags = { $in: query.tags.split(',') };
+    if (query.categories) filters.category = { $in: query.categories.split(',') };
 
     return filters;
   }
@@ -94,7 +107,7 @@ class PaginationUtils {
     
     return {
       success: true,
-      data: data,
+      data,
       pagination: {
         page,
         limit,
@@ -123,13 +136,8 @@ class PaginationUtils {
       last: `${baseUrl}?page=${totalPages}&limit=${limit}`,
     };
 
-    if (page < totalPages) {
-      links.next = `${baseUrl}?page=${page + 1}&limit=${limit}`;
-    }
-
-    if (page > 1) {
-      links.prev = `${baseUrl}?page=${page - 1}&limit=${limit}`;
-    }
+    if (page < totalPages) links.next = `${baseUrl}?page=${page + 1}&limit=${limit}`;
+    if (page > 1) links.prev = `${baseUrl}?page=${page - 1}&limit=${limit}`;
 
     return links;
   }
@@ -140,13 +148,11 @@ class PaginationUtils {
   static buildSearchQuery(search, searchFields = []) {
     if (!search || searchFields.length === 0) return {};
     
-    const searchQuery = {
+    return {
       $or: searchFields.map(field => ({
         [field]: { $regex: search, $options: 'i' }
       }))
     };
-    
-    return searchQuery;
   }
 
   /**

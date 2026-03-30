@@ -238,6 +238,13 @@ const upload = (folder, allowedTypes = ['image']) => {
             req.file.optimized = result.optimized;
 
             next();
+            // بعد رفع الملف بنجاح، أضف:
+            console.log('✅ File uploaded successfully:', {
+              fieldName,
+              originalname: req.file?.originalname,
+              path: req.file?.path,
+              cloudinaryUrl: req.file?.cloudinary?.url
+            });
           } catch (error) {
             cleanupTempFile(req.file.path);
             next(error);
