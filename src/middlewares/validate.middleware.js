@@ -4,6 +4,33 @@ const mongoose = require('mongoose');
 const { AppError } = require('./errorHandler.middleware');
 const { businessLogger } = require("../utils/logger.util");
 
+
+
+/**
+ * تحويل القيم من FormData إلى الأنواع الصحيحة
+ */
+const transformFormData = (data) => {
+  const transformed = { ...data };
+  
+  // تحويل القيم الرقمية
+  const numberFields = ['price', 'discountedPrice', 'preparationTime', 'spicyLevel', 'calories'];
+  numberFields.forEach(field => {
+    if (transformed[field] !== undefined && transformed[field] !== '') {
+      transformed[field] = Number(transformed[field]);
+    }
+  });
+  
+  // تحويل القيم المنطقية
+  const booleanFields = ['isAvailable', 'isVegetarian', 'isVegan', 'isGlutenFree'];
+  booleanFields.forEach(field => {
+    if (transformed[field] !== undefined) {
+      transformed[field] = transformed[field] === 'true' || transformed[field] === true;
+    }
+  });
+  
+  return transformed;
+};
+
 // ✅ الدالة الرئيسية validate
 const validate = (schema, property = 'body') => {
   return (req, res, next) => {
@@ -11,16 +38,21 @@ const validate = (schema, property = 'body') => {
       return next();
     }
 
-    const data = req[property];
+    let data = req[property];
     
     if (!data && property === 'body') {
       return next(new AppError('لا توجد بيانات للإرسال', 400));
+    }
+    
+    // تحويل البيانات إذا كانت من FormData
+    if (property === 'body' && req.headers['content-type']?.includes('multipart/form-data')) {
+      data = transformFormData(data);
     }
 
     const { error, value } = schema.validate(data, {
       abortEarly: false,
       stripUnknown: true,
-      allowUnknown: false,
+      allowUnknown: true, // تغيير إلى true للسماح بحقول إضافية
       errors: {
         wrap: {
           label: false
@@ -47,6 +79,8 @@ const validate = (schema, property = 'body') => {
     next();
   };
 };
+
+
 
 // دوال مساعدة
 const validateQuery = (schema) => validate(schema, 'query');

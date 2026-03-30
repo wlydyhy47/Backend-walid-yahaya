@@ -1,13 +1,12 @@
 // ============================================
 // ملف: src/validators/product.validator.js
-// الوصف: مصادقات بيانات المنتجات
-// الإصدار: 2.0
+// التعديل: دعم FormData
 // ============================================
 
 const Joi = require('joi');
 
 /**
- * إنشاء منتج جديد
+ * إنشاء منتج جديد (معدل لدعم FormData)
  */
 const createProductSchema = Joi.object({
   name: Joi.string()
@@ -22,7 +21,8 @@ const createProductSchema = Joi.object({
   
   description: Joi.string()
     .max(500)
-    .optional(),
+    .optional()
+    .allow('', null),
   
   price: Joi.number()
     .positive()
@@ -34,7 +34,8 @@ const createProductSchema = Joi.object({
   
   discountedPrice: Joi.number()
     .positive()
-    .optional(),
+    .optional()
+    .allow('', null),
   
   category: Joi.string()
     .required()
@@ -42,99 +43,144 @@ const createProductSchema = Joi.object({
       'any.required': 'التصنيف مطلوب'
     }),
   
-  image: Joi.string()
-    .uri()
+  // تعديل: image اختياري ويمكن أن يكون file أو string
+  image: Joi.alternatives()
+    .try(
+      Joi.string().uri(),
+      Joi.any() // للـ file
+    )
     .optional(),
   
   preparationTime: Joi.number()
     .min(0)
     .max(60)
-    .default(15),
+    .default(15)
+    .optional()
+    .allow('', null),
   
   isAvailable: Joi.boolean()
-    .default(true),
+    .default(true)
+    .optional()
+    .allow('', null),
   
+  // الخصائص الفردية (للتوافق مع الواجهة القديمة)
   isVegetarian: Joi.boolean()
-    .default(false),
+    .default(false)
+    .optional()
+    .allow('', null),
   
   isVegan: Joi.boolean()
-    .default(false),
+    .default(false)
+    .optional()
+    .allow('', null),
   
   isGlutenFree: Joi.boolean()
-    .default(false),
+    .default(false)
+    .optional()
+    .allow('', null),
   
   spicyLevel: Joi.number()
     .min(0)
     .max(3)
-    .default(0),
+    .default(0)
+    .optional()
+    .allow('', null),
   
   calories: Joi.number()
     .min(0)
-    .optional(),
+    .optional()
+    .allow('', null),
   
-  ingredients: Joi.array()
-    .items(Joi.string())
-    .optional(),
-  
-  options: Joi.array()
-    .items(
-      Joi.object({
-        name: Joi.string()
-          .required()
-          .messages({ 'any.required': 'اسم الخيار مطلوب' }),
-        
-        choices: Joi.array()
-          .items(
-            Joi.object({
-              name: Joi.string()
-                .required()
-                .messages({ 'any.required': 'اسم الاختيار مطلوب' }),
-              
-              price: Joi.number()
-                .min(0)
-                .required()
-                .messages({
-                  'number.min': 'السعر يجب أن يكون 0 أو أكثر',
-                  'any.required': 'السعر مطلوب'
-                })
-            })
-          )
-          .min(1)
-          .required()
-      })
+  // ingredients: يمكن أن يكون array أو string
+  ingredients: Joi.alternatives()
+    .try(
+      Joi.array().items(Joi.string()),
+      Joi.string()
     )
-    .optional(),
+    .optional()
+    .allow('', null),
   
-  tags: Joi.array()
-    .items(Joi.string())
-    .optional(),
+  options: Joi.alternatives()
+    .try(
+      Joi.array().items(
+        Joi.object({
+          name: Joi.string().required(),
+          choices: Joi.array().items(
+            Joi.object({
+              name: Joi.string().required(),
+              price: Joi.number().min(0).required()
+            })
+          ).min(1).required()
+        })
+      ),
+      Joi.string()
+    )
+    .optional()
+    .allow('', null),
   
-  inventory: Joi.object({
-    quantity: Joi.number().integer().min(0).default(0),
-    unit: Joi.string().default('piece'),
-    lowStockThreshold: Joi.number().integer().min(0).default(5),
-    trackInventory: Joi.boolean().default(false)
-  }).optional(),
+  tags: Joi.alternatives()
+    .try(
+      Joi.array().items(Joi.string()),
+      Joi.string()
+    )
+    .optional()
+    .allow('', null),
   
-  attributes: Joi.object({
-    spicyLevel: Joi.number().min(0).max(3).default(0),
-    isVegetarian: Joi.boolean().default(false),
-    isVegan: Joi.boolean().default(false),
-    isGlutenFree: Joi.boolean().default(false),
-    isOrganic: Joi.boolean().default(false)
-  }).optional(),
+  // inventory: يمكن أن يكون object أو string (JSON)
+  inventory: Joi.alternatives()
+    .try(
+      Joi.object({
+        quantity: Joi.number().integer().min(0).default(0),
+        unit: Joi.string().default('piece'),
+        lowStockThreshold: Joi.number().integer().min(0).default(5),
+        trackInventory: Joi.boolean().default(false)
+      }),
+      Joi.string()
+    )
+    .optional()
+    .allow('', null),
   
-  nutritionalInfo: Joi.object({
-    calories: Joi.number().min(0).optional(),
-    protein: Joi.number().min(0).optional(),
-    carbs: Joi.number().min(0).optional(),
-    fat: Joi.number().min(0).optional(),
-    allergens: Joi.array().items(Joi.string()).optional()
-  }).optional()
+  // attributes: يمكن أن يكون object أو string (JSON)
+  attributes: Joi.alternatives()
+    .try(
+      Joi.object({
+        spicyLevel: Joi.number().min(0).max(3).default(0),
+        isVegetarian: Joi.boolean().default(false),
+        isVegan: Joi.boolean().default(false),
+        isGlutenFree: Joi.boolean().default(false),
+        isOrganic: Joi.boolean().default(false)
+      }),
+      Joi.string()
+    )
+    .optional()
+    .allow('', null),
+  
+  nutritionalInfo: Joi.alternatives()
+    .try(
+      Joi.object({
+        calories: Joi.number().min(0).optional(),
+        protein: Joi.number().min(0).optional(),
+        carbs: Joi.number().min(0).optional(),
+        fat: Joi.number().min(0).optional(),
+        allergens: Joi.array().items(Joi.string()).optional()
+      }),
+      Joi.string()
+    )
+    .optional()
+    .allow('', null),
+  
+  // إضافة store (للمشرف)
+  store: Joi.string()
+    .optional()
+    .allow('', null),
+  
+  storeId: Joi.string()
+    .optional()
+    .allow('', null),
 });
 
 /**
- * تحديث منتج
+ * تحديث منتج (معدل لدعم FormData)
  */
 const updateProductSchema = Joi.object({
   name: Joi.string()
@@ -144,7 +190,8 @@ const updateProductSchema = Joi.object({
   
   description: Joi.string()
     .max(500)
-    .optional(),
+    .optional()
+    .allow('', null),
   
   price: Joi.number()
     .positive()
@@ -152,75 +199,99 @@ const updateProductSchema = Joi.object({
   
   discountedPrice: Joi.number()
     .positive()
-    .optional(),
+    .optional()
+    .allow('', null),
   
   category: Joi.string()
     .optional(),
   
-  image: Joi.string()
-    .uri()
+  image: Joi.alternatives()
+    .try(
+      Joi.string().uri(),
+      Joi.any()
+    )
     .optional(),
   
   preparationTime: Joi.number()
     .min(0)
     .max(60)
-    .optional(),
+    .optional()
+    .allow('', null),
   
   isAvailable: Joi.boolean()
-    .optional(),
+    .optional()
+    .allow('', null),
   
   isVegetarian: Joi.boolean()
-    .optional(),
+    .optional()
+    .allow('', null),
   
   isVegan: Joi.boolean()
-    .optional(),
+    .optional()
+    .allow('', null),
   
   isGlutenFree: Joi.boolean()
-    .optional(),
+    .optional()
+    .allow('', null),
   
   spicyLevel: Joi.number()
     .min(0)
     .max(3)
-    .optional(),
+    .optional()
+    .allow('', null),
   
   calories: Joi.number()
     .min(0)
-    .optional(),
+    .optional()
+    .allow('', null),
   
-  ingredients: Joi.array()
-    .items(Joi.string())
-    .optional(),
+  ingredients: Joi.alternatives()
+    .try(
+      Joi.array().items(Joi.string()),
+      Joi.string()
+    )
+    .optional()
+    .allow('', null),
   
-  options: Joi.array()
-    .items(Joi.object())
-    .optional(),
+  options: Joi.alternatives()
+    .try(
+      Joi.array().items(Joi.object()),
+      Joi.string()
+    )
+    .optional()
+    .allow('', null),
   
-  tags: Joi.array()
-    .items(Joi.string())
-    .optional(),
+  tags: Joi.alternatives()
+    .try(
+      Joi.array().items(Joi.string()),
+      Joi.string()
+    )
+    .optional()
+    .allow('', null),
   
-  inventory: Joi.object({
-    quantity: Joi.number().integer().min(0),
-    unit: Joi.string(),
-    lowStockThreshold: Joi.number().integer().min(0),
-    trackInventory: Joi.boolean()
-  }).optional(),
+  inventory: Joi.alternatives()
+    .try(
+      Joi.object(),
+      Joi.string()
+    )
+    .optional()
+    .allow('', null),
   
-  attributes: Joi.object({
-    spicyLevel: Joi.number().min(0).max(3),
-    isVegetarian: Joi.boolean(),
-    isVegan: Joi.boolean(),
-    isGlutenFree: Joi.boolean(),
-    isOrganic: Joi.boolean()
-  }).optional(),
+  attributes: Joi.alternatives()
+    .try(
+      Joi.object(),
+      Joi.string()
+    )
+    .optional()
+    .allow('', null),
   
-  nutritionalInfo: Joi.object({
-    calories: Joi.number().min(0),
-    protein: Joi.number().min(0),
-    carbs: Joi.number().min(0),
-    fat: Joi.number().min(0),
-    allergens: Joi.array().items(Joi.string())
-  }).optional()
+  nutritionalInfo: Joi.alternatives()
+    .try(
+      Joi.object(),
+      Joi.string()
+    )
+    .optional()
+    .allow('', null),
 });
 
 /**
@@ -245,12 +316,14 @@ const updateInventorySchema = Joi.object({
     }),
   
   unit: Joi.string()
-    .optional(),
+    .optional()
+    .allow('', null),
   
   lowStockThreshold: Joi.number()
     .integer()
     .min(0)
     .optional()
+    .allow('', null)
 });
 
 module.exports = {
