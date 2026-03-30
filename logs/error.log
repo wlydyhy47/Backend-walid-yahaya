@@ -9123,3 +9123,61 @@ Error: رقم الهاتف غير صالح | كلمة المرور يجب أن �
   "userAgent": "PostmanRuntime/7.52.0",
   "userId": "guest"
 }
+2026-03-29 04:00:31 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/register",
+  "status": 400,
+  "duration": "100ms",
+  "ip": "::1",
+  "userAgent": "PostmanRuntime/7.52.0",
+  "userId": "guest"
+}
+2026-03-29 04:06:39 [error]: Unhandled Error لا يمكن العثور على /login في هذا الخادم
+Error: لا يمكن العثور على /login في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\project\Backend-walid-yahaya\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+{
+  "url": "/login",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-29 04:06:39 [error]: Business Error: Error caught: لا يمكن العثور على /login في هذا الخادم
+Error: لا يمكن العثور على /login في هذا الخادم
+    at notFoundHandler (C:\project\Backend-walid-yahaya\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\project\Backend-walid-yahaya\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\project\Backend-walid-yahaya\node_modules\router\index.js:342:13)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:297:9
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/login",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-03-29 04:06:39 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/login",
+  "status": 404,
+  "duration": "20ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}

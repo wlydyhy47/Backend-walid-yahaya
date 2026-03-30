@@ -305,14 +305,28 @@ exports.getProductById = async (req, res) => {
 
 // ========== 3. دوال إدارة المنتجات (للتاجر) ==========
 
+
 /**
- * @desc    إنشاء منتج جديد
- * @route   POST /api/v1/vendor/products
- * @access  Vendor
+ * @desc    إنشاء منتج جديد (للمشرف والتاجر)
+ * @route   POST /api/v1/admin/products (للمشرف)
+ * @route   POST /api/v1/vendor/products (للتاجر)
+ * @access  Admin / Vendor
  */
 exports.createProduct = async (req, res) => {
   try {
-    const storeId = req.storeId;
+    // تحديد storeId من مصادر مختلفة
+    // 1. من middleware للتاجر (req.storeId)
+    // 2. من body للمشرف (req.body.store أو req.body.storeId)
+    let storeId = req.storeId || req.body.store || req.body.storeId;
+    
+    // التحقق من وجود storeId
+    if (!storeId) {
+      return res.status(400).json({
+        success: false,
+        message: "معرف المتجر مطلوب. يرجى اختيار متجر للمنتج."
+      });
+    }
+
     const {
       name,
       price,
@@ -332,42 +346,60 @@ exports.createProduct = async (req, res) => {
     if (!name || !price) {
       return res.status(400).json({
         success: false,
-        message: "Product name and price are required"
+        message: "اسم المنتج والسعر مطلوبان"
       });
     }
 
     // التحقق من وجود المتجر
-    await validateStore(storeId, req.user.id);
+    const store = await Store.findById(storeId);
+    if (!store) {
+      return res.status(404).json({
+        success: false,
+        message: "المتجر غير موجود"
+      });
+    }
+    
+    // فقط للتاجر: تحقق من ملكية المتجر
+    if (req.user.role === 'vendor' && store.owner?.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "غير مصرح لك بإدارة منتجات هذا المتجر"
+      });
+    }
 
     // معالجة البيانات JSON
     let inventoryObj = { quantity: 0, unit: 'piece', lowStockThreshold: 5, trackInventory: false };
     try {
-      if (inventory) inventoryObj = JSON.parse(inventory);
+      if (inventory) inventoryObj = typeof inventory === 'string' ? JSON.parse(inventory) : inventory;
     } catch (e) { }
 
     let attributesObj = {};
     try {
-      if (attributes) attributesObj = JSON.parse(attributes);
+      if (attributes) attributesObj = typeof attributes === 'string' ? JSON.parse(attributes) : attributes;
     } catch (e) { }
 
     let nutritionalInfoObj = {};
     try {
-      if (nutritionalInfo) nutritionalInfoObj = JSON.parse(nutritionalInfo);
+      if (nutritionalInfo) nutritionalInfoObj = typeof nutritionalInfo === 'string' ? JSON.parse(nutritionalInfo) : nutritionalInfo;
     } catch (e) { }
 
     let optionsArray = [];
     try {
-      if (options) optionsArray = JSON.parse(options);
+      if (options) optionsArray = typeof options === 'string' ? JSON.parse(options) : options;
     } catch (e) { }
 
     let ingredientsArray = [];
     if (ingredients) {
-      ingredientsArray = ingredients.split(',').map(i => i.trim()).filter(i => i);
+      ingredientsArray = Array.isArray(ingredients) 
+        ? ingredients 
+        : ingredients.split(',').map(i => i.trim()).filter(i => i);
     }
 
     let tagsArray = [];
     if (tags) {
-      tagsArray = tags.split(',').map(t => t.trim()).filter(t => t);
+      tagsArray = Array.isArray(tags) 
+        ? tags 
+        : tags.split(',').map(t => t.trim()).filter(t => t);
     }
 
     // إنشاء المنتج
@@ -410,12 +442,13 @@ exports.createProduct = async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Product created successfully",
+      message: "تم إنشاء المنتج بنجاح",
       data: {
         ...product.toObject(),
         optimizedImages
       }
     });
+    
   } catch (error) {
     console.error("❌ Create product error:", error);
 
@@ -428,10 +461,12 @@ exports.createProduct = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: "Failed to create product"
+      message: "فشل في إنشاء المنتج",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
+
 
 /**
  * @desc    تحديث منتج
