@@ -642,53 +642,110 @@ exports.updateProductImage = async (req, res) => {
 };
 
 /**
- * @desc    حذف منتج
- * @route   DELETE /api/v1/vendor/products/:id
- * @access  Vendor
+ * @desc    حذف منتج (للمشرف أو التاجر)
+ * @route   DELETE /api/v1/admin/products/:id (Admin)
+ * @route   DELETE /api/v1/vendor/products/:id (Vendor)
+ * @access  Admin / Vendor
  */
 exports.deleteProduct = async (req, res) => {
   try {
     const { id } = req.params;
-    const storeId = req.storeId;
-
-    const product = await Product.findOne({ _id: id, store: storeId });
-
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    
+    console.log('Delete product request:', {
+      id,
+      userId,
+      userRole,
+      storeId: req.storeId
+    });
+    
+    // التحقق من صحة الـ ID
+    if (!id || id.length !== 24) {
+      return res.status(400).json({
+        success: false,
+        message: 'معرف المنتج غير صالح'
+      });
+    }
+    
+    // البحث عن المنتج
+    const product = await Product.findById(id).populate('store', 'owner');
+    
     if (!product) {
       return res.status(404).json({
         success: false,
-        message: "Product not found"
+        message: 'المنتج غير موجود'
       });
     }
-
-    // حذف الصورة من Cloudinary
-    if (product.image) {
-      const publicId = fileService.extractPublicIdFromUrl(product.image);
-      if (publicId) {
-        fileService.deleteFile(publicId).catch(err =>
-          console.error('Error deleting product image:', err)
-        );
+    
+    // التحقق من الصلاحيات
+    if (userRole === 'vendor') {
+      // للتاجر: تحقق من ملكية المتجر
+      if (!req.storeId || product.store._id.toString() !== req.storeId) {
+        return res.status(403).json({
+          success: false,
+          message: 'غير مصرح لك بحذف هذا المنتج'
+        });
       }
     }
-
+    // للمشرف: لا حاجة للتحقق، يمكنه حذف أي منتج
+    
+    console.log('Found product to delete:', {
+      id: product._id,
+      name: product.name,
+      store: product.store._id,
+      role: userRole
+    });
+    
+    // حذف الصورة من Cloudinary
+    if (product.image) {
+      try {
+        const publicId = fileService.extractPublicIdFromUrl(product.image);
+        if (publicId) {
+          await fileService.deleteFile(publicId);
+          console.log('Deleted product image:', publicId);
+        }
+      } catch (imgError) {
+        console.error('Error deleting product image:', imgError);
+      }
+    }
+    
+    // حذف المنتج
     await Product.findByIdAndDelete(id);
-
+    
     // تحديث إحصائيات المتجر
-    await Store.findByIdAndUpdate(storeId, {
+    await Store.findByIdAndUpdate(product.store._id, {
       $inc: { 'stats.totalProducts': -1 }
     });
-
+    
     // إبطال الكاش
-    invalidateProductCache(storeId, id);
-
+    invalidateProductCache(product.store._id, id);
+    
+    console.log('Product deleted successfully:', id);
+    
     res.json({
       success: true,
-      message: "Product deleted successfully"
+      message: 'تم حذف المنتج بنجاح',
+      data: {
+        id: product._id,
+        name: product.name
+      }
     });
+    
   } catch (error) {
-    console.error("❌ Delete product error:", error);
+    console.error('❌ Delete product error:', error);
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        message: 'معرف المنتج غير صالح'
+      });
+    }
+    
     res.status(500).json({
       success: false,
-      message: "Failed to delete product"
+      message: 'فشل في حذف المنتج',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

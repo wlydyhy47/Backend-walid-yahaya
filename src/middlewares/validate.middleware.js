@@ -1,37 +1,79 @@
-// src/middlewares/validate.middleware.js
 const Joi = require('joi');
 const mongoose = require('mongoose');
 const { AppError } = require('./errorHandler.middleware');
 const { businessLogger } = require("../utils/logger.util");
-
-
 
 /**
  * تحويل القيم من FormData إلى الأنواع الصحيحة
  */
 const transformFormData = (data) => {
   const transformed = { ...data };
-  
+
   // تحويل القيم الرقمية
-  const numberFields = ['price', 'discountedPrice', 'preparationTime', 'spicyLevel', 'calories'];
+  const numberFields = ['price', 'discountedPrice', 'preparationTime', 'spicyLevel', 'calories',
+    'deliveryFee', 'minOrderAmount', 'estimatedDeliveryTime', 'deliveryRadius',
+    'freeDeliveryThreshold', 'latitude', 'longitude'];
   numberFields.forEach(field => {
-    if (transformed[field] !== undefined && transformed[field] !== '') {
-      transformed[field] = Number(transformed[field]);
+    if (transformed[field] !== undefined && transformed[field] !== '' && transformed[field] !== null) {
+      const num = Number(transformed[field]);
+      if (!isNaN(num)) {
+        transformed[field] = num;
+      }
     }
   });
-  
+
   // تحويل القيم المنطقية
-  const booleanFields = ['isAvailable', 'isVegetarian', 'isVegan', 'isGlutenFree'];
+  const booleanFields = ['isAvailable', 'isVegetarian', 'isVegan', 'isGlutenFree',
+    'hasDelivery', 'isOpen', 'isVerified'];
   booleanFields.forEach(field => {
-    if (transformed[field] !== undefined) {
+    if (transformed[field] !== undefined && transformed[field] !== '') {
       transformed[field] = transformed[field] === 'true' || transformed[field] === true;
     }
   });
-  
+
+  // تحويل JSON strings - مع التعامل مع القيم الفارغة
+  const jsonFields = ['address', 'deliveryInfo', 'openingHours'];
+  jsonFields.forEach(field => {
+    if (transformed[field] !== undefined && transformed[field] !== '' && transformed[field] !== null) {
+      if (typeof transformed[field] === 'string') {
+        try {
+          const parsed = JSON.parse(transformed[field]);
+          transformed[field] = parsed;
+        } catch (e) {
+          // إذا فشل الـ parse، نحذف الحقل أو نتركه
+          console.warn(`Failed to parse ${field}:`, e.message);
+          delete transformed[field];
+        }
+      }
+    } else {
+      // إذا كان الحقل فارغاً، نحذفه
+      delete transformed[field];
+    }
+  });
+
+  // تحويل التاغات
+  if (transformed.tags !== undefined && transformed.tags !== '' && transformed.tags !== null) {
+    if (Array.isArray(transformed.tags)) {
+      // إذا كانت already array، لا تفعل شيئاً
+      transformed.tags = transformed.tags;
+    } else if (typeof transformed.tags === 'string') {
+      if (transformed.tags.includes(',')) {
+        transformed.tags = transformed.tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      } else if (transformed.tags.trim()) {
+        transformed.tags = [transformed.tags.trim()];
+      } else {
+        transformed.tags = [];
+      }
+    }
+  } else {
+    transformed.tags = [];
+  }
+
   return transformed;
 };
 
-// ✅ الدالة الرئيسية validate
+
+// ✅ الدالة الرئيسية validate (المعدلة)
 const validate = (schema, property = 'body') => {
   return (req, res, next) => {
     if (!schema) {
@@ -39,20 +81,31 @@ const validate = (schema, property = 'body') => {
     }
 
     let data = req[property];
-    
+
+    // ✅ التحسين: السماح بوجود بيانات في FormData حتى لو req.body فارغ
+    const isMultipart = req.headers['content-type']?.includes('multipart/form-data');
+
     if (!data && property === 'body') {
-      return next(new AppError('لا توجد بيانات للإرسال', 400));
+      // إذا كان الطلب من نوع multipart/form-data ولا توجد بيانات في body
+      if (isMultipart) {
+        // إنشاء كائن فارغ للبيانات (قد تكون في req.files فقط)
+        data = {};
+        req[property] = data;
+      } else {
+        return next(new AppError('لا توجد بيانات للإرسال', 400));
+      }
     }
-    
+
     // تحويل البيانات إذا كانت من FormData
-    if (property === 'body' && req.headers['content-type']?.includes('multipart/form-data')) {
+    if (property === 'body' && isMultipart) {
       data = transformFormData(data);
+      req[property] = data; // تحديث req.body بالبيانات المحولة
     }
 
     const { error, value } = schema.validate(data, {
       abortEarly: false,
       stripUnknown: true,
-      allowUnknown: true, // تغيير إلى true للسماح بحقول إضافية
+      allowUnknown: true, // السماح بحقول إضافية
       errors: {
         wrap: {
           label: false
@@ -79,8 +132,6 @@ const validate = (schema, property = 'body') => {
     next();
   };
 };
-
-
 
 // دوال مساعدة
 const validateQuery = (schema) => validate(schema, 'query');
@@ -155,8 +206,12 @@ const sanitizeInput = (req, res, next) => {
 };
 
 const validateFileUpload = (req, res, next) => {
-  if (!req.file && !req.files) {
-    return next(new AppError('لم يتم رفع أي ملف', 400));
+  // ✅ التحسين: السماح بوجود ملفات فقط بدون بيانات نصية
+  const hasFiles = req.file || req.files;
+  const hasBodyData = req.body && Object.keys(req.body).length > 0;
+
+  if (!hasFiles && !hasBodyData) {
+    return next(new AppError('لم يتم رفع أي ملف أو إرسال بيانات', 400));
   }
 
   const maxSize = 5 * 1024 * 1024; // 5MB

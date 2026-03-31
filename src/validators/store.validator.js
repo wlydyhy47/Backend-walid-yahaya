@@ -1,10 +1,106 @@
 // ============================================
 // ملف: src/validators/store.validator.js
-// الوصف: مصادقات بيانات المتاجر
-// الإصدار: 2.0
+// الوصف: مصادقات بيانات المتاجر (المعدل النهائي)
+// الإصدار: 2.2
 // ============================================
 
 const Joi = require('joi');
+
+/**
+ * Schema للعنوان - يقبل string أو object
+ */
+const addressSchema = Joi.alternatives().try(
+  // إذا كان string (JSON)
+  Joi.string().custom((value, helpers) => {
+    if (!value || value === '') return {};
+    try {
+      const parsed = JSON.parse(value);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return parsed;
+      }
+      return helpers.error('any.invalid');
+    } catch (e) {
+      return helpers.error('string.json');
+    }
+  }),
+  // إذا كان object مباشر
+  Joi.object({
+    street: Joi.string().max(200).optional().allow('', null),
+    city: Joi.string().max(100).optional().allow('', null),
+    state: Joi.string().max(100).optional().allow('', null),
+    country: Joi.string().max(100).default('Niger').optional(),
+    postalCode: Joi.string().max(20).optional().allow('', null),
+    latitude: Joi.number().min(-90).max(90).optional().allow('', null),
+    longitude: Joi.number().min(-180).max(180).optional().allow('', null),
+  }).optional().default({})
+);
+
+/**
+ * Schema لمعلومات التوصيل
+ */
+const deliveryInfoSchema = Joi.alternatives().try(
+  Joi.string().custom((value, helpers) => {
+    if (!value || value === '') return { hasDelivery: true };
+    try {
+      const parsed = JSON.parse(value);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return parsed;
+      }
+      return helpers.error('any.invalid');
+    } catch (e) {
+      return helpers.error('string.json');
+    }
+  }),
+  Joi.object({
+    hasDelivery: Joi.boolean().default(true),
+    deliveryFee: Joi.number().min(0).default(0),
+    minOrderAmount: Joi.number().min(0).default(0),
+    estimatedDeliveryTime: Joi.number().min(5).max(120).default(30),
+    deliveryRadius: Joi.number().min(1).max(50).default(10),
+    freeDeliveryThreshold: Joi.number().min(0).default(0)
+  }).optional().default({})
+);
+
+/**
+ * Schema لساعات العمل
+ */
+const openingHoursSchema = Joi.alternatives().try(
+  Joi.string().custom((value, helpers) => {
+    if (!value || value === '') return {};
+    try {
+      const parsed = JSON.parse(value);
+      if (typeof parsed === 'object' && parsed !== null) {
+        return parsed;
+      }
+      return helpers.error('any.invalid');
+    } catch (e) {
+      return helpers.error('string.json');
+    }
+  }),
+  Joi.object({
+    monday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }).optional(),
+    tuesday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }).optional(),
+    wednesday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }).optional(),
+    thursday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }).optional(),
+    friday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }).optional(),
+    saturday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }).optional(),
+    sunday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }).optional()
+  }).optional().default({})
+);
+
+/**
+ * Schema للتاغات - يقبل string أو array
+ */
+const tagsSchema = Joi.alternatives().try(
+  Joi.string().custom((value, helpers) => {
+    if (!value || value === '') return [];
+    if (value.includes(',')) {
+      return value.split(',').map(tag => tag.trim()).filter(tag => tag);
+    }
+    return [value.trim()];
+  }),
+  Joi.array().items(Joi.string())
+).optional().default([]);
 
 /**
  * إنشاء متجر جديد
@@ -46,54 +142,52 @@ const createStoreSchema = Joi.object({
   
   email: Joi.string()
     .email()
-    .optional(),
+    .optional()
+    .allow('', null),
   
   website: Joi.string()
     .uri()
-    .optional(),
+    .optional()
+    .allow('', null),
   
   logo: Joi.string()
-    .uri()
-    .optional(),
+    .optional()
+    .allow('', null),
   
   coverImage: Joi.string()
-    .uri()
-    .optional(),
+    .optional()
+    .allow('', null),
   
-  address: Joi.object({
-    street: Joi.string().max(200),
-    city: Joi.string().max(100),
-    state: Joi.string().max(100),
-    country: Joi.string().max(100).default('Niger'),
-    postalCode: Joi.string().max(20)
-  }).optional(),
+  // ✅ السماح بأن تكون القيم فارغة
+  address: addressSchema.optional().default({}),
   
-  deliveryInfo: Joi.object({
-    hasDelivery: Joi.boolean().default(true),
-    deliveryFee: Joi.number().min(0).default(0),
-    minOrderAmount: Joi.number().min(0).default(0),
-    estimatedDeliveryTime: Joi.number().min(5).max(120).default(30),
-    deliveryRadius: Joi.number().min(1).max(50).default(10),
-    freeDeliveryThreshold: Joi.number().min(0).default(0)
-  }).optional(),
+  deliveryInfo: deliveryInfoSchema.optional().default({}),
   
-  openingHours: Joi.object({
-    monday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }),
-    tuesday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }),
-    wednesday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }),
-    thursday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }),
-    friday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }),
-    saturday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() }),
-    sunday: Joi.object({ open: Joi.string(), close: Joi.string(), isOpen: Joi.boolean() })
-  }).optional(),
+  openingHours: openingHoursSchema.optional().default({}),
   
-  tags: Joi.array()
-    .items(Joi.string())
-    .optional(),
+  tags: tagsSchema.optional().default([]),
   
   isOpen: Joi.boolean()
     .default(true)
-});
+    .optional(),
+  
+  // ✅ دعم الحقول المنفردة
+  hasDelivery: Joi.boolean().optional(),
+  deliveryFee: Joi.number().min(0).optional(),
+  minOrderAmount: Joi.number().min(0).optional(),
+  estimatedDeliveryTime: Joi.number().min(5).max(120).optional(),
+  deliveryRadius: Joi.number().min(1).max(50).optional(),
+  freeDeliveryThreshold: Joi.number().min(0).optional(),
+  
+  street: Joi.string().max(200).optional().allow('', null),
+  city: Joi.string().max(100).optional().allow('', null),
+  state: Joi.string().max(100).optional().allow('', null),
+  country: Joi.string().max(100).optional(),
+  postalCode: Joi.string().max(20).optional().allow('', null),
+  latitude: Joi.number().min(-90).max(90).optional().allow('', null),
+  longitude: Joi.number().min(-180).max(180).optional().allow('', null),
+  
+}).unknown(true); // ✅ السماح بحقول إضافية
 
 /**
  * تحديث متجر
@@ -118,45 +212,31 @@ const updateStoreSchema = Joi.object({
   
   email: Joi.string()
     .email()
-    .optional(),
+    .optional()
+    .allow('', null),
   
   website: Joi.string()
     .uri()
-    .optional(),
+    .optional()
+    .allow('', null),
   
   logo: Joi.string()
-    .uri()
-    .optional(),
+    .optional()
+    .allow('', null),
   
   coverImage: Joi.string()
-    .uri()
-    .optional(),
+    .optional()
+    .allow('', null),
   
-  address: Joi.object({
-    street: Joi.string().max(200),
-    city: Joi.string().max(100),
-    state: Joi.string().max(100),
-    country: Joi.string().max(100),
-    postalCode: Joi.string().max(20)
-  }).optional(),
+  address: addressSchema.optional(),
   
-  deliveryInfo: Joi.object({
-    hasDelivery: Joi.boolean(),
-    deliveryFee: Joi.number().min(0),
-    minOrderAmount: Joi.number().min(0),
-    estimatedDeliveryTime: Joi.number().min(5).max(120),
-    deliveryRadius: Joi.number().min(1).max(50),
-    freeDeliveryThreshold: Joi.number().min(0)
-  }).optional(),
+  deliveryInfo: deliveryInfoSchema.optional(),
   
-  openingHours: Joi.object().optional(),
+  openingHours: openingHoursSchema.optional(),
   
-  tags: Joi.array()
-    .items(Joi.string())
-    .optional(),
+  tags: tagsSchema.optional(),
   
-  isOpen: Joi.boolean()
-    .optional(),
+  isOpen: Joi.boolean().optional(),
   
   settings: Joi.object({
     autoAcceptOrders: Joi.boolean(),
@@ -170,10 +250,11 @@ const updateStoreSchema = Joi.object({
       sms: Joi.boolean()
     })
   }).optional()
-});
+  
+}).unknown(true);
 
 /**
- * عنوان المتجر
+ * عنوان المتجر (للعناوين الإضافية)
  */
 const storeAddressSchema = Joi.object({
   label: Joi.string()

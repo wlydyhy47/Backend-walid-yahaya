@@ -594,6 +594,15 @@ router.post('/security/check-email',
   securityController.checkEmail
 );
 
+// في public.routes.js - أضف هذه الـ route
+
+/**
+ * @desc    البحث عن المتاجر القريبة
+ * @route   GET /api/v1/public/stores/nearby
+ * @access  Public
+ */
+router.get('/stores/nearby', storeController.getNearbyStores);
+
 // ========== 6. معلومات النظام ==========
 /**
  * @swagger

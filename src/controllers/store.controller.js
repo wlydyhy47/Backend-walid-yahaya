@@ -629,13 +629,30 @@ exports.getStoreReviews = async (req, res) => {  // ✅ getStoreReviews -> getSt
  * @route   POST /api/v1/admin/stores
  * @access  Admin
  */
-exports.createStore = async (req, res) => {  // ✅ createStore -> createStore
+exports.createStore = async (req, res) => {
   try {
+    // 🔍 تسجيل البيانات الواردة للـ debugging
+    console.log('📥 Request body:', req.body);
+    console.log('📥 Request files:', req.files);
+    console.log('📥 Request headers:', req.headers['content-type']);
+
     const {
       name, description, category, phone, email, website,
       deliveryFee, minOrderAmount, estimatedDeliveryTime, deliveryRadius,
       tags, openingHours, address
     } = req.body;
+
+    console.log('📥 Extracted values:', {
+      name,
+      description,
+      category,
+      phone,
+      email,
+      website,
+      address,
+      deliveryInfo: { deliveryFee, minOrderAmount, estimatedDeliveryTime, deliveryRadius },
+      tags
+    });
 
     if (!name || !name.trim()) {
       return res.status(400).json({
@@ -644,30 +661,75 @@ exports.createStore = async (req, res) => {  // ✅ createStore -> createStore
       });
     }
 
-    const tagsArray = tags
-      ? tags.split(',').map(tag => tag.trim()).filter(tag => tag)
-      : [];
+    // ✅ معالجة التاغات - تأكد من أنها Array
+    let tagsArray = [];
+    if (tags) {
+      if (Array.isArray(tags)) {
+        tagsArray = tags;
+      } else if (typeof tags === 'string') {
+        tagsArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
+      }
+    }
 
+    // ✅ معالجة ساعات العمل
     let openingHoursObj = {};
-    try {
-      openingHoursObj = openingHours ? JSON.parse(openingHours) : {};
-    } catch (e) { }
+    if (openingHours) {
+      if (typeof openingHours === 'object') {
+        openingHoursObj = openingHours;
+      } else if (typeof openingHours === 'string') {
+        try {
+          openingHoursObj = JSON.parse(openingHours);
+        } catch (e) {
+          console.warn('Failed to parse openingHours:', e.message);
+        }
+      }
+    }
 
+    // ✅ معالجة العنوان
     let addressObj = {};
-    try {
-      addressObj = address ? JSON.parse(address) : {};
-    } catch (e) { }
+    if (address) {
+      if (typeof address === 'object') {
+        addressObj = address;
+      } else if (typeof address === 'string') {
+        try {
+          addressObj = JSON.parse(address);
+        } catch (e) {
+          console.warn('Failed to parse address:', e.message);
+        }
+      }
+    }
 
-    // تجهيز بيانات التوصيل
-    const deliveryInfo = {
-      hasDelivery: deliveryFee !== undefined,
-      deliveryFee: Number(deliveryFee) || 0,
-      minOrderAmount: Number(minOrderAmount) || 0,
-      estimatedDeliveryTime: Number(estimatedDeliveryTime) || 30,
-      deliveryRadius: Number(deliveryRadius) || 10,
-      freeDeliveryThreshold: Number(req.body.freeDeliveryThreshold) || 0
+    // ✅ معالجة معلومات التوصيل - تحقق من وجود deliveryInfo أو حقول منفردة
+    let deliveryInfoObj = {};
+    
+    // إذا كان هناك deliveryInfo في req.body
+    if (req.body.deliveryInfo) {
+      if (typeof req.body.deliveryInfo === 'object') {
+        deliveryInfoObj = req.body.deliveryInfo;
+      } else if (typeof req.body.deliveryInfo === 'string') {
+        try {
+          deliveryInfoObj = JSON.parse(req.body.deliveryInfo);
+        } catch (e) {
+          console.warn('Failed to parse deliveryInfo:', e.message);
+        }
+      }
+    }
+    
+    // إذا كانت الحقول المنفردة موجودة، استخدمها
+    const hasDelivery = req.body.hasDelivery !== undefined 
+      ? req.body.hasDelivery 
+      : (deliveryInfoObj.hasDelivery !== undefined ? deliveryInfoObj.hasDelivery : true);
+    
+    const finalDeliveryInfo = {
+      hasDelivery: hasDelivery,
+      deliveryFee: Number(deliveryFee !== undefined ? deliveryFee : (deliveryInfoObj.deliveryFee || 0)),
+      minOrderAmount: Number(minOrderAmount !== undefined ? minOrderAmount : (deliveryInfoObj.minOrderAmount || 0)),
+      estimatedDeliveryTime: Number(estimatedDeliveryTime !== undefined ? estimatedDeliveryTime : (deliveryInfoObj.estimatedDeliveryTime || 30)),
+      deliveryRadius: Number(deliveryRadius !== undefined ? deliveryRadius : (deliveryInfoObj.deliveryRadius || 10)),
+      freeDeliveryThreshold: Number(req.body.freeDeliveryThreshold !== undefined ? req.body.freeDeliveryThreshold : (deliveryInfoObj.freeDeliveryThreshold || 0))
     };
 
+    // ✅ إنشاء المتجر
     const store = await Store.create({
       name: name.trim(),
       description: description?.trim(),
@@ -675,15 +737,15 @@ exports.createStore = async (req, res) => {  // ✅ createStore -> createStore
       phone: phone?.trim(),
       email: email?.trim(),
       website: website?.trim(),
-      logo: req.files?.logo ? req.files.logo[0].path : null,  // ✅ image -> logo
+      logo: req.files?.logo ? req.files.logo[0].path : null,
       coverImage: req.files?.coverImage ? req.files.coverImage[0].path : null,
       address: addressObj,
-      deliveryInfo,
+      deliveryInfo: finalDeliveryInfo,
       tags: tagsArray,
       openingHours: openingHoursObj,
-      owner: req.user.id,  // ✅ createdBy -> owner
-      isOpen: true,
-      isVerified: req.user.role === 'admin' // المشرفون فقط يمكنهم توثيق المتجر
+      owner: req.user.id,
+      isOpen: req.body.isOpen === true || req.body.isOpen === 'true' || true,
+      isVerified: req.user.role === 'admin'
     });
 
     const optimizedImages = {};
@@ -712,7 +774,8 @@ exports.createStore = async (req, res) => {  // ✅ createStore -> createStore
     console.error("❌ Error in createStore:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to create store"
+      message: "Failed to create store",
+      error: error.message
     });
   }
 };
@@ -1191,6 +1254,175 @@ exports.advancedSearch = async (req, res) => {
     res.status(500).json({
       success: false,
       message: 'Advanced search failed'
+    });
+  }
+};
+
+// ========== 6. دوال إضافية ==========
+
+/**
+ * @desc    تحديث إحداثيات المتاجر القديمة
+ * @route   POST /api/v1/admin/stores/update-coordinates
+ * @access  Admin
+ */
+exports.updateStoreCoordinates = async (req, res) => {
+  try {
+    // جلب جميع المتاجر التي ليس لها إحداثيات أو location
+    const stores = await Store.find({
+      $or: [
+        { 'address.latitude': { $exists: false } },
+        { 'address.latitude': null },
+        { 'address.latitude': 0 },
+        { 'location.coordinates': { $size: 0 } }
+      ]
+    });
+
+    let updatedCount = 0;
+    const results = [];
+
+    for (const store of stores) {
+      let lat = null;
+      let lng = null;
+      
+      // محاولة استخراج الإحداثيات من address
+      if (store.address) {
+        lat = store.address.latitude;
+        lng = store.address.longitude;
+      }
+      
+      // إذا لم تكن هناك إحداثيات، استخدم إحداثيات افتراضية حسب المدينة
+      if (!lat || !lng) {
+        const city = store.address?.city?.toLowerCase() || '';
+        
+        // إحداثيات افتراضية للمدن الرئيسية
+        const cityCoordinates = {
+          'نيامي': [13.5126, 2.1098],
+          'niamey': [13.5126, 2.1098],
+          'الرياض': [24.7136, 46.6753],
+          'riyadh': [24.7136, 46.6753],
+          'جدة': [21.4858, 39.1925],
+          'jeddah': [21.4858, 39.1925],
+          'مكة': [21.3891, 39.8579],
+          'mecca': [21.3891, 39.8579],
+          'المدينة': [24.5247, 39.5692],
+          'medina': [24.5247, 39.5692],
+        };
+        
+        if (cityCoordinates[city]) {
+          [lat, lng] = cityCoordinates[city];
+        } else {
+          // إحداثيات افتراضية
+          lat = 13.5126;
+          lng = 2.1098;
+        }
+      }
+      
+      // تحديث المتجر
+      if (lat && lng) {
+        store.address = {
+          ...store.address,
+          latitude: lat,
+          longitude: lng
+        };
+        
+        store.location = {
+          type: 'Point',
+          coordinates: [lng, lat]
+        };
+        
+        await store.save();
+        updatedCount++;
+        results.push({
+          id: store._id,
+          name: store.name,
+          latitude: lat,
+          longitude: lng
+        });
+        
+        console.log(`✅ Updated store ${store.name}: [${lng}, ${lat}]`);
+      }
+    }
+    
+    res.json({
+      success: true,
+      message: `تم تحديث ${updatedCount} متجر بنجاح`,
+      data: {
+        updatedCount,
+        results
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error updating store coordinates:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل تحديث إحداثيات المتاجر',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    البحث عن المتاجر القريبة
+ * @route   GET /api/v1/public/stores/nearby
+ * @access  Public
+ */
+exports.getNearbyStores = async (req, res) => {
+  try {
+    const { lat, lng, radius = 5000, limit = 20 } = req.query;
+    
+    if (!lat || !lng) {
+      return res.status(400).json({
+        success: false,
+        message: 'يجب توفير خط العرض وخط الطول'
+      });
+    }
+    
+    const stores = await Store.find({
+      isOpen: true,
+      location: {
+        $near: {
+          $geometry: {
+            type: 'Point',
+            coordinates: [parseFloat(lng), parseFloat(lat)]
+          },
+          $maxDistance: parseInt(radius)
+        }
+      }
+    })
+    .select('name logo description category averageRating deliveryInfo address location')
+    .limit(parseInt(limit))
+    .lean();
+    
+    // حساب المسافة لكل متجر
+    const storesWithDistance = stores.map(store => {
+      let distance = null;
+      if (store.location && store.location.coordinates) {
+        const R = 6371; // نصف قطر الأرض بالكيلومتر
+        const dLat = (store.location.coordinates[1] - parseFloat(lat)) * Math.PI / 180;
+        const dLon = (store.location.coordinates[0] - parseFloat(lng)) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(parseFloat(lat) * Math.PI / 180) * Math.cos(store.location.coordinates[1] * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        distance = R * c;
+      }
+      
+      return {
+        ...store,
+        distance: distance ? distance.toFixed(1) : null
+      };
+    });
+    
+    res.json({
+      success: true,
+      data: storesWithDistance,
+      count: storesWithDistance.length
+    });
+  } catch (error) {
+    console.error('❌ Error getting nearby stores:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب المتاجر القريبة'
     });
   }
 };

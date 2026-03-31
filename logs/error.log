@@ -9802,3 +9802,1280 @@ Error: email is not allowed to be empty
   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
   "userId": "69c87b016430cf760da51173"
 }
+2026-03-30 23:00:56 [error]: Unhandled Error لا توجد بيانات للإرسال
+Error: لا توجد بيانات للإرسال
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:44:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at param (C:\project\Backend-walid-yahaya\node_modules\router\index.js:600:14)
+    at param (C:\project\Backend-walid-yahaya\node_modules\router\index.js:610:14)
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:664:3)
+{
+  "url": "/api/v1/admin/stores/69bf6413a11c4993e1f92348",
+  "method": "PUT",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:00:56 [error]: Business Error: Error caught: لا توجد بيانات للإرسال
+Error: لا توجد بيانات للإرسال
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:44:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at param (C:\project\Backend-walid-yahaya\node_modules\router\index.js:600:14)
+    at param (C:\project\Backend-walid-yahaya\node_modules\router\index.js:610:14)
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:664:3)
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/admin/stores/69bf6413a11c4993e1f92348",
+  "method": "PUT",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:00:56 [error]: HTTP Request Error
+{
+  "method": "PUT",
+  "url": "/api/v1/admin/stores/69bf6413a11c4993e1f92348",
+  "status": 400,
+  "duration": "162ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:03:42 [error]: Unhandled Error لا توجد بيانات للإرسال
+Error: لا توجد بيانات للإرسال
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:44:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at param (C:\project\Backend-walid-yahaya\node_modules\router\index.js:600:14)
+    at param (C:\project\Backend-walid-yahaya\node_modules\router\index.js:610:14)
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:664:3)
+{
+  "url": "/api/v1/admin/stores/69bf6413a11c4993e1f92348",
+  "method": "PUT",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:03:42 [error]: Business Error: Error caught: لا توجد بيانات للإرسال
+Error: لا توجد بيانات للإرسال
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:44:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at param (C:\project\Backend-walid-yahaya\node_modules\router\index.js:600:14)
+    at param (C:\project\Backend-walid-yahaya\node_modules\router\index.js:610:14)
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:664:3)
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/admin/stores/69bf6413a11c4993e1f92348",
+  "method": "PUT",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:03:42 [error]: HTTP Request Error
+{
+  "method": "PUT",
+  "url": "/api/v1/admin/stores/69bf6413a11c4993e1f92348",
+  "status": 400,
+  "duration": "190ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:05:32 [error]: Unhandled Error لا توجد بيانات للإرسال
+Error: لا توجد بيانات للإرسال
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:44:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/admin/stores",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:05:32 [error]: Business Error: Error caught: لا توجد بيانات للإرسال
+Error: لا توجد بيانات للإرسال
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:44:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/admin/stores",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:05:32 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 400,
+  "duration": "165ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:10:00 [error]: Unhandled Error اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+Error: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:96:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/admin/stores",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:10:00 [error]: Business Error: Error caught: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+Error: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:96:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/admin/stores",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:10:00 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 400,
+  "duration": "218ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:13:33 [error]: Unhandled Error اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+Error: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:96:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/admin/stores",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:13:33 [error]: Business Error: Error caught: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+Error: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:96:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/admin/stores",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:13:33 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 400,
+  "duration": "235ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:29:14 [error]: Unhandled Error اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+Error: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:96:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/admin/stores",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:29:14 [error]: Business Error: Error caught: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+Error: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:96:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/admin/stores",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:29:14 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 400,
+  "duration": "226ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:30:03 [error]: Unhandled Error اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+Error: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:96:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/admin/stores",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:30:03 [error]: Business Error: Error caught: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+Error: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:96:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/admin/stores",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:30:03 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 400,
+  "duration": "87ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:31:37 [error]: Unhandled Error اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+Error: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:96:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "url": "/api/v1/admin/stores",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:31:37 [error]: Business Error: Error caught: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+Error: اسم المتجر مطلوب | الوصف مطلوب | نوع المتجر مطلوب | رقم الهاتف مطلوب
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:96:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/admin/stores",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:31:37 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 400,
+  "duration": "347ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:46:30 [error]: Unhandled Error address does not match any of the allowed types | tags is not allowed to be empty
+Error: address does not match any of the allowed types | tags is not allowed to be empty
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:96:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\src\middlewares\upload.js:330:13
+    at done (C:\project\Backend-walid-yahaya\node_modules\multer\lib\make-middleware.js:69:7)
+    at indicateDone (C:\project\Backend-walid-yahaya\node_modules\multer\lib\make-middleware.js:73:68)
+    at Multipart.<anonymous> (C:\project\Backend-walid-yahaya\node_modules\multer\lib\make-middleware.js:243:7)
+    at Multipart.emit (node:events:508:28)
+    at emitCloseNT (node:internal/streams/destroy:148:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:88:21)
+{
+  "url": "/api/v1/admin/stores",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:46:30 [error]: Business Error: Error caught: address does not match any of the allowed types | tags is not allowed to be empty
+Error: address does not match any of the allowed types | tags is not allowed to be empty
+    at C:\project\Backend-walid-yahaya\src\middlewares\validate.middleware.js:96:19
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at C:\project\Backend-walid-yahaya\src\middlewares\upload.js:330:13
+    at done (C:\project\Backend-walid-yahaya\node_modules\multer\lib\make-middleware.js:69:7)
+    at indicateDone (C:\project\Backend-walid-yahaya\node_modules\multer\lib\make-middleware.js:73:68)
+    at Multipart.<anonymous> (C:\project\Backend-walid-yahaya\node_modules\multer\lib\make-middleware.js:243:7)
+    at Multipart.emit (node:events:508:28)
+    at emitCloseNT (node:internal/streams/destroy:148:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:88:21)
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "url": "/api/v1/admin/stores",
+  "method": "POST",
+  "ip": "::1",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:46:30 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 400,
+  "duration": "147ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:51:40 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "1300ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:51:50 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "266ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:52:25 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "137ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:57:57 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "567ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:59:04 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "382ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-30 23:59:51 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "554ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 00:04:15 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "293ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 00:11:13 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "510ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 00:12:49 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "279ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 00:29:17 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "321ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 00:37:35 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "356ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 01:05:46 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "211ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 01:06:29 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "122ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 01:10:43 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/admin/stores",
+  "status": 500,
+  "duration": "439ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 20:06:02 [error]: Business Error: Cloudinary connection failed ❌ getaddrinfo ENOTFOUND api.cloudinary.com
+Error: getaddrinfo ENOTFOUND api.cloudinary.com
+    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)
+{
+  "errno": -3008,
+  "code": "ENOTFOUND",
+  "syscall": "getaddrinfo",
+  "hostname": "api.cloudinary.com"
+}
+2026-03-31 20:06:06 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async connectDB (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+    at async startServer (C:\project\Backend-walid-yahaya\src\server.js:227:5)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 20:06:17 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 20:06:27 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 20:06:37 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 20:06:47 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 20:06:57 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 20:07:07 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 20:07:17 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 20:07:27 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 20:07:37 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 20:07:47 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 20:07:57 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 20:08:07 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 20:08:17 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 20:08:27 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-03-31 21:52:26 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/reports/orders?from=2026-03-01&to=2026-03-31&format=json",
+  "status": 500,
+  "duration": "240ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 21:52:28 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/reports/orders?from=2026-03-01&to=2026-03-31&format=json",
+  "status": 500,
+  "duration": "183ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 21:52:50 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/reports/orders?from=2026-03-01&to=2026-03-31&format=json",
+  "status": 500,
+  "duration": "200ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 21:52:51 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/reports/orders?from=2026-03-01&to=2026-03-31&format=json",
+  "status": 500,
+  "duration": "160ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 21:53:54 [error]: Business Error: Error getting rate limit stats: Cannot read properties of undefined (reading 'stats')
+TypeError: Cannot read properties of undefined (reading 'stats')
+    at getStats (C:\project\Backend-walid-yahaya\src\middlewares\rateLimit.middleware.js:389:28)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+2026-03-31 21:53:54 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/rate-limit/stats",
+  "status": 500,
+  "duration": "152ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 22:02:25 [error]: Business Error: Unexpected error in auth middleware: getaddrinfo ENOTFOUND ac-haqinmu-shard-00-00.1merdlc.mongodb.net
+MongoServerSelectionError: getaddrinfo ENOTFOUND ac-haqinmu-shard-00-00.1merdlc.mongodb.net
+    at Topology.selectServer (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\sdam\topology.js:347:38)
+    at async tryOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:150:18)
+    at async executeOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:80:16)
+    at async FindCursor._initialize (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\find_cursor.js:62:26)
+    at async FindCursor.cursorInit (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:620:27)
+    at async FindCursor.fetchBatch (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:654:13)
+    at async FindCursor.next (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:326:17)
+    at async Collection.findOne (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\collection.js:313:24)
+    at async model.Query._findOne (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:2731:15)
+    at async model.Query.exec (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:4726:63)
+{
+  "errorLabelSet": {},
+  "reason": {
+    "type": "ReplicaSetNoPrimary",
+    "servers": {
+      "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 6988752,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 6988751,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 6988754,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      }
+    },
+    "stale": false,
+    "compatible": true,
+    "heartbeatFrequencyMS": 10000,
+    "localThresholdMS": 15,
+    "setName": "atlas-i26uie-shard-0",
+    "maxElectionId": {
+      "$oid": "7fffffff0000000000000057"
+    },
+    "maxSetVersion": 20,
+    "commonWireVersion": 25,
+    "logicalSessionTimeoutMinutes": null
+  },
+  "cause": {
+    "errorLabelSet": {},
+    "beforeHandshake": false
+  }
+}
+2026-03-31 22:02:25 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "status": 500,
+  "duration": "5199ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-31 22:02:31 [error]: Business Error: Unexpected error in auth middleware: getaddrinfo ENOTFOUND ac-haqinmu-shard-00-00.1merdlc.mongodb.net
+MongoServerSelectionError: getaddrinfo ENOTFOUND ac-haqinmu-shard-00-00.1merdlc.mongodb.net
+    at Topology.selectServer (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\sdam\topology.js:347:38)
+    at async tryOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:150:18)
+    at async executeOperation (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\operations\execute_operation.js:80:16)
+    at async FindCursor._initialize (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\find_cursor.js:62:26)
+    at async FindCursor.cursorInit (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:620:27)
+    at async FindCursor.fetchBatch (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:654:13)
+    at async FindCursor.next (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\cursor\abstract_cursor.js:326:17)
+    at async Collection.findOne (C:\project\Backend-walid-yahaya\node_modules\mongodb\lib\collection.js:313:24)
+    at async model.Query._findOne (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:2731:15)
+    at async model.Query.exec (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\query.js:4726:63)
+{
+  "errorLabelSet": {},
+  "reason": {
+    "type": "ReplicaSetNoPrimary",
+    "servers": {
+      "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-00.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 6995147,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-01.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 6995147,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      },
+      "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017": {
+        "address": "ac-haqinmu-shard-00-02.1merdlc.mongodb.net:27017",
+        "type": "Unknown",
+        "hosts": [],
+        "passives": [],
+        "arbiters": [],
+        "tags": {},
+        "minWireVersion": 0,
+        "maxWireVersion": 0,
+        "roundTripTime": -1,
+        "minRoundTripTime": 0,
+        "lastUpdateTime": 6995163,
+        "lastWriteDate": 0,
+        "error": {
+          "errorLabelSet": {},
+          "beforeHandshake": false
+        },
+        "topologyVersion": null,
+        "setName": null,
+        "setVersion": null,
+        "electionId": null,
+        "logicalSessionTimeoutMinutes": null,
+        "maxMessageSizeBytes": null,
+        "maxWriteBatchSize": null,
+        "maxBsonObjectSize": null,
+        "primary": null,
+        "me": null,
+        "$clusterTime": null,
+        "iscryptd": false
+      }
+    },
+    "stale": false,
+    "compatible": true,
+    "heartbeatFrequencyMS": 10000,
+    "localThresholdMS": 15,
+    "setName": "atlas-i26uie-shard-0",
+    "maxElectionId": {
+      "$oid": "7fffffff0000000000000057"
+    },
+    "maxSetVersion": 20,
+    "commonWireVersion": 25,
+    "logicalSessionTimeoutMinutes": null
+  },
+  "cause": {
+    "errorLabelSet": {},
+    "beforeHandshake": false
+  }
+}
+2026-03-31 22:02:31 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/stores?page=1&limit=20",
+  "status": 500,
+  "duration": "5026ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-03-31 22:07:16 [error]: HTTP Request Error
+{
+  "method": "DELETE",
+  "url": "/api/v1/admin/products/69caa00db21a8547504fb688",
+  "status": 404,
+  "duration": "126ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 22:07:55 [error]: HTTP Request Error
+{
+  "method": "DELETE",
+  "url": "/api/v1/admin/products/69caa00db21a8547504fb688",
+  "status": 404,
+  "duration": "98ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 22:11:48 [error]: HTTP Request Error
+{
+  "method": "DELETE",
+  "url": "/api/v1/admin/products/69caa00db21a8547504fb688",
+  "status": 404,
+  "duration": "490ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 22:14:17 [error]: HTTP Request Error
+{
+  "method": "DELETE",
+  "url": "/api/v1/admin/products/69ca9f6eb21a8547504fb601",
+  "status": 404,
+  "duration": "335ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 22:15:17 [error]: HTTP Request Error
+{
+  "method": "DELETE",
+  "url": "/api/v1/admin/products/69caa00db21a8547504fb688",
+  "status": 404,
+  "duration": "124ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 22:15:24 [error]: HTTP Request Error
+{
+  "method": "DELETE",
+  "url": "/api/v1/admin/products/69ca9f6eb21a8547504fb601",
+  "status": 404,
+  "duration": "110ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 22:15:32 [error]: HTTP Request Error
+{
+  "method": "DELETE",
+  "url": "/api/v1/admin/products/69ca99efb21a8547504fb453",
+  "status": 404,
+  "duration": "120ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 22:37:22 [error]: HTTP Request Error
+{
+  "method": "DELETE",
+  "url": "/api/v1/admin/products/69caa00db21a8547504fb688",
+  "status": 500,
+  "duration": "374ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 22:45:34 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/reports/orders?from=2026-03-01&to=2026-03-31&format=json",
+  "status": 500,
+  "duration": "142ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 22:45:36 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/reports/orders?from=2026-03-01&to=2026-03-31&format=json",
+  "status": 500,
+  "duration": "164ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 23:03:45 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/drivers/69c84fc45b74f5cad08b00e0/location",
+  "status": 404,
+  "duration": "248ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 23:03:46 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/drivers/69c84fc45b74f5cad08b00e0/location",
+  "status": 404,
+  "duration": "131ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 23:03:51 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/drivers/69c84fc45b74f5cad08b00e0/location",
+  "status": 404,
+  "duration": "143ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 23:03:52 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/drivers/69c84fc45b74f5cad08b00e0/location",
+  "status": 404,
+  "duration": "133ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 23:03:57 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/drivers/69c84fc45b74f5cad08b00e0/location",
+  "status": 404,
+  "duration": "125ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 23:03:59 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/drivers/69c84fc45b74f5cad08b00e0/location",
+  "status": 404,
+  "duration": "121ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 23:05:07 [error]: Business Error: Error getting rate limit stats: Cannot read properties of undefined (reading 'stats')
+TypeError: Cannot read properties of undefined (reading 'stats')
+    at getStats (C:\project\Backend-walid-yahaya\src\middlewares\rateLimit.middleware.js:389:28)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+2026-03-31 23:05:07 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/rate-limit/stats",
+  "status": 500,
+  "duration": "80ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}
+2026-03-31 23:05:29 [error]: Business Error: Error getting rate limit stats: Cannot read properties of undefined (reading 'stats')
+TypeError: Cannot read properties of undefined (reading 'stats')
+    at getStats (C:\project\Backend-walid-yahaya\src\middlewares\rateLimit.middleware.js:389:28)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:157:13)
+    at Route.dispatch (C:\project\Backend-walid-yahaya\node_modules\router\lib\route.js:117:3)
+    at handle (C:\project\Backend-walid-yahaya\node_modules\router\index.js:435:11)
+    at Layer.handleRequest (C:\project\Backend-walid-yahaya\node_modules\router\lib\layer.js:152:17)
+    at C:\project\Backend-walid-yahaya\node_modules\router\index.js:295:15
+    at processParams (C:\project\Backend-walid-yahaya\node_modules\router\index.js:582:12)
+    at next (C:\project\Backend-walid-yahaya\node_modules\router\index.js:291:5)
+    at C:\project\Backend-walid-yahaya\src\middlewares\role.middleware.js:107:7
+2026-03-31 23:05:29 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/api/v1/admin/rate-limit/stats",
+  "status": 500,
+  "duration": "85ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "69c87b016430cf760da51173"
+}

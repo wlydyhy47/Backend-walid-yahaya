@@ -516,13 +516,14 @@ router.get('/stores/:id', storeController.getStoreDetails);
  *       201:
  *         description: تم إنشاء المتجر
  */
+// ✅ الترتيب الصحيح:
 router.post('/stores', 
-  validate(createStoreSchema),
-  upload('stores', ['image']).fields([
+  upload('stores', ['image']).fields([        // 1. أولاً: رفع الملفات
     { name: 'logo', maxCount: 1 },
     { name: 'coverImage', maxCount: 1 }
-  ]), 
-  storeController.createStore
+  ]),
+  validate(createStoreSchema),                // 2. ثانياً: التحقق من صحة البيانات
+  storeController.createStore                 // 3. أخيراً: تنفيذ الـ Controller
 );
 
 /**
@@ -541,14 +542,38 @@ router.post('/stores',
  *           type: string
  *     requestBody:
  *       content:
- *         application/json:
+ *         multipart/form-data:  // ✅ يجب أن يكون multipart/form-data لدعم رفع الملفات
  *           schema:
  *             $ref: '#/components/schemas/UpdateStoreInput'
  *     responses:
  *       200:
  *         description: تم تحديث المتجر
  */
-router.put('/stores/:id', validate(updateStoreSchema), storeController.updateStore);
+router.put('/stores/:id', 
+  upload('stores', ['image']).fields([
+    { name: 'logo', maxCount: 1 },
+    { name: 'coverImage', maxCount: 1 }
+  ]),
+  validate(updateStoreSchema),
+  storeController.updateStore
+);
+
+
+
+// ========== 15. تحديث إحداثيات المتاجر ==========
+/**
+ * @swagger
+ * /admin/stores/update-coordinates:
+ *   post:
+ *     summary: تحديث إحداثيات المتاجر القديمة
+ *     tags: [👑 Admin]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: تم تحديث الإحداثيات
+ */
+router.post('/stores/update-coordinates', storeController.updateStoreCoordinates);
 
 /**
  * @swagger
