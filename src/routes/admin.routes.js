@@ -22,6 +22,7 @@ const {
 
 const auth = require('../middlewares/auth.middleware');
 const role = require('../middlewares/role.middleware');
+const handleFormData = require('../middlewares/formDataHandler');
 const validate = require('../middlewares/validate.middleware');
 const rateLimiter = require('../middlewares/rateLimit.middleware');
 const upload = require('../middlewares/upload');
@@ -516,14 +517,15 @@ router.get('/stores/:id', storeController.getStoreDetails);
  *       201:
  *         description: تم إنشاء المتجر
  */
-// ✅ الترتيب الصحيح:
+
 router.post('/stores', 
-  upload('stores', ['image']).fields([        // 1. أولاً: رفع الملفات
+  upload('stores', ['image']).fields([        
     { name: 'logo', maxCount: 1 },
     { name: 'coverImage', maxCount: 1 }
   ]),
-  validate(createStoreSchema),                // 2. ثانياً: التحقق من صحة البيانات
-  storeController.createStore                 // 3. أخيراً: تنفيذ الـ Controller
+  handleFormData,
+  validate(createStoreSchema),               
+  storeController.createStore                 
 );
 
 /**
@@ -554,6 +556,7 @@ router.put('/stores/:id',
     { name: 'logo', maxCount: 1 },
     { name: 'coverImage', maxCount: 1 }
   ]),
+  handleFormData,
   validate(updateStoreSchema),
   storeController.updateStore
 );
@@ -730,6 +733,7 @@ router.get('/products/:id', productController.getProductById);
  */
 router.post('/products', 
   upload('products', ['image']).single('image'),
+  handleFormData,
   validate(createProductSchema),
   productController.createProduct
 );
@@ -757,7 +761,8 @@ router.post('/products',
  *       200:
  *         description: تم تحديث المنتج
  */
-router.put('/products/:id', 
+router.put('/products/:id',
+  handleFormData, 
   validate(updateProductSchema),
   productController.updateProduct
 );

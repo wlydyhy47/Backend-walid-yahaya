@@ -11079,3 +11079,572 @@ TypeError: Cannot read properties of undefined (reading 'stats')
   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
   "userId": "69c87b016430cf760da51173"
 }
+2026-04-04 21:04:23 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async connectDB (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+    at async startServer (C:\project\Backend-walid-yahaya\src\server.js:227:5)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:04:33 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:04:43 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:04:53 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:05:03 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:05:13 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:05:23 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:05:33 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:05:43 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:05:53 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:06:03 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:06:13 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:06:23 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:06:33 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:06:43 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:06:53 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:07:03 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:07:13 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:07:24 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:07:34 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:07:44 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:07:54 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:08:04 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:08:14 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:08:24 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:08:34 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:08:44 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:08:54 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:09:04 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:09:14 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:09:24 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:09:34 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Server selection timed out after 5000 ms
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Server selection timed out after 5000 ms"
+}
+2026-04-04 21:09:44 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:09:55 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:10:05 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:10:15 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:10:25 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:10:35 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:10:45 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:10:55 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:11:05 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:11:15 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:11:25 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:11:35 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:11:46 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:14:59 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async connectDB (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+    at async startServer (C:\project\Backend-walid-yahaya\src\server.js:227:5)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:15:03 [error]: Business Error: Cloudinary connection failed ❌ getaddrinfo ENOTFOUND api.cloudinary.com
+Error: getaddrinfo ENOTFOUND api.cloudinary.com
+    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)
+{
+  "errno": -3008,
+  "code": "ENOTFOUND",
+  "syscall": "getaddrinfo",
+  "hostname": "api.cloudinary.com"
+}
+2026-04-04 21:15:09 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:15:19 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:15:29 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:15:39 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:15:49 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:15:59 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:16:09 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-04 21:16:19 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}

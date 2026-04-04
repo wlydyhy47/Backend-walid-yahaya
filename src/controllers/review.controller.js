@@ -171,6 +171,198 @@ exports.addReview = async (req, res) => {
     });
   }
 };
+ 
+
+/**
+ * @desc    الحصول على تقييمات المستخدم الحالي
+ * @route   GET /api/v1/client/reviews/me
+ * @access  Client
+ */
+exports.getMyReviews = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { page = 1, limit = 10 } = req.query;
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const [reviews, total] = await Promise.all([
+      Review.find({ user: userId })
+        .populate("store", "name image logo")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+
+      Review.countDocuments({ user: userId })
+    ]);
+
+    res.json({
+      success: true,
+      data: reviews,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get my reviews error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب تقييماتك"
+    });
+  }
+};
+
+/**
+ * @desc    تحديث تقييم
+ * @route   PUT /api/v1/client/reviews/:id
+ * @access  Client
+ */
+exports.updateReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { rating, comment } = req.body;
+    const userId = req.user.id;
+
+    const review = await Review.findOne({
+      _id: id,
+      user: userId
+    });
+
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: "التقييم غير موجود"
+      });
+    }
+
+    // تحديث الحقول
+    if (rating) {
+      if (rating < 1 || rating > 5) {
+        return res.status(400).json({
+          success: false,
+          message: "التقييم يجب أن يكون بين 1 و 5"
+        });
+      }
+      review.rating = rating;
+    }
+
+    if (comment !== undefined) {
+      if (comment && comment.length > 1000) {
+        return res.status(400).json({
+          success: false,
+          message: "التعليق طويل جداً"
+        });
+      }
+      review.comment = comment?.trim();
+    }
+
+    await review.save();
+
+    // تحديث متوسط تقييم المتجر
+    await updateStoreRating(review.store);
+
+    // إبطال الكاش
+    invalidateReviewCache(review.store);
+
+    // جلب التقييم المحدث
+    const updatedReview = await Review.findById(id)
+      .populate('user', 'name image')
+      .populate('store', 'name image')
+      .lean();
+
+    res.json({
+      success: true,
+      message: "تم تحديث التقييم بنجاح",
+      data: updatedReview
+    });
+  } catch (error) {
+    console.error("❌ Update review error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث التقييم"
+    });
+  }
+};
+
+/**
+ * @desc    حذف تقييم
+ * @route   DELETE /api/v1/client/reviews/:id
+ * @access  Client / Admin
+ */
+exports.deleteReview = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+
+    const query = userRole === 'admin' 
+      ? { _id: id }
+      : { _id: id, user: userId };
+
+    const review = await Review.findOneAndDelete(query);
+
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: "التقييم غير موجود"
+      });
+    }
+
+    // تحديث متوسط تقييم المتجر
+    await updateStoreRating(review.store);
+
+    // إبطال الكاش
+    invalidateReviewCache(review.store);
+
+    res.json({
+      success: true,
+      message: "تم حذف التقييم بنجاح"
+    });
+  } catch (error) {
+    console.error("❌ Delete review error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل حذف التقييم"
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على تقييم محدد
+ * @route   GET /api/v1/public/reviews/:id
+ * @access  Public
+ */
+exports.getReviewById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const review = await Review.findById(id)
+      .populate('user', 'name image')
+      .populate('store', 'name image logo')
+      .lean();
+
+    if (!review) {
+      return res.status(404).json({
+        success: false,
+        message: "التقييم غير موجود"
+      });
+    }
+
+    res.json({
+      success: true,
+      data: review
+    });
+  } catch (error) {
+    console.error("❌ Get review by id error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب التقييم"
+    });
+  }
+};
 
 /**
  * @desc    الحصول على تقييمات متجر

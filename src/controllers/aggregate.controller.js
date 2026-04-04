@@ -2578,3 +2578,145 @@ exports.getCustomStats = async (req, res) => {
     });
   }
 };
+
+/**
+ * @desc    الحصول على إيرادات اليوم (دالة مساعدة)
+ * @access  Internal
+ */
+exports.getTodayRevenue = async (query = {}) => {
+  try {
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const result = await Order.aggregate([
+      {
+        $match: {
+          ...query,
+          createdAt: { $gte: startOfDay, $lte: endOfDay },
+          status: 'delivered'
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: '$totalPrice' },
+          orderCount: { $sum: 1 }
+        }
+      }
+    ]);
+
+    return result[0] || { totalRevenue: 0, orderCount: 0 };
+  } catch (error) {
+    console.error('❌ Get today revenue error:', error.message);
+    return { totalRevenue: 0, orderCount: 0 };
+  }
+};
+
+/**
+ * @desc    الحصول على إحصائيات المتجر (دالة مساعدة)
+ * @access  Internal
+ */
+exports.getStoreStats = async (storeId) => {
+  try {
+    const [
+      productsCount,
+      reviewsCount,
+      ordersCount,
+      ratingDistribution,
+      popularProducts
+    ] = await Promise.all([
+      Product.countDocuments({ store: storeId, isAvailable: true }),
+      Review.countDocuments({ store: storeId }),
+      Order.countDocuments({ store: storeId, status: 'delivered' }),
+      Review.aggregate([
+        { $match: { store: storeId } },
+        {
+          $group: {
+            _id: "$rating",
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      Order.aggregate([
+        { $match: { store: storeId, status: 'delivered' } },
+        { $unwind: "$items" },
+        {
+          $group: {
+            _id: "$items.name",
+            totalSold: { $sum: "$items.qty" },
+            totalRevenue: { $sum: { $multiply: ["$items.price", "$items.qty"] } }
+          }
+        },
+        { $sort: { totalSold: -1 } },
+        { $limit: 5 }
+      ])
+    ]);
+
+    return {
+      products: productsCount,
+      reviews: reviewsCount,
+      orders: ordersCount,
+      ratingDistribution: ratingDistribution.reduce((acc, curr) => {
+        acc[curr._id] = curr.count;
+        return acc;
+      }, {}),
+      popularProducts,
+      lastUpdated: new Date()
+    };
+  } catch (error) {
+    console.error("❌ Error in getStoreStats:", error);
+    return {
+      products: 0,
+      reviews: 0,
+      orders: 0,
+      ratingDistribution: {},
+      popularProducts: []
+    };
+  }
+};
+
+/**
+ * @desc    حساب وقت التوصيل المتوقع (دالة مساعدة)
+ * @access  Internal
+ */
+exports.calculateETA = (order) => {
+  if (!order) return 'غير معروف';
+
+  const now = new Date();
+  const created = new Date(order.createdAt);
+  const elapsedMinutes = Math.floor((now - created) / 60000);
+
+  const baseTime = order.estimatedDeliveryTime || 30;
+  const remaining = Math.max(0, baseTime - elapsedMinutes);
+
+  const statusTimes = {
+    pending: `${baseTime} دقيقة`,
+    accepted: `${Math.max(5, remaining)} دقيقة`,
+    ready: `${Math.max(2, remaining - 5)} دقيقة`,
+    picked: `${Math.max(2, remaining - 10)} دقيقة`,
+    delivered: 'تم التوصيل',
+    cancelled: 'ملغي'
+  };
+
+  return statusTimes[order.status] || 'قيد الحساب';
+};
+
+/**
+ * @desc    الحصول على نص الحالة (دالة مساعدة)
+ * @access  Internal
+ */
+exports.getStatusText = (status) => {
+  const statusTexts = {
+    pending: 'قيد الانتظار',
+    accepted: 'تم القبول',
+    ready: 'جاهز',
+    picked: 'تم الاستلام',
+    delivered: 'تم التوصيل',
+    cancelled: 'ملغي'
+  };
+  return statusTexts[status] || 'غير معروف';
+};

@@ -7,6 +7,7 @@
 const express = require('express');
 const router = express.Router();
 
+const { validateCoordinates, validateRoute } = require('../middlewares/map.middleware');
 const mapController = require('../controllers/map.controller');
 const auth = require('../middlewares/auth.middleware');
 const role = require('../middlewares/role.middleware');
@@ -154,7 +155,9 @@ router.use(auth);
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.post('/directions', mapController.getDirections);
+router.post('/directions',
+  validateRoute,
+  mapController.getDirections);
 
 /**
  * @swagger
@@ -597,7 +600,10 @@ router.get('/driver/:driverId/track', mapController.trackDriver);
  *       403:
  *         description: غير مصرح - يتطلب دور مندوب
  */
-router.put('/driver/location', driverMiddleware, mapController.updateDriverLocation);
+router.put('/driver/location',
+  driverMiddleware,
+  validateCoordinates,
+  mapController.updateDriverLocation);
 
 /**
  * @swagger
@@ -633,7 +639,7 @@ router.get('/driver/current-route', driverMiddleware, async (req, res) => {
   try {
     const driverId = req.user.id;
     const Order = require('../models/order.model');
-    
+
     const currentOrder = await Order.findOne({
       driver: driverId,
       status: { $in: ['accepted', 'picked'] }
@@ -815,7 +821,10 @@ router.post('/store/nearest-driver', storeOwnerMiddleware, mapController.findNea
  *       200:
  *         description: قائمة أقرب المندوبين
  */
-router.post('/nearest-driver', role('admin'), mapController.findNearestDriver);
+router.post('/nearest-driver',
+   role('admin'),
+   validateCoordinates,
+    mapController.findNearestDriver);
 
 /**
  * @swagger
@@ -876,12 +885,12 @@ router.get('/drivers/locations', role('admin'), async (req, res) => {
   try {
     const DriverLocation = require('../models/driverLocation.model');
     const { limit = 100, status, updatedAfter } = req.query;
-    
+
     let query = {};
     if (updatedAfter) {
       query.createdAt = { $gte: new Date(updatedAfter) };
     }
-    
+
     const locations = await DriverLocation.find(query)
       .populate('driver', 'name phone email rating driverInfo.isAvailable driverInfo.status')
       .sort({ createdAt: -1 })
@@ -890,7 +899,7 @@ router.get('/drivers/locations', role('admin'), async (req, res) => {
 
     let filteredLocations = locations;
     if (status) {
-      filteredLocations = locations.filter(loc => 
+      filteredLocations = locations.filter(loc =>
         loc.driver?.driverInfo?.status === status
       );
     }
@@ -970,7 +979,7 @@ router.get('/drivers/locations', role('admin'), async (req, res) => {
 router.get('/drivers/track-all', role('admin'), async (req, res) => {
   try {
     const DriverLocation = require('../models/driverLocation.model');
-    
+
     const drivers = await DriverLocation.aggregate([
       {
         $sort: { createdAt: -1 }

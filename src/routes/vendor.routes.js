@@ -16,6 +16,7 @@ const {
 
 const auth = require('../middlewares/auth.middleware');
 const { storeOwnerMiddleware } = require('../middlewares/role.middleware');
+const handleFormData = require('../middlewares/formDataHandler');
 const validate = require('../middlewares/validate.middleware');
 const upload = require('../middlewares/upload');
 const PaginationUtils = require('../utils/pagination.util');
@@ -487,7 +488,8 @@ router.get('/products', PaginationUtils.validatePaginationParams, productControl
  */
 router.post('/products', 
   validate(createProductSchema),
-  upload('products', ['image']).single('image'), 
+  upload('products', ['image']).single('image'),
+   handleFormData, 
   productController.createProduct
 );
 
@@ -544,7 +546,10 @@ router.get('/products/:id', productController.getProductById);
  *       200:
  *         description: تم تحديث المنتج
  */
-router.put('/products/:id', validate(updateProductSchema), productController.updateProduct);
+router.put('/products/:id',
+   validate(updateProductSchema),
+   handleFormData,
+    productController.updateProduct);
 
 /**
  * @swagger

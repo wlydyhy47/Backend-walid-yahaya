@@ -30,7 +30,7 @@ class HealthCheckService {
     try {
       const state = mongoose.connection.readyState;
       const states = ['disconnected', 'connected', 'connecting', 'disconnecting'];
-      
+
       let responseTime = null;
       let collections = null;
 
@@ -116,7 +116,7 @@ class HealthCheckService {
       const used = process.memoryUsage();
       const total = os.totalmem();
       const free = os.freemem();
-      
+
       const heapUsagePercent = (used.heapUsed / used.heapTotal * 100).toFixed(2);
       const systemUsagePercent = ((total - free) / total * 100).toFixed(2);
 
@@ -159,7 +159,7 @@ class HealthCheckService {
     try {
       const cpus = os.cpus();
       const loadAvg = os.loadavg();
-      
+
       // حساب متوسط الحمل لكل نواة
       const loadPerCore = loadAvg[0] / cpus.length;
       const usagePercent = (loadPerCore * 100).toFixed(2);
@@ -198,9 +198,9 @@ class HealthCheckService {
    */
   async checkDiskSpace() {
     try {
-      // محاولة استخدام check-disk-space إذا كان مثبتاً
       let diskSpace;
       try {
+        // محاولة استخدام check-disk-space إذا كان مثبتاً
         const checkDiskSpaceModule = require('check-disk-space');
         diskSpace = await checkDiskSpaceModule('/');
       } catch (e) {
@@ -210,7 +210,7 @@ class HealthCheckService {
           size: os.totalmem() * 20
         };
       }
-      
+
       const freeGB = (diskSpace.free / 1024 / 1024 / 1024).toFixed(2);
       const totalGB = (diskSpace.size / 1024 / 1024 / 1024).toFixed(2);
       const usagePercent = ((1 - diskSpace.free / diskSpace.size) * 100).toFixed(2);
@@ -234,11 +234,10 @@ class HealthCheckService {
         name: 'Disk Space',
         status: 'unhealthy',
         level: 'warning',
-        error: error.message
+        error: 'Unable to check disk space'
       };
     }
   }
-
   /**
    * فحص خدمات خارجية
    */
@@ -264,7 +263,7 @@ class HealthCheckService {
   async quickHealthCheck() {
     try {
       const dbCheck = await this.checkDatabase();
-      
+
       return {
         status: dbCheck.status === 'healthy' ? 'ok' : 'error',
         timestamp: new Date().toISOString(),
@@ -301,7 +300,7 @@ class HealthCheckService {
 
       const results = checks.map((check, index) => {
         const services = ['Database', 'Cache', 'Memory', 'CPU', 'Disk Space', 'External Services'];
-        
+
         if (check.status === 'fulfilled') {
           return check.value;
         } else {
@@ -354,7 +353,7 @@ class HealthCheckService {
     try {
       const dbCheck = await this.checkDatabase();
       const cacheCheck = await this.checkCache();
-      
+
       const isReady = dbCheck.status === 'healthy' && cacheCheck.status !== 'unhealthy';
 
       return {
@@ -474,6 +473,7 @@ class HealthCheckService {
 
     return parts.join(' ');
   }
+
 }
 
 module.exports = new HealthCheckService();
