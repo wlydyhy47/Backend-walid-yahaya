@@ -29098,3 +29098,278 @@ MongooseServerSelectionError: Could not connect to any servers in your MongoDB A
   "name": "test"
 }
 2026-04-04 23:57:22 [info]: Business Action: Socket.io initialized successfully
+2026-04-05 21:17:57 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-05 21:17:58 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-04-05 21:17:58 [info]: Business Action: Mapbox service initialized
+2026-04-05 21:17:58 [info]: Business Action: Creating Redis client...
+2026-04-05 21:17:58 [info]: Business Action: RateLimiterService initialized
+2026-04-05 21:17:59 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-05 21:17:59 [error]: Business Error: Cloudinary connection failed ❌ getaddrinfo ENOTFOUND api.cloudinary.com
+Error: getaddrinfo ENOTFOUND api.cloudinary.com
+    at GetAddrInfoReqWrap.onlookupall [as oncomplete] (node:dns:122:26)
+{
+  "errno": -3008,
+  "code": "ENOTFOUND",
+  "syscall": "getaddrinfo",
+  "hostname": "api.cloudinary.com"
+}
+2026-04-05 21:18:04 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at async connectDB (C:\project\Backend\Backend-walid-yahaya\src\config\db.js:31:18)
+    at async startServer (C:\project\Backend\Backend-walid-yahaya\src\server.js:227:5)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-05 21:18:04 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-04-05 21:18:04 [info]: Business Action: Socket.io initialized successfully
+2026-04-05 21:18:09 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-05 21:18:14 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-05 21:18:14 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-04-05 21:18:19 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-05 21:18:24 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-05 21:18:24 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-04-05 21:18:29 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-05 21:18:34 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-05 21:18:34 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-04-05 21:18:39 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-05 21:18:44 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-05 21:18:44 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-04-05 21:18:49 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-05 21:18:54 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-05 21:18:54 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-04-05 21:18:59 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-05 21:19:04 [error]: Business Error: MongoDB Connection Error ❌
+MongooseServerSelectionError: Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/
+    at _handleConnectionErrors (C:\project\Backend\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1168:11)
+    at NativeConnection.openUri (C:\project\Backend\Backend-walid-yahaya\node_modules\mongoose\lib\connection.js:1099:11)
+    at runNextTicks (node:internal/process/task_queues:64:5)
+    at listOnTimeout (node:internal/timers:567:9)
+    at process.processTimers (node:internal/timers:541:7)
+    at async Timeout.connectDB [as _onTimeout] (C:\project\Backend\Backend-walid-yahaya\src\config\db.js:31:18)
+{
+  "error": "Could not connect to any servers in your MongoDB Atlas cluster. One common reason is that you're trying to access the database from an IP that isn't whitelisted. Make sure your current IP address is on your Atlas cluster's IP whitelist: https://www.mongodb.com/docs/atlas/security-whitelist/"
+}
+2026-04-05 21:19:04 [info]: Business Action: 🔄 محاولة إعادة الاتصال بعد 5 ثواني...
+2026-04-08 17:46:56 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-08 17:46:57 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-04-08 17:46:57 [info]: Business Action: Mapbox service initialized
+2026-04-08 17:46:57 [info]: Business Action: Creating Redis client...
+2026-04-08 17:46:57 [info]: Business Action: RateLimiterService initialized
+2026-04-08 17:46:58 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-08 17:46:59 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-08 17:47:01 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-08 17:47:01 [info]: Business Action: Socket.io initialized successfully
+2026-04-08 17:48:32 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-08 17:48:32 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-04-08 17:48:32 [info]: Business Action: Mapbox service initialized
+2026-04-08 17:48:32 [info]: Business Action: Creating Redis client...
+2026-04-08 17:48:32 [info]: Business Action: RateLimiterService initialized
+2026-04-08 17:48:33 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-08 17:48:35 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-08 17:48:37 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-08 17:48:37 [info]: Business Action: Socket.io initialized successfully
+2026-04-08 17:48:46 [warn]: HTTP Request Warning
+{
+  "method": "GET",
+  "url": "/api-docs",
+  "status": 301,
+  "duration": "12ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-08 17:48:46 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/",
+  "status": 200,
+  "duration": "22ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-08 17:48:46 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui.css",
+  "status": 200,
+  "duration": "65ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-08 17:48:46 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-standalone-preset.js",
+  "status": 200,
+  "duration": "114ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-08 17:48:47 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-init.js",
+  "status": 200,
+  "duration": "144ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-08 17:48:47 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/swagger-ui-bundle.js",
+  "status": 200,
+  "duration": "410ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-08 17:48:49 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs/favicon-32x32.png",
+  "status": 200,
+  "duration": "2ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-08 17:49:10 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 400,
+  "duration": "377ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-08 17:49:19 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 400,
+  "duration": "374ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-08 17:49:38 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 400,
+  "duration": "1429ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-08 17:49:38 [info]: Business Action: Slow request detected
+{
+  "requestId": "1775659777308-3qdcbn",
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "duration": "1430.55ms",
+  "status": 400
+}
+2026-04-08 17:50:09 [error]: HTTP Request Error
+{
+  "method": "POST",
+  "url": "/api/v1/auth/login",
+  "status": 400,
+  "duration": "319ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
