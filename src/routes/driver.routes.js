@@ -1,7 +1,7 @@
 // ============================================
-// ملف: src/routes/driver.routes.js
+// ملف: src/routes/driver.routes.js (النسخة المحسنة)
 // الوصف: مسارات المندوبين الموحدة
-// الإصدار: 3.0
+// الإصدار: 4.0
 // ============================================
 
 const express = require('express');
@@ -52,40 +52,6 @@ router.use(driverMiddleware);
  *     responses:
  *       200:
  *         description: بيانات المندوب
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     id:
- *                       type: string
- *                     name:
- *                       type: string
- *                     email:
- *                       type: string
- *                     phone:
- *                       type: string
- *                     avatar:
- *                       type: string
- *                     isAvailable:
- *                       type: boolean
- *                     currentLocation:
- *                       type: object
- *                     rating:
- *                       type: number
- *                     totalDeliveries:
- *                       type: integer
- *                     totalEarnings:
- *                       type: number
- *       401:
- *         $ref: '#/components/responses/UnauthorizedError'
- *       403:
- *         description: غير مصرح - يتطلب دور مندوب
  */
 router.get('/profile', driverController.getMyProfile);
 
@@ -157,19 +123,14 @@ router.put('/profile/availability', validate(presenceSchema), driverController.t
  *             properties:
  *               latitude:
  *                 type: number
- *                 example: 24.7136
  *               longitude:
  *                 type: number
- *                 example: 46.6753
  *               accuracy:
  *                 type: number
- *                 description: دقة الموقع بالمتر
  *               heading:
  *                 type: number
- *                 description: الاتجاه بالدرجات
  *               speed:
  *                 type: number
- *                 description: السرعة كم/ساعة
  *     responses:
  *       200:
  *         description: تم تحديث الموقع
@@ -180,9 +141,9 @@ router.put('/profile/location', driverController.updateLocation);
 
 /**
  * @swagger
- * /driver/deliveries:
+ * /driver/orders:
  *   get:
- *     summary: قائمة التوصيلات الخاصة بي
+ *     summary: قائمة الطلبات الخاصة بي
  *     tags: [🚗 Driver]
  *     security:
  *       - bearerAuth: []
@@ -202,77 +163,68 @@ router.put('/profile/location', driverController.updateLocation);
  *         schema:
  *           type: string
  *           enum: [pending, accepted, picked, delivered, cancelled]
- *       - in: query
- *         name: fromDate
- *         schema:
- *           type: string
- *           format: date
- *       - in: query
- *         name: toDate
- *         schema:
- *           type: string
- *           format: date
  *     responses:
  *       200:
- *         description: قائمة التوصيلات
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     orders:
- *                       type: array
- *                     pagination:
- *                       $ref: '#/components/schemas/Pagination'
- *                     stats:
- *                       type: object
+ *         description: قائمة الطلبات
  */
-router.get('/deliveries', PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
+router.get('/orders', PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
 
 /**
  * @swagger
- * /driver/deliveries/current:
+ * /driver/orders/active:
  *   get:
- *     summary: التوصيل الحالي
+ *     summary: الطلب الحالي (قيد التوصيل)
  *     tags: [🚗 Driver]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: بيانات التوصيل الحالي
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     order:
- *                       $ref: '#/components/schemas/Order'
- *                     driverLocation:
- *                       type: object
- *                     estimatedDelivery:
- *                       type: string
- *                     timeline:
- *                       type: array
+ *         description: بيانات الطلب الحالي
  *       204:
- *         description: لا يوجد توصيل حالي
+ *         description: لا يوجد طلب حالي
  */
-router.get('/deliveries/current', orderController.getCurrentDelivery);
+router.get('/orders/active', orderController.getCurrentDelivery);
 
 /**
  * @swagger
- * /driver/deliveries/{id}:
+ * /driver/orders/history:
  *   get:
- *     summary: تفاصيل توصيل محدد
+ *     summary: ✅ NEW - تاريخ الطلبات المكتملة
+ *     tags: [🚗 Driver]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: from
+ *         schema:
+ *           type: string
+ *           format: date
+ *       - in: query
+ *         name: to
+ *         schema:
+ *           type: string
+ *           format: date
+ *     responses:
+ *       200:
+ *         description: تاريخ الطلبات مع إحصائيات
+ */
+router.get('/orders/history', PaginationUtils.validatePaginationParams, orderController.getDriverOrdersHistory);
+
+/**
+ * @swagger
+ * /driver/orders/{id}:
+ *   get:
+ *     summary: تفاصيل طلب محدد
  *     tags: [🚗 Driver]
  *     security:
  *       - bearerAuth: []
@@ -284,15 +236,63 @@ router.get('/deliveries/current', orderController.getCurrentDelivery);
  *           type: string
  *     responses:
  *       200:
- *         description: تفاصيل التوصيل
+ *         description: تفاصيل الطلب
  */
-router.get('/deliveries/:id', orderController.getOrderDetails);
+router.get('/orders/:id', orderController.getOrderDetails);
 
 /**
  * @swagger
- * /driver/deliveries/{id}/status:
+ * /driver/orders/{id}/accept:
  *   put:
- *     summary: تحديث حالة التوصيل
+ *     summary: قبول طلب
+ *     tags: [🚗 Driver]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: تم قبول الطلب
+ */
+router.put('/orders/:id/accept', orderController.acceptOrder);
+
+/**
+ * @swagger
+ * /driver/orders/{id}/reject:
+ *   put:
+ *     summary: رفض طلب
+ *     tags: [🚗 Driver]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: تم رفض الطلب
+ */
+router.put('/orders/:id/reject', orderController.rejectOrder);
+
+/**
+ * @swagger
+ * /driver/orders/{id}/status:
+ *   put:
+ *     summary: تحديث حالة الطلب
  *     tags: [🚗 Driver]
  *     security:
  *       - bearerAuth: []
@@ -312,13 +312,13 @@ router.get('/deliveries/:id', orderController.getOrderDetails);
  *       200:
  *         description: تم تحديث الحالة
  */
-router.put('/deliveries/:id/status', validate(updateStatusSchema), orderController.updateStatus);
+router.put('/orders/:id/status', validate(updateStatusSchema), orderController.updateStatus);
 
 /**
  * @swagger
- * /driver/deliveries/{id}/location:
+ * /driver/orders/{id}/start:
  *   post:
- *     summary: تحديث موقع التوصيل الحالي
+ *     summary: ✅ NEW - بدء التوصيل (تغيير الحالة إلى picked)
  *     tags: [🚗 Driver]
  *     security:
  *       - bearerAuth: []
@@ -328,6 +328,52 @@ router.put('/deliveries/:id/status', validate(updateStatusSchema), orderControll
  *         required: true
  *         schema:
  *           type: string
+ *     responses:
+ *       200:
+ *         description: تم بدء التوصيل بنجاح
+ */
+router.post('/orders/:id/start', orderController.startDelivery);
+
+/**
+ * @swagger
+ * /driver/orders/{id}/complete:
+ *   post:
+ *     summary: ✅ NEW - إنهاء الطلب (تغيير الحالة إلى delivered)
+ *     tags: [🚗 Driver]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               signature:
+ *                 type: string
+ *               deliveryPhoto:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: تم إنهاء الطلب بنجاح
+ */
+router.post('/orders/:id/complete', orderController.completeOrder);
+
+// ========== 3. الموقع والتتبع ==========
+
+/**
+ * @swagger
+ * /driver/location:
+ *   put:
+ *     summary: تحديث موقع المندوب الحالي
+ *     tags: [🚗 Driver]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -348,33 +394,49 @@ router.put('/deliveries/:id/status', validate(updateStatusSchema), orderControll
  *                 type: number
  *               speed:
  *                 type: number
+ *               orderId:
+ *                 type: string
  *     responses:
  *       200:
  *         description: تم تحديث الموقع
  */
-router.post('/deliveries/:id/location', orderController.updateDriverLocation);
+router.put('/location', driverController.updateLocation);
 
 /**
  * @swagger
- * /driver/deliveries/{id}/track:
+ * /driver/location/current:
  *   get:
- *     summary: تتبع تقدم التوصيل
+ *     summary: الحصول على الموقع الحالي للمندوب
+ *     tags: [🚗 Driver]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: الموقع الحالي
+ */
+router.get('/location/current', driverController.getCurrentLocation);
+
+/**
+ * @swagger
+ * /driver/location/order/{orderId}:
+ *   get:
+ *     summary: ✅ NEW - الحصول على موقع الطلب (الاستلام والتوصيل)
  *     tags: [🚗 Driver]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: id
+ *         name: orderId
  *         required: true
  *         schema:
  *           type: string
  *     responses:
  *       200:
- *         description: معلومات التتبع
+ *         description: موقع الاستلام والتوصيل
  */
-router.get('/deliveries/:id/track', orderController.trackOrder);
+router.get('/location/order/:orderId', orderController.getOrderLocation);
 
-// ========== 3. الأرباح ==========
+// ========== 4. الأرباح ==========
 
 /**
  * @swagger
@@ -404,24 +466,6 @@ router.get('/deliveries/:id/track', orderController.trackOrder);
  *     responses:
  *       200:
  *         description: بيانات الأرباح
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     period:
- *                       type: string
- *                     earnings:
- *                       type: array
- *                     totals:
- *                       type: object
- *                     currency:
- *                       type: string
  */
 router.get('/earnings', orderController.getDriverEarnings);
 
@@ -436,24 +480,6 @@ router.get('/earnings', orderController.getDriverEarnings);
  *     responses:
  *       200:
  *         description: إحصائيات الأرباح
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     today:
- *                       type: object
- *                     week:
- *                       type: object
- *                     month:
- *                       type: object
- *                     total:
- *                       type: object
  */
 router.get('/earnings/stats', driverController.getMyStats);
 
@@ -489,28 +515,10 @@ router.get('/earnings/stats', driverController.getMyStats);
  *     responses:
  *       200:
  *         description: سجل الأرباح
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     earnings:
- *                       type: array
- *                     monthlyStats:
- *                       type: array
- *                     stats:
- *                       type: object
- *                     pagination:
- *                       $ref: '#/components/schemas/Pagination'
  */
 router.get('/earnings/history', PaginationUtils.validatePaginationParams, driverController.getEarningsHistory);
 
-// ========== 4. الإحصائيات ==========
+// ========== 5. الإحصائيات ==========
 
 /**
  * @swagger
@@ -523,26 +531,6 @@ router.get('/earnings/history', PaginationUtils.validatePaginationParams, driver
  *     responses:
  *       200:
  *         description: إحصائيات الأداء
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     today:
- *                       type: object
- *                     week:
- *                       type: object
- *                     month:
- *                       type: object
- *                     total:
- *                       type: object
- *                     recentOrders:
- *                       type: array
  */
 router.get('/stats', driverController.getMyStats);
 
@@ -564,22 +552,6 @@ router.get('/stats', driverController.getMyStats);
  *     responses:
  *       200:
  *         description: تقرير الأداء
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     period:
- *                       type: object
- *                     performance:
- *                       type: object
- *                     summary:
- *                       type: object
  */
 router.get('/performance', driverController.getPerformanceReport);
 

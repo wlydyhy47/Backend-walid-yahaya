@@ -3022,4 +3022,344 @@ exports.reportOrderIssue = async (req, res) => {
   }
 };
 
+// ========== 11. دوال جديدة للمندوبين (الإصدار 4.0) ==========
+
+/**
+ * @desc    بدء التوصيل (تغيير الحالة من accepted إلى picked)
+ * @route   POST /api/v1/driver/orders/:id/start
+ * @access  Driver
+ */
+exports.startDelivery = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driverId = req.user.id;
+    
+    // التحقق من وجود الطلب وحالته
+    const order = await Order.findOne({
+      _id: id,
+      driver: driverId,
+      status: 'accepted'
+    }).populate('user', 'name phone');
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'الطلب غير موجود أو ليس في حالة قبول'
+      });
+    }
+    
+    // تحديث الحالة
+    order.status = 'picked';
+    order.pickedAt = new Date();
+    await order.save();
+    
+    // إرسال إشعار للعميل عبر Socket.io
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`order:${order._id}`).emit('order:status:updated', {
+        orderId: order._id,
+        status: 'picked',
+        timestamp: new Date()
+      });
+    }
+    
+    // إرسال إشعار عبر Notification Service
+    await notificationService.sendNotification({
+      user: order.user._id,
+      type: 'order_picked',
+      title: '🚚 بدء التوصيل',
+      content: `مندوبك ${req.user.name} في طريقه إليك الآن`,
+      data: { orderId: order._id },
+      priority: 'high',
+      link: `/orders/${order._id}`,
+      icon: '🚚'
+    });
+    
+    // إبطال الكاش
+    await invalidateOrderCache(order._id, order.user._id);
+    
+    res.json({
+      success: true,
+      message: 'تم بدء التوصيل بنجاح',
+      data: {
+        orderId: order._id,
+        status: order.status,
+        startedAt: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('❌ Start delivery error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل بدء التوصيل'
+    });
+  }
+};
+
+/**
+ * @desc    إنهاء الطلب (تغيير الحالة من picked إلى delivered)
+ * @route   POST /api/v1/driver/orders/:id/complete
+ * @access  Driver
+ */
+exports.completeOrder = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driverId = req.user.id;
+    const { signature, deliveryPhoto } = req.body;
+    
+    // التحقق من وجود الطلب وحالته
+    const order = await Order.findOne({
+      _id: id,
+      driver: driverId,
+      status: 'picked'
+    }).populate('user', 'name phone');
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'الطلب غير موجود أو ليس في حالة توصيل'
+      });
+    }
+    
+    // تحديث الحالة
+    order.status = 'delivered';
+    order.deliveredAt = new Date();
+    
+    // حساب وقت التوصيل الفعلي
+    if (order.createdAt) {
+      order.deliveryTime = Math.round((order.deliveredAt - order.createdAt) / 60000);
+    }
+    
+    // إضافة التوقيع أو الصورة إذا وجدت
+    if (signature) order.signature = signature;
+    if (deliveryPhoto) order.deliveryPhoto = deliveryPhoto;
+    
+    await order.save();
+    
+    // تحديث إحصائيات المندوب
+    await User.findByIdAndUpdate(driverId, {
+      $inc: {
+        'driverInfo.totalDeliveries': 1,
+        'driverInfo.earnings': order.totalPrice * 0.8
+      }
+    });
+    
+    // إرسال إشعار للعميل
+    await notificationService.sendNotification({
+      user: order.user._id,
+      type: 'order_delivered',
+      title: '✅ تم توصيل طلبك',
+      content: `تم توصيل طلبك بنجاح. شكراً لك!`,
+      data: { orderId: order._id },
+      priority: 'high',
+      link: `/orders/${order._id}`,
+      icon: '✅'
+    });
+    
+    // إرسال عبر Socket.io
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`order:${order._id}`).emit('order:status:updated', {
+        orderId: order._id,
+        status: 'delivered',
+        timestamp: new Date()
+      });
+    }
+    
+    // إبطال الكاش
+    await invalidateOrderCache(order._id, order.user._id);
+    
+    res.json({
+      success: true,
+      message: 'تم إنهاء الطلب بنجاح',
+      data: {
+        orderId: order._id,
+        status: order.status,
+        deliveredAt: order.deliveredAt,
+        deliveryTime: order.deliveryTime
+      }
+    });
+  } catch (error) {
+    console.error('❌ Complete order error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل إنهاء الطلب'
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على تاريخ طلبات المندوب (المكتملة)
+ * @route   GET /api/v1/driver/orders/history
+ * @access  Driver
+ */
+exports.getDriverOrdersHistory = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { page = 1, limit = 20, from, to } = req.query;
+    
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    // بناء استعلام التاريخ
+    let dateQuery = {};
+    if (from || to) {
+      dateQuery.deliveredAt = {};
+      if (from) dateQuery.deliveredAt.$gte = new Date(from);
+      if (to) dateQuery.deliveredAt.$lte = new Date(to);
+    }
+    
+    const [orders, total] = await Promise.all([
+      Order.find({
+        driver: driverId,
+        status: 'delivered',
+        ...dateQuery
+      })
+        .populate('store', 'name image')
+        .populate('deliveryAddress')
+        .sort({ deliveredAt: -1 })
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean(),
+      
+      Order.countDocuments({
+        driver: driverId,
+        status: 'delivered',
+        ...dateQuery
+      })
+    ]);
+    
+    // إحصائيات الفترة
+    const stats = await Order.aggregate([
+      {
+        $match: {
+          driver: driverId,
+          status: 'delivered',
+          ...dateQuery
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          totalEarnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
+          averageOrderValue: { $avg: '$totalPrice' },
+          totalDistance: { $sum: '$estimatedDistance' }
+        }
+      }
+    ]);
+    
+    // إحصائيات شهرية للرسم البياني
+    const monthlyStats = await Order.aggregate([
+      {
+        $match: {
+          driver: driverId,
+          status: 'delivered'
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$deliveredAt' },
+            month: { $month: '$deliveredAt' }
+          },
+          orders: { $sum: 1 },
+          earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } }
+        }
+      },
+      { $sort: { '_id.year': -1, '_id.month': -1 } },
+      { $limit: 12 }
+    ]);
+    
+    res.json({
+      success: true,
+      data: {
+        orders: orders.map(order => ({
+          ...order,
+          earning: order.totalPrice * 0.8
+        })),
+        stats: stats[0] || {
+          totalOrders: 0,
+          totalEarnings: 0,
+          averageOrderValue: 0,
+          totalDistance: 0
+        },
+        monthlyStats: monthlyStats.map(stat => ({
+          year: stat._id.year,
+          month: stat._id.month,
+          monthName: new Date(stat._id.year, stat._id.month - 1, 1).toLocaleString('ar-SA', { month: 'long' }),
+          orders: stat.orders,
+          earnings: stat.earnings
+        })),
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Get driver orders history error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب تاريخ الطلبات'
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على موقع الطلب (الاستلام والتوصيل)
+ * @route   GET /api/v1/driver/location/order/:orderId
+ * @access  Driver
+ */
+exports.getOrderLocation = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const driverId = req.user.id;
+    
+    const order = await Order.findOne({
+      _id: orderId,
+      driver: driverId
+    })
+      .populate('pickupAddress')
+      .populate('deliveryAddress')
+      .lean();
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'الطلب غير موجود'
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        pickup: {
+          latitude: order.pickupAddress?.latitude,
+          longitude: order.pickupAddress?.longitude,
+          address: order.pickupAddress?.addressLine,
+          city: order.pickupAddress?.city
+        },
+        delivery: {
+          latitude: order.deliveryAddress?.latitude,
+          longitude: order.deliveryAddress?.longitude,
+          address: order.deliveryAddress?.addressLine,
+          city: order.deliveryAddress?.city
+        },
+        store: {
+          name: order.store?.name,
+          address: order.store?.addressLine
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Get order location error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب موقع الطلب'
+    });
+  }
+};
+
 module.exports = exports;

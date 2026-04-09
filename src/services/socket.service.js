@@ -42,10 +42,10 @@ class SocketService {
 
       this.setupEventHandlers();
       businessLogger.info("Socket.io initialized successfully");
-      
+
       // بدء معالج قائمة الانتظار
       this.startQueueProcessor();
-      
+
       return this.io;
     } catch (error) {
       businessLogger.error("Socket.io initialization failed:", error);
@@ -80,8 +80,8 @@ class SocketService {
     });
 
     this.io.on("connection", async (socket) => {
-      businessLogger.info(`Socket connected: ${socket.id}`, { 
-        userId: socket.userId 
+      businessLogger.info(`Socket connected: ${socket.id}`, {
+        userId: socket.userId
       });
 
       // تسجيل الاتصال
@@ -153,6 +153,179 @@ class SocketService {
         this.handleRoomLeave(socket, room);
       });
 
+
+      // ====== Driver Events (NEW) ======
+
+      // ✅ حدث تحديث موقع المندوب
+      socket.on("driver:location:updated", async (data) => {
+        try {
+          const { latitude, longitude, orderId } = data;
+          const userId = socket.userId;
+
+          if (!userId) {
+            socket.emit("error", { message: "Unauthenticated" });
+            return;
+          }
+
+          // التحقق من أن المستخدم مندوب
+          const user = await User.findById(userId);
+          if (!user || user.role !== 'driver') {
+            socket.emit("error", { message: "Only drivers can update location" });
+            return;
+          }
+
+          // التحقق من الإحداثيات
+          if (!latitude || !longitude || isNaN(latitude) || isNaN(longitude)) {
+            socket.emit("error", { message: "Invalid coordinates" });
+            return;
+          }
+
+          businessLogger.info(`Driver ${userId} updated location`, { latitude, longitude, orderId });
+
+          // إرسال الموقع إلى العميل إذا كان الطلب نشطاً
+          if (orderId) {
+            socket.to(`order:${orderId}`).emit("driver:location:tracking", {
+              driverId: userId,
+              driverName: user.name,
+              location: { latitude, longitude },
+              orderId,
+              timestamp: new Date()
+            });
+
+            // إرسال للأدمن للتتبع
+            socket.broadcast.emit("driver:location:broadcast", {
+              driverId: userId,
+              driverName: user.name,
+              location: { latitude, longitude },
+              orderId,
+              timestamp: new Date()
+            });
+          }
+
+          // إرسال تأكيد للسائق
+          socket.emit("driver:location:updated:ack", {
+            success: true,
+            timestamp: new Date()
+          });
+
+        } catch (error) {
+          businessLogger.error("Driver location update error:", error);
+          socket.emit("error", { message: "Failed to update location" });
+        }
+      });
+
+      // ✅ حدث بدء التوصيل
+      socket.on("driver:delivery:started", async (data) => {
+        try {
+          const { orderId } = data;
+          const userId = socket.userId;
+
+          if (!userId) {
+            socket.emit("error", { message: "Unauthenticated" });
+            return;
+          }
+
+          if (!orderId) {
+            socket.emit("error", { message: "Order ID required" });
+            return;
+          }
+
+          // التحقق من أن المستخدم مندوب
+          const user = await User.findById(userId);
+          if (!user || user.role !== 'driver') {
+            socket.emit("error", { message: "Only drivers can start delivery" });
+            return;
+          }
+
+          businessLogger.info(`Driver ${userId} started delivery for order ${orderId}`);
+
+          // إرسال إشعار للعميل
+          socket.to(`order:${orderId}`).emit("driver:delivery:started", {
+            driverId: userId,
+            driverName: user.name,
+            orderId,
+            timestamp: new Date()
+          });
+
+          // إرسال للأدمن
+          socket.broadcast.emit("order:status:changed", {
+            orderId,
+            status: "picked",
+            driverId: userId,
+            driverName: user.name,
+            timestamp: new Date()
+          });
+
+          // إرسال تأكيد للسائق
+          socket.emit("driver:delivery:started:ack", {
+            success: true,
+            orderId,
+            timestamp: new Date()
+          });
+
+        } catch (error) {
+          businessLogger.error("Driver delivery start error:", error);
+          socket.emit("error", { message: "Failed to start delivery" });
+        }
+      });
+
+      // ✅ حدث إكمال التوصيل
+      socket.on("driver:delivery:completed", async (data) => {
+        try {
+          const { orderId, signature, deliveryPhoto } = data;
+          const userId = socket.userId;
+
+          if (!userId) {
+            socket.emit("error", { message: "Unauthenticated" });
+            return;
+          }
+
+          if (!orderId) {
+            socket.emit("error", { message: "Order ID required" });
+            return;
+          }
+
+          // التحقق من أن المستخدم مندوب
+          const user = await User.findById(userId);
+          if (!user || user.role !== 'driver') {
+            socket.emit("error", { message: "Only drivers can complete delivery" });
+            return;
+          }
+
+          businessLogger.info(`Driver ${userId} completed delivery for order ${orderId}`);
+
+          // إرسال إشعار للعميل
+          socket.to(`order:${orderId}`).emit("driver:delivery:completed", {
+            driverId: userId,
+            driverName: user.name,
+            orderId,
+            signature,
+            deliveryPhoto,
+            timestamp: new Date()
+          });
+
+          // إرسال للأدمن
+          socket.broadcast.emit("order:status:changed", {
+            orderId,
+            status: "delivered",
+            driverId: userId,
+            driverName: user.name,
+            timestamp: new Date()
+          });
+
+          // إرسال تأكيد للسائق
+          socket.emit("driver:delivery:completed:ack", {
+            success: true,
+            orderId,
+            timestamp: new Date()
+          });
+
+        } catch (error) {
+          businessLogger.error("Driver delivery complete error:", error);
+          socket.emit("error", { message: "Failed to complete delivery" });
+        }
+      });
+
       // ====== Disconnection ======
       socket.on("disconnect", (reason) => {
         this.handleDisconnect(socket, reason);
@@ -217,7 +390,7 @@ class SocketService {
 
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       socket.userId = decoded.id;
-      
+
       await this.handleUserConnection(socket);
 
       socket.emit("authenticated", {
@@ -474,7 +647,7 @@ class SocketService {
       if (!userId || !conversationId || !messageId || !emoji) return;
 
       const message = await Message.findById(messageId);
-      
+
       if (message) {
         await message.addReaction(userId, emoji);
 
@@ -629,7 +802,7 @@ class SocketService {
       }
 
       socket.join("support:room");
-      
+
       const pendingConversations = await Conversation.find({
         type: "support",
         "metadata.support.status": "open",
@@ -686,7 +859,7 @@ class SocketService {
    */
   handleRoomJoin(socket, room) {
     socket.join(room);
-    
+
     const userId = socket.userId;
     if (userId) {
       if (!this.userRooms.has(userId)) {
@@ -720,14 +893,14 @@ class SocketService {
   async handleDisconnect(socket, reason) {
     const userId = this.socketUser.get(socket.id);
 
-    businessLogger.info(`Socket disconnected: ${socket.id}`, { 
-      userId, 
-      reason 
+    businessLogger.info(`Socket disconnected: ${socket.id}`, {
+      userId,
+      reason
     });
 
     if (userId) {
       this.socketUser.delete(socket.id);
-      
+
       if (this.userSockets.has(userId)) {
         this.userSockets.get(userId).delete(socket.id);
 
@@ -782,19 +955,19 @@ class SocketService {
       }
 
       const sockets = this.userSockets.get(userId?.toString());
-      
+
       if (sockets && sockets.size > 0) {
         sockets.forEach(socketId => {
           this.io.to(socketId).emit(data.type, data.data || data);
         });
-        
+
         businessLogger.debug(`Sent ${data.type} to user ${userId}`, {
           socketsCount: sockets.size
         });
-        
+
         return { success: true, delivered: true, socketsCount: sockets.size };
       }
-      
+
       businessLogger.debug(`User ${userId} is offline`, { type: data.type });
       return { success: true, delivered: false, offline: true };
     } catch (error) {
@@ -813,7 +986,7 @@ class SocketService {
       }
 
       this.io.to(room).emit(data.type, data.data || data);
-      
+
       businessLogger.debug(`Sent ${data.type} to room ${room}`);
       return { success: true };
     } catch (error) {
@@ -836,7 +1009,7 @@ class SocketService {
       } else {
         this.io.emit(data.type, data.data || data);
       }
-      
+
       businessLogger.debug(`Broadcast ${data.type} to all clients`);
       return { success: true };
     } catch (error) {
@@ -892,7 +1065,7 @@ class SocketService {
       if (!conversation) return;
 
       const unreadCount = await Message.getUnreadCount(conversationId, userId);
-      
+
       this.sendToUser(userId, {
         type: "chat:unread:updated",
         data: {
@@ -927,8 +1100,8 @@ class SocketService {
    * التحقق من اتصال المستخدم
    */
   isUserOnline(userId) {
-    return this.userSockets.has(userId?.toString()) && 
-           this.userSockets.get(userId?.toString())?.size > 0;
+    return this.userSockets.has(userId?.toString()) &&
+      this.userSockets.get(userId?.toString())?.size > 0;
   }
 
   /**
@@ -961,7 +1134,7 @@ class SocketService {
    * الحصول على غرف المستخدم
    */
   getUserRooms(userId) {
-    return this.userRooms.has(userId?.toString()) 
+    return this.userRooms.has(userId?.toString())
       ? Array.from(this.userRooms.get(userId.toString()))
       : [];
   }
@@ -984,7 +1157,7 @@ class SocketService {
    */
   getAllConnectionsInfo() {
     const connections = [];
-    
+
     for (const [userId, sockets] of this.userSockets.entries()) {
       connections.push({
         userId,
@@ -993,7 +1166,7 @@ class SocketService {
         rooms: this.getUserRooms(userId)
       });
     }
-    
+
     return connections;
   }
 
@@ -1001,27 +1174,27 @@ class SocketService {
   /**
  * إرسال تحديث موقع المندوب
  */
-sendDriverLocationUpdate(orderId, driverId, location) {
-  this.sendToRoom(`order:${orderId}`, {
-    type: 'driver:location:updated',
-    data: {
-      orderId,
-      driverId,
-      location,
-      timestamp: new Date()
-    }
-  });
-}
+  sendDriverLocationUpdate(orderId, driverId, location) {
+    this.sendToRoom(`order:${orderId}`, {
+      type: 'driver:location:updated',
+      data: {
+        orderId,
+        driverId,
+        location,
+        timestamp: new Date()
+      }
+    });
+  }
 
-/**
- * إرسال تحديث موقع لجميع المندوبين (للمشرف)
- */
-broadcastAllDriversLocations(driversLocations) {
-  this.broadcast({
-    type: 'drivers:locations:updated',
-    data: driversLocations
-  });
-}
+  /**
+   * إرسال تحديث موقع لجميع المندوبين (للمشرف)
+   */
+  broadcastAllDriversLocations(driversLocations) {
+    this.broadcast({
+      type: 'drivers:locations:updated',
+      data: driversLocations
+    });
+  }
 
   /**
    * إحصائيات Socket.io

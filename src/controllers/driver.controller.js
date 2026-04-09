@@ -100,8 +100,8 @@ exports.getMyProfile = async (req, res) => {
 };
 
 /**
- * @desc    تحديث حالة التوفر
- * @route   PUT /api/driver/me/availability
+ * @desc    تحديث حالة التوفر (متصل/غير متصل)
+ * @route   PUT /api/v1/driver/profile/availability
  * @access  Driver
  */
 exports.toggleAvailability = async (req, res) => {
@@ -109,44 +109,64 @@ exports.toggleAvailability = async (req, res) => {
     const driverId = req.user.id;
     const { isAvailable } = req.body;
 
+    // ✅ التحقق من صحة المدخل
+    if (isAvailable === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "يجب توفير حالة التوفر (isAvailable)"
+      });
+    }
+
     const driver = await User.findByIdAndUpdate(
       driverId,
       {
         'driverInfo.isAvailable': isAvailable,
-        isOnline: isAvailable
+        isOnline: isAvailable,  // ✅ مزامنة الحالتين
+        lastStatusUpdate: new Date()
       },
       { new: true }
-    ).select('driverInfo.isAvailable isOnline');
+    ).select('driverInfo.isAvailable isOnline name lastStatusUpdate');
+
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
 
     // إبطال الكاش
     invalidateDriverCache(driverId);
 
-    // إرسال تحديث عبر Socket.io
+    // ✅ إرسال تحديث عبر Socket.io
     const io = req.app.get('io');
     if (io) {
-      io.emit('driver:availability', {
-        driverId,
-        isAvailable,
+      io.emit('driver:status:changed', {
+        driverId: driver._id,
+        driverName: driver.name,
+        isAvailable: driver.driverInfo.isAvailable,
+        isOnline: driver.isOnline,
         timestamp: new Date()
       });
     }
 
     res.json({
       success: true,
-      message: isAvailable ? "You are now available" : "You are now offline",
+      message: isAvailable ? "أنت الآن متاح للطلبات" : "أنت الآن غير متاح",
       data: {
         isAvailable: driver.driverInfo.isAvailable,
-        isOnline: driver.isOnline
+        isOnline: driver.isOnline,
+        lastStatusUpdate: driver.lastStatusUpdate
       }
     });
   } catch (error) {
     console.error("❌ Toggle availability error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to update availability"
+      message: "فشل تحديث حالة التوفر"
     });
   }
 };
+
 
 /**
  * @desc    تحديث الموقع الحالي
