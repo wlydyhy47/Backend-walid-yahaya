@@ -1,0 +1,488 @@
+{
+  "tags": [
+    {
+      "name": "Chat",
+      "description": "💬 نظام الدردشة والمراسلة"
+    }
+  ],
+  "paths": {
+    "/chat/conversations": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "الحصول على قائمة المحادثات",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["direct", "support", "order", "group"] } },
+          { "name": "archived", "in": "query", "schema": { "type": "boolean", "default": false } }
+        ],
+        "responses": {
+          "200": {
+            "description": "قائمة المحادثات",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "conversations": [],
+                    "pagination": { "page": 1, "limit": 20, "total": 5 },
+                    "summary": { "total": 5, "unreadCount": 2 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/conversations/direct/{userId}": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "إنشاء محادثة مباشرة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "201": {
+            "description": "تم إنشاء المحادثة",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "conversation": {} }
+                }
+              }
+            }
+          },
+          "400": { "description": "لا يمكن إنشاء محادثة مع نفسك" },
+          "404": { "description": "المستخدم غير موجود" }
+        }
+      }
+    },
+    "/chat/conversations/order/{orderId}": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "إنشاء محادثة للطلب",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "orderId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "201": {
+            "description": "تم إنشاء محادثة الطلب",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "conversation": {} }
+                }
+              }
+            }
+          },
+          "403": { "description": "غير مصرح بإنشاء محادثة لهذا الطلب" },
+          "404": { "description": "الطلب غير موجود" }
+        }
+      }
+    },
+    "/chat/conversations/support": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "إنشاء محادثة دعم فني",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "department": { "type": "string", "enum": ["technical", "billing", "general", "complaints"], "default": "general" },
+                  "title": { "type": "string" },
+                  "description": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم إنشاء محادثة الدعم",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "conversation": {}, "estimatedWaitTime": "فوري" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/conversations/group": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "إنشاء مجموعة محادثة",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "participantIds"],
+                "properties": {
+                  "title": { "type": "string", "minLength": 3, "maxLength": 100 },
+                  "description": { "type": "string", "maxLength": 500 },
+                  "participantIds": { "type": "array", "items": { "type": "string" } },
+                  "isPublic": { "type": "boolean", "default": false }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم إنشاء المجموعة",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "conversation": {}, "inviteCode": "ABC123" }
+                }
+              }
+            }
+          },
+          "400": { "description": "عنوان المجموعة مطلوب أو قائمة المشاركين غير صالحة" }
+        }
+      }
+    },
+    "/chat/conversations/{id}": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "الحصول على تفاصيل المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "تفاصيل المحادثة مع الإحصائيات",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "conversation": {},
+                    "stats": { "total": 150, "byType": [] },
+                    "participantStats": {}
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "المحادثة غير موجودة" }
+        }
+      },
+      "put": {
+        "tags": ["Chat"],
+        "summary": "تحديث المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "image": { "type": "string" },
+                  "notificationSettings": { "type": "object" },
+                  "privacySettings": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تحديث المحادثة" },
+          "403": { "description": "المشرفون فقط يمكنهم تحديث بيانات المجموعة" }
+        }
+      },
+      "delete": {
+        "tags": ["Chat"],
+        "summary": "حذف المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "تم حذف المحادثة" },
+          "403": { "description": "لا تملك صلاحية حذف هذه المحادثة" }
+        }
+      }
+    },
+    "/chat/conversations/{id}/messages": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "الحصول على رسائل المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } },
+          { "name": "before", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "includeSystem", "in": "query", "schema": { "type": "boolean", "default": true } }
+        ],
+        "responses": {
+          "200": {
+            "description": "قائمة الرسائل",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "messages": [],
+                    "pagination": { "page": 1, "limit": 50, "total": 200, "hasMore": true }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/conversations/{id}/messages/text": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "إرسال رسالة نصية",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content"],
+                "properties": {
+                  "content": { "type": "string", "minLength": 1, "maxLength": 5000 },
+                  "replyTo": { "type": "string", "description": "معرف الرسالة المراد الرد عليها" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم إرسال الرسالة",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "message": {} }
+                }
+              }
+            }
+          },
+          "400": { "description": "محتوى الرسالة مطلوب" },
+          "403": { "description": "المحادثة غير نشطة" }
+        }
+      }
+    },
+    "/chat/conversations/{conversationId}/messages/{messageId}": {
+      "put": {
+        "tags": ["Chat"],
+        "summary": "تعديل رسالة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "conversationId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "messageId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content"],
+                "properties": { "content": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تعديل الرسالة" },
+          "404": { "description": "الرسالة غير موجودة أو لا تملك صلاحية تعديلها" }
+        }
+      },
+      "delete": {
+        "tags": ["Chat"],
+        "summary": "حذف رسالة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "conversationId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "messageId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "تم حذف الرسالة" },
+          "403": { "description": "لا تملك صلاحية حذف هذه الرسالة" }
+        }
+      }
+    },
+    "/chat/conversations/{id}/participants": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "الحصول على المشاركين في المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "قائمة المشاركين",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "participants": [], "count": 3, "type": "group" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Chat"],
+        "summary": "إضافة مشارك إلى المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["participantId"],
+                "properties": { "participantId": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم إضافة المشارك" },
+          "403": { "description": "المشرفون فقط يمكنهم إضافة مشاركين" },
+          "400": { "description": "تم الوصول للحد الأقصى للمشاركين" }
+        }
+      }
+    },
+    "/chat/conversations/{id}/mute": {
+      "put": {
+        "tags": ["Chat"],
+        "summary": "كتم المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "duration": { "type": "integer", "description": "مدة الكتم بالساعات" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم كتم المحادثة" }
+        }
+      }
+    },
+    "/chat/conversations/{id}/unmute": {
+      "put": {
+        "tags": ["Chat"],
+        "summary": "إلغاء كتم المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "تم إلغاء كتم المحادثة" }
+        }
+      }
+    },
+    "/chat/unread/total": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "الحصول على إجمالي الرسائل غير المقروءة",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "عدد الرسائل غير المقروءة",
+            "content": {
+              "application/json": {
+                "example": { "success": true, "data": { "totalUnread": 5 } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/search": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "بحث عام في المحادثات والرسائل",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "q", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "نتائج البحث",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "results": [], "total": 5, "searchTerm": "طعام" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/stats": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "إحصائيات الدردشة",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "إحصائيات المستخدم",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "overview": { "totalConversations": 10, "unreadMessages": 3, "activeChats": 2 },
+                    "byType": { "direct": 5, "group": 3, "support": 2 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

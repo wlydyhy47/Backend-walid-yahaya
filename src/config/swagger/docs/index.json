@@ -1,0 +1,41 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Food Delivery API",
+    "version": "3.0.0",
+    "description": "منصة توصيل طعام متكاملة",
+    "contact": {
+      "name": "الدعم الفني",
+      "email": "support@fooddelivery.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api/v1",
+      "description": "الخادم المحلي"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    { "name": "Authentication", "description": "🔐 المصادقة" },
+    { "name": "Users", "description": "👥 إدارة المستخدمين" },
+    { "name": "Stores", "description": "🏪 المتاجر" },
+    { "name": "Orders", "description": "📦 الطلبات" },
+    { "name": "Map", "description": "🗺️ الخرائط والتتبع" },
+    { "name": "Chat", "description": "💬 الدردشة" },
+    { "name": "Notifications", "description": "🔔 الإشعارات" },
+    { "name": "Loyalty", "description": "🎁 الولاء والمكافآت" },
+    { "name": "Analytics", "description": "📊 التحليلات" },
+    { "name": "Addresses", "description": "📍 العناوين" },
+    { "name": "Health", "description": "🏥 صحة النظام" }
+  ],
+  "paths": {}
+}

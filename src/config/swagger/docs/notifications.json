@@ -1,0 +1,203 @@
+{
+  "tags": [
+    {
+      "name": "Notifications",
+      "description": "🔔 إدارة الإشعارات"
+    }
+  ],
+  "paths": {
+    "/notifications": {
+      "get": {
+        "tags": ["Notifications"],
+        "summary": "الحصول على إشعارات المستخدم",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["unread", "read", "archived"] } },
+          { "name": "type", "in": "query", "schema": { "type": "string" } },
+          { "name": "unreadOnly", "in": "query", "schema": { "type": "boolean", "default": false } }
+        ],
+        "responses": {
+          "200": {
+            "description": "قائمة الإشعارات",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "notifications": [],
+                    "pagination": { "page": 1, "limit": 20, "total": 15 },
+                    "stats": { "unreadCount": 3 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/unread-count": {
+      "get": {
+        "tags": ["Notifications"],
+        "summary": "عدد الإشعارات غير المقروءة",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "عدد الإشعارات غير المقروءة",
+            "content": {
+              "application/json": {
+                "example": { "success": true, "data": { "unreadCount": 5 } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/stats": {
+      "get": {
+        "tags": ["Notifications"],
+        "summary": "إحصائيات الإشعارات",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "الإحصائيات التفصيلية",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "totals": { "total": 50, "unread": 5 },
+                    "byType": { "order": 30, "promotion": 15, "system": 5 },
+                    "byPriority": { "high": 10, "medium": 30, "low": 10 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/{id}/read": {
+      "put": {
+        "tags": ["Notifications"],
+        "summary": "تحديد إشعار كمقروء",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "تم تحديث حالة الإشعار" },
+          "404": { "description": "الإشعار غير موجود" }
+        }
+      }
+    },
+    "/notifications/mark-all-read": {
+      "put": {
+        "tags": ["Notifications"],
+        "summary": "تحديد جميع الإشعارات كمقروءة",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "تم تحديث جميع الإشعارات",
+            "content": {
+              "application/json": {
+                "example": { "success": true, "data": { "modifiedCount": 10 } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/{id}": {
+      "delete": {
+        "tags": ["Notifications"],
+        "summary": "حذف إشعار",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "تم حذف الإشعار" },
+          "404": { "description": "الإشعار غير موجود" }
+        }
+      }
+    },
+    "/notifications/preferences": {
+      "put": {
+        "tags": ["Notifications"],
+        "summary": "تحديث تفضيلات الإشعارات",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "preferences": {
+                    "type": "object",
+                    "properties": {
+                      "email": { "type": "boolean" },
+                      "sms": { "type": "boolean" },
+                      "push": { "type": "boolean" },
+                      "orderUpdates": { "type": "boolean" },
+                      "promotions": { "type": "boolean" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تحديث التفضيلات" }
+        }
+      }
+    },
+    "/notifications/devices": {
+      "post": {
+        "tags": ["Notifications"],
+        "summary": "تسجيل جهاز للإشعارات",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["deviceToken", "platform"],
+                "properties": {
+                  "deviceToken": { "type": "string" },
+                  "platform": { "type": "string", "enum": ["ios", "android", "web"] },
+                  "deviceId": { "type": "string" },
+                  "deviceModel": { "type": "string" },
+                  "osVersion": { "type": "string" },
+                  "appVersion": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تسجيل الجهاز" },
+          "400": { "description": "بيانات غير صالحة" }
+        }
+      }
+    },
+    "/notifications/devices/{deviceId}": {
+      "delete": {
+        "tags": ["Notifications"],
+        "summary": "إلغاء تسجيل الجهاز",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "deviceId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "تم إلغاء تسجيل الجهاز" },
+          "404": { "description": "الجهاز غير موجود" }
+        }
+      }
+    }
+  }
+}

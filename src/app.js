@@ -27,8 +27,7 @@ const performanceService = require('./services/performance.service');
 
 // ✅ استيراد التوثيق
 const swaggerUi = require('swagger-ui-express');
-const swaggerSpecs = require('./config/swagger');
-
+const swaggerDocument = require('./config/swagger/swagger.config');
 // ✅ استيراد الأدوات المساعدة
 const cache = require('./utils/cache.util');
 const { securityHeaders } = require('./middlewares/security.middleware');
@@ -204,12 +203,26 @@ const swaggerOptions = {
   }
 };
 
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, swaggerOptions));
-
-// مسارات إضافية للتوثيق
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+  explorer: true,
+  customCss: `
+    .swagger-ui .topbar { background-color: #2c3e50; }
+    .swagger-ui .info .title { color: #2c3e50; }
+    .swagger-ui .btn.authorize { border-color: #2c3e50; color: #2c3e50; }
+  `,
+  customSiteTitle: "Food Delivery API - توثيق المسارات",
+  swaggerOptions: {
+    persistAuthorization: true,
+    docExpansion: 'none',
+    filter: true,
+    displayRequestDuration: true,
+    tryItOutEnabled: true
+  }
+}));
+// نقطة نهاية JSON
 app.get('/swagger.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerSpecs);
+  res.send(swaggerDocument);
 });
 
 app.get('/swagger.yaml', (req, res) => {

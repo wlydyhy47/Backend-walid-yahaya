@@ -1,0 +1,207 @@
+{
+  "tags": [
+    {
+      "name": "Orders",
+      "description": "📦 إدارة الطلبات"
+    }
+  ],
+  "paths": {
+    "/orders": {
+      "post": {
+        "tags": ["Orders"],
+        "summary": "إنشاء طلب جديد",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["items", "store", "deliveryAddress"],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "qty": { "type": "integer", "minimum": 1 },
+                        "price": { "type": "number" },
+                        "notes": { "type": "string" }
+                      }
+                    }
+                  },
+                  "store": { "type": "string", "description": "معرف المتجر" },
+                  "pickupAddress": { "type": "string", "description": "معرف عنوان الاستلام" },
+                  "deliveryAddress": { "type": "string", "description": "معرف عنوان التوصيل" },
+                  "paymentMethod": { "type": "string", "enum": ["cash", "card", "wallet"], "default": "cash" },
+                  "notes": { "type": "string", "maxLength": 500 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم إنشاء الطلب بنجاح",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "order": {},
+                    "assignedDriver": {},
+                    "estimatedDelivery": "30 دقيقة"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "بيانات غير صالحة" },
+          "404": { "description": "المتجر أو العنوان غير موجود" }
+        }
+      },
+      "get": {
+        "tags": ["Orders"],
+        "summary": "الحصول على طلبات المستخدم",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["pending", "accepted", "picked", "delivered", "cancelled"] } }
+        ],
+        "responses": {
+          "200": {
+            "description": "تم جلب الطلبات بنجاح",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": [],
+                  "pagination": { "page": 1, "limit": 20, "total": 50, "pages": 3 }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{id}": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "الحصول على تفاصيل الطلب",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "تفاصيل الطلب",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "order": {},
+                    "tracking": {},
+                    "timeline": []
+                  }
+                }
+              }
+            }
+          },
+          "403": { "description": "غير مصرح بالوصول" },
+          "404": { "description": "الطلب غير موجود" }
+        }
+      }
+    },
+    "/orders/{id}/cancel": {
+      "put": {
+        "tags": ["Orders"],
+        "summary": "إلغاء الطلب",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "properties": {
+                  "reason": { "type": "string", "minLength": 5 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم إلغاء الطلب بنجاح" },
+          "400": { "description": "لا يمكن إلغاء الطلب في هذه المرحلة" }
+        }
+      }
+    },
+    "/orders/{id}/track": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "تتبع الطلب",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "بيانات تتبع الطلب",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "orderId": "60d21b4667d0d8992e610c88",
+                    "status": "picked",
+                    "estimatedDelivery": "5-15 دقيقة",
+                    "trackingPoints": [],
+                    "driver": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{id}/rate": {
+      "post": {
+        "tags": ["Orders"],
+        "summary": "تقييم الطلب",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["rating"],
+                "properties": {
+                  "rating": { "type": "integer", "minimum": 1, "maximum": 5 },
+                  "comment": { "type": "string", "maxLength": 500 },
+                  "rateDriver": { "type": "integer", "minimum": 1, "maximum": 5 },
+                  "rateStore": { "type": "integer", "minimum": 1, "maximum": 5 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تقييم الطلب بنجاح" },
+          "404": { "description": "الطلب غير موجود أو لم يتم توصيله بعد" }
+        }
+      }
+    }
+  }
+}

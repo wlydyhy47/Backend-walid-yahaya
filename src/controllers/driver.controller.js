@@ -1122,4 +1122,44 @@ exports.toggleDriverStatus = async (req, res) => {
   }
 };
 
+
+exports.getCurrentLocation = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    
+    const location = await DriverLocation.findOne({ driver: driverId })
+      .sort({ createdAt: -1 })
+      .lean();
+    
+    if (!location) {
+      return res.json({
+        success: true,
+        data: null,
+        message: "لا يوجد موقع مسجل حالياً"
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: {
+        driverId,
+        location: {
+          latitude: location.location.coordinates[1],
+          longitude: location.location.coordinates[0]
+        },
+        accuracy: location.accuracy,
+        speed: location.speed,
+        heading: location.heading,
+        updatedAt: location.createdAt
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get current location error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب الموقع الحالي"
+    });
+  }
+};
+
 module.exports = exports;

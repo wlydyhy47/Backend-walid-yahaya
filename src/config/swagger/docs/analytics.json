@@ -1,0 +1,195 @@
+{
+  "tags": [
+    {
+      "name": "Analytics",
+      "description": "📊 التحليلات والتقارير"
+    }
+  ],
+  "paths": {
+    "/analytics/events": {
+      "post": {
+        "tags": ["Analytics"],
+        "summary": "تسجيل حدث تحليلي",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["eventName"],
+                "properties": {
+                  "eventName": { "type": "string" },
+                  "category": { "type": "string" },
+                  "action": { "type": "string" },
+                  "label": { "type": "string" },
+                  "value": { "type": "number" },
+                  "properties": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تسجيل الحدث" }
+        }
+      }
+    },
+    "/analytics/events/batch": {
+      "post": {
+        "tags": ["Analytics"],
+        "summary": "تسجيل عدة أحداث دفعة واحدة",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["events"],
+                "properties": {
+                  "events": { "type": "array", "items": { "type": "object" } }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تسجيل الأحداث" }
+        }
+      }
+    },
+    "/analytics/dashboard": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "لوحة التحليلات الرئيسية",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "period", "in": "query", "schema": { "type": "string", "enum": ["day", "week", "month", "year"], "default": "week" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "بيانات لوحة التحليلات",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "users": { "total": 1000, "new": 50, "active": 200 },
+                    "orders": { "total": 500, "revenue": 25000 },
+                    "stores": { "total": 50, "new": 5 },
+                    "revenue": { "total": 25000, "avgOrderValue": 50 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analytics/users": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "تحليلات المستخدمين",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "period", "in": "query", "schema": { "type": "string", "enum": ["month", "year"], "default": "month" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "إحصائيات المستخدمين",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "growth": { "labels": [], "data": [] },
+                    "retention": { "active": 200, "returning": 150, "rate": "75%" },
+                    "byLocation": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analytics/orders": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "تحليلات الطلبات",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "period", "in": "query", "schema": { "type": "string", "enum": ["month", "year"], "default": "month" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "إحصائيات الطلبات",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "trends": { "labels": [], "orders": [], "revenue": [] },
+                    "byHour": { "labels": [], "data": [] },
+                    "completion": { "rate": "95%", "completed": 500, "cancelled": 25 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analytics/revenue": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "تحليلات الإيرادات",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "period", "in": "query", "schema": { "type": "string", "enum": ["month", "year"], "default": "month" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "إحصائيات الإيرادات",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": { "total": 25000, "average": 50, "orderCount": 500 },
+                    "daily": { "labels": [], "revenue": [], "orders": [] },
+                    "byCategory": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analytics/performance/stats": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "إحصائيات أداء النظام",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "إحصائيات الأداء",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": { "totalQueries": 10000, "averageQueryTime": "45ms" },
+                    "system": { "memory": {}, "cpu": {} }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
