@@ -79,29 +79,30 @@ const avatarSchema = Joi.object({
 });
 
 /**
- * تحديث الحضور
+ * ✅ تحديث الحضور - معدل لدعم isAvailable و isOnline معاً
  */
 const presenceSchema = Joi.object({
   isOnline: Joi.boolean()
-    .required()
+    .optional()  // ✅ تغيير من required إلى optional
     .messages({
-      'any.required': 'حالة الاتصال مطلوبة'
+      'boolean.base': 'حالة الاتصال يجب أن تكون قيمة منطقية'
     }),
-
+  isAvailable: Joi.boolean()
+    .optional()  // ✅ إضافة isAvailable كحقل اختياري
+    .messages({
+      'boolean.base': 'حالة التوفر يجب أن تكون قيمة منطقية'
+    }),
   status: Joi.string()
     .valid('online', 'away', 'busy', 'offline')
     .optional(),
-
   latitude: Joi.number()
     .min(-90)
     .max(90)
     .optional(),
-
   longitude: Joi.number()
     .min(-180)
     .max(180)
     .optional(),
-
   lastSeen: Joi.date()
     .optional()
 });

@@ -1,7 +1,7 @@
 // ============================================
 // ملف: src/controllers/driver.controller.js
 // الوصف: إدارة عمليات المندوبين
-// الإصدار: 1.0 (جديد)
+// الإصدار: 1.0
 // ============================================
 
 const { User, Order, DriverLocation } = require('../models');
@@ -55,7 +55,6 @@ exports.getMyProfile = async (req, res) => {
       });
     }
 
-    // إحصائيات سريعة
     const [todayOrders, totalEarnings, currentOrder] = await Promise.all([
       Order.countDocuments({
         driver: driverId,
@@ -84,7 +83,7 @@ exports.getMyProfile = async (req, res) => {
       }
     };
 
-    cache.set(cacheKey, profileData, 300); // 5 دقائق
+    cache.set(cacheKey, profileData, 300);
 
     res.json({
       success: true,
@@ -100,31 +99,45 @@ exports.getMyProfile = async (req, res) => {
 };
 
 /**
- * @desc    تحديث حالة التوفر (متصل/غير متصل)
+ * @desc    ✅ تحديث حالة التوفر (متصل/غير متصل) - معدل لدعم isAvailable
  * @route   PUT /api/v1/driver/profile/availability
  * @access  Driver
  */
 exports.toggleAvailability = async (req, res) => {
   try {
     const driverId = req.user.id;
-    const { isAvailable } = req.body;
-
-    // ✅ التحقق من صحة المدخل
-    if (isAvailable === undefined) {
+    
+    // ✅ استقبال كلا الحقلين (isOnline و isAvailable)
+    const { isAvailable, isOnline } = req.body;
+    
+    // ✅ تحديد القيمة النهائية (أي حقل تم إرساله)
+    let finalStatus = null;
+    
+    if (isAvailable !== undefined) {
+      finalStatus = isAvailable;
+    } else if (isOnline !== undefined) {
+      finalStatus = isOnline;
+    }
+    
+    // ✅ التحقق من وجود قيمة
+    if (finalStatus === null) {
       return res.status(400).json({
         success: false,
-        message: "يجب توفير حالة التوفر (isAvailable)"
+        message: "يجب توفير حالة التوفر (isAvailable أو isOnline)"
       });
     }
+    
+    console.log(`🔄 Driver ${driverId} toggling availability to: ${finalStatus}`);
 
+    // ✅ تحديث قاعدة البيانات
     const driver = await User.findByIdAndUpdate(
       driverId,
       {
-        'driverInfo.isAvailable': isAvailable,
-        isOnline: isAvailable,  // ✅ مزامنة الحالتين
+        'driverInfo.isAvailable': finalStatus,
+        isOnline: finalStatus,
         lastStatusUpdate: new Date()
       },
-      { new: true }
+      { new: true, runValidators: false }
     ).select('driverInfo.isAvailable isOnline name lastStatusUpdate');
 
     if (!driver) {
@@ -137,7 +150,7 @@ exports.toggleAvailability = async (req, res) => {
     // إبطال الكاش
     invalidateDriverCache(driverId);
 
-    // ✅ إرسال تحديث عبر Socket.io
+    // إرسال تحديث عبر Socket.io
     const io = req.app.get('io');
     if (io) {
       io.emit('driver:status:changed', {
@@ -151,7 +164,7 @@ exports.toggleAvailability = async (req, res) => {
 
     res.json({
       success: true,
-      message: isAvailable ? "أنت الآن متاح للطلبات" : "أنت الآن غير متاح",
+      message: finalStatus ? "أنت الآن متاح للطلبات" : "أنت الآن غير متاح",
       data: {
         isAvailable: driver.driverInfo.isAvailable,
         isOnline: driver.isOnline,
@@ -166,7 +179,6 @@ exports.toggleAvailability = async (req, res) => {
     });
   }
 };
-
 
 /**
  * @desc    تحديث الموقع الحالي
@@ -185,7 +197,6 @@ exports.updateLocation = async (req, res) => {
       });
     }
 
-    // تحديث موقع المندوب
     await User.findByIdAndUpdate(driverId, {
       'driverInfo.currentLocation': {
         type: 'Point',
@@ -193,7 +204,6 @@ exports.updateLocation = async (req, res) => {
       }
     });
 
-    // تحديث أو إنشاء موقع في DriverLocation
     await DriverLocation.findOneAndUpdate(
       { driver: driverId },
       {
@@ -207,7 +217,6 @@ exports.updateLocation = async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // إرسال تحديث عبر Socket.io للطلبات النشطة
     const activeOrders = await Order.find({
       driver: driverId,
       status: { $in: ['accepted', 'picked'] }
@@ -271,7 +280,6 @@ exports.getCurrentOrder = async (req, res) => {
       });
     }
 
-    // إضافة معلومات إضافية
     const orderData = {
       ...currentOrder,
       statusText: getStatusText(currentOrder.status),
@@ -328,7 +336,6 @@ exports.getMyStats = async (req, res) => {
       totalStats,
       recentOrders
     ] = await Promise.all([
-      // إحصائيات اليوم
       Order.aggregate([
         {
           $match: {
@@ -347,7 +354,6 @@ exports.getMyStats = async (req, res) => {
         }
       ]),
 
-      // إحصائيات الأسبوع
       Order.aggregate([
         {
           $match: {
@@ -366,7 +372,6 @@ exports.getMyStats = async (req, res) => {
         { $sort: { _id: 1 } }
       ]),
 
-      // إحصائيات الشهر
       Order.aggregate([
         {
           $match: {
@@ -385,10 +390,8 @@ exports.getMyStats = async (req, res) => {
         }
       ]),
 
-      // الإحصائيات الكلية
       User.findById(driverId).select('driverInfo'),
 
-      // آخر 5 طلبات
       Order.find({ driver: driverId, status: 'delivered' })
         .sort({ createdAt: -1 })
         .limit(5)
@@ -420,7 +423,7 @@ exports.getMyStats = async (req, res) => {
       recentOrders
     };
 
-    cache.set(cacheKey, stats, 300); // 5 دقائق
+    cache.set(cacheKey, stats, 300);
 
     res.json({
       success: true,
@@ -472,7 +475,6 @@ exports.getDrivers = async (req, res) => {
       User.countDocuments(query)
     ]);
 
-    // إضافة إحصائيات إضافية لكل مندوب
     const driversWithStats = await Promise.all(
       drivers.map(async (driver) => {
         const todayOrders = await Order.countDocuments({
@@ -711,7 +713,6 @@ exports.getDriverById = async (req, res) => {
   }
 };
 
-
 /**
  * @desc    تحديث الصورة الشخصية للمندوب
  * @route   PUT /api/v1/driver/profile/avatar
@@ -728,7 +729,6 @@ exports.updateAvatar = async (req, res) => {
 
     const driverId = req.user.id;
 
-    // حذف الصورة القديمة
     const oldDriver = await User.findById(driverId).select('image');
     if (oldDriver?.image) {
       const oldPublicId = fileService.extractPublicIdFromUrl(oldDriver.image);
@@ -739,7 +739,6 @@ exports.updateAvatar = async (req, res) => {
       }
     }
 
-    // تحديث الصورة الجديدة
     const driver = await User.findByIdAndUpdate(
       driverId,
       { image: req.file.path },
@@ -753,7 +752,6 @@ exports.updateAvatar = async (req, res) => {
       });
     }
 
-    // إبطال الكاش
     invalidateDriverCache(driverId);
 
     res.json({
@@ -785,7 +783,6 @@ exports.getEarningsHistory = async (req, res) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // بناء استعلام التاريخ
     let dateQuery = {};
     if (from || to) {
       dateQuery = {};
@@ -793,7 +790,6 @@ exports.getEarningsHistory = async (req, res) => {
       if (to) dateQuery.$lte = new Date(to);
     }
 
-    // جلب الطلبات المكتملة مع الأرباح
     const orders = await Order.find({
       driver: driverId,
       status: 'delivered',
@@ -812,7 +808,6 @@ exports.getEarningsHistory = async (req, res) => {
       ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
     });
 
-    // حساب الأرباح (80% من قيمة الطلب)
     const earnings = orders.map(order => ({
       orderId: order._id,
       storeName: order.store?.name || 'غير معروف',
@@ -823,7 +818,6 @@ exports.getEarningsHistory = async (req, res) => {
       itemsCount: order.items?.reduce((sum, item) => sum + item.qty, 0) || 0
     }));
 
-    // إحصائيات الفترة
     const stats = {
       totalEarnings: earnings.reduce((sum, e) => sum + e.netEarnings, 0),
       totalOrders: earnings.length,
@@ -833,7 +827,6 @@ exports.getEarningsHistory = async (req, res) => {
       totalCommission: earnings.reduce((sum, e) => sum + e.commission, 0)
     };
 
-    // تجميع حسب الشهر للرسم البياني
     const monthlyStats = await Order.aggregate([
       {
         $match: {
@@ -888,7 +881,6 @@ exports.getPerformanceReport = async (req, res) => {
   try {
     const driverId = req.user.id;
 
-    // الفترات الزمنية
     const now = new Date();
     const today = new Date(now.setHours(0, 0, 0, 0));
     const weekAgo = new Date(now.setDate(now.getDate() - 7));
@@ -901,7 +893,6 @@ exports.getPerformanceReport = async (req, res) => {
       deliveryTimes,
       ratings
     ] = await Promise.all([
-      // إحصائيات اليوم
       Order.aggregate([
         {
           $match: {
@@ -920,7 +911,6 @@ exports.getPerformanceReport = async (req, res) => {
         }
       ]),
 
-      // إحصائيات الأسبوع
       Order.aggregate([
         {
           $match: {
@@ -939,7 +929,6 @@ exports.getPerformanceReport = async (req, res) => {
         { $sort: { _id: 1 } }
       ]),
 
-      // إحصائيات الشهر
       Order.aggregate([
         {
           $match: {
@@ -958,7 +947,6 @@ exports.getPerformanceReport = async (req, res) => {
         }
       ]),
 
-      // أوقات التوصيل
       Order.aggregate([
         {
           $match: {
@@ -978,11 +966,9 @@ exports.getPerformanceReport = async (req, res) => {
         }
       ]),
 
-      // التقييمات
       User.findById(driverId).select('driverInfo.rating driverInfo.totalRatings')
     ]);
 
-    // حساب معدل القبول
     const acceptedOrders = await Order.countDocuments({
       driver: driverId,
       status: { $in: ['accepted', 'picked', 'delivered'] }
@@ -1037,7 +1023,6 @@ exports.getPerformanceReport = async (req, res) => {
     });
   }
 };
-
 
 /**
  * @desc    توثيق مندوب (للمشرفين)
@@ -1122,7 +1107,11 @@ exports.toggleDriverStatus = async (req, res) => {
   }
 };
 
-
+/**
+ * @desc    الحصول على الموقع الحالي للمندوب
+ * @route   GET /api/v1/driver/location/current
+ * @access  Driver
+ */
 exports.getCurrentLocation = async (req, res) => {
   try {
     const driverId = req.user.id;
