@@ -7,10 +7,12 @@
 
 const express = require("express");
 const path = require('path');
+const fs = require('fs');
 const cors = require("cors");
 const helmet = require('helmet');
 const compression = require('compression');
 const morgan = require('morgan');
+const yaml = require('js-yaml');
 
 // ✅ استيراد الإعدادات
 const apiConfig = require('./config/api.config');
@@ -27,7 +29,21 @@ const performanceService = require('./services/performance.service');
 
 // ✅ استيراد التوثيق
 const swaggerUi = require('swagger-ui-express');
-const swaggerDocument = require('./config/swagger/swagger.config');
+let autoSwaggerDoc = {};
+
+// محاولة تحميل التوثيق التلقائي
+try {
+  const autoSwaggerPath = path.join(__dirname, './config/swagger/auto-docs/swagger.auto.json');
+  if (fs.existsSync(autoSwaggerPath)) {
+    autoSwaggerDoc = require(autoSwaggerPath);
+    console.log('✅ Auto Swagger documentation loaded');
+  } else {
+    console.warn('⚠️ Auto Swagger file not found. Run `npm run swagger:generate` first.');
+  }
+} catch (error) {
+  console.error('❌ Error loading auto swagger:', error.message);
+}
+
 // ✅ استيراد الأدوات المساعدة
 const cache = require('./utils/cache.util');
 const { securityHeaders } = require('./middlewares/security.middleware');
@@ -42,14 +58,15 @@ const API_PREFIX = apiConfig.api.prefix;
 const API_VERSION = apiConfig.api.defaultVersion;
 const BASE_PATH = `/${API_PREFIX}/${API_VERSION}`;
 
+// عرض معلومات بدء التشغيل
 console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║                                                            ║
 ║   🚀 Food Delivery API Server Starting...                 ║
 ║   📦 Version: 3.0.0                                       ║
-║   🌍 Environment: ${process.env.NODE_ENV?.toUpperCase() || 'DEVELOPMENT'}                              ║
-║   🔧 API Base: ${BASE_PATH}                               ║
-║   📚 Docs: /api-docs                                      ║
+║   🌍 Environment: ${(process.env.NODE_ENV?.toUpperCase() || 'DEVELOPMENT').padEnd(30)}║
+║   🔧 API Base: ${BASE_PATH.padEnd(42)}║
+║   📚 Docs: /api-docs-auto                                 ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
 `);
@@ -71,7 +88,7 @@ app.use(cors(corsOptions));
 // إضافة رؤوس CORS إضافية
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  if (origin && (corsOptions.origin === true || corsOptions.origin.includes(origin))) {
+  if (origin && (corsOptions.origin === true || corsOptions.origin?.includes(origin))) {
     res.header('Access-Control-Allow-Origin', origin);
     res.header('Access-Control-Allow-Credentials', 'true');
     res.header('Access-Control-Allow-Methods', corsOptions.methods.join(', '));
@@ -136,14 +153,14 @@ const staticOptions = {
   immutable: true,
   etag: true,
   lastModified: true,
-  setHeaders: (res, path) => {
+  setHeaders: (res, filePath) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Cache-Control', 'public, max-age=2592000');
     
     // تعيين نوع المحتوى المناسب
-    if (path.endsWith('.svg')) {
+    if (filePath.endsWith('.svg')) {
       res.header('Content-Type', 'image/svg+xml');
-    } else if (path.endsWith('.ico')) {
+    } else if (filePath.endsWith('.ico')) {
       res.header('Content-Type', 'image/x-icon');
     }
   }
@@ -158,17 +175,19 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), staticOption
 
 // تطبيق Rate Limiting حسب المسارات
 const rateLimitConfig = [
-  { path: `/api/${API_PREFIX}/${API_VERSION}/public/auth`, limiter: rateLimiters.authLimiter },
-  { path: `/api/${API_PREFIX}/${API_VERSION}/public/auth/forgot-password`, limiter: rateLimiters.strictLimiter },
-  { path: `/api/${API_PREFIX}/${API_VERSION}/public/auth/reset-password`, limiter: rateLimiters.strictLimiter },
+  { path: `/api/${API_PREFIX}/${API_VERSION}/auth`, limiter: rateLimiters.authLimiter },
+  { path: `/api/${API_PREFIX}/${API_VERSION}/auth/login`, limiter: rateLimiters.authLimiter },
+  { path: `/api/${API_PREFIX}/${API_VERSION}/auth/register`, limiter: rateLimiters.authLimiter },
+  { path: `/api/${API_PREFIX}/${API_VERSION}/auth/forgot-password`, limiter: rateLimiters.strictLimiter },
+  { path: `/api/${API_PREFIX}/${API_VERSION}/auth/reset-password`, limiter: rateLimiters.strictLimiter },
   { path: `/api/${API_PREFIX}/${API_VERSION}/map/driver/location`, limiter: rateLimiters.apiLimiter },
   { path: `/api/${API_PREFIX}/${API_VERSION}/map/geocode`, limiter: rateLimiters.searchLimiter },
   { path: `/api/${API_PREFIX}/${API_VERSION}/search`, limiter: rateLimiters.searchLimiter },
   { path: '/api/uploads', limiter: rateLimiters.uploadLimiter }
 ];
 
-rateLimitConfig.forEach(({ path, limiter }) => {
-  app.use(path, limiter);
+rateLimitConfig.forEach(({ path: routePath, limiter }) => {
+  app.use(routePath, limiter);
 });
 
 // Rate Limiting عام لجميع مسارات API
@@ -176,59 +195,42 @@ app.use(`/api/${API_PREFIX}/${API_VERSION}`, rateLimiters.apiLimiter);
 
 // ========== 6. Swagger Documentation ==========
 
-// تكوين Swagger UI
-const swaggerOptions = {
-  explorer: true,
-  customCss: `
-    .swagger-ui .topbar { background-color: #2c3e50; display: block; }
-    .swagger-ui .topbar .download-url-wrapper .select-label select { border-color: #2c3e50; }
-    .swagger-ui .info .title { color: #2c3e50; }
-    .swagger-ui .scheme-container { background: #f8f9fa; }
-    .swagger-ui .btn.authorize { border-color: #2c3e50; color: #2c3e50; }
-    .swagger-ui .btn.authorize svg { fill: #2c3e50; }
-  `,
-  customSiteTitle: "Food Delivery API - التوثيق التفاعلي",
-  swaggerOptions: {
-    persistAuthorization: true,
-    docExpansion: 'none',
-    filter: true,
-    displayRequestDuration: true,
-    defaultModelsExpandDepth: 1,
-    defaultModelExpandDepth: 1,
-    tryItOutEnabled: true,
-    syntaxHighlight: {
-      activate: true,
-      theme: 'monokai'
-    }
-  }
-};
-
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
-  explorer: true,
-  customCss: `
-    .swagger-ui .topbar { background-color: #2c3e50; }
-    .swagger-ui .info .title { color: #2c3e50; }
-    .swagger-ui .btn.authorize { border-color: #2c3e50; color: #2c3e50; }
-  `,
-  customSiteTitle: "Food Delivery API - توثيق المسارات",
-  swaggerOptions: {
-    persistAuthorization: true,
-    docExpansion: 'none',
-    filter: true,
-    displayRequestDuration: true,
-    tryItOutEnabled: true
-  }
-}));
-// نقطة نهاية JSON
-app.get('/swagger.json', (req, res) => {
+// نقطة نهاية JSON للتوثيق التلقائي
+app.get('/swagger-auto.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerDocument);
+  res.send(autoSwaggerDoc);
 });
 
-app.get('/swagger.yaml', (req, res) => {
-  const yaml = require('js-yaml');
+// نقطة نهاية YAML للتوثيق التلقائي
+app.get('/swagger-auto.yaml', (req, res) => {
   res.setHeader('Content-Type', 'text/yaml');
-  res.send(yaml.dump(swaggerSpecs));
+  res.send(yaml.dump(autoSwaggerDoc));
+});
+
+// واجهة Swagger UI للتوثيق التلقائي
+if (Object.keys(autoSwaggerDoc).length > 0) {
+  app.use('/api-docs-auto', swaggerUi.serve, swaggerUi.setup(autoSwaggerDoc, {
+    explorer: true,
+    customCss: `
+      .swagger-ui .topbar { background-color: #2c3e50; }
+      .swagger-ui .info .title { color: #2c3e50; }
+      .swagger-ui .btn.authorize { border-color: #2c3e50; color: #2c3e50; }
+    `,
+    customSiteTitle: "Food Delivery API - التوثيق التلقائي",
+    swaggerOptions: {
+      persistAuthorization: true,
+      docExpansion: 'none',
+      filter: true,
+      displayRequestDuration: true,
+      tryItOutEnabled: true
+    }
+  }));
+}
+
+// نقطة نهاية JSON للتوثيق اليدوي (للتوافق مع الإصدارات السابقة)
+app.get('/swagger.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(autoSwaggerDoc);
 });
 
 // ========== 7. مسارات الملفات الثابتة ==========
@@ -255,29 +257,9 @@ app.get('/robots.txt', (req, res) => {
 // ========== 8. المسار الرئيسي ==========
 
 /**
- * @swagger
- * /:
- *   get:
- *     summary: معلومات API
- *     tags: [🚀 API]
- *     responses:
- *       200:
- *         description: معلومات الإصدار والمسارات المتاحة
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 version:
- *                   type: string
- *                 documentation:
- *                   type: string
- *                 baseUrl:
- *                   type: string
+ * @route   GET /
+ * @desc    معلومات API
+ * @access  Public
  */
 app.get("/", (req, res) => {
   res.json({ 
@@ -285,9 +267,9 @@ app.get("/", (req, res) => {
     message: "Food Delivery API is running ✅", 
     version: "3.0.0",
     environment: process.env.NODE_ENV || 'development',
-    documentation: "/api-docs",
+    documentation: "/api-docs-auto",
     health: "/health",
-    swaggerJson: "/swagger.json",
+    swaggerJson: "/swagger-auto.json",
     baseUrl: BASE_PATH,
     endpoints: {
       auth: `${BASE_PATH}/auth`,
@@ -311,14 +293,9 @@ app.use(BASE_PATH, apiRoutes);
 // ========== 10. Health Check Endpoints ==========
 
 /**
- * @swagger
- * /health:
- *   get:
- *     summary: فحص صحة النظام
- *     tags: [🏥 Health]
- *     responses:
- *       200:
- *         description: النظام يعمل بشكل طبيعي
+ * @route   GET /health
+ * @desc    فحص صحة النظام (سريع)
+ * @access  Public
  */
 app.get('/health', (req, res) => {
   res.json({ 
@@ -333,14 +310,9 @@ app.get('/health', (req, res) => {
 });
 
 /**
- * @swagger
- * /health/detailed:
- *   get:
- *     summary: فحص صحة النظام بالتفصيل
- *     tags: [🏥 Health]
- *     responses:
- *       200:
- *         description: تفاصيل حالة النظام
+ * @route   GET /health/detailed
+ * @desc    فحص صحة النظام بالتفصيل
+ * @access  Public
  */
 app.get('/health/detailed', async (req, res) => {
   try {
@@ -389,15 +361,59 @@ app.get('/health/detailed', async (req, res) => {
   }
 });
 
-// ========== 11. Cache Monitoring (غير الإنتاج) ==========
+/**
+ * @route   GET /health/ready
+ * @desc    فحص جاهزية النظام (Readiness Probe)
+ * @access  Public
+ */
+app.get('/health/ready', async (req, res) => {
+  try {
+    const mongoose = require('mongoose');
+    const isReady = mongoose.connection.readyState === 1;
+    
+    if (isReady) {
+      res.status(200).json({ ready: true, timestamp: new Date().toISOString() });
+    } else {
+      res.status(503).json({ ready: false, reason: 'Database not connected' });
+    }
+  } catch (error) {
+    res.status(503).json({ ready: false, error: error.message });
+  }
+});
+
+/**
+ * @route   GET /health/live
+ * @desc    فحص حيوية النظام (Liveness Probe)
+ * @access  Public
+ */
+app.get('/health/live', (req, res) => {
+  res.status(200).json({ alive: true, timestamp: new Date().toISOString() });
+});
+
+// ========== 11. إحصائيات API ==========
+
+/**
+ * @route   GET /api/stats/endpoints
+ * @desc    إحصائيات المسارات
+ * @access  Public
+ */
+app.get('/api/stats/endpoints', (req, res) => {
+  const stats = {
+    totalEndpoints: Object.keys(autoSwaggerDoc.paths || {}).length,
+    documentationAvailable: Object.keys(autoSwaggerDoc).length > 0,
+    lastGenerated: new Date().toISOString(),
+    docsUrl: '/api-docs-auto'
+  };
+  res.json({ success: true, data: stats });
+});
+
+// ========== 12. Cache Monitoring (للتطوير فقط) ==========
 
 if (isDevelopment) {
   /**
-   * @swagger
-   * /api/cache-stats:
-   *   get:
-   *     summary: إحصائيات الكاش (للتطوير فقط)
-   *     tags: [🔧 Development]
+   * @route   GET /api/cache-stats
+   * @desc    إحصائيات الكاش (للتطوير فقط)
+   * @access  Development
    */
   app.get('/api/cache-stats', (req, res) => {
     const stats = cache.getStats();
@@ -417,15 +433,13 @@ if (isDevelopment) {
   }, 60 * 60 * 1000);
 }
 
-// ========== 12. مسارات الاختبار (للتطوير فقط) ==========
+// ========== 13. مسارات الاختبار (للتطوير فقط) ==========
 
 if (isDevelopment) {
   /**
-   * @swagger
-   * /test-routes:
-   *   get:
-   *     summary: اختبار المسارات (للتطوير فقط)
-   *     tags: [🔧 Development]
+   * @route   GET /test-routes
+   * @desc    اختبار المسارات (للتطوير فقط)
+   * @access  Development
    */
   app.get('/test-routes', (req, res) => {
     res.json({
@@ -453,13 +467,17 @@ if (isDevelopment) {
         chat: `${BASE_PATH}/chat`,
         orders: `${BASE_PATH}/orders`,
         health: '/health',
-        docs: '/api-docs'
+        docs: '/api-docs-auto'
       },
       timestamp: new Date().toISOString()
     });
   });
   
-  // مسار لفحص المتغيرات البيئية (آمن للتطوير)
+  /**
+   * @route   GET /api/env-check
+   * @desc    فحص المتغيرات البيئية (للتطوير فقط)
+   * @access  Development
+   */
   app.get('/api/env-check', (req, res) => {
     const safeEnv = {
       NODE_ENV: process.env.NODE_ENV,
@@ -471,7 +489,7 @@ if (isDevelopment) {
   });
 }
 
-// ========== 13. Error Handling ==========
+// ========== 14. Error Handling ==========
 
 // 404 Handler
 app.use(notFoundHandler);
@@ -482,12 +500,13 @@ app.use(errorLogger);
 // Global Error Handler
 app.use(errorHandler);
 
+// ========== 15. Unhandled Errors ==========
+
 // Unhandled Promise Rejections
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
-  // في الإنتاج، قد ترغب في إرسال تنبيه
   if (isProduction) {
-    // إرسال إلى خدمة مراقبة مثل Sentry
+    // يمكن إضافة إرسال إلى خدمة مراقبة مثل Sentry هنا
     // Sentry.captureException(reason);
   }
 });
@@ -496,18 +515,17 @@ process.on('unhandledRejection', (reason, promise) => {
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error);
   if (isProduction) {
-    // إرسال إلى خدمة مراقبة
+    // يمكن إضافة إرسال إلى خدمة مراقبة هنا
     // Sentry.captureException(error);
-    // إغلاق التطبيق بشكل آمن
     process.exit(1);
   }
 });
 
-// ========== 14. تصدير التطبيق ==========
+// ========== 16. تصدير التطبيق ==========
 
 module.exports = app;
 
-// ========== 15. معلومات بدء التشغيل ==========
+// ========== 17. بدء التشغيل (إذا كان الملف الرئيسي) ==========
 if (require.main === module) {
   const server = app.listen(PORT, () => {
     console.log(`
@@ -515,10 +533,11 @@ if (require.main === module) {
 ║                                                            ║
 ║   ✅ Server started successfully!                         ║
 ║   📍 URL: http://localhost:${PORT}                         ║
-║   📚 Docs: http://localhost:${PORT}/api-docs               ║
+║   📚 Auto Docs: http://localhost:${PORT}/api-docs-auto     ║
 ║   🏥 Health: http://localhost:${PORT}/health               ║
-║   🔧 Environment: ${process.env.NODE_ENV || 'development'}                              ║
-║   📦 API Base: ${BASE_PATH}                               ║
+║   🔧 Environment: ${(process.env.NODE_ENV || 'development').padEnd(30)}║
+║   📦 API Base: ${BASE_PATH.padEnd(42)}║
+║   📊 Endpoints: ${String(Object.keys(autoSwaggerDoc.paths || {}).length).padEnd(36)}║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
     `);

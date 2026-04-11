@@ -19,7 +19,9 @@
     "validate:controllers": "node -e \"require('./src/utils/controllerValidator').validateAllControllers()\"",
     "validate:quick": "node -e \"require('./src/utils/controllerValidator').quickCheck()\"",
     "validate:export": "node -e \"require('./src/utils/controllerValidator').exportValidationReport()\"",
-    "postman-all": "node tools/index.js"
+    "postman-all": "node tools/index.js",
+    "swagger:generate": "node scripts/generate-swagger.js",
+    "swagger:watch": "nodemon --watch src/routes --exec 'npm run swagger:generate'"
   },
   "keywords": [
     "food-delivery",

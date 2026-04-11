@@ -59,7 +59,17 @@ src/config/cloudinary.js
 src/config/db.js
 src/config/mapbox.config.js
 src/config/redis.js
-src/config/swagger.js
+src/config/swagger/docs/analytics.json
+src/config/swagger/docs/auth.json
+src/config/swagger/docs/chat.json
+src/config/swagger/docs/index.json
+src/config/swagger/docs/loyalty.json
+src/config/swagger/docs/map.json
+src/config/swagger/docs/notifications.json
+src/config/swagger/docs/orders.json
+src/config/swagger/docs/stores.json
+src/config/swagger/schemas/common.schema.json
+src/config/swagger/swagger.config.js
 src/controllers/address.controller.js
 src/controllers/aggregate.controller.js
 src/controllers/analytics.controller.js
@@ -249,6 +259,1878 @@ module.exports = {
   units: 'metric',
   profile: 'driving'
 };
+</file>
+
+<file path="src/config/swagger/docs/analytics.json">
+{
+  "tags": [
+    {
+      "name": "Analytics",
+      "description": "📊 التحليلات والتقارير"
+    }
+  ],
+  "paths": {
+    "/analytics/events": {
+      "post": {
+        "tags": ["Analytics"],
+        "summary": "تسجيل حدث تحليلي",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["eventName"],
+                "properties": {
+                  "eventName": { "type": "string" },
+                  "category": { "type": "string" },
+                  "action": { "type": "string" },
+                  "label": { "type": "string" },
+                  "value": { "type": "number" },
+                  "properties": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تسجيل الحدث" }
+        }
+      }
+    },
+    "/analytics/events/batch": {
+      "post": {
+        "tags": ["Analytics"],
+        "summary": "تسجيل عدة أحداث دفعة واحدة",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["events"],
+                "properties": {
+                  "events": { "type": "array", "items": { "type": "object" } }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تسجيل الأحداث" }
+        }
+      }
+    },
+    "/analytics/dashboard": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "لوحة التحليلات الرئيسية",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "period", "in": "query", "schema": { "type": "string", "enum": ["day", "week", "month", "year"], "default": "week" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "بيانات لوحة التحليلات",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "users": { "total": 1000, "new": 50, "active": 200 },
+                    "orders": { "total": 500, "revenue": 25000 },
+                    "stores": { "total": 50, "new": 5 },
+                    "revenue": { "total": 25000, "avgOrderValue": 50 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analytics/users": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "تحليلات المستخدمين",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "period", "in": "query", "schema": { "type": "string", "enum": ["month", "year"], "default": "month" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "إحصائيات المستخدمين",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "growth": { "labels": [], "data": [] },
+                    "retention": { "active": 200, "returning": 150, "rate": "75%" },
+                    "byLocation": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analytics/orders": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "تحليلات الطلبات",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "period", "in": "query", "schema": { "type": "string", "enum": ["month", "year"], "default": "month" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "إحصائيات الطلبات",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "trends": { "labels": [], "orders": [], "revenue": [] },
+                    "byHour": { "labels": [], "data": [] },
+                    "completion": { "rate": "95%", "completed": 500, "cancelled": 25 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analytics/revenue": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "تحليلات الإيرادات",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "period", "in": "query", "schema": { "type": "string", "enum": ["month", "year"], "default": "month" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "إحصائيات الإيرادات",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": { "total": 25000, "average": 50, "orderCount": 500 },
+                    "daily": { "labels": [], "revenue": [], "orders": [] },
+                    "byCategory": []
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analytics/performance/stats": {
+      "get": {
+        "tags": ["Analytics"],
+        "summary": "إحصائيات أداء النظام",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "إحصائيات الأداء",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "summary": { "totalQueries": 10000, "averageQueryTime": "45ms" },
+                    "system": { "memory": {}, "cpu": {} }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+</file>
+
+<file path="src/config/swagger/docs/auth.json">
+{
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "🔐 مسارات المصادقة وإدارة الحسابات"
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "تسجيل مستخدم جديد",
+        "description": "إنشاء حساب جديد في المنصة",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "phone", "password"],
+                "properties": {
+                  "name": { "type": "string", "example": "أحمد محمد" },
+                  "phone": { "type": "string", "example": "+966501234567" },
+                  "email": { "type": "string", "format": "email", "example": "ahmed@example.com" },
+                  "password": { "type": "string", "format": "password", "minLength": 6 },
+                  "role": { "type": "string", "enum": ["client", "driver", "vendor"], "default": "client" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم التسجيل بنجاح",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "تم التسجيل بنجاح",
+                  "data": {
+                    "user": {},
+                    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+                    "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "بيانات غير صالحة" },
+          "409": { "description": "رقم الهاتف أو البريد موجود مسبقاً" }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "تسجيل الدخول",
+        "description": "تسجيل الدخول باستخدام رقم الهاتف أو البريد الإلكتروني",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["password"],
+                "properties": {
+                  "phone": { "type": "string", "example": "+966501234567" },
+                  "email": { "type": "string", "format": "email", "example": "ahmed@example.com" },
+                  "password": { "type": "string", "format": "password" },
+                  "deviceId": { "type": "string", "description": "معرف الجهاز للإشعارات" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم تسجيل الدخول بنجاح",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+                    "refreshToken": "eyJhbGciOiJIUzI1NiIs...",
+                    "user": {}
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "بيانات الدخول غير صحيحة" },
+          "403": { "description": "الحساب معطل أو مقفل" }
+        }
+      }
+    },
+    "/auth/refresh": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "تجديد التوكن",
+        "description": "الحصول على توكن جديد باستخدام refresh token",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["refreshToken"],
+                "properties": {
+                  "refreshToken": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم تجديد التوكن بنجاح",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "accessToken": "eyJhbGciOiJIUzI1NiIs...",
+                    "refreshToken": "eyJhbGciOiJIUzI1NiIs..."
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Refresh token غير صالح" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "تسجيل الخروج",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "تم تسجيل الخروج بنجاح",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "message": "تم تسجيل الخروج بنجاح"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/verify": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "تفعيل الحساب",
+        "description": "تفعيل حساب المستخدم باستخدام رمز التحقق",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["phone", "verificationCode"],
+                "properties": {
+                  "phone": { "type": "string" },
+                  "verificationCode": { "type": "string", "minLength": 6, "maxLength": 6 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تفعيل الحساب بنجاح" },
+          "400": { "description": "رمز التحقق غير صالح" }
+        }
+      }
+    }
+  }
+}
+</file>
+
+<file path="src/config/swagger/docs/chat.json">
+{
+  "tags": [
+    {
+      "name": "Chat",
+      "description": "💬 نظام الدردشة والمراسلة"
+    }
+  ],
+  "paths": {
+    "/chat/conversations": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "الحصول على قائمة المحادثات",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["direct", "support", "order", "group"] } },
+          { "name": "archived", "in": "query", "schema": { "type": "boolean", "default": false } }
+        ],
+        "responses": {
+          "200": {
+            "description": "قائمة المحادثات",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "conversations": [],
+                    "pagination": { "page": 1, "limit": 20, "total": 5 },
+                    "summary": { "total": 5, "unreadCount": 2 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/conversations/direct/{userId}": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "إنشاء محادثة مباشرة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "userId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "201": {
+            "description": "تم إنشاء المحادثة",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "conversation": {} }
+                }
+              }
+            }
+          },
+          "400": { "description": "لا يمكن إنشاء محادثة مع نفسك" },
+          "404": { "description": "المستخدم غير موجود" }
+        }
+      }
+    },
+    "/chat/conversations/order/{orderId}": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "إنشاء محادثة للطلب",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "orderId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "201": {
+            "description": "تم إنشاء محادثة الطلب",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "conversation": {} }
+                }
+              }
+            }
+          },
+          "403": { "description": "غير مصرح بإنشاء محادثة لهذا الطلب" },
+          "404": { "description": "الطلب غير موجود" }
+        }
+      }
+    },
+    "/chat/conversations/support": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "إنشاء محادثة دعم فني",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "department": { "type": "string", "enum": ["technical", "billing", "general", "complaints"], "default": "general" },
+                  "title": { "type": "string" },
+                  "description": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم إنشاء محادثة الدعم",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "conversation": {}, "estimatedWaitTime": "فوري" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/conversations/group": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "إنشاء مجموعة محادثة",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["title", "participantIds"],
+                "properties": {
+                  "title": { "type": "string", "minLength": 3, "maxLength": 100 },
+                  "description": { "type": "string", "maxLength": 500 },
+                  "participantIds": { "type": "array", "items": { "type": "string" } },
+                  "isPublic": { "type": "boolean", "default": false }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم إنشاء المجموعة",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "conversation": {}, "inviteCode": "ABC123" }
+                }
+              }
+            }
+          },
+          "400": { "description": "عنوان المجموعة مطلوب أو قائمة المشاركين غير صالحة" }
+        }
+      }
+    },
+    "/chat/conversations/{id}": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "الحصول على تفاصيل المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "تفاصيل المحادثة مع الإحصائيات",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "conversation": {},
+                    "stats": { "total": 150, "byType": [] },
+                    "participantStats": {}
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "المحادثة غير موجودة" }
+        }
+      },
+      "put": {
+        "tags": ["Chat"],
+        "summary": "تحديث المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "title": { "type": "string" },
+                  "description": { "type": "string" },
+                  "image": { "type": "string" },
+                  "notificationSettings": { "type": "object" },
+                  "privacySettings": { "type": "object" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تحديث المحادثة" },
+          "403": { "description": "المشرفون فقط يمكنهم تحديث بيانات المجموعة" }
+        }
+      },
+      "delete": {
+        "tags": ["Chat"],
+        "summary": "حذف المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "تم حذف المحادثة" },
+          "403": { "description": "لا تملك صلاحية حذف هذه المحادثة" }
+        }
+      }
+    },
+    "/chat/conversations/{id}/messages": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "الحصول على رسائل المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 50 } },
+          { "name": "before", "in": "query", "schema": { "type": "string", "format": "date-time" } },
+          { "name": "includeSystem", "in": "query", "schema": { "type": "boolean", "default": true } }
+        ],
+        "responses": {
+          "200": {
+            "description": "قائمة الرسائل",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "messages": [],
+                    "pagination": { "page": 1, "limit": 50, "total": 200, "hasMore": true }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/conversations/{id}/messages/text": {
+      "post": {
+        "tags": ["Chat"],
+        "summary": "إرسال رسالة نصية",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content"],
+                "properties": {
+                  "content": { "type": "string", "minLength": 1, "maxLength": 5000 },
+                  "replyTo": { "type": "string", "description": "معرف الرسالة المراد الرد عليها" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم إرسال الرسالة",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "message": {} }
+                }
+              }
+            }
+          },
+          "400": { "description": "محتوى الرسالة مطلوب" },
+          "403": { "description": "المحادثة غير نشطة" }
+        }
+      }
+    },
+    "/chat/conversations/{conversationId}/messages/{messageId}": {
+      "put": {
+        "tags": ["Chat"],
+        "summary": "تعديل رسالة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "conversationId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "messageId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["content"],
+                "properties": { "content": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تعديل الرسالة" },
+          "404": { "description": "الرسالة غير موجودة أو لا تملك صلاحية تعديلها" }
+        }
+      },
+      "delete": {
+        "tags": ["Chat"],
+        "summary": "حذف رسالة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "conversationId", "in": "path", "required": true, "schema": { "type": "string" } },
+          { "name": "messageId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "تم حذف الرسالة" },
+          "403": { "description": "لا تملك صلاحية حذف هذه الرسالة" }
+        }
+      }
+    },
+    "/chat/conversations/{id}/participants": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "الحصول على المشاركين في المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "قائمة المشاركين",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "participants": [], "count": 3, "type": "group" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Chat"],
+        "summary": "إضافة مشارك إلى المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["participantId"],
+                "properties": { "participantId": { "type": "string" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم إضافة المشارك" },
+          "403": { "description": "المشرفون فقط يمكنهم إضافة مشاركين" },
+          "400": { "description": "تم الوصول للحد الأقصى للمشاركين" }
+        }
+      }
+    },
+    "/chat/conversations/{id}/mute": {
+      "put": {
+        "tags": ["Chat"],
+        "summary": "كتم المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": { "duration": { "type": "integer", "description": "مدة الكتم بالساعات" } }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم كتم المحادثة" }
+        }
+      }
+    },
+    "/chat/conversations/{id}/unmute": {
+      "put": {
+        "tags": ["Chat"],
+        "summary": "إلغاء كتم المحادثة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "تم إلغاء كتم المحادثة" }
+        }
+      }
+    },
+    "/chat/unread/total": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "الحصول على إجمالي الرسائل غير المقروءة",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "عدد الرسائل غير المقروءة",
+            "content": {
+              "application/json": {
+                "example": { "success": true, "data": { "totalUnread": 5 } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/search": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "بحث عام في المحادثات والرسائل",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "q", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "نتائج البحث",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "results": [], "total": 5, "searchTerm": "طعام" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/stats": {
+      "get": {
+        "tags": ["Chat"],
+        "summary": "إحصائيات الدردشة",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "إحصائيات المستخدم",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "overview": { "totalConversations": 10, "unreadMessages": 3, "activeChats": 2 },
+                    "byType": { "direct": 5, "group": 3, "support": 2 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+</file>
+
+<file path="src/config/swagger/docs/index.json">
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Food Delivery API",
+    "version": "3.0.0",
+    "description": "منصة توصيل طعام متكاملة",
+    "contact": {
+      "name": "الدعم الفني",
+      "email": "support@fooddelivery.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api/v1",
+      "description": "الخادم المحلي"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "tags": [
+    { "name": "Authentication", "description": "🔐 المصادقة" },
+    { "name": "Users", "description": "👥 إدارة المستخدمين" },
+    { "name": "Stores", "description": "🏪 المتاجر" },
+    { "name": "Orders", "description": "📦 الطلبات" },
+    { "name": "Map", "description": "🗺️ الخرائط والتتبع" },
+    { "name": "Chat", "description": "💬 الدردشة" },
+    { "name": "Notifications", "description": "🔔 الإشعارات" },
+    { "name": "Loyalty", "description": "🎁 الولاء والمكافآت" },
+    { "name": "Analytics", "description": "📊 التحليلات" },
+    { "name": "Addresses", "description": "📍 العناوين" },
+    { "name": "Health", "description": "🏥 صحة النظام" }
+  ],
+  "paths": {}
+}
+</file>
+
+<file path="src/config/swagger/docs/loyalty.json">
+{
+  "tags": [
+    {
+      "name": "Loyalty",
+      "description": "🎁 نظام الولاء والنقاط"
+    }
+  ],
+  "paths": {
+    "/loyalty/points": {
+      "get": {
+        "tags": ["Loyalty"],
+        "summary": "الحصول على نقاط الولاء الحالية",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "نقاط الولاء والمستوى",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "current": 1250,
+                    "tier": { "name": "silver", "multiplier": 1.2, "color": "#C0C0C0" },
+                    "nextTier": { "name": "gold", "pointsNeeded": 750, "progress": 62.5 },
+                    "history": { "earned": 2500, "redeemed": 1250 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loyalty/rewards": {
+      "get": {
+        "tags": ["Loyalty"],
+        "summary": "الحصول على قائمة المكافآت المتاحة",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "قائمة المكافآت",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "available": [
+                      { "id": "discount_10", "name": "خصم 10%", "points": 100 },
+                      { "id": "free_delivery", "name": "توصيل مجاني", "points": 50 }
+                    ],
+                    "upcoming": [],
+                    "userPoints": 1250
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loyalty/transactions": {
+      "get": {
+        "tags": ["Loyalty"],
+        "summary": "سجل معاملات النقاط",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "type", "in": "query", "schema": { "type": "string", "enum": ["earn", "redeem"] } }
+        ],
+        "responses": {
+          "200": {
+            "description": "سجل المعاملات",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "transactions": [],
+                    "pagination": { "page": 1, "limit": 20, "total": 15 },
+                    "stats": { "totalEarned": 2500, "totalRedeemed": 1250 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/loyalty/redeem": {
+      "post": {
+        "tags": ["Loyalty"],
+        "summary": "استبدال النقاط بمكافأة",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["amount", "rewardId"],
+                "properties": {
+                  "amount": { "type": "integer", "minimum": 1 },
+                  "rewardId": { "type": "string" },
+                  "orderId": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم استبدال النقاط",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "newBalance": 1150, "transaction": {} }
+                }
+              }
+            }
+          },
+          "400": { "description": "نقاط غير كافية" }
+        }
+      }
+    },
+    "/loyalty/stats": {
+      "get": {
+        "tags": ["Loyalty"],
+        "summary": "إحصائيات الولاء",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "إحصائيات تفصيلية",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "currentPoints": 1250,
+                    "tier": "silver",
+                    "memberSince": "2024-01-01T00:00:00.000Z",
+                    "monthly": { "Jan": { "earn": 500, "redeem": 0 } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+</file>
+
+<file path="src/config/swagger/docs/map.json">
+{
+  "tags": [
+    {
+      "name": "Map",
+      "description": "🗺️ خدمات الخرائط والتتبع"
+    }
+  ],
+  "paths": {
+    "/map/directions": {
+      "post": {
+        "tags": ["Map"],
+        "summary": "حساب المسار بين نقطتين",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["origin", "destination"],
+                "properties": {
+                  "origin": {
+                    "type": "object",
+                    "properties": {
+                      "latitude": { "type": "number" },
+                      "longitude": { "type": "number" }
+                    }
+                  },
+                  "destination": {
+                    "type": "object",
+                    "properties": {
+                      "latitude": { "type": "number" },
+                      "longitude": { "type": "number" }
+                    }
+                  },
+                  "profile": { "type": "string", "enum": ["driving", "walking", "cycling"], "default": "driving" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "تم حساب المسار بنجاح",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "distance": 1250,
+                    "distanceKm": 1.25,
+                    "duration": 540,
+                    "durationMinutes": 9,
+                    "geometry": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "نقطة البداية أو الوجهة غير صالحة" }
+        }
+      }
+    },
+    "/map/geocode": {
+      "get": {
+        "tags": ["Map"],
+        "summary": "تحويل العنوان إلى إحداثيات",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "address", "in": "query", "required": true, "schema": { "type": "string" } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 5 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "نتائج البحث",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "placeName": "الرياض، المملكة العربية السعودية",
+                      "center": { "latitude": 24.7136, "longitude": 46.6753 }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/map/reverse-geocode": {
+      "get": {
+        "tags": ["Map"],
+        "summary": "تحويل الإحداثيات إلى عنوان",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "latitude", "in": "query", "required": true, "schema": { "type": "number" } },
+          { "name": "longitude", "in": "query", "required": true, "schema": { "type": "number" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "العنوان المستخرج",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "address": "الرياض، المملكة العربية السعودية",
+                    "coordinates": { "latitude": 24.7136, "longitude": 46.6753 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/map/driver/location": {
+      "put": {
+        "tags": ["Map"],
+        "summary": "تحديث موقع المندوب",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["latitude", "longitude"],
+                "properties": {
+                  "latitude": { "type": "number" },
+                  "longitude": { "type": "number" },
+                  "accuracy": { "type": "number" },
+                  "heading": { "type": "number" },
+                  "speed": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تحديث الموقع بنجاح" },
+          "403": { "description": "غير مصرح - هذا المسار للمندوبين فقط" }
+        }
+      }
+    },
+    "/map/driver/{driverId}/track": {
+      "get": {
+        "tags": ["Map"],
+        "summary": "تتبع موقع مندوب",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "driverId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "موقع المندوب",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "driver": { "id": "...", "name": "أحمد", "rating": 4.8 },
+                    "currentLocation": { "latitude": 24.7136, "longitude": 46.6753 },
+                    "history": []
+                  }
+                }
+              }
+            }
+          },
+          "403": { "description": "غير مصرح بتتبع هذا المندوب" },
+          "404": { "description": "المندوب غير موجود" }
+        }
+      }
+    },
+    "/map/stores": {
+      "get": {
+        "tags": ["Map"],
+        "summary": "الحصول على المتاجر القريبة على الخريطة",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "lat", "in": "query", "required": true, "schema": { "type": "number" } },
+          { "name": "lng", "in": "query", "required": true, "schema": { "type": "number" } },
+          { "name": "radius", "in": "query", "schema": { "type": "integer", "default": 5000 } },
+          { "name": "category", "in": "query", "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "المتاجر القريبة",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": { "stores": [], "count": 10 }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+</file>
+
+<file path="src/config/swagger/docs/notifications.json">
+{
+  "tags": [
+    {
+      "name": "Notifications",
+      "description": "🔔 إدارة الإشعارات"
+    }
+  ],
+  "paths": {
+    "/notifications": {
+      "get": {
+        "tags": ["Notifications"],
+        "summary": "الحصول على إشعارات المستخدم",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["unread", "read", "archived"] } },
+          { "name": "type", "in": "query", "schema": { "type": "string" } },
+          { "name": "unreadOnly", "in": "query", "schema": { "type": "boolean", "default": false } }
+        ],
+        "responses": {
+          "200": {
+            "description": "قائمة الإشعارات",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "notifications": [],
+                    "pagination": { "page": 1, "limit": 20, "total": 15 },
+                    "stats": { "unreadCount": 3 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/unread-count": {
+      "get": {
+        "tags": ["Notifications"],
+        "summary": "عدد الإشعارات غير المقروءة",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "عدد الإشعارات غير المقروءة",
+            "content": {
+              "application/json": {
+                "example": { "success": true, "data": { "unreadCount": 5 } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/stats": {
+      "get": {
+        "tags": ["Notifications"],
+        "summary": "إحصائيات الإشعارات",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "الإحصائيات التفصيلية",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "totals": { "total": 50, "unread": 5 },
+                    "byType": { "order": 30, "promotion": 15, "system": 5 },
+                    "byPriority": { "high": 10, "medium": 30, "low": 10 }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/{id}/read": {
+      "put": {
+        "tags": ["Notifications"],
+        "summary": "تحديد إشعار كمقروء",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "تم تحديث حالة الإشعار" },
+          "404": { "description": "الإشعار غير موجود" }
+        }
+      }
+    },
+    "/notifications/mark-all-read": {
+      "put": {
+        "tags": ["Notifications"],
+        "summary": "تحديد جميع الإشعارات كمقروءة",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "تم تحديث جميع الإشعارات",
+            "content": {
+              "application/json": {
+                "example": { "success": true, "data": { "modifiedCount": 10 } }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/notifications/{id}": {
+      "delete": {
+        "tags": ["Notifications"],
+        "summary": "حذف إشعار",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "تم حذف الإشعار" },
+          "404": { "description": "الإشعار غير موجود" }
+        }
+      }
+    },
+    "/notifications/preferences": {
+      "put": {
+        "tags": ["Notifications"],
+        "summary": "تحديث تفضيلات الإشعارات",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "preferences": {
+                    "type": "object",
+                    "properties": {
+                      "email": { "type": "boolean" },
+                      "sms": { "type": "boolean" },
+                      "push": { "type": "boolean" },
+                      "orderUpdates": { "type": "boolean" },
+                      "promotions": { "type": "boolean" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تحديث التفضيلات" }
+        }
+      }
+    },
+    "/notifications/devices": {
+      "post": {
+        "tags": ["Notifications"],
+        "summary": "تسجيل جهاز للإشعارات",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["deviceToken", "platform"],
+                "properties": {
+                  "deviceToken": { "type": "string" },
+                  "platform": { "type": "string", "enum": ["ios", "android", "web"] },
+                  "deviceId": { "type": "string" },
+                  "deviceModel": { "type": "string" },
+                  "osVersion": { "type": "string" },
+                  "appVersion": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تسجيل الجهاز" },
+          "400": { "description": "بيانات غير صالحة" }
+        }
+      }
+    },
+    "/notifications/devices/{deviceId}": {
+      "delete": {
+        "tags": ["Notifications"],
+        "summary": "إلغاء تسجيل الجهاز",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "deviceId", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": { "description": "تم إلغاء تسجيل الجهاز" },
+          "404": { "description": "الجهاز غير موجود" }
+        }
+      }
+    }
+  }
+}
+</file>
+
+<file path="src/config/swagger/docs/orders.json">
+{
+  "tags": [
+    {
+      "name": "Orders",
+      "description": "📦 إدارة الطلبات"
+    }
+  ],
+  "paths": {
+    "/orders": {
+      "post": {
+        "tags": ["Orders"],
+        "summary": "إنشاء طلب جديد",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["items", "store", "deliveryAddress"],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string" },
+                        "qty": { "type": "integer", "minimum": 1 },
+                        "price": { "type": "number" },
+                        "notes": { "type": "string" }
+                      }
+                    }
+                  },
+                  "store": { "type": "string", "description": "معرف المتجر" },
+                  "pickupAddress": { "type": "string", "description": "معرف عنوان الاستلام" },
+                  "deliveryAddress": { "type": "string", "description": "معرف عنوان التوصيل" },
+                  "paymentMethod": { "type": "string", "enum": ["cash", "card", "wallet"], "default": "cash" },
+                  "notes": { "type": "string", "maxLength": 500 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "تم إنشاء الطلب بنجاح",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "order": {},
+                    "assignedDriver": {},
+                    "estimatedDelivery": "30 دقيقة"
+                  }
+                }
+              }
+            }
+          },
+          "400": { "description": "بيانات غير صالحة" },
+          "404": { "description": "المتجر أو العنوان غير موجود" }
+        }
+      },
+      "get": {
+        "tags": ["Orders"],
+        "summary": "الحصول على طلبات المستخدم",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "status", "in": "query", "schema": { "type": "string", "enum": ["pending", "accepted", "picked", "delivered", "cancelled"] } }
+        ],
+        "responses": {
+          "200": {
+            "description": "تم جلب الطلبات بنجاح",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": [],
+                  "pagination": { "page": 1, "limit": 20, "total": 50, "pages": 3 }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{id}": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "الحصول على تفاصيل الطلب",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "تفاصيل الطلب",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "order": {},
+                    "tracking": {},
+                    "timeline": []
+                  }
+                }
+              }
+            }
+          },
+          "403": { "description": "غير مصرح بالوصول" },
+          "404": { "description": "الطلب غير موجود" }
+        }
+      }
+    },
+    "/orders/{id}/cancel": {
+      "put": {
+        "tags": ["Orders"],
+        "summary": "إلغاء الطلب",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["reason"],
+                "properties": {
+                  "reason": { "type": "string", "minLength": 5 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم إلغاء الطلب بنجاح" },
+          "400": { "description": "لا يمكن إلغاء الطلب في هذه المرحلة" }
+        }
+      }
+    },
+    "/orders/{id}/track": {
+      "get": {
+        "tags": ["Orders"],
+        "summary": "تتبع الطلب",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "بيانات تتبع الطلب",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "orderId": "60d21b4667d0d8992e610c88",
+                    "status": "picked",
+                    "estimatedDelivery": "5-15 دقيقة",
+                    "trackingPoints": [],
+                    "driver": {}
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/orders/{id}/rate": {
+      "post": {
+        "tags": ["Orders"],
+        "summary": "تقييم الطلب",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["rating"],
+                "properties": {
+                  "rating": { "type": "integer", "minimum": 1, "maximum": 5 },
+                  "comment": { "type": "string", "maxLength": 500 },
+                  "rateDriver": { "type": "integer", "minimum": 1, "maximum": 5 },
+                  "rateStore": { "type": "integer", "minimum": 1, "maximum": 5 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "تم تقييم الطلب بنجاح" },
+          "404": { "description": "الطلب غير موجود أو لم يتم توصيله بعد" }
+        }
+      }
+    }
+  }
+}
+</file>
+
+<file path="src/config/swagger/docs/stores.json">
+{
+  "tags": [
+    {
+      "name": "Stores",
+      "description": "🏪 إدارة المتاجر والمنتجات"
+    }
+  ],
+  "paths": {
+    "/stores": {
+      "get": {
+        "tags": ["Stores"],
+        "summary": "الحصول على قائمة المتاجر",
+        "parameters": [
+          { "name": "page", "in": "query", "schema": { "type": "integer", "default": 1 } },
+          { "name": "limit", "in": "query", "schema": { "type": "integer", "default": 20 } },
+          { "name": "category", "in": "query", "schema": { "type": "string" } },
+          { "name": "search", "in": "query", "schema": { "type": "string" } },
+          { "name": "minRating", "in": "query", "schema": { "type": "number", "minimum": 0, "maximum": 5 } }
+        ],
+        "responses": {
+          "200": {
+            "description": "قائمة المتاجر",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": [],
+                  "pagination": { "page": 1, "limit": 20, "total": 50 }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/stores/{id}": {
+      "get": {
+        "tags": ["Stores"],
+        "summary": "تفاصيل المتجر",
+        "parameters": [
+          { "name": "id", "in": "path", "required": true, "schema": { "type": "string" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "تفاصيل المتجر مع المنتجات والتقييمات",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": {
+                    "store": {},
+                    "products": [],
+                    "reviews": [],
+                    "categories": []
+                  }
+                }
+              }
+            }
+          },
+          "404": { "description": "المتجر غير موجود" }
+        }
+      }
+    }
+  }
+}
+</file>
+
+<file path="src/config/swagger/schemas/common.schema.json">
+{
+  "components": {
+    "schemas": {
+      "ApiResponse": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "message": { "type": "string" },
+          "data": { "type": "object" },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "page": { "type": "integer" },
+          "limit": { "type": "integer" },
+          "total": { "type": "integer" },
+          "pages": { "type": "integer" },
+          "hasNext": { "type": "boolean" },
+          "hasPrev": { "type": "boolean" }
+        }
+      },
+      "Location": {
+        "type": "object",
+        "properties": {
+          "latitude": { "type": "number" },
+          "longitude": { "type": "number" },
+          "address": { "type": "string" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean", "example": false },
+          "message": { "type": "string" },
+          "code": { "type": "string" },
+          "errors": { "type": "array", "items": { "type": "object" } }
+        }
+      }
+    }
+  }
+}
+</file>
+
+<file path="src/config/swagger/swagger.config.js">
+const path = require('path');
+const fs = require('fs');
+const loadSwaggerDocs = () => {
+  const docsPath = path.join(__dirname, './docs');
+  const swaggerDocs = {
+    openapi: '3.0.0',
+    info: {
+      title: 'Food Delivery API',
+      version: '3.0.0',
+      description: 'منصة توصيل طعام متكاملة',
+      contact: {
+        name: 'الدعم الفني',
+        email: 'support@fooddelivery.com',
+        url: 'https://fooddelivery.com/support'
+      },
+      license: {
+        name: 'MIT',
+        url: 'https://opensource.org/licenses/MIT'
+      }
+    },
+    servers: [
+      {
+        url: 'http://localhost:3000/api/v1',
+        description: 'الخادم المحلي'
+      }
+    ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT'
+        }
+      }
+    },
+    paths: {},
+    tags: []
+  };
+  if (fs.existsSync(docsPath)) {
+    const files = fs.readdirSync(docsPath);
+    files.forEach(file => {
+      if (file.endsWith('.json')) {
+        const doc = require(path.join(docsPath, file));
+        Object.assign(swaggerDocs.paths, doc.paths || {});
+        if (doc.tags) swaggerDocs.tags.push(...doc.tags);
+        if (doc.components) {
+          swaggerDocs.components = {
+            ...swaggerDocs.components,
+            ...doc.components
+          };
+        }
+      }
+    });
+  }
+  return swaggerDocs;
+};
+module.exports = loadSwaggerDocs();
 </file>
 
 <file path="src/controllers/map.controller.js">
@@ -23778,1466 +25660,6 @@ const socketServiceInstance = new SocketService();
 module.exports = socketServiceInstance;
 </file>
 
-<file path="src/config/swagger.js">
-const swaggerJsdoc = require('swagger-jsdoc');
-const path = require('path');
-const convertJoiToSwagger = (joiSchema) => {
-  if (!joiSchema || !joiSchema.describe) {
-    return { type: 'object', properties: {} };
-  }
-  try {
-    const describe = joiSchema.describe();
-    const keys = describe.keys || {};
-    const swaggerSchema = {
-      type: 'object',
-      properties: {},
-      required: []
-    };
-    for (const [key, value] of Object.entries(keys)) {
-      let type = 'string';
-      if (value.type === 'number') type = 'number';
-      if (value.type === 'boolean') type = 'boolean';
-      if (value.type === 'array') type = 'array';
-      if (value.type === 'object') type = 'object';
-      if (value.type === 'date') type = 'string';
-      swaggerSchema.properties[key] = { type };
-      if (value.rules?.some(r => r.name === 'email')) {
-        swaggerSchema.properties[key].format = 'email';
-      }
-      const maxRule = value.rules?.find(r => r.name === 'max');
-      if (maxRule) {
-        swaggerSchema.properties[key].maxLength = maxRule.args.limit;
-      }
-      const minRule = value.rules?.find(r => r.name === 'min');
-      if (minRule) {
-        swaggerSchema.properties[key].minLength = minRule.args.limit;
-      }
-      if (type === 'number') {
-        const minNumberRule = value.rules?.find(r => r.name === 'min');
-        if (minNumberRule) {
-          swaggerSchema.properties[key].minimum = minNumberRule.args.limit;
-        }
-        const maxNumberRule = value.rules?.find(r => r.name === 'max');
-        if (maxNumberRule) {
-          swaggerSchema.properties[key].maximum = maxNumberRule.args.limit;
-        }
-      }
-      const validRule = value.rules?.find(r => r.name === 'valid');
-      if (validRule && validRule.args?.value) {
-        swaggerSchema.properties[key].enum = validRule.args.value;
-      }
-      if (value.flags?.default !== undefined) {
-        swaggerSchema.properties[key].default = value.flags.default;
-      }
-      if (value.flags?.presence === 'required') {
-        swaggerSchema.required.push(key);
-      }
-      if (type === 'array' && value.items) {
-        swaggerSchema.properties[key].items = convertJoiToSwagger({ describe: () => ({ keys: { item: value.items } }) }).properties?.item || { type: 'string' };
-      }
-    }
-    return swaggerSchema;
-  } catch (error) {
-    console.error('Error converting Joi schema:', error);
-    return { type: 'object', properties: {} };
-  }
-};
-const swaggerOptions = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'Food Delivery API',
-      version: '3.0.0',
-      description: `
-        🚀 **منصة توصيل الطعام المتكاملة**
-        ## المميزات الرئيسية:
-        - 🔐 **نظام مصادقة متكامل** (JWT, Refresh Tokens)
-        - 👤 **إدارة المستخدمين** (عملاء، مندوبين، تجار، مشرفين)
-        - 🏪 **إدارة المتاجر والمنتجات**
-        - 📦 **نظام الطلبات المتقدم** (تتبع، تقييم، إشعارات)
-        - 🗺️ **خدمات الخرائط والتتبع** (حساب المسافات، تتبع المندوبين)
-        - 💬 **نظام دردشة متكامل** (محادثات فردية، جماعية، دعم فني)
-        - 🎁 **نظام ولاء ونقاط** (مكافآت، خصومات)
-        - 📊 **تحليلات متقدمة** (تقارير، إحصائيات)
-        - 🔔 **إشعارات فورية** (Push, Email, SMS)
-        ## كيفية الاستخدام:
-        1. قم بتسجيل حساب جديد عبر \`/auth/register\`
-        2. فعّل حسابك عبر \`/auth/verify\`
-        3. سجل الدخول عبر \`/auth/login\` للحصول على التوكن
-        4. استخدم التوكن في Header: \`Authorization: Bearer <token>\`
-        ## الأدوار المدعومة:
-        - **client** 👤 عميل عادي
-        - **vendor** 🏪 صاحب متجر
-        - **driver** 🚗 مندوب توصيل
-        - **admin** 👑 مشرف كامل الصلاحيات
-      `,
-      contact: {
-        name: 'الدعم الفني',
-        email: 'support@fooddelivery.com',
-        url: 'https://fooddelivery.com/support'
-      },
-      license: {
-        name: 'MIT',
-        url: 'https://opensource.org/licenses/MIT'
-      }
-    },
-    servers: [
-      {
-        url: 'http://localhost:3000/api/v1',
-        description: 'الخادم المحلي (Development)'
-      },
-      {
-        url: 'https://staging-api.fooddelivery.com/api/v1',
-        description: 'خادم الاختبار (Staging)'
-      },
-      {
-        url: 'https://api.fooddelivery.com/api/v1',
-        description: 'خادم الإنتاج (Production)'
-      }
-    ],
-    components: {
-      securitySchemes: {
-        bearerAuth: {
-          type: 'http',
-          scheme: 'bearer',
-          bearerFormat: 'JWT',
-          description: 'أدخل التوكن بصيغة: Bearer <token>'
-        },
-        apiKeyAuth: {
-          type: 'apiKey',
-          in: 'header',
-          name: 'X-API-Key',
-          description: 'مفتاح API للخدمات الخارجية'
-        }
-      },
-      schemas: {
-        RegisterInput: convertJoiToSwagger(require('../validators/auth.validator').registerSchema),
-        LoginInput: {
-          type: 'object',
-          required: ['password'],
-          properties: {
-            phone: {
-              type: 'string',
-              description: 'رقم الهاتف (مطلوب إذا لم يكن البريد موجوداً)',
-              example: '+966501234567',
-              pattern: '^[\\+]?[(]?[0-9]{3}[)]?[-\\s\\.]?[(]?[0-9]{3}[)]?[-\\s\\.]?[0-9]{4,6}$'
-            },
-            email: {
-              type: 'string',
-              format: 'email',
-              description: 'البريد الإلكتروني (اختياري، بديل عن الهاتف)',
-              example: 'user@example.com'
-            },
-            password: {
-              type: 'string',
-              format: 'password',
-              description: 'كلمة المرور (مطلوبة)',
-              minLength: 6,
-              example: 'Pass@123'
-            },
-            deviceId: {
-              type: 'string',
-              description: 'معرف الجهاز للإشعارات (اختياري)',
-              example: 'device_12345'
-            }
-          }
-        },
-        ChangePasswordInput: convertJoiToSwagger(require('../validators/auth.validator').changePasswordSchema),
-        ResetPasswordInput: convertJoiToSwagger(require('../validators/auth.validator').resetPasswordSchema),
-        ForgotPasswordInput: convertJoiToSwagger(require('../validators/auth.validator').forgotPasswordSchema),
-        VerifyAccountInput: convertJoiToSwagger(require('../validators/auth.validator').verifyAccountSchema),
-        CreateAddressInput: convertJoiToSwagger(require('../validators/address.validator').createAddressSchema),
-        UpdateAddressInput: convertJoiToSwagger(require('../validators/address.validator').updateAddressSchema),
-        UpdateProfileInput: convertJoiToSwagger(require('../validators/user.validator').updateProfileSchema),
-        CreateStoreInput: convertJoiToSwagger(require('../validators/store.validator').createStoreSchema),
-        UpdateStoreInput: convertJoiToSwagger(require('../validators/store.validator').updateStoreSchema),
-        CreateProductInput: convertJoiToSwagger(require('../validators/product.validator').createProductSchema),
-        UpdateProductInput: convertJoiToSwagger(require('../validators/product.validator').updateProductSchema),
-        UpdateInventoryInput: convertJoiToSwagger(require('../validators/product.validator').updateInventorySchema),
-        CreateOrderInput: convertJoiToSwagger(require('../validators/order.validator').createOrderSchema),
-        UpdateStatusInput: convertJoiToSwagger(require('../validators/order.validator').updateStatusSchema),
-        CancelOrderInput: convertJoiToSwagger(require('../validators/order.validator').cancelOrderSchema),
-        RateOrderInput: convertJoiToSwagger(require('../validators/order.validator').rateOrderSchema),
-        ReportIssueInput: convertJoiToSwagger(require('../validators/order.validator').reportIssueSchema),
-        AssignDriverInput: convertJoiToSwagger(require('../validators/order.validator').assignDriverSchema),
-        User: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: '60d21b4667d0d8992e610c89' },
-            name: { type: 'string', example: 'أحمد محمد' },
-            email: { type: 'string', format: 'email', example: 'ahmed@example.com' },
-            phone: { type: 'string', example: '+966501234567' },
-            role: {
-              type: 'string',
-              enum: ['client', 'driver', 'vendor', 'admin'],
-              example: 'client'
-            }, avatar: { type: 'string', example: 'https://api.fooddelivery.com/uploads/avatar-123.jpg' },
-            coverImage: { type: 'string', example: 'https://api.fooddelivery.com/uploads/cover-123.jpg' },
-            isVerified: { type: 'boolean', example: true },
-            isActive: { type: 'boolean', example: true },
-            isOnline: { type: 'boolean', example: false },
-            rating: { type: 'number', format: 'float', minimum: 0, maximum: 5, example: 4.5 },
-            loyaltyPoints: { type: 'integer', example: 1250 },
-            createdAt: { type: 'string', format: 'date-time' },
-            updatedAt: { type: 'string', format: 'date-time' }
-          }
-        },
-        Address: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: '60d21b4667d0d8992e610c90' },
-            userId: { type: 'string', example: '60d21b4667d0d8992e610c89' },
-            label: { type: 'string', enum: ['home', 'work', 'other'], example: 'home' },
-            addressLine: { type: 'string', example: 'شارع الملك فهد، الرياض' },
-            city: { type: 'string', example: 'الرياض' },
-            latitude: { type: 'number', example: 24.7136 },
-            longitude: { type: 'number', example: 46.6753 },
-            isDefault: { type: 'boolean', example: true },
-            createdAt: { type: 'string', format: 'date-time' },
-            updatedAt: { type: 'string', format: 'date-time' }
-          }
-        },
-        Store: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: '60d21b4667d0d8992e610c85' },
-            owner: { type: 'string', example: '60d21b4667d0d8992e610c86' },
-            name: { type: 'string', example: 'مطعم الأندلس' },
-            description: { type: 'string', example: 'أشهى المأكولات العربية' },
-            logo: { type: 'string', example: 'https://api.fooddelivery.com/uploads/logo-123.jpg' },
-            coverImage: { type: 'string', example: 'https://api.fooddelivery.com/uploads/cover-123.jpg' },
-            category: {
-              type: 'string',
-              enum: ['restaurant', 'cafe', 'fast_food', 'bakery', 'grocery', 'pharmacy', 'store', 'other'],
-              example: 'restaurant'
-            },
-            isOpen: { type: 'boolean', example: true },
-            isVerified: { type: 'boolean', example: true },
-            rating: { type: 'number', format: 'float', minimum: 0, maximum: 5, example: 4.7 },
-            deliveryInfo: {
-              type: 'object',
-              properties: {
-                hasDelivery: { type: 'boolean', example: true },
-                deliveryFee: { type: 'number', example: 15 },
-                minOrderAmount: { type: 'number', example: 50 },
-                estimatedDeliveryTime: { type: 'integer', example: 30 },
-                deliveryRadius: { type: 'integer', example: 10 },
-                freeDeliveryThreshold: { type: 'number', example: 0 }
-              }
-            },
-            address: {
-              type: 'object',
-              properties: {
-                street: { type: 'string' },
-                city: { type: 'string' },
-                country: { type: 'string' }
-              }
-            },
-            tags: { type: 'array', items: { type: 'string' }, example: ['مأكولات', 'سريع'] },
-            gallery: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  url: { type: 'string' },
-                  caption: { type: 'string' }
-                }
-              }
-            },
-            createdAt: { type: 'string', format: 'date-time' },
-            updatedAt: { type: 'string', format: 'date-time' }
-          }
-        },
-        Product: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: '60d21b4667d0d8992e610c87' },
-            store: { type: 'string', example: '60d21b4667d0d8992e610c85' },
-            name: { type: 'string', example: 'شاورما دجاج' },
-            description: { type: 'string', example: 'شاورما دجاج مع صلصة الثوم' },
-            price: { type: 'number', example: 25 },
-            discountedPrice: { type: 'number', example: 20 },
-            image: { type: 'string', example: 'image.jpg' },
-            category: { type: 'string', example: 'وجبات رئيسية' },
-            isAvailable: { type: 'boolean', example: true },
-            inventory: {
-              type: 'object',
-              properties: {
-                quantity: { type: 'integer', example: 100 },
-                unit: { type: 'string', example: 'piece' },
-                lowStockThreshold: { type: 'integer', example: 5 },
-                trackInventory: { type: 'boolean', example: false }
-              }
-            },
-            attributes: {
-              type: 'object',
-              properties: {
-                spicyLevel: { type: 'integer', minimum: 0, maximum: 3, example: 1 },
-                isVegetarian: { type: 'boolean', example: false },
-                isVegan: { type: 'boolean', example: false },
-                isGlutenFree: { type: 'boolean', example: false }
-              }
-            },
-            preparationTime: { type: 'integer', example: 15 },
-            createdAt: { type: 'string', format: 'date-time' },
-            updatedAt: { type: 'string', format: 'date-time' }
-          }
-        },
-        Order: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', example: '60d21b4667d0d8992e610c88' },
-            user: { type: 'string', example: '60d21b4667d0d8992e610c89' },
-            store: { type: 'string', example: '60d21b4667d0d8992e610c85' },
-            driver: { type: 'string', example: '60d21b4667d0d8992e610c8a' },
-            items: {
-              type: 'array',
-              items: {
-                type: 'object',
-                properties: {
-                  name: { type: 'string' },
-                  qty: { type: 'integer' },
-                  price: { type: 'number' },
-                  notes: { type: 'string' },
-                  options: {
-                    type: 'array',
-                    items: {
-                      type: 'object',
-                      properties: {
-                        name: { type: 'string' },
-                        choice: { type: 'string' },
-                        price: { type: 'number' }
-                      }
-                    }
-                  }
-                }
-              }
-            },
-            totalPrice: { type: 'number', example: 105 },
-            status: {
-              type: 'string',
-              enum: ['pending', 'accepted', 'ready', 'picked', 'delivered', 'cancelled'],
-              example: 'pending'
-            },
-            paymentMethod: {
-              type: 'string',
-              enum: ['cash', 'card', 'wallet'],
-              example: 'cash'
-            },
-            paymentStatus: {
-              type: 'string',
-              enum: ['pending', 'paid', 'failed', 'refunded'],
-              example: 'pending'
-            },
-            estimatedDeliveryTime: { type: 'integer', example: 30 },
-            estimatedDistance: { type: 'number', example: 1250 },
-            notes: { type: 'string', example: 'من فضلك لا تنسى الصوص' },
-            deliveryAddress: { $ref: '#/components/schemas/Address' },
-            createdAt: { type: 'string', format: 'date-time' },
-            deliveredAt: { type: 'string', format: 'date-time' },
-            cancelledAt: { type: 'string', format: 'date-time' }
-          }
-        },
-        Location: {
-          type: 'object',
-          properties: {
-            latitude: { type: 'number', example: 24.7136 },
-            longitude: { type: 'number', example: 46.6753 },
-            address: { type: 'string', example: 'شارع الملك فهد، الرياض' }
-          }
-        },
-        Route: {
-          type: 'object',
-          properties: {
-            distance: { type: 'number', description: 'المسافة بالمتر', example: 1250 },
-            distanceKm: { type: 'number', description: 'المسافة بالكيلومتر', example: 1.25 },
-            duration: { type: 'number', description: 'المدة بالثواني', example: 540 },
-            durationMinutes: { type: 'number', description: 'المدة بالدقائق', example: 9 },
-            geometry: { type: 'object', description: 'مسار الخط على الخريطة' },
-            steps: { type: 'array', description: 'خطوات التوجيه' }
-          }
-        },
-        Message: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            conversation: { type: 'string' },
-            sender: { $ref: '#/components/schemas/User' },
-            type: { type: 'string', enum: ['text', 'image', 'video', 'audio', 'location', 'contact', 'file'] },
-            content: { type: 'object' },
-            isRead: { type: 'boolean' },
-            createdAt: { type: 'string', format: 'date-time' }
-          }
-        },
-        Notification: {
-          type: 'object',
-          properties: {
-            id: { type: 'string' },
-            user: { type: 'string' },
-            type: { type: 'string', enum: ['order', 'promotion', 'system', 'chat', 'loyalty'] },
-            title: { type: 'string' },
-            content: { type: 'string' },
-            data: { type: 'object' },
-            isRead: { type: 'boolean' },
-            createdAt: { type: 'string', format: 'date-time' }
-          }
-        },
-        LoyaltyPoints: {
-          type: 'object',
-          properties: {
-            current: { type: 'integer', example: 1250 },
-            tier: { type: 'string', enum: ['bronze', 'silver', 'gold', 'platinum'], example: 'silver' },
-            nextTier: {
-              type: 'object',
-              properties: {
-                name: { type: 'string', example: 'gold' },
-                pointsNeeded: { type: 'integer', example: 750 },
-                progress: { type: 'number', example: 62.5 }
-              }
-            },
-            lifetimePoints: { type: 'integer', example: 2500 }
-          }
-        },
-        Error: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', example: false },
-            message: { type: 'string', example: 'حدث خطأ أثناء المعالجة' },
-            code: { type: 'string', example: 'VALIDATION_ERROR' },
-            errors: { type: 'array', items: { type: 'object' } }
-          }
-        },
-        Success: {
-          type: 'object',
-          properties: {
-            success: { type: 'boolean', example: true },
-            message: { type: 'string', example: 'تمت العملية بنجاح' },
-            data: { type: 'object' }
-          }
-        },
-        Pagination: {
-          type: 'object',
-          properties: {
-            page: { type: 'integer', example: 1 },
-            limit: { type: 'integer', example: 20 },
-            total: { type: 'integer', example: 100 },
-            pages: { type: 'integer', example: 5 },
-            hasNext: { type: 'boolean', example: true },
-            hasPrev: { type: 'boolean', example: false }
-          }
-        }
-      },
-      responses: {
-        UnauthorizedError: {
-          description: 'غير مصرح - يجب تسجيل الدخول',
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/Error'
-              },
-              example: {
-                success: false,
-                message: 'يرجى تسجيل الدخول أولاً',
-                code: 'UNAUTHORIZED'
-              }
-            }
-          }
-        },
-        ForbiddenError: {
-          description: 'ممنوع - ليس لديك صلاحية كافية',
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/Error'
-              },
-              example: {
-                success: false,
-                message: 'ليس لديك صلاحية للوصول إلى هذا المورد',
-                code: 'FORBIDDEN'
-              }
-            }
-          }
-        },
-        NotFoundError: {
-          description: 'المورد غير موجود',
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/Error'
-              },
-              example: {
-                success: false,
-                message: 'المورد المطلوب غير موجود',
-                code: 'NOT_FOUND'
-              }
-            }
-          }
-        },
-        ValidationError: {
-          description: 'بيانات غير صحيحة',
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/Error'
-              },
-              example: {
-                success: false,
-                message: 'بيانات غير صحيحة',
-                code: 'VALIDATION_ERROR',
-                errors: [
-                  { field: 'email', message: 'البريد الإلكتروني مطلوب' }
-                ]
-              }
-            }
-          }
-        },
-        TooManyRequests: {
-          description: 'طلبات كثيرة جداً',
-          content: {
-            'application/json': {
-              schema: {
-                $ref: '#/components/schemas/Error'
-              },
-              example: {
-                success: false,
-                message: 'محاولات كثيرة جداً، الرجاء المحاولة لاحقاً',
-                code: 'RATE_LIMIT_EXCEEDED'
-              }
-            }
-          }
-        }
-      }
-    },
-    tags: [
-      { name: '🚀 API', description: 'المسارات الرئيسية للتطبيق' },
-      { name: '🔐 Authentication', description: 'مسارات المصادقة وإدارة الحسابات' },
-      { name: '👤 Client', description: 'مسارات العملاء (المستخدمين العاديين)' },
-      { name: '🏪 Vendor', description: 'مسارات أصحاب المتاجر' },
-      { name: '🚗 Driver', description: 'مسارات المندوبين' },
-      { name: '👑 Admin', description: 'مسارات المشرف (صلاحيات كاملة)' },
-      { name: '📦 Orders', description: 'إدارة الطلبات لجميع الأدوار' },
-      { name: '🗺️ Map', description: 'خدمات الخرائط والتتبع والملاحة' },
-      { name: '💬 Chat', description: 'نظام الدردشة والمراسلة' },
-      { name: '📍 Addresses', description: 'إدارة عناوين المستخدمين' },
-      { name: '📊 Aggregates', description: 'البيانات المجمعة والتقارير' },
-      { name: '📊 Analytics', description: 'التحليلات وإحصائيات الأداء' },
-      { name: '🔔 Notifications', description: 'إدارة الإشعارات' },
-      { name: '🎁 Loyalty', description: 'نظام الولاء والمكافآت' },
-      { name: '👥 Users', description: 'إدارة المستخدمين (للمشرف فقط)' },
-      { name: '🔒 Security', description: 'مسارات الأمان والفحوصات' },
-      { name: '🏥 Health', description: 'فحص صحة النظام وحالته' },
-      { name: '📁 Assets', description: 'الملفات الثابتة والصور' }
-    ]
-  },
-  apis: [
-    path.join(__dirname, '../routes/*.js'),
-    path.join(__dirname, '../routes/**/*.js'),
-    path.join(__dirname, '../models/*.js')
-  ]
-};
-const swaggerSpecs = swaggerJsdoc(swaggerOptions);
-module.exports = swaggerSpecs;
-module.exports.convertJoiToSwagger = convertJoiToSwagger;
-</file>
-
-<file path="src/controllers/driver.controller.js">
-const { User, Order, DriverLocation } = require('../models');
-const cache = require("../utils/cache.util");
-const PaginationUtils = require('../utils/pagination.util');
-const fileService = require('../services/file.service');
-const { AppError } = require('../middlewares/errorHandler.middleware');
-const invalidateDriverCache = (driverId) => {
-  cache.del(`driver:profile:${driverId}`);
-  cache.del(`driver:stats:${driverId}`);
-  cache.invalidatePattern(`driver:orders:${driverId}:*`);
-  cache.del(`user:complete:${driverId}`);
-};
-exports.getMyProfile = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const cacheKey = `driver:profile:${driverId}`;
-    const cachedData = cache.get(cacheKey);
-    if (cachedData) {
-      return res.json({
-        success: true,
-        data: cachedData,
-        cached: true
-      });
-    }
-    const driver = await User.findById(driverId)
-      .select('name phone image email driverInfo stats.isOnline lastLogin')
-      .lean();
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: "Driver not found"
-      });
-    }
-    const [todayOrders, totalEarnings, currentOrder] = await Promise.all([
-      Order.countDocuments({
-        driver: driverId,
-        status: 'delivered',
-        createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
-      }),
-      Order.aggregate([
-        { $match: { driver: driverId, status: 'delivered' } },
-        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
-      ]),
-      Order.findOne({
-        driver: driverId,
-        status: { $in: ['accepted', 'picked'] }
-      }).select('_id status pickupAddress deliveryAddress')
-    ]);
-    const profileData = {
-      ...driver,
-      stats: {
-        ...driver.stats,
-        todayOrders,
-        totalEarnings: totalEarnings[0]?.total || 0,
-        currentOrder: currentOrder || null
-      }
-    };
-    cache.set(cacheKey, profileData, 300);
-    res.json({
-      success: true,
-      data: profileData
-    });
-  } catch (error) {
-    console.error("❌ Get driver profile error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get driver profile"
-    });
-  }
-};
-exports.toggleAvailability = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const { isAvailable } = req.body;
-    if (isAvailable === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: "يجب توفير حالة التوفر (isAvailable)"
-      });
-    }
-    const driver = await User.findByIdAndUpdate(
-      driverId,
-      {
-        'driverInfo.isAvailable': isAvailable,
-        isOnline: isAvailable,
-        lastStatusUpdate: new Date()
-      },
-      { new: true }
-    ).select('driverInfo.isAvailable isOnline name lastStatusUpdate');
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: "المندوب غير موجود"
-      });
-    }
-    invalidateDriverCache(driverId);
-    const io = req.app.get('io');
-    if (io) {
-      io.emit('driver:status:changed', {
-        driverId: driver._id,
-        driverName: driver.name,
-        isAvailable: driver.driverInfo.isAvailable,
-        isOnline: driver.isOnline,
-        timestamp: new Date()
-      });
-    }
-    res.json({
-      success: true,
-      message: isAvailable ? "أنت الآن متاح للطلبات" : "أنت الآن غير متاح",
-      data: {
-        isAvailable: driver.driverInfo.isAvailable,
-        isOnline: driver.isOnline,
-        lastStatusUpdate: driver.lastStatusUpdate
-      }
-    });
-  } catch (error) {
-    console.error("❌ Toggle availability error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تحديث حالة التوفر"
-    });
-  }
-};
-exports.updateLocation = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const { latitude, longitude } = req.body;
-    if (!latitude || !longitude) {
-      return res.status(400).json({
-        success: false,
-        message: "Latitude and longitude are required"
-      });
-    }
-    await User.findByIdAndUpdate(driverId, {
-      'driverInfo.currentLocation': {
-        type: 'Point',
-        coordinates: [parseFloat(longitude), parseFloat(latitude)]
-      }
-    });
-    await DriverLocation.findOneAndUpdate(
-      { driver: driverId },
-      {
-        driver: driverId,
-        location: {
-          type: 'Point',
-          coordinates: [parseFloat(longitude), parseFloat(latitude)]
-        },
-        createdAt: new Date()
-      },
-      { upsert: true, new: true }
-    );
-    const activeOrders = await Order.find({
-      driver: driverId,
-      status: { $in: ['accepted', 'picked'] }
-    });
-    const io = req.app.get('io');
-    if (io) {
-      activeOrders.forEach(order => {
-        io.to(`order:${order._id}`).emit('driver:location:updated', {
-          orderId: order._id,
-          driverId,
-          location: { latitude, longitude },
-          timestamp: new Date()
-        });
-      });
-    }
-    res.json({
-      success: true,
-      message: "Location updated successfully",
-      data: {
-        latitude,
-        longitude,
-        timestamp: new Date()
-      }
-    });
-  } catch (error) {
-    console.error("❌ Update location error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to update location"
-    });
-  }
-};
-exports.getCurrentOrder = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const currentOrder = await Order.findOne({
-      driver: driverId,
-      status: { $in: ['accepted', 'picked'] }
-    })
-      .populate('user', 'name phone image')
-      .populate('store', 'name image phone addressLine')
-      .populate('pickupAddress')
-      .populate('deliveryAddress')
-      .populate('items.item')
-      .lean();
-    if (!currentOrder) {
-      return res.json({
-        success: true,
-        data: null,
-        message: "No active order"
-      });
-    }
-    const orderData = {
-      ...currentOrder,
-      statusText: getStatusText(currentOrder.status),
-      estimatedDelivery: calculateETA(currentOrder),
-      timeline: createOrderTimeline(currentOrder)
-    };
-    res.json({
-      success: true,
-      data: orderData
-    });
-  } catch (error) {
-    console.error("❌ Get current order error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get current order"
-    });
-  }
-};
-exports.getMyStats = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const cacheKey = `driver:stats:${driverId}`;
-    const cachedData = cache.get(cacheKey);
-    if (cachedData) {
-      return res.json({
-        success: true,
-        data: cachedData,
-        cached: true
-      });
-    }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const monthAgo = new Date();
-    monthAgo.setMonth(monthAgo.getMonth() - 1);
-    const [
-      todayStats,
-      weekStats,
-      monthStats,
-      totalStats,
-      recentOrders
-    ] = await Promise.all([
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            createdAt: { $gte: today }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
-            distance: { $sum: '$distance' || 0 }
-          }
-        }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            createdAt: { $gte: weekAgo }
-          }
-        },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } }
-          }
-        },
-        { $sort: { _id: 1 } }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            createdAt: { $gte: monthAgo }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
-            avgTime: { $avg: '$deliveryTime' }
-          }
-        }
-      ]),
-      User.findById(driverId).select('driverInfo'),
-      Order.find({ driver: driverId, status: 'delivered' })
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .select('totalPrice createdAt')
-        .lean()
-    ]);
-    const stats = {
-      today: {
-        orders: todayStats[0]?.orders || 0,
-        earnings: todayStats[0]?.earnings || 0,
-        distance: todayStats[0]?.distance || 0
-      },
-      week: {
-        daily: weekStats,
-        total: weekStats.reduce((sum, day) => sum + day.orders, 0),
-        earnings: weekStats.reduce((sum, day) => sum + day.earnings, 0)
-      },
-      month: {
-        orders: monthStats[0]?.orders || 0,
-        earnings: monthStats[0]?.earnings || 0,
-        avgTime: monthStats[0]?.avgTime || 0
-      },
-      total: {
-        orders: totalStats?.driverInfo?.totalDeliveries || 0,
-        earnings: totalStats?.driverInfo?.earnings || 0,
-        rating: totalStats?.driverInfo?.rating || 0
-      },
-      recentOrders
-    };
-    cache.set(cacheKey, stats, 300);
-    res.json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    console.error("❌ Get driver stats error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get statistics"
-    });
-  }
-};
-exports.getDrivers = async (req, res) => {
-  try {
-    const paginationOptions = PaginationUtils.getPaginationOptions(req);
-    const { skip, limit, sort, filters } = paginationOptions;
-    let query = { role: 'driver' };
-    if (filters.isAvailable !== undefined) {
-      query['driverInfo.isAvailable'] = filters.isAvailable === 'true';
-    }
-    if (filters.isOnline !== undefined) {
-      query.isOnline = filters.isOnline === 'true';
-    }
-    if (filters.minRating) {
-      query['driverInfo.rating'] = { $gte: Number(filters.minRating) };
-    }
-    const [drivers, total] = await Promise.all([
-      User.find(query)
-        .select('name phone image email driverInfo isOnline lastLogin')
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      User.countDocuments(query)
-    ]);
-    const driversWithStats = await Promise.all(
-      drivers.map(async (driver) => {
-        const todayOrders = await Order.countDocuments({
-          driver: driver._id,
-          status: 'delivered',
-          createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
-        });
-        return {
-          ...driver,
-          todayOrders
-        };
-      })
-    );
-    const response = PaginationUtils.createPaginationResponse(
-      driversWithStats,
-      total,
-      paginationOptions,
-      {
-        available: await User.countDocuments({ role: 'driver', 'driverInfo.isAvailable': true }),
-        online: await User.countDocuments({ role: 'driver', isOnline: true })
-      }
-    );
-    res.json(response);
-  } catch (error) {
-    console.error("❌ Get drivers error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get drivers"
-    });
-  }
-};
-exports.getDriverLocation = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const location = await DriverLocation.findOne({ driver: id })
-      .sort({ createdAt: -1 })
-      .lean();
-    if (!location) {
-      return res.status(404).json({
-        success: false,
-        message: "Driver location not found"
-      });
-    }
-    res.json({
-      success: true,
-      data: {
-        driverId: id,
-        location: {
-          latitude: location.location.coordinates[1],
-          longitude: location.location.coordinates[0]
-        },
-        updatedAt: location.createdAt
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get driver location error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get driver location"
-    });
-  }
-};
-exports.getDriverStatsById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const driver = await User.findById(id)
-      .select('name phone email driverInfo stats')
-      .lean();
-    if (!driver || driver.role !== 'driver') {
-      return res.status(404).json({
-        success: false,
-        message: "Driver not found"
-      });
-    }
-    const [orders, earnings] = await Promise.all([
-      Order.aggregate([
-        { $match: { driver: id, status: 'delivered' } },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
-            count: { $sum: 1 },
-            revenue: { $sum: '$totalPrice' }
-          }
-        },
-        { $sort: { _id: -1 } },
-        { $limit: 6 }
-      ]),
-      Order.aggregate([
-        { $match: { driver: id, status: 'delivered' } },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$totalPrice' },
-            avg: { $avg: '$totalPrice' },
-            min: { $min: '$totalPrice' },
-            max: { $max: '$totalPrice' }
-          }
-        }
-      ])
-    ]);
-    res.json({
-      success: true,
-      data: {
-        driver,
-        monthlyStats: orders,
-        earnings: earnings[0] || { total: 0, avg: 0, min: 0, max: 0 }
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get driver stats error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get driver statistics"
-    });
-  }
-};
-const getStatusText = (status) => {
-  const statusTexts = {
-    pending: 'قيد الانتظار',
-    accepted: 'تم القبول',
-    picked: 'تم الاستلام',
-    delivered: 'تم التوصيل',
-    cancelled: 'ملغي'
-  };
-  return statusTexts[status] || 'غير معروف';
-};
-const calculateETA = (order) => {
-  if (!order) return 'غير معروف';
-  const now = new Date();
-  const created = new Date(order.createdAt);
-  const elapsedMinutes = Math.floor((now - created) / 60000);
-  const baseTime = order.estimatedDeliveryTime || 30;
-  const remaining = Math.max(0, baseTime - elapsedMinutes);
-  const statusTimes = {
-    pending: `${baseTime} دقيقة`,
-    accepted: `${Math.max(5, remaining)} دقيقة`,
-    picked: `${Math.max(2, remaining - 10)} دقيقة`,
-    delivered: 'تم التوصيل',
-    cancelled: 'ملغي'
-  };
-  return statusTimes[order.status] || 'قيد الحساب';
-};
-const createOrderTimeline = (order) => {
-  return [
-    {
-      status: 'created',
-      title: 'تم إنشاء الطلب',
-      timestamp: order.createdAt,
-      completed: true,
-      icon: '🛒'
-    },
-    {
-      status: 'accepted',
-      title: 'تم قبول الطلب',
-      timestamp: order.status !== 'pending' ? order.updatedAt : null,
-      completed: ['accepted', 'picked', 'delivered'].includes(order.status),
-      icon: '✅'
-    },
-    {
-      status: 'picked',
-      title: 'تم الاستلام من المطعم',
-      timestamp: ['picked', 'delivered'].includes(order.status) ? order.updatedAt : null,
-      completed: ['picked', 'delivered'].includes(order.status),
-      icon: '📦'
-    },
-    {
-      status: 'delivered',
-      title: 'تم التوصيل',
-      timestamp: order.status === 'delivered' ? order.updatedAt : null,
-      completed: order.status === 'delivered',
-      icon: '🚚'
-    }
-  ];
-};
-exports.getDriverById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const driver = await User.findById(id)
-      .select('name phone email image driverInfo stats isOnline lastLogin')
-      .lean();
-    if (!driver || driver.role !== 'driver') {
-      return res.status(404).json({
-        success: false,
-        message: "المندوب غير موجود"
-      });
-    }
-    res.json({
-      success: true,
-      data: driver
-    });
-  } catch (error) {
-    console.error("❌ Get driver by id error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب بيانات المندوب"
-    });
-  }
-};
-exports.updateAvatar = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "لم يتم رفع أي صورة"
-      });
-    }
-    const driverId = req.user.id;
-    const oldDriver = await User.findById(driverId).select('image');
-    if (oldDriver?.image) {
-      const oldPublicId = fileService.extractPublicIdFromUrl(oldDriver.image);
-      if (oldPublicId) {
-        fileService.deleteFile(oldPublicId).catch(err =>
-          console.error('Error deleting old avatar:', err)
-        );
-      }
-    }
-    const driver = await User.findByIdAndUpdate(
-      driverId,
-      { image: req.file.path },
-      { new: true }
-    ).select('name phone image');
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: "المندوب غير موجود"
-      });
-    }
-    invalidateDriverCache(driverId);
-    res.json({
-      success: true,
-      message: "تم تحديث الصورة الشخصية بنجاح",
-      data: {
-        image: driver.image,
-        optimized: req.file.thumbnail || null
-      }
-    });
-  } catch (error) {
-    console.error("❌ Update avatar error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تحديث الصورة الشخصية"
-    });
-  }
-};
-exports.getEarningsHistory = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const { page = 1, limit = 20, from, to } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    let dateQuery = {};
-    if (from || to) {
-      dateQuery = {};
-      if (from) dateQuery.$gte = new Date(from);
-      if (to) dateQuery.$lte = new Date(to);
-    }
-    const orders = await Order.find({
-      driver: driverId,
-      status: 'delivered',
-      ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
-    })
-      .select('totalPrice deliveredAt items store')
-      .populate('store', 'name')
-      .sort({ deliveredAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .lean();
-    const total = await Order.countDocuments({
-      driver: driverId,
-      status: 'delivered',
-      ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
-    });
-    const earnings = orders.map(order => ({
-      orderId: order._id,
-      storeName: order.store?.name || 'غير معروف',
-      date: order.deliveredAt,
-      amount: order.totalPrice,
-      commission: order.totalPrice * 0.2,
-      netEarnings: order.totalPrice * 0.8,
-      itemsCount: order.items?.reduce((sum, item) => sum + item.qty, 0) || 0
-    }));
-    const stats = {
-      totalEarnings: earnings.reduce((sum, e) => sum + e.netEarnings, 0),
-      totalOrders: earnings.length,
-      averagePerOrder: earnings.length > 0
-        ? earnings.reduce((sum, e) => sum + e.netEarnings, 0) / earnings.length
-        : 0,
-      totalCommission: earnings.reduce((sum, e) => sum + e.commission, 0)
-    };
-    const monthlyStats = await Order.aggregate([
-      {
-        $match: {
-          driver: driverId,
-          status: 'delivered',
-          ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
-        }
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$deliveredAt" },
-            month: { $month: "$deliveredAt" }
-          },
-          earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
-          orders: { $sum: 1 }
-        }
-      },
-      { $sort: { "_id.year": -1, "_id.month": -1 } },
-      { $limit: 12 }
-    ]);
-    res.json({
-      success: true,
-      data: {
-        earnings,
-        monthlyStats,
-        stats,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / parseInt(limit))
-        }
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get earnings history error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب سجل الأرباح"
-    });
-  }
-};
-exports.getPerformanceReport = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const now = new Date();
-    const today = new Date(now.setHours(0, 0, 0, 0));
-    const weekAgo = new Date(now.setDate(now.getDate() - 7));
-    const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
-    const [
-      dailyStats,
-      weeklyStats,
-      monthlyStats,
-      deliveryTimes,
-      ratings
-    ] = await Promise.all([
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            deliveredAt: { $gte: today }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
-            totalDistance: { $sum: "$estimatedDistance" }
-          }
-        }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            deliveredAt: { $gte: weekAgo }
-          }
-        },
-        {
-          $group: {
-            _id: { $dateToString: { format: "%Y-%m-%d", date: "$deliveredAt" } },
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } }
-          }
-        },
-        { $sort: { _id: 1 } }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            deliveredAt: { $gte: monthAgo }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
-            avgOrderValue: { $avg: "$totalPrice" }
-          }
-        }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            deliveryTime: { $exists: true }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            avgDeliveryTime: { $avg: "$deliveryTime" },
-            fastestDelivery: { $min: "$deliveryTime" },
-            slowestDelivery: { $max: "$deliveryTime" },
-            totalDeliveries: { $sum: 1 }
-          }
-        }
-      ]),
-      User.findById(driverId).select('driverInfo.rating driverInfo.totalRatings')
-    ]);
-    const acceptedOrders = await Order.countDocuments({
-      driver: driverId,
-      status: { $in: ['accepted', 'picked', 'delivered'] }
-    });
-    const rejectedOrders = await Order.countDocuments({
-      driver: driverId,
-      status: 'cancelled',
-      cancelledBy: driverId
-    });
-    const acceptanceRate = acceptedOrders + rejectedOrders > 0
-      ? (acceptedOrders / (acceptedOrders + rejectedOrders)) * 100
-      : 100;
-    res.json({
-      success: true,
-      data: {
-        period: {
-          today: dailyStats[0] || { orders: 0, earnings: 0, totalDistance: 0 },
-          weekly: {
-            daily: weeklyStats,
-            total: weeklyStats.reduce((sum, day) => sum + day.orders, 0),
-            earnings: weeklyStats.reduce((sum, day) => sum + day.earnings, 0)
-          },
-          monthly: monthlyStats[0] || { orders: 0, earnings: 0, avgOrderValue: 0 }
-        },
-        performance: {
-          acceptanceRate: acceptanceRate.toFixed(1),
-          deliveryTime: deliveryTimes[0] || {
-            avgDeliveryTime: 0,
-            fastestDelivery: 0,
-            slowestDelivery: 0
-          },
-          rating: ratings?.driverInfo?.rating || 0,
-          totalRatings: ratings?.driverInfo?.totalRatings || 0
-        },
-        summary: {
-          totalDeliveries: acceptedOrders,
-          totalEarnings: monthlyStats[0]?.earnings || 0,
-          averagePerDay: weeklyStats.length > 0
-            ? weeklyStats.reduce((sum, day) => sum + day.orders, 0) / weeklyStats.length
-            : 0
-        }
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get performance report error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب تقرير الأداء"
-    });
-  }
-};
-exports.verifyDriver = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const driver = await User.findByIdAndUpdate(
-      id,
-      {
-        isVerified: true,
-        'driverInfo.documents.$[].verified': true
-      },
-      { new: true }
-    ).select('name phone email driverInfo isVerified');
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: "المندوب غير موجود"
-      });
-    }
-    res.json({
-      success: true,
-      message: "تم توثيق المندوب بنجاح",
-      data: {
-        id: driver._id,
-        isVerified: driver.isVerified,
-        driverInfo: driver.driverInfo
-      }
-    });
-  } catch (error) {
-    console.error("❌ Verify driver error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل توثيق المندوب"
-    });
-  }
-};
-exports.toggleDriverStatus = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { isActive } = req.body;
-    const driver = await User.findByIdAndUpdate(
-      id,
-      { isActive },
-      { new: true }
-    ).select('name phone email isActive');
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: "المندوب غير موجود"
-      });
-    }
-    res.json({
-      success: true,
-      message: `تم ${isActive ? 'تفعيل' : 'تعطيل'} المندوب بنجاح`,
-      data: {
-        id: driver._id,
-        isActive: driver.isActive
-      }
-    });
-  } catch (error) {
-    console.error("❌ Toggle driver status error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تغيير حالة المندوب"
-    });
-  }
-};
-module.exports = exports;
-</file>
-
 <file path="src/controllers/order.controller.js">
 const { Order, User, Address, Store, DriverLocation, Review, Notification } = require('../models');
 const cache = require("../utils/cache.util");
@@ -29018,6 +29440,939 @@ router.get('/', (req, res) => {
   });
 });
 module.exports = router;
+</file>
+
+<file path="src/controllers/driver.controller.js">
+const { User, Order, DriverLocation } = require('../models');
+const cache = require("../utils/cache.util");
+const PaginationUtils = require('../utils/pagination.util');
+const fileService = require('../services/file.service');
+const { AppError } = require('../middlewares/errorHandler.middleware');
+const invalidateDriverCache = (driverId) => {
+  cache.del(`driver:profile:${driverId}`);
+  cache.del(`driver:stats:${driverId}`);
+  cache.invalidatePattern(`driver:orders:${driverId}:*`);
+  cache.del(`user:complete:${driverId}`);
+};
+exports.getMyProfile = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const cacheKey = `driver:profile:${driverId}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return res.json({
+        success: true,
+        data: cachedData,
+        cached: true
+      });
+    }
+    const driver = await User.findById(driverId)
+      .select('name phone image email driverInfo stats.isOnline lastLogin')
+      .lean();
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "Driver not found"
+      });
+    }
+    const [todayOrders, totalEarnings, currentOrder] = await Promise.all([
+      Order.countDocuments({
+        driver: driverId,
+        status: 'delivered',
+        createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
+      }),
+      Order.aggregate([
+        { $match: { driver: driverId, status: 'delivered' } },
+        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+      ]),
+      Order.findOne({
+        driver: driverId,
+        status: { $in: ['accepted', 'picked'] }
+      }).select('_id status pickupAddress deliveryAddress')
+    ]);
+    const profileData = {
+      ...driver,
+      stats: {
+        ...driver.stats,
+        todayOrders,
+        totalEarnings: totalEarnings[0]?.total || 0,
+        currentOrder: currentOrder || null
+      }
+    };
+    cache.set(cacheKey, profileData, 300);
+    res.json({
+      success: true,
+      data: profileData
+    });
+  } catch (error) {
+    console.error("❌ Get driver profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get driver profile"
+    });
+  }
+};
+exports.toggleAvailability = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { isAvailable } = req.body;
+    if (isAvailable === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "يجب توفير حالة التوفر (isAvailable)"
+      });
+    }
+    const driver = await User.findByIdAndUpdate(
+      driverId,
+      {
+        'driverInfo.isAvailable': isAvailable,
+        isOnline: isAvailable,
+        lastStatusUpdate: new Date()
+      },
+      { new: true }
+    ).select('driverInfo.isAvailable isOnline name lastStatusUpdate');
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    invalidateDriverCache(driverId);
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('driver:status:changed', {
+        driverId: driver._id,
+        driverName: driver.name,
+        isAvailable: driver.driverInfo.isAvailable,
+        isOnline: driver.isOnline,
+        timestamp: new Date()
+      });
+    }
+    res.json({
+      success: true,
+      message: isAvailable ? "أنت الآن متاح للطلبات" : "أنت الآن غير متاح",
+      data: {
+        isAvailable: driver.driverInfo.isAvailable,
+        isOnline: driver.isOnline,
+        lastStatusUpdate: driver.lastStatusUpdate
+      }
+    });
+  } catch (error) {
+    console.error("❌ Toggle availability error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث حالة التوفر"
+    });
+  }
+};
+exports.updateLocation = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { latitude, longitude } = req.body;
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: "Latitude and longitude are required"
+      });
+    }
+    await User.findByIdAndUpdate(driverId, {
+      'driverInfo.currentLocation': {
+        type: 'Point',
+        coordinates: [parseFloat(longitude), parseFloat(latitude)]
+      }
+    });
+    await DriverLocation.findOneAndUpdate(
+      { driver: driverId },
+      {
+        driver: driverId,
+        location: {
+          type: 'Point',
+          coordinates: [parseFloat(longitude), parseFloat(latitude)]
+        },
+        createdAt: new Date()
+      },
+      { upsert: true, new: true }
+    );
+    const activeOrders = await Order.find({
+      driver: driverId,
+      status: { $in: ['accepted', 'picked'] }
+    });
+    const io = req.app.get('io');
+    if (io) {
+      activeOrders.forEach(order => {
+        io.to(`order:${order._id}`).emit('driver:location:updated', {
+          orderId: order._id,
+          driverId,
+          location: { latitude, longitude },
+          timestamp: new Date()
+        });
+      });
+    }
+    res.json({
+      success: true,
+      message: "Location updated successfully",
+      data: {
+        latitude,
+        longitude,
+        timestamp: new Date()
+      }
+    });
+  } catch (error) {
+    console.error("❌ Update location error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update location"
+    });
+  }
+};
+exports.getCurrentOrder = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const currentOrder = await Order.findOne({
+      driver: driverId,
+      status: { $in: ['accepted', 'picked'] }
+    })
+      .populate('user', 'name phone image')
+      .populate('store', 'name image phone addressLine')
+      .populate('pickupAddress')
+      .populate('deliveryAddress')
+      .populate('items.item')
+      .lean();
+    if (!currentOrder) {
+      return res.json({
+        success: true,
+        data: null,
+        message: "No active order"
+      });
+    }
+    const orderData = {
+      ...currentOrder,
+      statusText: getStatusText(currentOrder.status),
+      estimatedDelivery: calculateETA(currentOrder),
+      timeline: createOrderTimeline(currentOrder)
+    };
+    res.json({
+      success: true,
+      data: orderData
+    });
+  } catch (error) {
+    console.error("❌ Get current order error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get current order"
+    });
+  }
+};
+exports.getMyStats = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const cacheKey = `driver:stats:${driverId}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return res.json({
+        success: true,
+        data: cachedData,
+        cached: true
+      });
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const monthAgo = new Date();
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+    const [
+      todayStats,
+      weekStats,
+      monthStats,
+      totalStats,
+      recentOrders
+    ] = await Promise.all([
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            createdAt: { $gte: today }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
+            distance: { $sum: '$distance' || 0 }
+          }
+        }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            createdAt: { $gte: weekAgo }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            createdAt: { $gte: monthAgo }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
+            avgTime: { $avg: '$deliveryTime' }
+          }
+        }
+      ]),
+      User.findById(driverId).select('driverInfo'),
+      Order.find({ driver: driverId, status: 'delivered' })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('totalPrice createdAt')
+        .lean()
+    ]);
+    const stats = {
+      today: {
+        orders: todayStats[0]?.orders || 0,
+        earnings: todayStats[0]?.earnings || 0,
+        distance: todayStats[0]?.distance || 0
+      },
+      week: {
+        daily: weekStats,
+        total: weekStats.reduce((sum, day) => sum + day.orders, 0),
+        earnings: weekStats.reduce((sum, day) => sum + day.earnings, 0)
+      },
+      month: {
+        orders: monthStats[0]?.orders || 0,
+        earnings: monthStats[0]?.earnings || 0,
+        avgTime: monthStats[0]?.avgTime || 0
+      },
+      total: {
+        orders: totalStats?.driverInfo?.totalDeliveries || 0,
+        earnings: totalStats?.driverInfo?.earnings || 0,
+        rating: totalStats?.driverInfo?.rating || 0
+      },
+      recentOrders
+    };
+    cache.set(cacheKey, stats, 300);
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error("❌ Get driver stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get statistics"
+    });
+  }
+};
+exports.getDrivers = async (req, res) => {
+  try {
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    const { skip, limit, sort, filters } = paginationOptions;
+    let query = { role: 'driver' };
+    if (filters.isAvailable !== undefined) {
+      query['driverInfo.isAvailable'] = filters.isAvailable === 'true';
+    }
+    if (filters.isOnline !== undefined) {
+      query.isOnline = filters.isOnline === 'true';
+    }
+    if (filters.minRating) {
+      query['driverInfo.rating'] = { $gte: Number(filters.minRating) };
+    }
+    const [drivers, total] = await Promise.all([
+      User.find(query)
+        .select('name phone image email driverInfo isOnline lastLogin')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      User.countDocuments(query)
+    ]);
+    const driversWithStats = await Promise.all(
+      drivers.map(async (driver) => {
+        const todayOrders = await Order.countDocuments({
+          driver: driver._id,
+          status: 'delivered',
+          createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
+        });
+        return {
+          ...driver,
+          todayOrders
+        };
+      })
+    );
+    const response = PaginationUtils.createPaginationResponse(
+      driversWithStats,
+      total,
+      paginationOptions,
+      {
+        available: await User.countDocuments({ role: 'driver', 'driverInfo.isAvailable': true }),
+        online: await User.countDocuments({ role: 'driver', isOnline: true })
+      }
+    );
+    res.json(response);
+  } catch (error) {
+    console.error("❌ Get drivers error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get drivers"
+    });
+  }
+};
+exports.getDriverLocation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const location = await DriverLocation.findOne({ driver: id })
+      .sort({ createdAt: -1 })
+      .lean();
+    if (!location) {
+      return res.status(404).json({
+        success: false,
+        message: "Driver location not found"
+      });
+    }
+    res.json({
+      success: true,
+      data: {
+        driverId: id,
+        location: {
+          latitude: location.location.coordinates[1],
+          longitude: location.location.coordinates[0]
+        },
+        updatedAt: location.createdAt
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get driver location error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get driver location"
+    });
+  }
+};
+exports.getDriverStatsById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driver = await User.findById(id)
+      .select('name phone email driverInfo stats')
+      .lean();
+    if (!driver || driver.role !== 'driver') {
+      return res.status(404).json({
+        success: false,
+        message: "Driver not found"
+      });
+    }
+    const [orders, earnings] = await Promise.all([
+      Order.aggregate([
+        { $match: { driver: id, status: 'delivered' } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+            count: { $sum: 1 },
+            revenue: { $sum: '$totalPrice' }
+          }
+        },
+        { $sort: { _id: -1 } },
+        { $limit: 6 }
+      ]),
+      Order.aggregate([
+        { $match: { driver: id, status: 'delivered' } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$totalPrice' },
+            avg: { $avg: '$totalPrice' },
+            min: { $min: '$totalPrice' },
+            max: { $max: '$totalPrice' }
+          }
+        }
+      ])
+    ]);
+    res.json({
+      success: true,
+      data: {
+        driver,
+        monthlyStats: orders,
+        earnings: earnings[0] || { total: 0, avg: 0, min: 0, max: 0 }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get driver stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get driver statistics"
+    });
+  }
+};
+const getStatusText = (status) => {
+  const statusTexts = {
+    pending: 'قيد الانتظار',
+    accepted: 'تم القبول',
+    picked: 'تم الاستلام',
+    delivered: 'تم التوصيل',
+    cancelled: 'ملغي'
+  };
+  return statusTexts[status] || 'غير معروف';
+};
+const calculateETA = (order) => {
+  if (!order) return 'غير معروف';
+  const now = new Date();
+  const created = new Date(order.createdAt);
+  const elapsedMinutes = Math.floor((now - created) / 60000);
+  const baseTime = order.estimatedDeliveryTime || 30;
+  const remaining = Math.max(0, baseTime - elapsedMinutes);
+  const statusTimes = {
+    pending: `${baseTime} دقيقة`,
+    accepted: `${Math.max(5, remaining)} دقيقة`,
+    picked: `${Math.max(2, remaining - 10)} دقيقة`,
+    delivered: 'تم التوصيل',
+    cancelled: 'ملغي'
+  };
+  return statusTimes[order.status] || 'قيد الحساب';
+};
+const createOrderTimeline = (order) => {
+  return [
+    {
+      status: 'created',
+      title: 'تم إنشاء الطلب',
+      timestamp: order.createdAt,
+      completed: true,
+      icon: '🛒'
+    },
+    {
+      status: 'accepted',
+      title: 'تم قبول الطلب',
+      timestamp: order.status !== 'pending' ? order.updatedAt : null,
+      completed: ['accepted', 'picked', 'delivered'].includes(order.status),
+      icon: '✅'
+    },
+    {
+      status: 'picked',
+      title: 'تم الاستلام من المطعم',
+      timestamp: ['picked', 'delivered'].includes(order.status) ? order.updatedAt : null,
+      completed: ['picked', 'delivered'].includes(order.status),
+      icon: '📦'
+    },
+    {
+      status: 'delivered',
+      title: 'تم التوصيل',
+      timestamp: order.status === 'delivered' ? order.updatedAt : null,
+      completed: order.status === 'delivered',
+      icon: '🚚'
+    }
+  ];
+};
+exports.getDriverById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driver = await User.findById(id)
+      .select('name phone email image driverInfo stats isOnline lastLogin')
+      .lean();
+    if (!driver || driver.role !== 'driver') {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    res.json({
+      success: true,
+      data: driver
+    });
+  } catch (error) {
+    console.error("❌ Get driver by id error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب بيانات المندوب"
+    });
+  }
+};
+exports.updateAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "لم يتم رفع أي صورة"
+      });
+    }
+    const driverId = req.user.id;
+    const oldDriver = await User.findById(driverId).select('image');
+    if (oldDriver?.image) {
+      const oldPublicId = fileService.extractPublicIdFromUrl(oldDriver.image);
+      if (oldPublicId) {
+        fileService.deleteFile(oldPublicId).catch(err =>
+          console.error('Error deleting old avatar:', err)
+        );
+      }
+    }
+    const driver = await User.findByIdAndUpdate(
+      driverId,
+      { image: req.file.path },
+      { new: true }
+    ).select('name phone image');
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    invalidateDriverCache(driverId);
+    res.json({
+      success: true,
+      message: "تم تحديث الصورة الشخصية بنجاح",
+      data: {
+        image: driver.image,
+        optimized: req.file.thumbnail || null
+      }
+    });
+  } catch (error) {
+    console.error("❌ Update avatar error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث الصورة الشخصية"
+    });
+  }
+};
+exports.getEarningsHistory = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { page = 1, limit = 20, from, to } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    let dateQuery = {};
+    if (from || to) {
+      dateQuery = {};
+      if (from) dateQuery.$gte = new Date(from);
+      if (to) dateQuery.$lte = new Date(to);
+    }
+    const orders = await Order.find({
+      driver: driverId,
+      status: 'delivered',
+      ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
+    })
+      .select('totalPrice deliveredAt items store')
+      .populate('store', 'name')
+      .sort({ deliveredAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+    const total = await Order.countDocuments({
+      driver: driverId,
+      status: 'delivered',
+      ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
+    });
+    const earnings = orders.map(order => ({
+      orderId: order._id,
+      storeName: order.store?.name || 'غير معروف',
+      date: order.deliveredAt,
+      amount: order.totalPrice,
+      commission: order.totalPrice * 0.2,
+      netEarnings: order.totalPrice * 0.8,
+      itemsCount: order.items?.reduce((sum, item) => sum + item.qty, 0) || 0
+    }));
+    const stats = {
+      totalEarnings: earnings.reduce((sum, e) => sum + e.netEarnings, 0),
+      totalOrders: earnings.length,
+      averagePerOrder: earnings.length > 0
+        ? earnings.reduce((sum, e) => sum + e.netEarnings, 0) / earnings.length
+        : 0,
+      totalCommission: earnings.reduce((sum, e) => sum + e.commission, 0)
+    };
+    const monthlyStats = await Order.aggregate([
+      {
+        $match: {
+          driver: driverId,
+          status: 'delivered',
+          ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$deliveredAt" },
+            month: { $month: "$deliveredAt" }
+          },
+          earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
+          orders: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": -1, "_id.month": -1 } },
+      { $limit: 12 }
+    ]);
+    res.json({
+      success: true,
+      data: {
+        earnings,
+        monthlyStats,
+        stats,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get earnings history error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب سجل الأرباح"
+    });
+  }
+};
+exports.getPerformanceReport = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const now = new Date();
+    const today = new Date(now.setHours(0, 0, 0, 0));
+    const weekAgo = new Date(now.setDate(now.getDate() - 7));
+    const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
+    const [
+      dailyStats,
+      weeklyStats,
+      monthlyStats,
+      deliveryTimes,
+      ratings
+    ] = await Promise.all([
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveredAt: { $gte: today }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
+            totalDistance: { $sum: "$estimatedDistance" }
+          }
+        }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveredAt: { $gte: weekAgo }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$deliveredAt" } },
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveredAt: { $gte: monthAgo }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
+            avgOrderValue: { $avg: "$totalPrice" }
+          }
+        }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveryTime: { $exists: true }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            avgDeliveryTime: { $avg: "$deliveryTime" },
+            fastestDelivery: { $min: "$deliveryTime" },
+            slowestDelivery: { $max: "$deliveryTime" },
+            totalDeliveries: { $sum: 1 }
+          }
+        }
+      ]),
+      User.findById(driverId).select('driverInfo.rating driverInfo.totalRatings')
+    ]);
+    const acceptedOrders = await Order.countDocuments({
+      driver: driverId,
+      status: { $in: ['accepted', 'picked', 'delivered'] }
+    });
+    const rejectedOrders = await Order.countDocuments({
+      driver: driverId,
+      status: 'cancelled',
+      cancelledBy: driverId
+    });
+    const acceptanceRate = acceptedOrders + rejectedOrders > 0
+      ? (acceptedOrders / (acceptedOrders + rejectedOrders)) * 100
+      : 100;
+    res.json({
+      success: true,
+      data: {
+        period: {
+          today: dailyStats[0] || { orders: 0, earnings: 0, totalDistance: 0 },
+          weekly: {
+            daily: weeklyStats,
+            total: weeklyStats.reduce((sum, day) => sum + day.orders, 0),
+            earnings: weeklyStats.reduce((sum, day) => sum + day.earnings, 0)
+          },
+          monthly: monthlyStats[0] || { orders: 0, earnings: 0, avgOrderValue: 0 }
+        },
+        performance: {
+          acceptanceRate: acceptanceRate.toFixed(1),
+          deliveryTime: deliveryTimes[0] || {
+            avgDeliveryTime: 0,
+            fastestDelivery: 0,
+            slowestDelivery: 0
+          },
+          rating: ratings?.driverInfo?.rating || 0,
+          totalRatings: ratings?.driverInfo?.totalRatings || 0
+        },
+        summary: {
+          totalDeliveries: acceptedOrders,
+          totalEarnings: monthlyStats[0]?.earnings || 0,
+          averagePerDay: weeklyStats.length > 0
+            ? weeklyStats.reduce((sum, day) => sum + day.orders, 0) / weeklyStats.length
+            : 0
+        }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get performance report error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب تقرير الأداء"
+    });
+  }
+};
+exports.verifyDriver = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driver = await User.findByIdAndUpdate(
+      id,
+      {
+        isVerified: true,
+        'driverInfo.documents.$[].verified': true
+      },
+      { new: true }
+    ).select('name phone email driverInfo isVerified');
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    res.json({
+      success: true,
+      message: "تم توثيق المندوب بنجاح",
+      data: {
+        id: driver._id,
+        isVerified: driver.isVerified,
+        driverInfo: driver.driverInfo
+      }
+    });
+  } catch (error) {
+    console.error("❌ Verify driver error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل توثيق المندوب"
+    });
+  }
+};
+exports.toggleDriverStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+    const driver = await User.findByIdAndUpdate(
+      id,
+      { isActive },
+      { new: true }
+    ).select('name phone email isActive');
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    res.json({
+      success: true,
+      message: `تم ${isActive ? 'تفعيل' : 'تعطيل'} المندوب بنجاح`,
+      data: {
+        id: driver._id,
+        isActive: driver.isActive
+      }
+    });
+  } catch (error) {
+    console.error("❌ Toggle driver status error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تغيير حالة المندوب"
+    });
+  }
+};
+exports.getCurrentLocation = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const location = await DriverLocation.findOne({ driver: driverId })
+      .sort({ createdAt: -1 })
+      .lean();
+    if (!location) {
+      return res.json({
+        success: true,
+        data: null,
+        message: "لا يوجد موقع مسجل حالياً"
+      });
+    }
+    res.json({
+      success: true,
+      data: {
+        driverId,
+        location: {
+          latitude: location.location.coordinates[1],
+          longitude: location.location.coordinates[0]
+        },
+        accuracy: location.accuracy,
+        speed: location.speed,
+        heading: location.heading,
+        updatedAt: location.createdAt
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get current location error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب الموقع الحالي"
+    });
+  }
+};
+module.exports = exports;
 </file>
 
 <file path="src/middlewares/security.middleware.js">
@@ -33786,7 +35141,7 @@ const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler.mi
 const { httpLogger, errorLogger } = require('./utils/logger.util');
 const performanceService = require('./services/performance.service');
 const swaggerUi = require('swagger-ui-express');
-const swaggerSpecs = require('./config/swagger');
+const swaggerDocument = require('./config/swagger/swagger.config');
 const cache = require('./utils/cache.util');
 const { securityHeaders } = require('./middlewares/security.middleware');
 const app = express();
@@ -33914,10 +35269,25 @@ const swaggerOptions = {
     }
   }
 };
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpecs, swaggerOptions));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, {
+  explorer: true,
+  customCss: `
+    .swagger-ui .topbar { background-color: #2c3e50; }
+    .swagger-ui .info .title { color: #2c3e50; }
+    .swagger-ui .btn.authorize { border-color: #2c3e50; color: #2c3e50; }
+  `,
+  customSiteTitle: "Food Delivery API - توثيق المسارات",
+  swaggerOptions: {
+    persistAuthorization: true,
+    docExpansion: 'none',
+    filter: true,
+    displayRequestDuration: true,
+    tryItOutEnabled: true
+  }
+}));
 app.get('/swagger.json', (req, res) => {
   res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerSpecs);
+  res.send(swaggerDocument);
 });
 app.get('/swagger.yaml', (req, res) => {
   const yaml = require('js-yaml');

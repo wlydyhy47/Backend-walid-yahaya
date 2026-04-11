@@ -164,3 +164,145 @@
   "name": "test"
 }
 2026-04-10 21:46:59 [info]: Business Action: Socket.io initialized successfully
+2026-04-10 21:48:41 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/swagger.json",
+  "status": 200,
+  "duration": "65ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-11 03:12:58 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-11 03:12:58 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-04-11 03:12:58 [info]: Business Action: Mapbox service initialized
+2026-04-11 03:12:58 [info]: Business Action: Creating Redis client...
+2026-04-11 03:12:58 [info]: Business Action: RateLimiterService initialized
+2026-04-11 03:12:58 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-11 03:12:59 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-11 03:13:01 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-11 03:13:01 [info]: Business Action: Socket.io initialized successfully
+2026-04-11 03:13:06 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api/stats/endpoints",
+  "status": 200,
+  "duration": "28ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-11 03:13:28 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/health",
+  "status": 200,
+  "duration": "13ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-11 03:13:38 [warn]: HTTP Request Warning
+{
+  "method": "GET",
+  "url": "/api-docs-auto",
+  "status": 301,
+  "duration": "6ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-11 03:13:38 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs-auto/",
+  "status": 200,
+  "duration": "80ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-11 03:13:38 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs-auto/swagger-ui-init.js",
+  "status": 200,
+  "duration": "8ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-11 03:13:38 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs-auto/swagger-ui.css",
+  "status": 200,
+  "duration": "51ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-11 03:13:38 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs-auto/swagger-ui-standalone-preset.js",
+  "status": 200,
+  "duration": "82ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-11 03:13:38 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs-auto/swagger-ui-bundle.js",
+  "status": 200,
+  "duration": "134ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-11 03:13:39 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/api-docs-auto/favicon-32x32.png",
+  "status": 200,
+  "duration": "2ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-11 03:15:23 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/",
+  "status": 200,
+  "duration": "13ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-11 03:15:26 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/swagger-auto.json",
+  "status": 200,
+  "duration": "34ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
