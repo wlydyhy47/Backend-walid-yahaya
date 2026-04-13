@@ -218,7 +218,6 @@ exports.createOrder = async (req, res) => {
 
     // ========== 1. التحقق من البيانات الأساسية ==========
     
-    // التحقق من وجود عناصر
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         success: false,
@@ -226,7 +225,6 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // التحقق من وجود عناوين
     if (!pickupAddress || !deliveryAddress) {
       return res.status(400).json({
         success: false,
@@ -234,7 +232,6 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // التحقق من وجود متجر
     if (!store) {
       return res.status(400).json({
         success: false,
@@ -244,12 +241,10 @@ exports.createOrder = async (req, res) => {
 
     // ========== 2. حساب totalPrice تلقائياً ==========
     
-    // حساب السعر الإجمالي من العناصر
     let calculatedTotalPrice = 0;
     const validatedItems = [];
 
     for (const item of items) {
-      // التحقق من صحة كل عنصر
       if (!item.name || !item.qty || !item.price) {
         return res.status(400).json({
           success: false,
@@ -286,7 +281,6 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // التحقق من أن السعر الإجمالي صالح
     if (calculatedTotalPrice <= 0) {
       return res.status(400).json({
         success: false,
@@ -296,19 +290,38 @@ exports.createOrder = async (req, res) => {
 
     console.log(`💰 Calculated total price: ${calculatedTotalPrice}`);
 
-    // ========== 3. التحقق من ملكية العناوين ==========
+    // ========== 3. التحقق من العناوين (معدل) ==========
     
-    const [pickup, delivery] = await Promise.all([
-      Address.findOne({ _id: pickupAddress, user: userId }),
-      Address.findOne({ _id: deliveryAddress, user: userId })
-    ]);
-
-    if (!pickup || !delivery) {
+    // التحقق من عنوان التوصيل (يخص المستخدم)
+    const delivery = await Address.findOne({ _id: deliveryAddress, user: userId });
+    
+    if (!delivery) {
       return res.status(400).json({
         success: false,
-        message: "العناوين غير صالحة أو لا تملك صلاحية الوصول إليها"
+        message: "عنوان التوصيل غير صالح أو لا تملك صلاحية الوصول إليه"
       });
     }
+
+    // التحقق من عنوان الاستلام (يمكن أن يكون عنوان متجر أو معرف متجر)
+    let pickup = null;
+    
+    // محاولة البحث في StoreAddress أولاً
+    pickup = await StoreAddress.findOne({ _id: pickupAddress });
+    
+    // إذا لم يوجد، محاولة البحث في Store
+    if (!pickup) {
+      pickup = await Store.findById(pickupAddress).select('name address location');
+    }
+    
+    // إذا لم يوجد، استخدام معرف المتجر نفسه
+    if (!pickup) {
+      pickup = { _id: pickupAddress, name: 'عنوان المتجر', addressLine: 'عنوان المتجر' };
+    }
+
+    console.log('✅ Addresses validated:', {
+      deliveryAddress: delivery.addressLine,
+      pickupAddress: pickup.addressLine || pickup.name || pickup._id
+    });
 
     // ========== 4. التحقق من المتجر ==========
     
@@ -332,9 +345,9 @@ exports.createOrder = async (req, res) => {
     const order = await Order.create({
       user: userId,
       items: validatedItems,
-      totalPrice: calculatedTotalPrice,  // استخدام السعر المحسوب
+      totalPrice: calculatedTotalPrice,
       pickupAddress,
-      deliveryAddress,
+      deliveryAddress: delivery._id,
       store,
       status: "pending",
       notes: notes?.trim() || '',
@@ -347,10 +360,10 @@ exports.createOrder = async (req, res) => {
     // ========== 6. تعيين أقرب سائق (اختياري) ==========
     
     let assignedDriver = null;
-    if (pickup.latitude && pickup.longitude) {
+    if (delivery.latitude && delivery.longitude) {
       assignedDriver = await assignClosestDriver(
         order._id,
-        [pickup.longitude, pickup.latitude]
+        [delivery.longitude, delivery.latitude]
       );
     }
 
@@ -423,7 +436,6 @@ exports.createOrder = async (req, res) => {
     });
   }
 };
-
 
 // ========== 3. دوال جلب الطلبات ==========
 
