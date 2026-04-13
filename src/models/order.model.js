@@ -224,26 +224,26 @@ orderSchema.virtual("timeSinceCreation").get(function () {
 /**
  * قبل الحفظ
  */
-orderSchema.pre("save", function (next) {
-  // حساب إجمالي السعر من العناصر إذا لم يكن موجوداً
-  if (!this.totalPrice && this.items.length > 0) {
-    this.totalPrice = this.items.reduce((sum, item) => {
-      return sum + (item.price * item.qty);
-    }, 0);
-  }
+// orderSchema.pre("save", function (next) {
+//   // حساب إجمالي السعر من العناصر إذا لم يكن موجوداً
+//   if (!this.totalPrice && this.items.length > 0) {
+//     this.totalPrice = this.items.reduce((sum, item) => {
+//       return sum + (item.price * item.qty);
+//     }, 0);
+//   }
 
-  // تحديث وقت التوصيل عند اكتمال الطلب
-  if (this.isModified("status") && this.status === "delivered" && !this.deliveredAt) {
-    this.deliveredAt = new Date();
+//   // تحديث وقت التوصيل عند اكتمال الطلب
+//   if (this.isModified("status") && this.status === "delivered" && !this.deliveredAt) {
+//     this.deliveredAt = new Date();
 
-    // حساب وقت التوصيل الفعلي
-    if (this.createdAt) {
-      this.deliveryTime = Math.round((this.deliveredAt - this.createdAt) / 60000);
-    }
-  }
+//     // حساب وقت التوصيل الفعلي
+//     if (this.createdAt) {
+//       this.deliveryTime = Math.round((this.deliveredAt - this.createdAt) / 60000);
+//     }
+//   }
 
-  next();
-});
+//   next();
+// });
 
 // ========== Methods ==========
 
