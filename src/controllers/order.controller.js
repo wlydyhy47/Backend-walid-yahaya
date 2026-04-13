@@ -221,12 +221,12 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    if (!totalPrice || totalPrice <= 0) {
-      return res.status(400).json({
-        success: false,
-        message: "السعر الإجمالي غير صالح"
-      });
-    }
+    // if (!totalPrice || totalPrice <= 0) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "السعر الإجمالي غير صالح"
+    //   });
+    // }
 
     if (!pickupAddress || !deliveryAddress) {
       return res.status(400).json({
