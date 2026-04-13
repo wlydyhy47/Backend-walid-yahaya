@@ -4,7 +4,10 @@
 // الإصدار: 4.0 (مصحح بالكامل)
 // ============================================
 
-const { Order, User, Address, Store, DriverLocation, Review, Notification } = require('../models');
+// ========== استيراد النماذج ==========
+const { Order, User, Address, Store, DriverLocation, Review, Notification, StoreAddress } = require('../models');
+
+
 const cache = require("../utils/cache.util");
 const PaginationUtils = require('../utils/pagination.util');
 const notificationService = require("../services/notification.service");
