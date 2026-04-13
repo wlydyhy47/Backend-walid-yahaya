@@ -208,12 +208,17 @@ const createOrderTimeline = (order) => {
  * @route   POST /api/v1/client/orders
  * @access  Client
  */
+/**
+ */
+
 exports.createOrder = async (req, res) => {
   try {
-    const { items, totalPrice, pickupAddress, deliveryAddress, store, notes } = req.body;
+    const { items, pickupAddress, deliveryAddress, store, notes, paymentMethod } = req.body;
     const userId = req.user.id;
 
-    // التحقق من البيانات
+    // ========== 1. التحقق من البيانات الأساسية ==========
+    
+    // التحقق من وجود عناصر
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         success: false,
@@ -221,13 +226,7 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // if (!totalPrice || totalPrice <= 0) {
-    //   return res.status(400).json({
-    //     success: false,
-    //     message: "السعر الإجمالي غير صالح"
-    //   });
-    // }
-
+    // التحقق من وجود عناوين
     if (!pickupAddress || !deliveryAddress) {
       return res.status(400).json({
         success: false,
@@ -235,6 +234,7 @@ exports.createOrder = async (req, res) => {
       });
     }
 
+    // التحقق من وجود متجر
     if (!store) {
       return res.status(400).json({
         success: false,
@@ -242,7 +242,62 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // التحقق من ملكية العميل للعناوين
+    // ========== 2. حساب totalPrice تلقائياً ==========
+    
+    // حساب السعر الإجمالي من العناصر
+    let calculatedTotalPrice = 0;
+    const validatedItems = [];
+
+    for (const item of items) {
+      // التحقق من صحة كل عنصر
+      if (!item.name || !item.qty || !item.price) {
+        return res.status(400).json({
+          success: false,
+          message: "بيانات العناصر غير مكتملة"
+        });
+      }
+
+      const qty = Number(item.qty);
+      const price = Number(item.price);
+      
+      if (isNaN(qty) || qty <= 0) {
+        return res.status(400).json({
+          success: false,
+          message: `الكمية غير صالحة للمنتج ${item.name}`
+        });
+      }
+      
+      if (isNaN(price) || price < 0) {
+        return res.status(400).json({
+          success: false,
+          message: `السعر غير صالح للمنتج ${item.name}`
+        });
+      }
+
+      calculatedTotalPrice += price * qty;
+      
+      validatedItems.push({
+        name: item.name,
+        qty: qty,
+        price: price,
+        item: item.item || null,
+        notes: item.notes || '',
+        category: item.category || '',
+      });
+    }
+
+    // التحقق من أن السعر الإجمالي صالح
+    if (calculatedTotalPrice <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "السعر الإجمالي غير صالح"
+      });
+    }
+
+    console.log(`💰 Calculated total price: ${calculatedTotalPrice}`);
+
+    // ========== 3. التحقق من ملكية العناوين ==========
+    
     const [pickup, delivery] = await Promise.all([
       Address.findOne({ _id: pickupAddress, user: userId }),
       Address.findOne({ _id: deliveryAddress, user: userId })
@@ -255,29 +310,42 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // التحقق من أن المتجر مفتوح
+    // ========== 4. التحقق من المتجر ==========
+    
     const storeInfo = await Store.findById(store);
-    if (!storeInfo || !storeInfo.isOpen) {
+    if (!storeInfo) {
+      return res.status(404).json({
+        success: false,
+        message: "المتجر غير موجود"
+      });
+    }
+    
+    if (!storeInfo.isOpen) {
       return res.status(400).json({
         success: false,
         message: "المتجر مغلق حالياً"
       });
     }
 
-    // إنشاء الطلب
+    // ========== 5. إنشاء الطلب ==========
+    
     const order = await Order.create({
       user: userId,
-      items,
-      totalPrice,
+      items: validatedItems,
+      totalPrice: calculatedTotalPrice,  // استخدام السعر المحسوب
       pickupAddress,
       deliveryAddress,
       store,
       status: "pending",
-      notes: notes?.trim(),
+      notes: notes?.trim() || '',
+      paymentMethod: paymentMethod || 'cash',
       estimatedDeliveryTime: storeInfo.deliveryInfo?.estimatedDeliveryTime || 30
     });
 
-    // محاولة تعيين أقرب سائق تلقائيًا
+    console.log(`✅ Order created: ${order._id} with total ${calculatedTotalPrice}`);
+
+    // ========== 6. تعيين أقرب سائق (اختياري) ==========
+    
     let assignedDriver = null;
     if (pickup.latitude && pickup.longitude) {
       assignedDriver = await assignClosestDriver(
@@ -286,20 +354,23 @@ exports.createOrder = async (req, res) => {
       );
     }
 
-    // إرسال إشعارات الطلب
+    // ========== 7. إرسال الإشعارات ==========
+    
     try {
       await notificationService.createOrderNotifications(order);
     } catch (notificationError) {
       console.error('❌ Notification error:', notificationError.message);
     }
 
-    // تحديث إحصائيات المستخدم
+    // ========== 8. تحديث إحصائيات المستخدم ==========
+    
     await User.findByIdAndUpdate(userId, {
       $inc: { 'stats.totalOrders': 1 },
       $set: { 'stats.lastOrderDate': new Date() }
     });
 
-    // جلب الطلب مع البيانات المرتبطة
+    // ========== 9. جلب الطلب مع البيانات المرتبطة ==========
+    
     const populatedOrder = await Order.findById(order._id)
       .populate("user", "name phone image")
       .populate("driver", "name phone image rating")
@@ -308,14 +379,18 @@ exports.createOrder = async (req, res) => {
       .populate("deliveryAddress")
       .lean();
 
-    // إبطال الكاش
+    // ========== 10. إبطال الكاش ==========
+    
     await invalidateOrderCache(order._id, userId);
 
+    // ========== 11. إرسال الرد ==========
+    
     res.status(201).json({
       success: true,
       message: "تم إنشاء الطلب بنجاح",
       data: {
         order: populatedOrder,
+        calculatedTotal: calculatedTotalPrice,
         assignedDriver: assignedDriver ? {
           id: assignedDriver._id,
           name: assignedDriver.name,
@@ -328,8 +403,10 @@ exports.createOrder = async (req, res) => {
       },
       timestamp: new Date()
     });
+    
   } catch (error) {
     console.error('❌ Create order error:', error.message);
+    console.error('Stack:', error.stack);
 
     if (error.name === 'ValidationError') {
       return res.status(400).json({
@@ -341,10 +418,12 @@ exports.createOrder = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: "فشل إنشاء الطلب"
+      message: "فشل إنشاء الطلب",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
+
 
 // ========== 3. دوال جلب الطلبات ==========
 
