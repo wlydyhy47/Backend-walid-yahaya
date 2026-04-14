@@ -167,12 +167,22 @@ exports.getMyProfile = async (req, res) => {
  * @route   GET /api/v1/driver/orders/available
  * @access  Driver
  */
+
+
 exports.getAvailableOrders = async (req, res) => {
   try {
     const driverId = req.user.id;
     
     console.log(`🚚 Driver ${driverId} requesting available orders`);
     
+    // ✅ جلب حالة المندوب الحالية من قاعدة البيانات
+    const driver = await User.findById(driverId).select('driverInfo.isAvailable isOnline name phone');
+    const isDriverAvailable = driver?.driverInfo?.isAvailable || false;
+    const isDriverOnline = driver?.isOnline || false;
+    
+    console.log(`📊 Driver ${driverId} current availability: isAvailable=${isDriverAvailable}, isOnline=${isDriverOnline}`);
+    
+    // جلب الطلبات المتاحة
     const availableOrders = await Order.find({
       status: 'pending',
       $or: [
@@ -189,6 +199,7 @@ exports.getAvailableOrders = async (req, res) => {
     
     console.log(`✅ Found ${availableOrders.length} available orders`);
     
+    // تنسيق البيانات للتطبيق
     const formattedOrders = availableOrders.map(order => ({
       id: order._id,
       _id: order._id,
@@ -222,6 +233,7 @@ exports.getAvailableOrders = async (req, res) => {
       estimatedDeliveryTime: order.estimatedDeliveryTime || 30
     }));
     
+    // إحصائيات إضافية
     const stats = {
       total: formattedOrders.length,
       byStore: {},
@@ -243,6 +255,7 @@ exports.getAvailableOrders = async (req, res) => {
       stats.byStore[storeId].totalValue += order.totalPrice;
     });
     
+    // ✅ إرجاع الحالة الصحيحة للمندوب من قاعدة البيانات
     res.json({
       success: true,
       data: {
@@ -250,7 +263,10 @@ exports.getAvailableOrders = async (req, res) => {
         stats: stats,
         timestamp: new Date(),
         driverId: driverId,
-        isAvailable: req.user?.driverInfo?.isAvailable || false
+        isAvailable: isDriverAvailable,
+        isOnline: isDriverOnline,
+        driverName: driver?.name,
+        driverPhone: driver?.phone
       }
     });
     
@@ -269,6 +285,7 @@ exports.getAvailableOrders = async (req, res) => {
  * @route   PUT /api/v1/driver/profile/availability
  * @access  Driver
  */
+
 exports.toggleAvailability = async (req, res) => {
   try {
     const driverId = req.user.id;
@@ -290,6 +307,7 @@ exports.toggleAvailability = async (req, res) => {
     
     console.log(`🔄 Driver ${driverId} toggling availability to: ${finalStatus}`);
     
+    // ✅ تحديث كلا الحقلين للتأكد من التزامن
     const driver = await User.findByIdAndUpdate(
       driverId,
       {
@@ -307,8 +325,10 @@ exports.toggleAvailability = async (req, res) => {
       });
     }
     
+    // ✅ إبطال الكاش
     invalidateDriverCache(driverId);
     
+    // ✅ إرسال إشعار عبر Socket
     const io = req.app.get('io');
     if (io) {
       io.emit('driver:status:changed', {
@@ -326,6 +346,7 @@ exports.toggleAvailability = async (req, res) => {
       }
     }
     
+    // ✅ إرجاع الحالة الصحيحة
     res.json({
       success: true,
       message: finalStatus ? "✅ أنت الآن متاح للطلبات" : "⛔ أنت الآن غير متاح",
@@ -349,7 +370,6 @@ exports.toggleAvailability = async (req, res) => {
     });
   }
 };
-
 /**
  * @desc    تحديث موقع المندوب
  * @route   PUT /api/v1/driver/location

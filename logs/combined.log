@@ -431,3 +431,67 @@
 2026-04-14 18:19:16 [info]: Business Action: Creating Redis client...
 2026-04-14 18:19:16 [info]: Business Action: RateLimiterService initialized
 2026-04-14 18:19:16 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-14 18:29:02 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-14 18:29:03 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-04-14 18:29:03 [info]: Business Action: Mapbox service initialized
+2026-04-14 18:29:03 [info]: Business Action: Creating Redis client...
+2026-04-14 18:29:03 [info]: Business Action: RateLimiterService initialized
+2026-04-14 18:29:03 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-14 18:29:04 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-14 18:29:06 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-14 18:29:06 [info]: Business Action: Socket.io initialized successfully
+2026-04-14 18:29:31 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/health",
+  "status": 200,
+  "duration": "19ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-14 18:38:37 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-14 18:38:37 [info]: Business Action: SMS service initialized
+{
+  "enabled": false,
+  "provider": "twilio"
+}
+2026-04-14 18:38:37 [info]: Business Action: Mapbox service initialized
+2026-04-14 18:38:37 [info]: Business Action: Creating Redis client...
+2026-04-14 18:38:37 [info]: Business Action: RateLimiterService initialized
+2026-04-14 18:38:38 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-14 18:38:39 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-14 18:38:41 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-14 18:38:41 [info]: Business Action: Socket.io initialized successfully
+2026-04-14 18:38:52 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/health",
+  "status": 200,
+  "duration": "28ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
