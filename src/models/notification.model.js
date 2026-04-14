@@ -20,16 +20,16 @@ const notificationSchema = new mongoose.Schema(
       enum: [
         "system", "order_created", "order_accepted", "order_picked",
         "order_delivered", "order_cancelled", "driver_assigned",
+        "order_assigned",  // ✅ أضف هذا السطر
         "driver_arrived", "payment_success", "payment_failed",
         "review_reminder", "promotion", "announcement", "security",
         "support", "welcome", "password_changed", "profile_updated",
         "new_message", "loyalty_points_earned", "loyalty_points_redeemed",
-        "order_ready",
+        "order_ready", "order_preparing",  // ✅ أضف هذا أيضاً
         "reward_available", "reward_expiring"
       ],
       index: true,
     },
-
     title: {
       type: String,
       required: true,
