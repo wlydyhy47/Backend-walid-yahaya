@@ -1,5 +1,5 @@
 // ============================================
-// ملف: src/models/order.model.js (محدث)
+// ملف: src/models/order.model.js (محدث وآمن)
 // الوصف: نموذج الطلب مع دمج الـ items
 // ============================================
 
@@ -47,8 +47,6 @@ const orderSchema = new mongoose.Schema(
       paidAt: Date,
     },
 
-
-
     items: [
       {
         name: {
@@ -85,75 +83,44 @@ const orderSchema = new mongoose.Schema(
       min: 0,
     },
 
-    // ========== 🔥 إضافات جديدة ==========
-
-    /**
-     * المسافة المقدرة للتوصيل
-     */
     estimatedDistance: {
-      type: Number, // بالأمتار
+      type: Number,
       min: 0,
     },
 
-    /**
-     * وقت التوصيل المقدر
-     */
     estimatedDeliveryTime: {
-      type: Number, // بالدقائق
+      type: Number,
       default: 30,
     },
 
-    /**
-     * وقت التحضير المقدر
-     */
     estimatedPreparationTime: {
-      type: Number, // بالدقائق
+      type: Number,
       default: 15,
     },
 
-    /**
-     * وقت التوصيل الفعلي
-     */
     deliveryTime: {
-      type: Number, // بالدقائق
+      type: Number,
     },
 
-    /**
-     * ملاحظات الطلب
-     */
     notes: {
       type: String,
       trim: true,
       maxlength: 500,
     },
 
-    /**
-     * سبب الإلغاء
-     */
     cancellationReason: {
       type: String,
       trim: true,
     },
 
-    /**
-     * من قام بالإلغاء
-     */
     cancelledBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
 
-    /**
-     * وقت الإلغاء
-     */
     cancelledAt: Date,
 
-    /**
-     * وقت التوصيل
-     */
     deliveredAt: Date,
-
-    // ========== نهاية الإضافات ==========
 
     pickupAddress: {
       type: mongoose.Schema.Types.ObjectId,
@@ -187,63 +154,101 @@ orderSchema.index({ driver: 1, status: 1 });
 orderSchema.index({ store: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 
-// ========== Virtuals ==========
+// ========== Virtuals (آمنة) ==========
 
 /**
- * إجمالي عدد العناصر
+ * إجمالي عدد العناصر - ✅ آمن
  */
 orderSchema.virtual("totalItems").get(function () {
-  return this.items.reduce((sum, item) => sum + item.qty, 0);
+  // التحقق من وجود items قبل استخدام reduce
+  if (!this.items || !Array.isArray(this.items) || this.items.length === 0) {
+    return 0;
+  }
+  return this.items.reduce((sum, item) => sum + (item.qty || 0), 0);
 });
 
 /**
- * هل يمكن إلغاء الطلب
+ * إجمالي السعر الفرعي (من العناصر) - ✅ آمن
+ */
+orderSchema.virtual("subtotal").get(function () {
+  if (!this.items || !Array.isArray(this.items) || this.items.length === 0) {
+    return 0;
+  }
+  return this.items.reduce((sum, item) => sum + ((item.price || 0) * (item.qty || 0)), 0);
+});
+
+/**
+ * عدد العناصر المختلفة - ✅ آمن
+ */
+orderSchema.virtual("itemCount").get(function () {
+  if (!this.items || !Array.isArray(this.items)) {
+    return 0;
+  }
+  return this.items.length;
+});
+
+/**
+ * هل يمكن إلغاء الطلب - ✅ آمن
  */
 orderSchema.virtual("canCancel").get(function () {
-  return ["pending", "accepted"].includes(this.status);
+  return this.status && ["pending", "accepted"].includes(this.status);
 });
 
 /**
- * هل يمكن تحديث الحالة
+ * هل يمكن تحديث الحالة - ✅ آمن
  */
 orderSchema.virtual("canUpdateStatus").get(function () {
-  return this.status !== "cancelled" && this.status !== "delivered";
+  return this.status && this.status !== "cancelled" && this.status !== "delivered";
 });
 
 /**
- * وقت الطلب منذ إنشائه
+ * وقت الطلب منذ إنشائه - ✅ آمن
  */
 orderSchema.virtual("timeSinceCreation").get(function () {
+  if (!this.createdAt) return 0;
   const now = new Date();
   const diffMs = now - this.createdAt;
-  return Math.round(diffMs / 60000); // بالدقائق
+  return Math.round(diffMs / 60000);
 });
 
-// ========== Middleware ==========
+/**
+ * نص الحالة بالعربية - ✅ آمن
+ */
+orderSchema.virtual("statusText").get(function () {
+  const statusMap = {
+    pending: 'قيد الانتظار',
+    accepted: 'تم القبول',
+    ready: 'جاهز',
+    picked: 'تم الاستلام',
+    delivered: 'تم التوصيل',
+    cancelled: 'ملغي'
+  };
+  return statusMap[this.status] || this.status || 'غير معروف';
+});
 
 /**
- * قبل الحفظ
+ * السعر الإجمالي منسق - ✅ آمن
  */
-// orderSchema.pre("save", function (next) {
-//   // حساب إجمالي السعر من العناصر إذا لم يكن موجوداً
-//   if (!this.totalPrice && this.items.length > 0) {
-//     this.totalPrice = this.items.reduce((sum, item) => {
-//       return sum + (item.price * item.qty);
-//     }, 0);
-//   }
+orderSchema.virtual("formattedTotal").get(function () {
+  const total = this.totalPrice || 0;
+  return `${total.toFixed(2)} د.ع`;
+});
 
-//   // تحديث وقت التوصيل عند اكتمال الطلب
-//   if (this.isModified("status") && this.status === "delivered" && !this.deliveredAt) {
-//     this.deliveredAt = new Date();
+/**
+ * وقت الإنشاء منسق - ✅ آمن
+ */
+orderSchema.virtual("formattedCreatedAt").get(function () {
+  if (!this.createdAt) return '';
+  return this.createdAt.toLocaleString('ar-SA');
+});
 
-//     // حساب وقت التوصيل الفعلي
-//     if (this.createdAt) {
-//       this.deliveryTime = Math.round((this.deliveredAt - this.createdAt) / 60000);
-//     }
-//   }
-
-//   next();
-// });
+/**
+ * وقت التوصيل منسق - ✅ آمن
+ */
+orderSchema.virtual("formattedDeliveredAt").get(function () {
+  if (!this.deliveredAt) return '';
+  return this.deliveredAt.toLocaleString('ar-SA');
+});
 
 // ========== Methods ==========
 
@@ -281,6 +286,16 @@ orderSchema.methods.addNote = async function (note, addedBy) {
   }
   await this.save();
   return this;
+};
+
+/**
+ * حساب إجمالي السعر من العناصر (دالة مساعدة)
+ */
+orderSchema.methods.calculateTotalPrice = function () {
+  if (!this.items || !Array.isArray(this.items) || this.items.length === 0) {
+    return 0;
+  }
+  return this.items.reduce((sum, item) => sum + ((item.price || 0) * (item.qty || 0)), 0);
 };
 
 module.exports = mongoose.model("Order", orderSchema);
