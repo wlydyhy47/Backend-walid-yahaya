@@ -209,7 +209,7 @@ exports.updateUserById = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       userId,
       { name, email, role, isActive, isVerified },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     ).select('-password -verificationCode -resetPasswordToken');
 
     if (!user) {

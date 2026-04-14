@@ -13067,7 +13067,7 @@ exports.updateDriverLocation = async (req, res) => {
         speed,
         createdAt: new Date()
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
     await User.findByIdAndUpdate(driverId, {
       'driverInfo.currentLocation': {
@@ -30827,7 +30827,7 @@ exports.updateStore = async (req, res) => {
     const store = await Store.findByIdAndUpdate(
       storeId,
       updateData,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
     if (!store) {
       return res.status(404).json({
@@ -32783,302 +32783,6 @@ module.exports = {
   catchAsync,
   socketErrorHandler
 };
-</file>
-
-<file path="src/models/notification.model.js">
-const mongoose = require("mongoose");
-const notificationSchema = new mongoose.Schema(
-  {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
-    type: {
-      type: String,
-      required: true,
-      enum: [
-        "system", "order_created", "order_accepted", "order_picked",
-        "order_delivered", "order_cancelled", "driver_assigned",
-        "driver_arrived", "payment_success", "payment_failed",
-        "review_reminder", "promotion", "announcement", "security",
-        "support", "welcome", "password_changed", "profile_updated",
-        "new_message", "loyalty_points_earned", "loyalty_points_redeemed",
-        "order_ready",
-        "reward_available", "reward_expiring"
-      ],
-      index: true,
-    },
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 200,
-    },
-    content: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 1000,
-    },
-    data: {
-      type: mongoose.Schema.Types.Mixed,
-      default: {},
-    },
-    actions: [{
-      label: String,
-      url: String,
-      type: {
-        type: String,
-        enum: ["primary", "secondary", "danger"],
-      }
-    }],
-    image: String,
-    color: String,
-    group: {
-      type: String,
-      index: true,
-    },
-    campaignId: {
-      type: String,
-      index: true,
-    },
-    icon: String,
-    link: String,
-    priority: {
-      type: String,
-      enum: ["low", "medium", "high", "urgent"],
-      default: "medium",
-    },
-    status: {
-      type: String,
-      enum: ["unread", "read", "archived", "deleted"],
-      default: "unread",
-      index: true,
-    },
-    sentAt: {
-      type: Date,
-      default: Date.now,
-      index: true,
-    },
-    readAt: Date,
-    expiresAt: Date,
-    settings: {
-      push: { type: Boolean, default: true },
-      email: { type: Boolean, default: false },
-      sms: { type: Boolean, default: false },
-      inApp: { type: Boolean, default: true },
-    },
-    delivery: {
-      pushSent: { type: Boolean, default: false },
-      emailSent: { type: Boolean, default: false },
-      smsSent: { type: Boolean, default: false },
-      pushError: String,
-      emailError: String,
-      smsError: String,
-      retryCount: { type: Number, default: 0 },
-    },
-    tags: [{
-      type: String,
-      trim: true,
-      index: true,
-    }],
-  },
-  {
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true },
-  }
-);
-notificationSchema.index({ user: 1, status: 1, sentAt: -1 });
-notificationSchema.index({ type: 1, sentAt: -1 });
-notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-notificationSchema.index({ campaignId: 1, status: 1 });
-notificationSchema.virtual("isExpired").get(function () {
-  return this.expiresAt && this.expiresAt < new Date();
-});
-notificationSchema.virtual("timeAgo").get(function () {
-  const now = new Date();
-  const sent = new Date(this.sentAt);
-  const diffMs = now - sent;
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-  if (diffMins < 1) return "الآن";
-  if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
-  if (diffHours < 24) return `منذ ${diffHours} ساعة`;
-  if (diffDays < 7) return `منذ ${diffDays} يوم`;
-  if (diffDays < 30) return `منذ ${Math.floor(diffDays / 7)} أسبوع`;
-  if (diffDays < 365) return `منذ ${Math.floor(diffDays / 30)} شهر`;
-  return `منذ ${Math.floor(diffDays / 365)} سنة`;
-});
-notificationSchema.pre('save', function (next) {
-  if (this.isModified("status") && this.status === "read" && !this.readAt) {
-    this.readAt = new Date();
-  }
-  if (!this.expiresAt) {
-    const expiryDays = {
-      urgent: 7,
-      high: 14,
-      medium: 30,
-      low: 60,
-    };
-    this.expiresAt = new Date();
-    this.expiresAt.setDate(this.expiresAt.getDate() + (expiryDays[this.priority] || 30));
-  }
-  if (typeof next === 'function') {
-    next();
-  }
-});
-notificationSchema.statics.createForOrder = async function (order, type, additionalData = {}) {
-  const Notification = this;
-  let title, content, priority = "medium", icon;
-  switch (type) {
-    case "order_created":
-      title = "تم إنشاء طلب جديد";
-      content = `تم إنشاء طلبك #${order._id.toString().slice(-6)} بنجاح.`;
-      priority = "high";
-      icon = "🛒";
-      break;
-    case "order_accepted":
-      title = "تم قبول طلبك";
-      content = `تم قبول طلبك #${order._id.toString().slice(-6)} وجاري تجهيزه.`;
-      priority = "high";
-      icon = "✅";
-      break;
-    case "driver_assigned":
-      title = "تم تعيين مندوب";
-      content = `تم تعيين مندوب لتوصيل طلبك #${order._id.toString().slice(-6)}.`;
-      priority = "high";
-      icon = "🚗";
-      break;
-    case "order_picked":
-      title = "تم استلام الطلب";
-      content = `تم استلام طلبك #${order._id.toString().slice(-6)} من المطعم.`;
-      priority = "medium";
-      icon = "📦";
-      break;
-    case "order_delivered":
-      title = "تم توصيل الطلب";
-      content = `تم توصيل طلبك #${order._id.toString().slice(-6)} بنجاح.`;
-      priority = "high";
-      icon = "🚚";
-      break;
-    case "order_cancelled":
-      title = "تم إلغاء الطلب";
-      content = `تم إلغاء طلبك #${order._id.toString().slice(-6)}.`;
-      priority = "urgent";
-      icon = "❌";
-      break;
-    default:
-      title = "تحديث على طلبك";
-      content = `هناك تحديث على طلبك #${order._id.toString().slice(-6)}.`;
-      icon = "🔔";
-  }
-  const notification = await Notification.create({
-    user: order.user,
-    type,
-    title,
-    content,
-    priority,
-    icon,
-    data: {
-      orderId: order._id,
-      orderNumber: order._id.toString().slice(-6),
-      status: order.status,
-      totalPrice: order.totalPrice,
-      store: order.store?._id || order.store,
-      driver: order.driver?._id || order.driver,
-      ...additionalData,
-    },
-    link: `/orders/${order._id}`,
-    tags: ["order", type, `order_${order._id}`],
-    actions: [
-      {
-        label: "عرض الطلب",
-        url: `/orders/${order._id}`,
-        type: "primary"
-      }
-    ]
-  });
-  return notification;
-};
-notificationSchema.statics.createLoyaltyNotification = async function (userId, points, reason, type = "earn") {
-  const Notification = this;
-  let title, content, icon;
-  if (type === "earn") {
-    title = "🎉 نقاط ولاء جديدة!";
-    content = `لقد حصلت على ${points} نقطة ولاء ${reason ? `بسبب ${reason}` : ''}.`;
-    icon = "⭐";
-  } else {
-    title = "🔄 تم استبدال النقاط";
-    content = `لقد استبدلت ${points} نقطة ولاء ${reason ? `مقابل ${reason}` : ''}.`;
-    icon = "🎁";
-  }
-  const notification = await Notification.create({
-    user: userId,
-    type: `loyalty_points_${type}`,
-    title,
-    content,
-    priority: "medium",
-    icon,
-    data: { points, reason },
-    link: "/loyalty",
-    tags: ["loyalty", `points_${type}`],
-  });
-  return notification;
-};
-notificationSchema.statics.getUnreadCount = async function (userId) {
-  return await this.countDocuments({
-    user: userId,
-    status: "unread",
-    expiresAt: { $gt: new Date() },
-  });
-};
-notificationSchema.statics.markAllAsRead = async function (userId) {
-  return await this.updateMany(
-    {
-      user: userId,
-      status: "unread",
-    },
-    {
-      status: "read",
-      readAt: new Date(),
-    }
-  );
-};
-notificationSchema.statics.cleanupExpired = async function () {
-  return await this.deleteMany({
-    expiresAt: { $lt: new Date() },
-  });
-};
-notificationSchema.methods.markAsRead = async function () {
-  this.status = "read";
-  this.readAt = new Date();
-  return await this.save();
-};
-notificationSchema.methods.markAsUnread = async function () {
-  this.status = "unread";
-  this.readAt = null;
-  return await this.save();
-};
-notificationSchema.methods.archive = async function () {
-  this.status = "archived";
-  return await this.save();
-};
-notificationSchema.methods.retryDelivery = async function () {
-  if (this.delivery.retryCount >= 3) {
-    throw new Error("Maximum retry attempts reached");
-  }
-  this.delivery.retryCount += 1;
-  this.delivery.pushSent = false;
-  this.delivery.emailSent = false;
-  this.delivery.smsSent = false;
-  await this.save();
-  return this;
-};
-module.exports = mongoose.model("Notification", notificationSchema);
 </file>
 
 <file path="src/models/store.model.js">
@@ -35459,9 +35163,9 @@ module.exports.hasRoleHierarchy = hasRoleHierarchy;
 module.exports.ROLES = ROLES;
 </file>
 
-<file path="src/models/order.model.js">
+<file path="src/models/notification.model.js">
 const mongoose = require("mongoose");
-const orderSchema = new mongoose.Schema(
+const notificationSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
@@ -35469,165 +35173,291 @@ const orderSchema = new mongoose.Schema(
       required: true,
       index: true,
     },
-    store: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Store",
+    type: {
+      type: String,
       required: true,
+      enum: [
+        "system", "order_created", "order_accepted", "order_picked",
+        "order_delivered", "order_cancelled", "driver_assigned",
+        "order_assigned",
+        "driver_arrived", "payment_success", "payment_failed",
+        "review_reminder", "promotion", "announcement", "security",
+        "support", "welcome", "password_changed", "profile_updated",
+        "new_message", "loyalty_points_earned", "loyalty_points_redeemed",
+        "order_ready", "order_preparing",
+        "reward_available", "reward_expiring"
+      ],
       index: true,
     },
-    driver: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 200,
+    },
+    content: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 1000,
+    },
+    data: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
+    actions: [{
+      label: String,
+      url: String,
+      type: {
+        type: String,
+        enum: ["primary", "secondary", "danger"],
+      }
+    }],
+    image: String,
+    color: String,
+    group: {
+      type: String,
       index: true,
     },
-    paymentMethod: {
+    campaignId: {
       type: String,
-      enum: ['cash', 'card', 'wallet'],
-      default: 'cash',
-      required: true,
+      index: true,
     },
-    paymentStatus: {
+    icon: String,
+    link: String,
+    priority: {
       type: String,
-      enum: ['pending', 'paid', 'failed', 'refunded'],
-      default: 'pending',
-    },
-    paymentDetails: {
-      transactionId: String,
-      paymentIntent: String,
-      paidAt: Date,
-    },
-    items: [
-      {
-        name: {
-          type: String,
-          required: true,
-        },
-        qty: {
-          type: Number,
-          required: true,
-          min: 1,
-        },
-        price: {
-          type: Number,
-          required: true,
-          min: 0,
-        },
-        item: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Item",
-        },
-        notes: String,
-        category: String,
-        options: [{
-          name: String,
-          choice: String,
-          price: Number
-        }]
-      },
-    ],
-    totalPrice: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-    estimatedDistance: {
-      type: Number,
-      min: 0,
-    },
-    estimatedDeliveryTime: {
-      type: Number,
-      default: 30,
-    },
-    estimatedPreparationTime: {
-      type: Number,
-      default: 15,
-    },
-    deliveryTime: {
-      type: Number,
-    },
-    notes: {
-      type: String,
-      trim: true,
-      maxlength: 500,
-    },
-    cancellationReason: {
-      type: String,
-      trim: true,
-    },
-    cancelledBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-    },
-    cancelledAt: Date,
-    deliveredAt: Date,
-    pickupAddress: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Address",
-      required: true,
-    },
-    deliveryAddress: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Address",
-      required: true,
+      enum: ["low", "medium", "high", "urgent"],
+      default: "medium",
     },
     status: {
       type: String,
-      enum: ["pending", "accepted", "ready", "picked", "delivered", "cancelled"],
-      default: "pending",
+      enum: ["unread", "read", "archived", "deleted"],
+      default: "unread",
       index: true,
     },
+    sentAt: {
+      type: Date,
+      default: Date.now,
+      index: true,
+    },
+    readAt: Date,
+    expiresAt: Date,
+    settings: {
+      push: { type: Boolean, default: true },
+      email: { type: Boolean, default: false },
+      sms: { type: Boolean, default: false },
+      inApp: { type: Boolean, default: true },
+    },
+    delivery: {
+      pushSent: { type: Boolean, default: false },
+      emailSent: { type: Boolean, default: false },
+      smsSent: { type: Boolean, default: false },
+      pushError: String,
+      emailError: String,
+      smsError: String,
+      retryCount: { type: Number, default: 0 },
+    },
+    tags: [{
+      type: String,
+      trim: true,
+      index: true,
+    }],
   },
   {
     timestamps: true,
     toJSON: { virtuals: true },
-    toObject: { virtuals: true }
+    toObject: { virtuals: true },
   }
 );
-orderSchema.index({ user: 1, createdAt: -1 });
-orderSchema.index({ driver: 1, status: 1 });
-orderSchema.index({ store: 1, createdAt: -1 });
-orderSchema.index({ status: 1, createdAt: -1 });
-orderSchema.virtual("totalItems").get(function () {
-  return this.items.reduce((sum, item) => sum + item.qty, 0);
+notificationSchema.index({ user: 1, status: 1, sentAt: -1 });
+notificationSchema.index({ type: 1, sentAt: -1 });
+notificationSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+notificationSchema.index({ campaignId: 1, status: 1 });
+notificationSchema.virtual("isExpired").get(function () {
+  return this.expiresAt && this.expiresAt < new Date();
 });
-orderSchema.virtual("canCancel").get(function () {
-  return ["pending", "accepted"].includes(this.status);
-});
-orderSchema.virtual("canUpdateStatus").get(function () {
-  return this.status !== "cancelled" && this.status !== "delivered";
-});
-orderSchema.virtual("timeSinceCreation").get(function () {
+notificationSchema.virtual("timeAgo").get(function () {
   const now = new Date();
-  const diffMs = now - this.createdAt;
-  return Math.round(diffMs / 60000);
+  const sent = new Date(this.sentAt);
+  const diffMs = now - sent;
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffMins < 1) return "الآن";
+  if (diffMins < 60) return `منذ ${diffMins} دقيقة`;
+  if (diffHours < 24) return `منذ ${diffHours} ساعة`;
+  if (diffDays < 7) return `منذ ${diffDays} يوم`;
+  if (diffDays < 30) return `منذ ${Math.floor(diffDays / 7)} أسبوع`;
+  if (diffDays < 365) return `منذ ${Math.floor(diffDays / 30)} شهر`;
+  return `منذ ${Math.floor(diffDays / 365)} سنة`;
 });
-orderSchema.methods.updateStatus = async function (newStatus, userId) {
-  const oldStatus = this.status;
-  this.status = newStatus;
-  if (newStatus === "cancelled") {
-    this.cancelledAt = new Date();
-    this.cancelledBy = userId;
+notificationSchema.pre('save', function (next) {
+  if (this.isModified("status") && this.status === "read" && !this.readAt) {
+    this.readAt = new Date();
   }
-  if (newStatus === "delivered") {
-    this.deliveredAt = new Date();
-    if (this.createdAt) {
-      this.deliveryTime = Math.round((this.deliveredAt - this.createdAt) / 60000);
-    }
+  if (!this.expiresAt) {
+    const expiryDays = {
+      urgent: 7,
+      high: 14,
+      medium: 30,
+      low: 60,
+    };
+    this.expiresAt = new Date();
+    this.expiresAt.setDate(this.expiresAt.getDate() + (expiryDays[this.priority] || 30));
   }
-  await this.save();
-  return { oldStatus, newStatus };
+  if (typeof next === 'function') {
+    next();
+  }
+});
+notificationSchema.statics.createForOrder = async function (order, type, additionalData = {}) {
+  const Notification = this;
+  let title, content, priority = "medium", icon;
+  switch (type) {
+    case "order_created":
+      title = "تم إنشاء طلب جديد";
+      content = `تم إنشاء طلبك #${order._id.toString().slice(-6)} بنجاح.`;
+      priority = "high";
+      icon = "🛒";
+      break;
+    case "order_accepted":
+      title = "تم قبول طلبك";
+      content = `تم قبول طلبك #${order._id.toString().slice(-6)} وجاري تجهيزه.`;
+      priority = "high";
+      icon = "✅";
+      break;
+    case "driver_assigned":
+      title = "تم تعيين مندوب";
+      content = `تم تعيين مندوب لتوصيل طلبك #${order._id.toString().slice(-6)}.`;
+      priority = "high";
+      icon = "🚗";
+      break;
+    case "order_picked":
+      title = "تم استلام الطلب";
+      content = `تم استلام طلبك #${order._id.toString().slice(-6)} من المطعم.`;
+      priority = "medium";
+      icon = "📦";
+      break;
+    case "order_delivered":
+      title = "تم توصيل الطلب";
+      content = `تم توصيل طلبك #${order._id.toString().slice(-6)} بنجاح.`;
+      priority = "high";
+      icon = "🚚";
+      break;
+    case "order_cancelled":
+      title = "تم إلغاء الطلب";
+      content = `تم إلغاء طلبك #${order._id.toString().slice(-6)}.`;
+      priority = "urgent";
+      icon = "❌";
+      break;
+    default:
+      title = "تحديث على طلبك";
+      content = `هناك تحديث على طلبك #${order._id.toString().slice(-6)}.`;
+      icon = "🔔";
+  }
+  const notification = await Notification.create({
+    user: order.user,
+    type,
+    title,
+    content,
+    priority,
+    icon,
+    data: {
+      orderId: order._id,
+      orderNumber: order._id.toString().slice(-6),
+      status: order.status,
+      totalPrice: order.totalPrice,
+      store: order.store?._id || order.store,
+      driver: order.driver?._id || order.driver,
+      ...additionalData,
+    },
+    link: `/orders/${order._id}`,
+    tags: ["order", type, `order_${order._id}`],
+    actions: [
+      {
+        label: "عرض الطلب",
+        url: `/orders/${order._id}`,
+        type: "primary"
+      }
+    ]
+  });
+  return notification;
 };
-orderSchema.methods.addNote = async function (note, addedBy) {
-  if (!this.notes) {
-    this.notes = note;
+notificationSchema.statics.createLoyaltyNotification = async function (userId, points, reason, type = "earn") {
+  const Notification = this;
+  let title, content, icon;
+  if (type === "earn") {
+    title = "🎉 نقاط ولاء جديدة!";
+    content = `لقد حصلت على ${points} نقطة ولاء ${reason ? `بسبب ${reason}` : ''}.`;
+    icon = "⭐";
   } else {
-    this.notes += `\n[${new Date().toLocaleString()}]: ${note}`;
+    title = "🔄 تم استبدال النقاط";
+    content = `لقد استبدلت ${points} نقطة ولاء ${reason ? `مقابل ${reason}` : ''}.`;
+    icon = "🎁";
   }
+  const notification = await Notification.create({
+    user: userId,
+    type: `loyalty_points_${type}`,
+    title,
+    content,
+    priority: "medium",
+    icon,
+    data: { points, reason },
+    link: "/loyalty",
+    tags: ["loyalty", `points_${type}`],
+  });
+  return notification;
+};
+notificationSchema.statics.getUnreadCount = async function (userId) {
+  return await this.countDocuments({
+    user: userId,
+    status: "unread",
+    expiresAt: { $gt: new Date() },
+  });
+};
+notificationSchema.statics.markAllAsRead = async function (userId) {
+  return await this.updateMany(
+    {
+      user: userId,
+      status: "unread",
+    },
+    {
+      status: "read",
+      readAt: new Date(),
+    }
+  );
+};
+notificationSchema.statics.cleanupExpired = async function () {
+  return await this.deleteMany({
+    expiresAt: { $lt: new Date() },
+  });
+};
+notificationSchema.methods.markAsRead = async function () {
+  this.status = "read";
+  this.readAt = new Date();
+  return await this.save();
+};
+notificationSchema.methods.markAsUnread = async function () {
+  this.status = "unread";
+  this.readAt = null;
+  return await this.save();
+};
+notificationSchema.methods.archive = async function () {
+  this.status = "archived";
+  return await this.save();
+};
+notificationSchema.methods.retryDelivery = async function () {
+  if (this.delivery.retryCount >= 3) {
+    throw new Error("Maximum retry attempts reached");
+  }
+  this.delivery.retryCount += 1;
+  this.delivery.pushSent = false;
+  this.delivery.emailSent = false;
+  this.delivery.smsSent = false;
   await this.save();
   return this;
 };
-module.exports = mongoose.model("Order", orderSchema);
+module.exports = mongoose.model("Notification", notificationSchema);
 </file>
 
 <file path="src/routes/public.routes.js">
@@ -36804,7 +36634,7 @@ exports.updateUserById = async (req, res) => {
     const user = await User.findByIdAndUpdate(
       userId,
       { name, email, role, isActive, isVerified },
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     ).select('-password -verificationCode -resetPasswordToken');
     if (!user) {
       return res.status(404).json({
@@ -37693,6 +37523,222 @@ exports.getAllUsers = exports.getUsers;
 module.exports = exports;
 </file>
 
+<file path="src/models/order.model.js">
+const mongoose = require("mongoose");
+const orderSchema = new mongoose.Schema(
+  {
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    store: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Store",
+      required: true,
+      index: true,
+    },
+    driver: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+      index: true,
+    },
+    paymentMethod: {
+      type: String,
+      enum: ['cash', 'card', 'wallet'],
+      default: 'cash',
+      required: true,
+    },
+    paymentStatus: {
+      type: String,
+      enum: ['pending', 'paid', 'failed', 'refunded'],
+      default: 'pending',
+    },
+    paymentDetails: {
+      transactionId: String,
+      paymentIntent: String,
+      paidAt: Date,
+    },
+    items: [
+      {
+        name: {
+          type: String,
+          required: true,
+        },
+        qty: {
+          type: Number,
+          required: true,
+          min: 1,
+        },
+        price: {
+          type: Number,
+          required: true,
+          min: 0,
+        },
+        item: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Item",
+        },
+        notes: String,
+        category: String,
+        options: [{
+          name: String,
+          choice: String,
+          price: Number
+        }]
+      },
+    ],
+    totalPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+    estimatedDistance: {
+      type: Number,
+      min: 0,
+    },
+    estimatedDeliveryTime: {
+      type: Number,
+      default: 30,
+    },
+    estimatedPreparationTime: {
+      type: Number,
+      default: 15,
+    },
+    deliveryTime: {
+      type: Number,
+    },
+    notes: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+    },
+    cancellationReason: {
+      type: String,
+      trim: true,
+    },
+    cancelledBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    cancelledAt: Date,
+    deliveredAt: Date,
+    pickupAddress: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Address",
+      required: true,
+    },
+    deliveryAddress: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Address",
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: ["pending", "accepted", "ready", "picked", "delivered", "cancelled"],
+      default: "pending",
+      index: true,
+    },
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
+);
+orderSchema.index({ user: 1, createdAt: -1 });
+orderSchema.index({ driver: 1, status: 1 });
+orderSchema.index({ store: 1, createdAt: -1 });
+orderSchema.index({ status: 1, createdAt: -1 });
+orderSchema.virtual("totalItems").get(function () {
+  if (!this.items || !Array.isArray(this.items) || this.items.length === 0) {
+    return 0;
+  }
+  return this.items.reduce((sum, item) => sum + (item.qty || 0), 0);
+});
+orderSchema.virtual("subtotal").get(function () {
+  if (!this.items || !Array.isArray(this.items) || this.items.length === 0) {
+    return 0;
+  }
+  return this.items.reduce((sum, item) => sum + ((item.price || 0) * (item.qty || 0)), 0);
+});
+orderSchema.virtual("itemCount").get(function () {
+  if (!this.items || !Array.isArray(this.items)) {
+    return 0;
+  }
+  return this.items.length;
+});
+orderSchema.virtual("canCancel").get(function () {
+  return this.status && ["pending", "accepted"].includes(this.status);
+});
+orderSchema.virtual("canUpdateStatus").get(function () {
+  return this.status && this.status !== "cancelled" && this.status !== "delivered";
+});
+orderSchema.virtual("timeSinceCreation").get(function () {
+  if (!this.createdAt) return 0;
+  const now = new Date();
+  const diffMs = now - this.createdAt;
+  return Math.round(diffMs / 60000);
+});
+orderSchema.virtual("statusText").get(function () {
+  const statusMap = {
+    pending: 'قيد الانتظار',
+    accepted: 'تم القبول',
+    ready: 'جاهز',
+    picked: 'تم الاستلام',
+    delivered: 'تم التوصيل',
+    cancelled: 'ملغي'
+  };
+  return statusMap[this.status] || this.status || 'غير معروف';
+});
+orderSchema.virtual("formattedTotal").get(function () {
+  const total = this.totalPrice || 0;
+  return `${total.toFixed(2)} د.ع`;
+});
+orderSchema.virtual("formattedCreatedAt").get(function () {
+  if (!this.createdAt) return '';
+  return this.createdAt.toLocaleString('ar-SA');
+});
+orderSchema.virtual("formattedDeliveredAt").get(function () {
+  if (!this.deliveredAt) return '';
+  return this.deliveredAt.toLocaleString('ar-SA');
+});
+orderSchema.methods.updateStatus = async function (newStatus, userId) {
+  const oldStatus = this.status;
+  this.status = newStatus;
+  if (newStatus === "cancelled") {
+    this.cancelledAt = new Date();
+    this.cancelledBy = userId;
+  }
+  if (newStatus === "delivered") {
+    this.deliveredAt = new Date();
+    if (this.createdAt) {
+      this.deliveryTime = Math.round((this.deliveredAt - this.createdAt) / 60000);
+    }
+  }
+  await this.save();
+  return { oldStatus, newStatus };
+};
+orderSchema.methods.addNote = async function (note, addedBy) {
+  if (!this.notes) {
+    this.notes = note;
+  } else {
+    this.notes += `\n[${new Date().toLocaleString()}]: ${note}`;
+  }
+  await this.save();
+  return this;
+};
+orderSchema.methods.calculateTotalPrice = function () {
+  if (!this.items || !Array.isArray(this.items) || this.items.length === 0) {
+    return 0;
+  }
+  return this.items.reduce((sum, item) => sum + ((item.price || 0) * (item.qty || 0)), 0);
+};
+module.exports = mongoose.model("Order", orderSchema);
+</file>
+
 <file path="src/routes/aggregate.routes.js">
 const express = require('express');
 const router = express.Router();
@@ -38340,56 +38386,6 @@ const startServer = async () => {
 };
 const server = startServer();
 module.exports = server;
-</file>
-
-<file path="src/routes/driver.routes.js">
-const express = require('express');
-const router = express.Router();
-const {
-  driverController,
-  orderController
-} = require('../controllers');
-const auth = require('../middlewares/auth.middleware');
-const { driverMiddleware } = require('../middlewares/role.middleware');
-const validate = require('../middlewares/validate.middleware');
-const upload = require('../middlewares/upload');
-const PaginationUtils = require('../utils/pagination.util');
-const {
-  avatarSchema,
-  presenceSchema
-} = require('../validators/user.validator');
-const {
-  updateStatusSchema
-} = require('../validators/order.validator');
-router.use(auth);
-router.use(driverMiddleware);
-router.get('/profile', driverController.getMyProfile);
-router.put('/profile/avatar',
-  validate(avatarSchema),
-  upload('users/avatars', ['image']).single('image'),
-  driverController.updateAvatar
-);
-router.put('/profile/availability', validate(presenceSchema), driverController.toggleAvailability);
-router.put('/profile/location', driverController.updateLocation);
-router.get('/orders', PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
-router.get('/orders/available', driverController.getAvailableOrders);
-router.get('/orders/active', orderController.getCurrentDelivery);
-router.get('/orders/history', PaginationUtils.validatePaginationParams, orderController.getDriverOrdersHistory);
-router.get('/orders/:id', orderController.getOrderDetails);
-router.put('/orders/:id/accept', orderController.acceptOrder);
-router.put('/orders/:id/reject', orderController.rejectOrder);
-router.put('/orders/:id/status', validate(updateStatusSchema), orderController.updateStatus);
-router.post('/orders/:id/start', orderController.startDelivery);
-router.post('/orders/:id/complete', orderController.completeOrder);
-router.put('/location', driverController.updateLocation);
-router.get('/location/current', driverController.getCurrentLocation);
-router.get('/location/order/:orderId', orderController.getOrderLocation);
-router.get('/earnings', orderController.getDriverEarnings);
-router.get('/earnings/stats', driverController.getMyStats);
-router.get('/earnings/history', PaginationUtils.validatePaginationParams, driverController.getEarningsHistory);
-router.get('/stats', driverController.getMyStats);
-router.get('/performance', driverController.getPerformanceReport);
-module.exports = router;
 </file>
 
 <file path="src/routes/order.routes.js">
@@ -39158,6 +39154,56 @@ router.post(
   authController.changePassword
 );
 router.post("/revoke-all-sessions", auth, authController.revokeAllSessions);
+module.exports = router;
+</file>
+
+<file path="src/routes/driver.routes.js">
+const express = require('express');
+const router = express.Router();
+const {
+  driverController,
+  orderController
+} = require('../controllers');
+const auth = require('../middlewares/auth.middleware');
+const { driverMiddleware } = require('../middlewares/role.middleware');
+const validate = require('../middlewares/validate.middleware');
+const upload = require('../middlewares/upload');
+const PaginationUtils = require('../utils/pagination.util');
+const {
+  avatarSchema,
+  presenceSchema
+} = require('../validators/user.validator');
+const {
+  updateStatusSchema
+} = require('../validators/order.validator');
+router.use(auth);
+router.use(driverMiddleware);
+router.get('/profile', driverController.getMyProfile);
+router.put('/profile/avatar',
+  validate(avatarSchema),
+  upload('users/avatars', ['image']).single('image'),
+  driverController.updateAvatar
+);
+router.put('/profile/availability', validate(presenceSchema), driverController.toggleAvailability);
+router.put('/profile/location', driverController.updateLocation);
+router.get('/orders', PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
+router.get('/orders/available', driverController.getAvailableOrders);
+router.get('/orders/active', orderController.getCurrentDelivery);
+router.get('/orders/history', PaginationUtils.validatePaginationParams, orderController.getDriverOrdersHistory);
+router.get('/orders/:id', orderController.getOrderDetails);
+router.put('/orders/:id/accept', orderController.acceptOrderByDriver);
+router.put('/orders/:id/reject', orderController.rejectOrder);
+router.put('/orders/:id/status', validate(updateStatusSchema), orderController.updateStatus);
+router.post('/orders/:id/start', orderController.startDelivery);
+router.post('/orders/:id/complete', orderController.completeOrder);
+router.put('/location', driverController.updateLocation);
+router.get('/location/current', driverController.getCurrentLocation);
+router.get('/location/order/:orderId', orderController.getOrderLocation);
+router.get('/earnings', orderController.getDriverEarnings);
+router.get('/earnings/stats', driverController.getMyStats);
+router.get('/earnings/history', PaginationUtils.validatePaginationParams, driverController.getEarningsHistory);
+router.get('/stats', driverController.getMyStats);
+router.get('/performance', driverController.getPerformanceReport);
 module.exports = router;
 </file>
 
@@ -41424,6 +41470,1650 @@ exports.getStatusText = (status) => {
 };
 </file>
 
+<file path="src/routes/admin.routes.js">
+const express = require('express');
+const router = express.Router();
+const {
+  userController,
+  storeController,
+  productController,
+  orderController,
+  driverController,
+  vendorController,
+  aggregateController,
+  notificationController,
+  analyticsController,
+  securityController
+} = require('../controllers');
+const auth = require('../middlewares/auth.middleware');
+const role = require('../middlewares/role.middleware');
+const handleFormData = require('../middlewares/formDataHandler');
+const validate = require('../middlewares/validate.middleware');
+const rateLimiter = require('../middlewares/rateLimit.middleware');
+const upload = require('../middlewares/upload');
+const PaginationUtils = require('../utils/pagination.util');
+const {
+  createUserSchema,
+  updateUserByAdminSchema
+} = require('../validators/user.validator');
+const {
+  createStoreSchema,
+  updateStoreSchema
+} = require('../validators/store.validator');
+const {
+  assignDriverSchema,
+  cancelOrderSchema
+} = require('../validators/order.validator');
+const {
+  createProductSchema,
+  updateProductSchema,
+  updateInventorySchema
+} = require('../validators/product.validator');
+router.use(auth);
+router.use(role('admin'));
+router.get('/dashboard', aggregateController.getAdminDashboard);
+router.get('/stats', aggregateController.getAdminStats);
+router.get('/stats/users', aggregateController.getAdminUserStats);
+router.get('/stats/orders', aggregateController.getAdminOrderStats);
+router.get('/stats/revenue', aggregateController.getAdminRevenueStats);
+router.get('/users', PaginationUtils.validatePaginationParams, userController.getUsers);
+router.get('/users/:id', userController.getUserById);
+router.post('/users', validate(createUserSchema), userController.createUser);
+router.put('/users/:id', validate(updateUserByAdminSchema), userController.updateUserById);
+router.delete('/users/:id', userController.deleteUserById);
+router.get('/vendors', PaginationUtils.validatePaginationParams, vendorController.getVendors);
+router.get('/vendors/:id', vendorController.getVendorById);
+router.put('/vendors/:id/verify', vendorController.verifyVendor);
+router.put('/vendors/:id/status', vendorController.toggleVendorStatus);
+router.get('/stores', PaginationUtils.validatePaginationParams, storeController.getStoresPaginated);
+router.get('/stores/:id', storeController.getStoreDetails);
+router.post('/stores',
+  upload('stores', ['image']).fields([
+    { name: 'logo', maxCount: 1 },
+    { name: 'coverImage', maxCount: 1 }
+  ]),
+  handleFormData,
+  validate(createStoreSchema),
+  storeController.createStore
+);
+router.put('/stores/:id',
+  upload('stores', ['image']).fields([
+    { name: 'logo', maxCount: 1 },
+    { name: 'coverImage', maxCount: 1 }
+  ]),
+  handleFormData,
+  validate(updateStoreSchema),
+  storeController.updateStore
+);
+router.post('/stores/update-coordinates', storeController.updateStoreCoordinates);
+router.delete('/stores/:id', storeController.deleteStore);
+router.put('/stores/:id/verify', storeController.verifyStore);
+router.put('/stores/:id/toggle-status', storeController.toggleStoreStatus);
+router.get('/products', PaginationUtils.validatePaginationParams, productController.getAllProducts);
+router.get('/products/stats', productController.getProductStats);
+router.get('/products/:id', productController.getProductById);
+router.post('/products',
+  upload('products', ['image']).single('image'),
+  handleFormData,
+  validate(createProductSchema),
+  productController.createProduct
+);
+router.put('/products/:id',
+  handleFormData,
+  validate(updateProductSchema),
+  productController.updateProduct
+);
+router.delete('/products/:id', productController.deleteProduct);
+router.put('/products/:id/feature', productController.toggleFeatured);
+router.put('/products/:id/image',
+  upload('products', ['image']).single('image'),
+  productController.updateProductImage
+);
+router.put('/products/:id/toggle-availability', productController.toggleAvailability);
+router.put('/products/:id/inventory',
+  validate(updateInventorySchema),
+  productController.updateInventory
+);
+router.get('/orders', PaginationUtils.validatePaginationParams, orderController.getAllOrdersPaginated);
+router.get('/orders/:id', orderController.getOrderDetails);
+router.get('/orders/stats/overview', orderController.getOrderStats);
+router.get('/orders/stats/daily', orderController.getDailyStats);
+router.get('/orders/stats/monthly', orderController.getMonthlyStats);
+router.put('/orders/:id/assign', validate(assignDriverSchema), orderController.assignDriver);
+router.put('/orders/:id/reassign', orderController.reassignDriver);
+router.put('/orders/:id/force-cancel', validate(cancelOrderSchema), orderController.forceCancelOrder);
+router.get('/drivers', PaginationUtils.validatePaginationParams, driverController.getDrivers);
+router.get('/drivers/:id', driverController.getDriverById);
+router.get('/drivers/:id/location', driverController.getDriverLocation);
+router.get('/drivers/:id/stats', driverController.getDriverStatsById);
+router.get('/drivers/:id/orders', PaginationUtils.validatePaginationParams, orderController.getDriverOrdersById);
+router.put('/drivers/:id/verify', driverController.verifyDriver);
+router.put('/drivers/:id/status', driverController.toggleDriverStatus);
+router.post('/notifications/send', notificationController.sendCustomNotification);
+router.get('/notifications/campaign/:campaignId/stats', notificationController.getCampaignStats);
+router.get('/notifications/all/stats', notificationController.getAllNotificationsStats);
+router.get('/cache/stats', aggregateController.getCacheStats);
+router.post('/cache/clear', aggregateController.clearCache);
+router.post('/cache/clear/:pattern', aggregateController.clearCachePattern);
+router.get('/rate-limit/stats', rateLimiter.getStats);
+router.post('/rate-limit/reset/:userId', rateLimiter.resetUserLimits);
+router.delete('/rate-limit/clear-all', rateLimiter.clearAll);
+router.get('/analytics/users', analyticsController.getUserAnalytics);
+router.get('/analytics/orders', analyticsController.getOrderAnalytics);
+router.get('/analytics/revenue', analyticsController.getRevenueAnalytics);
+router.get('/security/headers', securityController.getSecurityHeaders);
+router.get('/reports/orders', aggregateController.exportOrdersReport);
+router.get('/reports/users', aggregateController.exportUsersReport);
+router.get('/reports/revenue', aggregateController.exportRevenueReport);
+router.get('/reports/drivers', aggregateController.exportDriversReport);
+router.get('/reports/stores', aggregateController.exportStoresReport);
+router.get('/advanced-stats/daily', aggregateController.getDailyAdvancedStats);
+router.get('/advanced-stats/weekly', aggregateController.getWeeklyAdvancedStats);
+router.get('/advanced-stats/monthly', aggregateController.getMonthlyAdvancedStats);
+router.get('/advanced-stats/custom', aggregateController.getCustomStats);
+module.exports = router;
+</file>
+
+<file path="src/controllers/driver.controller.js">
+const { User, Order, DriverLocation } = require('../models');
+const cache = require("../utils/cache.util");
+const PaginationUtils = require('../utils/pagination.util');
+const fileService = require('../services/file.service');
+const { AppError } = require('../middlewares/errorHandler.middleware');
+const getStatusText = (status) => {
+  const statusMap = {
+    pending: 'قيد الانتظار',
+    accepted: 'تم القبول',
+    ready: 'جاهز',
+    picked: 'تم الاستلام',
+    delivered: 'تم التوصيل',
+    cancelled: 'ملغي'
+  };
+  return statusMap[status] || status;
+};
+const calculateETA = (order) => {
+  if (!order) return 'غير معروف';
+  const now = new Date();
+  const created = new Date(order.createdAt);
+  const elapsedMinutes = Math.floor((now - created) / 60000);
+  const baseTime = order.estimatedDeliveryTime || 30;
+  const remaining = Math.max(0, baseTime - elapsedMinutes);
+  const statusTimes = {
+    pending: `${baseTime} دقيقة`,
+    accepted: `${Math.max(5, remaining)} دقيقة`,
+    ready: `${Math.max(2, remaining - 5)} دقيقة`,
+    picked: `${Math.max(2, remaining - 10)} دقيقة`,
+    delivered: 'تم التوصيل',
+    cancelled: 'ملغي'
+  };
+  return statusTimes[order.status] || 'قيد الحساب';
+};
+const createOrderTimeline = (order) => {
+  return [
+    {
+      status: 'created',
+      title: 'تم إنشاء الطلب',
+      timestamp: order.createdAt,
+      completed: true,
+      icon: '🛒'
+    },
+    {
+      status: 'accepted',
+      title: 'تم قبول الطلب',
+      timestamp: order.status !== 'pending' ? order.updatedAt : null,
+      completed: ['accepted', 'ready', 'picked', 'delivered'].includes(order.status),
+      icon: '✅'
+    },
+    {
+      status: 'ready',
+      title: 'الطلب جاهز',
+      timestamp: order.status === 'ready' ? order.updatedAt : null,
+      completed: ['ready', 'picked', 'delivered'].includes(order.status),
+      icon: '🍽️'
+    },
+    {
+      status: 'picked',
+      title: 'تم الاستلام من المتجر',
+      timestamp: ['picked', 'delivered'].includes(order.status) ? order.updatedAt : null,
+      completed: ['picked', 'delivered'].includes(order.status),
+      icon: '📦'
+    },
+    {
+      status: 'delivered',
+      title: 'تم التوصيل',
+      timestamp: order.status === 'delivered' ? order.updatedAt : null,
+      completed: order.status === 'delivered',
+      icon: '🚚'
+    }
+  ];
+};
+const invalidateDriverCache = (driverId) => {
+  cache.del(`driver:profile:${driverId}`);
+  cache.del(`driver:stats:${driverId}`);
+  cache.invalidatePattern(`driver:orders:${driverId}:*`);
+  cache.del(`user:complete:${driverId}`);
+};
+exports.getMyProfile = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const cacheKey = `driver:profile:${driverId}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return res.json({
+        success: true,
+        data: cachedData,
+        cached: true
+      });
+    }
+    const driver = await User.findById(driverId)
+      .select('name phone image email driverInfo isOnline lastLogin')
+      .lean();
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "Driver not found"
+      });
+    }
+    const [todayOrders, totalEarnings, currentOrder] = await Promise.all([
+      Order.countDocuments({
+        driver: driverId,
+        status: 'delivered',
+        createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
+      }),
+      Order.aggregate([
+        { $match: { driver: driverId, status: 'delivered' } },
+        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+      ]),
+      Order.findOne({
+        driver: driverId,
+        status: { $in: ['accepted', 'ready', 'picked'] }
+      }).select('_id status pickupAddress deliveryAddress')
+    ]);
+    const profileData = {
+      ...driver,
+      stats: {
+        todayOrders,
+        totalEarnings: totalEarnings[0]?.total || 0,
+        currentOrder: currentOrder || null
+      }
+    };
+    cache.set(cacheKey, profileData, 300);
+    res.json({
+      success: true,
+      data: profileData
+    });
+  } catch (error) {
+    console.error("❌ Get driver profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get driver profile"
+    });
+  }
+};
+exports.getAvailableOrders = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    console.log(`🚚 Driver ${driverId} requesting available orders`);
+    const driver = await User.findById(driverId).select('driverInfo.isAvailable isOnline name phone');
+    const isDriverAvailable = driver?.driverInfo?.isAvailable || false;
+    const isDriverOnline = driver?.isOnline || false;
+    console.log(`📊 Driver ${driverId} current availability: isAvailable=${isDriverAvailable}, isOnline=${isDriverOnline}`);
+    if (!isDriverAvailable) {
+      console.log(`⚠️ Driver ${driverId} is not available, returning empty orders`);
+      return res.json({
+        success: true,
+        data: {
+          orders: [],
+          stats: {
+            total: 0,
+            byStore: {},
+            averageValue: 0
+          },
+          timestamp: new Date(),
+          driverId: driverId,
+          isAvailable: false,
+          isOnline: false,
+          driverName: driver?.name,
+          driverPhone: driver?.phone
+        }
+      });
+    }
+    const availableOrders = await Order.find({
+      status: 'pending',
+      $or: [
+        { driver: { $exists: false } },
+        { driver: null }
+      ]
+    })
+      .populate('user', 'name phone')
+      .populate('store', 'name image phone addressLine deliveryInfo')
+      .populate('pickupAddress')
+      .populate('deliveryAddress')
+      .sort({ createdAt: 1 })
+      .lean();
+    console.log(`✅ Found ${availableOrders.length} available orders`);
+    const formattedOrders = availableOrders.map(order => ({
+      id: order._id,
+      _id: order._id,
+      store: {
+        _id: order.store?._id,
+        name: order.store?.name,
+        image: order.store?.image,
+        phone: order.store?.phone,
+        addressLine: order.store?.addressLine,
+        deliveryInfo: order.store?.deliveryInfo
+      },
+      items: order.items || [],
+      totalPrice: order.totalPrice || 0,
+      deliveryAddress: order.deliveryAddress ? {
+        _id: order.deliveryAddress._id,
+        addressLine: order.deliveryAddress.addressLine,
+        city: order.deliveryAddress.city,
+        latitude: order.deliveryAddress.latitude,
+        longitude: order.deliveryAddress.longitude
+      } : null,
+      pickupAddress: order.pickupAddress ? {
+        _id: order.pickupAddress._id,
+        addressLine: order.pickupAddress.addressLine,
+        city: order.pickupAddress.city
+      } : null,
+      status: order.status,
+      statusText: getStatusText(order.status),
+      createdAt: order.createdAt,
+      notes: order.notes || '',
+      paymentMethod: order.paymentMethod || 'cash',
+      estimatedDeliveryTime: order.estimatedDeliveryTime || 30
+    }));
+    const stats = {
+      total: formattedOrders.length,
+      byStore: {},
+      averageValue: formattedOrders.length > 0
+        ? formattedOrders.reduce((sum, o) => sum + o.totalPrice, 0) / formattedOrders.length
+        : 0
+    };
+    formattedOrders.forEach(order => {
+      const storeId = order.store?._id?.toString() || 'unknown';
+      if (!stats.byStore[storeId]) {
+        stats.byStore[storeId] = {
+          name: order.store?.name || 'Unknown',
+          count: 0,
+          totalValue: 0
+        };
+      }
+      stats.byStore[storeId].count++;
+      stats.byStore[storeId].totalValue += order.totalPrice;
+    });
+    res.json({
+      success: true,
+      data: {
+        orders: formattedOrders,
+        stats: stats,
+        timestamp: new Date(),
+        driverId: driverId,
+        isAvailable: true,
+        isOnline: true,
+        driverName: driver?.name,
+        driverPhone: driver?.phone
+      }
+    });
+  } catch (error) {
+    console.error('❌ Get available orders error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب الطلبات المتاحة',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+exports.toggleAvailability = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { isAvailable, isOnline } = req.body;
+    let finalStatus = null;
+    if (isAvailable !== undefined) {
+      finalStatus = isAvailable;
+    } else if (isOnline !== undefined) {
+      finalStatus = isOnline;
+    }
+    if (finalStatus === null) {
+      return res.status(400).json({
+        success: false,
+        message: "يجب توفير حالة التوفر (isAvailable أو isOnline)"
+      });
+    }
+    console.log(`🔄 Driver ${driverId} toggling availability to: ${finalStatus}`);
+    const driver = await User.findByIdAndUpdate(
+      driverId,
+      {
+        'driverInfo.isAvailable': finalStatus,
+        isOnline: finalStatus,
+        lastStatusUpdate: new Date()
+      },
+       { returnDocument: 'after' }
+    ).select('driverInfo.isAvailable isOnline name phone');
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    invalidateDriverCache(driverId);
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('driver:status:changed', {
+        driverId: driver._id,
+        driverName: driver.name,
+        isAvailable: driver.driverInfo.isAvailable,
+        isOnline: driver.isOnline,
+        timestamp: new Date()
+      });
+      if (finalStatus === true) {
+        io.to(`driver:${driverId}`).emit('driver:available:orders:refresh', {
+          timestamp: new Date()
+        });
+      }
+    }
+    res.json({
+      success: true,
+      message: finalStatus ? "✅ أنت الآن متاح للطلبات" : "⛔ أنت الآن غير متاح",
+      data: {
+        isAvailable: driver.driverInfo.isAvailable,
+        isOnline: driver.isOnline,
+        lastStatusUpdate: driver.lastStatusUpdate,
+        driverInfo: {
+          name: driver.name,
+          phone: driver.phone
+        }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Toggle availability error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث حالة التوفر",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+exports.updateLocation = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { latitude, longitude, orderId, accuracy, heading, speed } = req.body;
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: "Latitude and longitude are required"
+      });
+    }
+    if (isNaN(latitude) || isNaN(longitude) ||
+        latitude < -90 || latitude > 90 ||
+        longitude < -180 || longitude > 180) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid coordinates"
+      });
+    }
+    console.log(`📍 Driver ${driverId} updating location: [${latitude}, ${longitude}]`);
+    await User.findByIdAndUpdate(driverId, {
+      'driverInfo.currentLocation': {
+        type: 'Point',
+        coordinates: [parseFloat(longitude), parseFloat(latitude)]
+      },
+      lastLocationUpdate: new Date()
+    });
+    const location = await DriverLocation.findOneAndUpdate(
+      { driver: driverId },
+      {
+        driver: driverId,
+        location: {
+          type: 'Point',
+          coordinates: [parseFloat(longitude), parseFloat(latitude)]
+        },
+        order: orderId || null,
+        accuracy: accuracy || null,
+        heading: heading || null,
+        speed: speed || null,
+        createdAt: new Date()
+      },
+      { upsert: true, new: true }
+    );
+    const io = req.app.get('io');
+    if (io && orderId) {
+      io.to(`order:${orderId}`).emit('driver:location:updated', {
+        orderId,
+        driverId,
+        location: { latitude, longitude },
+        accuracy,
+        heading,
+        speed,
+        timestamp: new Date()
+      });
+    }
+    res.json({
+      success: true,
+      message: "Location updated successfully",
+      data: {
+        location: { latitude, longitude },
+        accuracy,
+        heading,
+        speed,
+        timestamp: location.createdAt,
+        orderId: orderId || null
+      }
+    });
+  } catch (error) {
+    console.error("❌ Update location error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update location",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+exports.getCurrentOrder = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const currentOrder = await Order.findOne({
+      driver: driverId,
+      status: { $in: ['accepted', 'ready', 'picked'] }
+    })
+      .populate('user', 'name phone image')
+      .populate('store', 'name image phone addressLine')
+      .populate('pickupAddress')
+      .populate('deliveryAddress')
+      .populate('items.item')
+      .lean();
+    if (!currentOrder) {
+      return res.json({
+        success: true,
+        data: null,
+        message: "No active order"
+      });
+    }
+    const orderData = {
+      ...currentOrder,
+      statusText: getStatusText(currentOrder.status),
+      estimatedDelivery: calculateETA(currentOrder),
+      timeline: createOrderTimeline(currentOrder)
+    };
+    res.json({
+      success: true,
+      data: orderData
+    });
+  } catch (error) {
+    console.error("❌ Get current order error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get current order"
+    });
+  }
+};
+exports.getMyStats = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const cacheKey = `driver:stats:${driverId}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return res.json({
+        success: true,
+        data: cachedData,
+        cached: true
+      });
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const monthAgo = new Date();
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+    const [
+      todayStats,
+      weekStats,
+      monthStats,
+      totalStats,
+      recentOrders
+    ] = await Promise.all([
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            createdAt: { $gte: today }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
+            distance: { $sum: '$estimatedDistance' || 0 }
+          }
+        }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            createdAt: { $gte: weekAgo }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            createdAt: { $gte: monthAgo }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
+            avgTime: { $avg: '$deliveryTime' }
+          }
+        }
+      ]),
+      User.findById(driverId).select('driverInfo'),
+      Order.find({ driver: driverId, status: 'delivered' })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('totalPrice createdAt')
+        .lean()
+    ]);
+    const stats = {
+      today: {
+        orders: todayStats[0]?.orders || 0,
+        earnings: todayStats[0]?.earnings || 0,
+        distance: todayStats[0]?.distance || 0
+      },
+      week: {
+        daily: weekStats,
+        total: weekStats.reduce((sum, day) => sum + day.orders, 0),
+        earnings: weekStats.reduce((sum, day) => sum + day.earnings, 0)
+      },
+      month: {
+        orders: monthStats[0]?.orders || 0,
+        earnings: monthStats[0]?.earnings || 0,
+        avgTime: monthStats[0]?.avgTime || 0
+      },
+      total: {
+        orders: totalStats?.driverInfo?.totalDeliveries || 0,
+        earnings: totalStats?.driverInfo?.earnings || 0,
+        rating: totalStats?.driverInfo?.rating || 0
+      },
+      recentOrders
+    };
+    cache.set(cacheKey, stats, 300);
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error("❌ Get driver stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get statistics"
+    });
+  }
+};
+exports.getCurrentLocation = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const location = await DriverLocation.findOne({ driver: driverId })
+      .sort({ createdAt: -1 })
+      .lean();
+    if (!location) {
+      return res.json({
+        success: true,
+        data: null,
+        message: "لا يوجد موقع مسجل حالياً"
+      });
+    }
+    res.json({
+      success: true,
+      data: {
+        driverId,
+        location: {
+          latitude: location.location.coordinates[1],
+          longitude: location.location.coordinates[0]
+        },
+        accuracy: location.accuracy,
+        speed: location.speed,
+        heading: location.heading,
+        updatedAt: location.createdAt
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get current location error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب الموقع الحالي"
+    });
+  }
+};
+exports.updateAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "لم يتم رفع أي صورة"
+      });
+    }
+    const driverId = req.user.id;
+    const oldDriver = await User.findById(driverId).select('image');
+    if (oldDriver?.image) {
+      const oldPublicId = fileService.extractPublicIdFromUrl(oldDriver.image);
+      if (oldPublicId) {
+        fileService.deleteFile(oldPublicId).catch(err =>
+          console.error('Error deleting old avatar:', err)
+        );
+      }
+    }
+    const driver = await User.findByIdAndUpdate(
+      driverId,
+      { image: req.file.path },
+      { new: true }
+    ).select('name phone image');
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    invalidateDriverCache(driverId);
+    res.json({
+      success: true,
+      message: "تم تحديث الصورة الشخصية بنجاح",
+      data: {
+        image: driver.image,
+        optimized: req.file.thumbnail || null
+      }
+    });
+  } catch (error) {
+    console.error("❌ Update avatar error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث الصورة الشخصية"
+    });
+  }
+};
+exports.getEarningsHistory = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { page = 1, limit = 20, from, to } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    let dateQuery = {};
+    if (from || to) {
+      dateQuery = {};
+      if (from) dateQuery.$gte = new Date(from);
+      if (to) dateQuery.$lte = new Date(to);
+    }
+    const orders = await Order.find({
+      driver: driverId,
+      status: 'delivered',
+      ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
+    })
+      .select('totalPrice deliveredAt items store')
+      .populate('store', 'name')
+      .sort({ deliveredAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+    const total = await Order.countDocuments({
+      driver: driverId,
+      status: 'delivered',
+      ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
+    });
+    const earnings = orders.map(order => ({
+      orderId: order._id,
+      storeName: order.store?.name || 'غير معروف',
+      date: order.deliveredAt,
+      amount: order.totalPrice,
+      commission: order.totalPrice * 0.2,
+      netEarnings: order.totalPrice * 0.8,
+      itemsCount: order.items?.reduce((sum, item) => sum + item.qty, 0) || 0
+    }));
+    const stats = {
+      totalEarnings: earnings.reduce((sum, e) => sum + e.netEarnings, 0),
+      totalOrders: earnings.length,
+      averagePerOrder: earnings.length > 0
+        ? earnings.reduce((sum, e) => sum + e.netEarnings, 0) / earnings.length
+        : 0,
+      totalCommission: earnings.reduce((sum, e) => sum + e.commission, 0)
+    };
+    const monthlyStats = await Order.aggregate([
+      {
+        $match: {
+          driver: driverId,
+          status: 'delivered',
+          ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$deliveredAt" },
+            month: { $month: "$deliveredAt" }
+          },
+          earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
+          orders: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": -1, "_id.month": -1 } },
+      { $limit: 12 }
+    ]);
+    res.json({
+      success: true,
+      data: {
+        earnings,
+        monthlyStats,
+        stats,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get earnings history error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب سجل الأرباح"
+    });
+  }
+};
+exports.getPerformanceReport = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const now = new Date();
+    const today = new Date(now.setHours(0, 0, 0, 0));
+    const weekAgo = new Date(now.setDate(now.getDate() - 7));
+    const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
+    const [
+      dailyStats,
+      weeklyStats,
+      monthlyStats,
+      deliveryTimes,
+      ratings
+    ] = await Promise.all([
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveredAt: { $gte: today }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
+            totalDistance: { $sum: "$estimatedDistance" }
+          }
+        }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveredAt: { $gte: weekAgo }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$deliveredAt" } },
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveredAt: { $gte: monthAgo }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
+            avgOrderValue: { $avg: "$totalPrice" }
+          }
+        }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveryTime: { $exists: true }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            avgDeliveryTime: { $avg: "$deliveryTime" },
+            fastestDelivery: { $min: "$deliveryTime" },
+            slowestDelivery: { $max: "$deliveryTime" },
+            totalDeliveries: { $sum: 1 }
+          }
+        }
+      ]),
+      User.findById(driverId).select('driverInfo.rating driverInfo.totalRatings')
+    ]);
+    const acceptedOrders = await Order.countDocuments({
+      driver: driverId,
+      status: { $in: ['accepted', 'ready', 'picked', 'delivered'] }
+    });
+    const rejectedOrders = await Order.countDocuments({
+      driver: driverId,
+      status: 'cancelled',
+      cancelledBy: driverId
+    });
+    const acceptanceRate = acceptedOrders + rejectedOrders > 0
+      ? (acceptedOrders / (acceptedOrders + rejectedOrders)) * 100
+      : 100;
+    res.json({
+      success: true,
+      data: {
+        period: {
+          today: dailyStats[0] || { orders: 0, earnings: 0, totalDistance: 0 },
+          weekly: {
+            daily: weeklyStats,
+            total: weeklyStats.reduce((sum, day) => sum + day.orders, 0),
+            earnings: weeklyStats.reduce((sum, day) => sum + day.earnings, 0)
+          },
+          monthly: monthlyStats[0] || { orders: 0, earnings: 0, avgOrderValue: 0 }
+        },
+        performance: {
+          acceptanceRate: acceptanceRate.toFixed(1),
+          deliveryTime: deliveryTimes[0] || {
+            avgDeliveryTime: 0,
+            fastestDelivery: 0,
+            slowestDelivery: 0
+          },
+          rating: ratings?.driverInfo?.rating || 0,
+          totalRatings: ratings?.driverInfo?.totalRatings || 0
+        },
+        summary: {
+          totalDeliveries: acceptedOrders,
+          totalEarnings: monthlyStats[0]?.earnings || 0,
+          averagePerDay: weeklyStats.length > 0
+            ? weeklyStats.reduce((sum, day) => sum + day.orders, 0) / weeklyStats.length
+            : 0
+        }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get performance report error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب تقرير الأداء"
+    });
+  }
+};
+exports.getDrivers = async (req, res) => {
+  try {
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    const { skip, limit, sort, filters } = paginationOptions;
+    let query = { role: 'driver' };
+    if (filters.isAvailable !== undefined) {
+      query['driverInfo.isAvailable'] = filters.isAvailable === 'true';
+    }
+    if (filters.isOnline !== undefined) {
+      query.isOnline = filters.isOnline === 'true';
+    }
+    if (filters.minRating) {
+      query['driverInfo.rating'] = { $gte: Number(filters.minRating) };
+    }
+    const [drivers, total] = await Promise.all([
+      User.find(query)
+        .select('name phone image email driverInfo isOnline lastLogin')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      User.countDocuments(query)
+    ]);
+    const driversWithStats = await Promise.all(
+      drivers.map(async (driver) => {
+        const todayOrders = await Order.countDocuments({
+          driver: driver._id,
+          status: 'delivered',
+          createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
+        });
+        return {
+          ...driver,
+          todayOrders
+        };
+      })
+    );
+    const response = PaginationUtils.createPaginationResponse(
+      driversWithStats,
+      total,
+      paginationOptions,
+      {
+        available: await User.countDocuments({ role: 'driver', 'driverInfo.isAvailable': true }),
+        online: await User.countDocuments({ role: 'driver', isOnline: true })
+      }
+    );
+    res.json(response);
+  } catch (error) {
+    console.error("❌ Get drivers error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get drivers"
+    });
+  }
+};
+exports.getDriverById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driver = await User.findById(id)
+      .select('name phone email image driverInfo isOnline lastLogin')
+      .lean();
+    if (!driver || driver.role !== 'driver') {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    res.json({
+      success: true,
+      data: driver
+    });
+  } catch (error) {
+    console.error("❌ Get driver by id error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب بيانات المندوب"
+    });
+  }
+};
+exports.getDriverLocation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const location = await DriverLocation.findOne({ driver: id })
+      .sort({ createdAt: -1 })
+      .lean();
+    if (!location) {
+      return res.status(404).json({
+        success: false,
+        message: "Driver location not found"
+      });
+    }
+    res.json({
+      success: true,
+      data: {
+        driverId: id,
+        location: {
+          latitude: location.location.coordinates[1],
+          longitude: location.location.coordinates[0]
+        },
+        updatedAt: location.createdAt
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get driver location error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get driver location"
+    });
+  }
+};
+exports.getDriverStatsById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driver = await User.findById(id)
+      .select('name phone email driverInfo')
+      .lean();
+    if (!driver || driver.role !== 'driver') {
+      return res.status(404).json({
+        success: false,
+        message: "Driver not found"
+      });
+    }
+    const [orders, earnings] = await Promise.all([
+      Order.aggregate([
+        { $match: { driver: id, status: 'delivered' } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+            count: { $sum: 1 },
+            revenue: { $sum: '$totalPrice' }
+          }
+        },
+        { $sort: { _id: -1 } },
+        { $limit: 6 }
+      ]),
+      Order.aggregate([
+        { $match: { driver: id, status: 'delivered' } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$totalPrice' },
+            avg: { $avg: '$totalPrice' },
+            min: { $min: '$totalPrice' },
+            max: { $max: '$totalPrice' }
+          }
+        }
+      ])
+    ]);
+    res.json({
+      success: true,
+      data: {
+        driver,
+        monthlyStats: orders,
+        earnings: earnings[0] || { total: 0, avg: 0, min: 0, max: 0 }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get driver stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get driver statistics"
+    });
+  }
+};
+exports.verifyDriver = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driver = await User.findByIdAndUpdate(
+      id,
+      {
+        isVerified: true,
+        'driverInfo.documents.$[].verified': true
+      },
+      { new: true }
+    ).select('name phone email driverInfo isVerified');
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    res.json({
+      success: true,
+      message: "تم توثيق المندوب بنجاح",
+      data: {
+        id: driver._id,
+        isVerified: driver.isVerified,
+        driverInfo: driver.driverInfo
+      }
+    });
+  } catch (error) {
+    console.error("❌ Verify driver error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل توثيق المندوب"
+    });
+  }
+};
+exports.toggleDriverStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+    const driver = await User.findByIdAndUpdate(
+      id,
+      { isActive },
+      { new: true }
+    ).select('name phone email isActive');
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    res.json({
+      success: true,
+      message: `تم ${isActive ? 'تفعيل' : 'تعطيل'} المندوب بنجاح`,
+      data: {
+        id: driver._id,
+        isActive: driver.isActive
+      }
+    });
+  } catch (error) {
+    console.error("❌ Toggle driver status error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تغيير حالة المندوب"
+    });
+  }
+};
+module.exports = exports;
+</file>
+
+<file path="src/middlewares/rateLimit.middleware.js">
+const rateLimit = require('express-rate-limit');
+const redisClient = require('../config/redis');
+const { businessLogger } = require("../utils/logger.util");
+class RateLimiterService {
+  constructor() {
+    this.limiters = new Map();
+    this.redis = null;
+    this.store = null;
+    this.stats = {
+      totalLimited: 0,
+      byPath: {},
+      byType: {},
+      lastReset: new Date(),
+      startTime: new Date()
+    };
+    this.initRedis();
+    businessLogger.info('RateLimiterService initialized');
+  }
+  async initRedis() {
+    try {
+      this.redis = redisClient.getClient();
+      if (this.redis) {
+        const checkConnection = () => {
+          if (redisClient.isConnected && redisClient.isConnected()) {
+            this.initRedisStore();
+            businessLogger.info('Redis connected for rate limiting');
+          } else {
+            setTimeout(checkConnection, 500);
+          }
+        };
+        setTimeout(checkConnection, 500);
+      } else {
+        businessLogger.warn('Redis client not available, using memory store');
+      }
+    } catch (error) {
+      businessLogger.warn('Redis not available for rate limiting', error);
+    }
+  }
+  initRedisStore() {
+    try {
+      const { RedisStore } = require('rate-limit-redis');
+      this.store = new RedisStore({
+        sendCommand: (...args) => this.redis.call(...args),
+        prefix: 'rl:',
+        timeout: 5000
+      });
+      businessLogger.info('RedisStore initialized for rate limiting');
+    } catch (error) {
+      businessLogger.warn('Failed to initialize RedisStore, using memory store', error);
+      this.store = null;
+    }
+  }
+  getStore() {
+    return this.store;
+  }
+  getLimitMessage(type = 'general') {
+    const messages = {
+      auth: {
+        ar: 'محاولات تسجيل دخول كثيرة جداً، الرجاء المحاولة بعد ساعة',
+        en: 'Too many login attempts, please try again after an hour'
+      },
+      api: {
+        ar: 'طلبات كثيرة جداً، الرجاء المحاولة بعد 15 دقيقة',
+        en: 'Too many requests, please try again after 15 minutes'
+      },
+      strict: {
+        ar: 'لقد تجاوزت الحد المسموح من المحاولات لهذا اليوم',
+        en: 'You have exceeded the allowed attempts for today'
+      },
+      upload: {
+        ar: 'رفعت ملفات كثيرة جداً، الرجاء المحاولة بعد 10 دقائق',
+        en: 'Too many file uploads, please try again after 10 minutes'
+      },
+      search: {
+        ar: 'طلبات بحث كثيرة جداً، الرجاء التهدئة قليلاً',
+        en: 'Too many search requests, please slow down'
+      },
+      premium: {
+        ar: 'لقد تجاوزت الحد المسموح للمستخدم المميز',
+        en: 'You have exceeded the premium user limit'
+      },
+      general: {
+        ar: 'محاولات كثيرة جداً، الرجاء المحاولة بعد 15 دقيقة',
+        en: 'Too many attempts, please try again after 15 minutes'
+      }
+    };
+    return messages[type] || messages.general;
+  }
+  defaultKeyGenerator(req) {
+    if (req.user && req.user.id) {
+      return `${req.user.id}:${req.path}`;
+    }
+    const ip = req.ip || req.connection.remoteAddress;
+    return `${ip}:${req.path}`;
+  }
+  authKeyGenerator(req) {
+    if (req.user && req.user.id) {
+      return `user:${req.user.id}`;
+    }
+    const identifier = req.body.email || req.body.phone || req.ip;
+    return `auth:${identifier}`;
+  }
+  defaultSkipChecker(req) {
+    if (req.method === 'OPTIONS') return true;
+    const skipPaths = ['/health', '/', '/api-docs', '/swagger.json', '/swagger.yaml'];
+    if (skipPaths.includes(req.path)) return true;
+    if (req.path.startsWith('/api-docs')) return true;
+    return false;
+  }
+  createHandler(type, windowMs) {
+    return (req, res) => {
+      this.stats.totalLimited++;
+      this.stats.byPath[req.path] = (this.stats.byPath[req.path] || 0) + 1;
+      this.stats.byType[type] = (this.stats.byType[type] || 0) + 1;
+      const retryAfter = Math.ceil(windowMs / 1000);
+      const message = this.getLimitMessage(type);
+      businessLogger.warn('Rate limit exceeded', {
+        ip: req.ip,
+        path: req.path,
+        type,
+        userId: req.user?.id,
+        retryAfter
+      });
+      res.status(429).json({
+        success: false,
+        message: message.ar,
+        messageEn: message.en,
+        code: 'RATE_LIMIT_EXCEEDED',
+        type,
+        retryAfter: `${retryAfter} ثانية`,
+        retryAfterSeconds: retryAfter,
+        timestamp: new Date().toISOString()
+      });
+    };
+  }
+  createLimiter(options = {}) {
+    const {
+      windowMs = 15 * 60 * 1000,
+      max = 100,
+      type = 'general',
+      skipSuccessful = false,
+      keyGenerator = null,
+      skipChecker = null
+    } = options;
+    const message = this.getLimitMessage(type);
+    const handler = this.createHandler(type, windowMs);
+    const store = this.getStore();
+    const limiterOptions = {
+      windowMs,
+      max,
+      message: {
+        success: false,
+        message: message.ar,
+        messageEn: message.en,
+        code: 'RATE_LIMIT_EXCEEDED',
+        type
+      },
+      standardHeaders: true,
+      legacyHeaders: false,
+      skipSuccessfulRequests: skipSuccessful,
+      keyGenerator: keyGenerator || this.defaultKeyGenerator.bind(this),
+      skip: skipChecker || this.defaultSkipChecker.bind(this),
+      handler
+    };
+    if (store) {
+      limiterOptions.store = store;
+    }
+    return rateLimit(limiterOptions);
+  }
+  get authLimiter() {
+    if (!this.limiters.has('auth')) {
+      this.limiters.set('auth', this.createLimiter({
+        windowMs: 60 * 60 * 1000,
+        max: 10,
+        type: 'auth',
+        skipSuccessful: true,
+        keyGenerator: this.authKeyGenerator.bind(this)
+      }));
+    }
+    return this.limiters.get('auth');
+  }
+  get apiLimiter() {
+    if (!this.limiters.has('api')) {
+      this.limiters.set('api', this.createLimiter({
+        windowMs: 15 * 60 * 1000,
+        max: 100,
+        type: 'api'
+      }));
+    }
+    return this.limiters.get('api');
+  }
+  get strictLimiter() {
+    if (!this.limiters.has('strict')) {
+      this.limiters.set('strict', this.createLimiter({
+        windowMs: 24 * 60 * 60 * 1000,
+        max: 3,
+        type: 'strict',
+        skipSuccessful: true
+      }));
+    }
+    return this.limiters.get('strict');
+  }
+  get uploadLimiter() {
+    if (!this.limiters.has('upload')) {
+      this.limiters.set('upload', this.createLimiter({
+        windowMs: 10 * 60 * 1000,
+        max: 20,
+        type: 'upload'
+      }));
+    }
+    return this.limiters.get('upload');
+  }
+  get searchLimiter() {
+    if (!this.limiters.has('search')) {
+      this.limiters.set('search', this.createLimiter({
+        windowMs: 60 * 1000,
+        max: 30,
+        type: 'search'
+      }));
+    }
+    return this.limiters.get('search');
+  }
+  get premiumLimiter() {
+    if (!this.limiters.has('premium')) {
+      this.limiters.set('premium', this.createLimiter({
+        windowMs: 15 * 60 * 1000,
+        max: 500,
+        type: 'premium',
+        keyGenerator: (req) => req.user?.id || req.ip
+      }));
+    }
+    return this.limiters.get('premium');
+  }
+  get uniqueRequestLimiter() {
+    if (!this.limiters.has('unique')) {
+      this.limiters.set('unique', this.createLimiter({
+        windowMs: 60 * 1000,
+        max: 1,
+        type: 'unique',
+        keyGenerator: (req) => `${req.user?.id || req.ip}:${req.path}:${JSON.stringify(req.body)}`
+      }));
+    }
+    return this.limiters.get('unique');
+  }
+  getUserLimiter(userId, max = 200, windowMs = 15 * 60 * 1000) {
+    return this.createLimiter({
+      windowMs,
+      max,
+      type: 'user',
+      keyGenerator: () => `user:${userId}`
+    });
+  }
+  async getStats(req, res) {
+    try {
+      const stats = {
+        totalLimited: this.stats.totalLimited,
+        byPath: this.stats.byPath,
+        byType: this.stats.byType,
+        lastReset: this.stats.lastReset,
+        uptime: Math.floor((Date.now() - this.stats.startTime) / 1000),
+        redis: {
+          available: !!(this.redis && redisClient.isConnected && redisClient.isConnected()),
+          storeType: this.store ? 'redis' : 'memory'
+        }
+      };
+      if (this.redis && redisClient.isConnected && redisClient.isConnected()) {
+        try {
+          const keys = await this.redis.keys('rl:*');
+          const details = [];
+          for (const key of keys.slice(0, 50)) {
+            const ttl = await this.redis.ttl(key);
+            const value = await this.redis.get(key);
+            details.push({
+              key: key.replace('rl:', ''),
+              ttl,
+              ttlHuman: this.formatTTL(ttl),
+              hits: parseInt(value) || 0
+            });
+          }
+          stats.redis.keys = keys.length;
+          stats.redis.activeKeys = details.filter(d => d.ttl > 0).length;
+          stats.redis.details = details;
+        } catch (error) {
+          businessLogger.warn('Error fetching Redis rate limit stats:', error);
+        }
+      }
+      res.json({
+        success: true,
+        data: stats,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      businessLogger.error('Error getting rate limit stats:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get rate limit stats',
+        error: error.message
+      });
+    }
+  }
+  async resetUserLimits(req, res) {
+    const { userId } = req.params;
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'User ID is required'
+      });
+    }
+    if (!this.redis || !redisClient.isConnected || !redisClient.isConnected()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Redis not available for rate limit reset'
+      });
+    }
+    try {
+      const keys = await this.redis.keys(`rl:*:${userId}:*`);
+      if (keys.length > 0) {
+        await this.redis.del(...keys);
+        businessLogger.info(`Reset rate limits for user ${userId}`, {
+          keysCount: keys.length,
+          userId
+        });
+      }
+      res.json({
+        success: true,
+        message: `Reset ${keys.length} rate limits for user ${userId}`,
+        data: {
+          userId,
+          resetKeys: keys.length,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      businessLogger.error('Error resetting user limits:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to reset user limits',
+        error: error.message
+      });
+    }
+  }
+  async clearAll(req, res) {
+    if (!this.redis || !redisClient.isConnected || !redisClient.isConnected()) {
+      return res.status(503).json({
+        success: false,
+        message: 'Redis not available for rate limit clear'
+      });
+    }
+    try {
+      const keys = await this.redis.keys('rl:*');
+      if (keys.length > 0) {
+        await this.redis.del(...keys);
+        businessLogger.info(`Cleared all rate limits`, {
+          keysCount: keys.length
+        });
+      }
+      this.stats.totalLimited = 0;
+      this.stats.byPath = {};
+      this.stats.byType = {};
+      this.stats.lastReset = new Date();
+      res.json({
+        success: true,
+        message: `Cleared ${keys.length} rate limits`,
+        data: {
+          clearedKeys: keys.length,
+          timestamp: new Date().toISOString()
+        }
+      });
+    } catch (error) {
+      businessLogger.error('Error clearing all limits:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to clear all limits',
+        error: error.message
+      });
+    }
+  }
+  formatTTL(seconds) {
+    if (seconds <= 0) return 'منتهي';
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    const parts = [];
+    if (hours > 0) parts.push(`${hours} ساعة`);
+    if (minutes > 0) parts.push(`${minutes} دقيقة`);
+    if (secs > 0 && hours === 0) parts.push(`${secs} ثانية`);
+    return parts.join(' و ') || 'أقل من ثانية';
+  }
+  resetStats() {
+    this.stats = {
+      totalLimited: 0,
+      byPath: {},
+      byType: {},
+      lastReset: new Date(),
+      startTime: this.stats.startTime
+    };
+    businessLogger.info('Rate limit stats reset');
+  }
+  getStatus() {
+    return {
+      redisAvailable: !!(this.redis && redisClient.isConnected && redisClient.isConnected()),
+      storeType: this.store ? 'redis' : 'memory',
+      limitersCount: this.limiters.size,
+      totalLimited: this.stats.totalLimited,
+      uptime: Math.floor((Date.now() - this.stats.startTime) / 1000)
+    };
+  }
+}
+module.exports = new RateLimiterService();
+</file>
+
 <file path="src/controllers/order.controller.js">
 const { Order, User, Address, Store, DriverLocation, Review, Notification, StoreAddress } = require('../models');
 const cache = require("../utils/cache.util");
@@ -42108,7 +43798,6 @@ exports.getAllOrdersPaginated = async (req, res) => {
 exports.acceptOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const { estimatedTime } = req.body;
     const userId = req.user.id;
     const user = await User.findById(userId).select('storeOwnerInfo');
     if (!user?.storeOwnerInfo?.store) {
@@ -42130,15 +43819,13 @@ exports.acceptOrder = async (req, res) => {
       });
     }
     order.status = "accepted";
-    if (estimatedTime) {
-      order.estimatedPreparationTime = estimatedTime;
-    }
+    order.estimatedPreparationTime = 60;
     await order.save();
     await notificationService.sendNotification({
       user: order.user._id,
       type: "order_accepted",
       title: "✅ تم قبول طلبك",
-      content: `تم قبول طلبك، الوقت المتوقع: ${estimatedTime || order.estimatedPreparationTime} دقيقة`,
+      content: `تم قبول طلبك، الوقت المتوقع: 60 دقيقة`,
       data: { orderId: order._id },
       priority: "high",
       link: `/orders/${order._id}`,
@@ -42151,7 +43838,7 @@ exports.acceptOrder = async (req, res) => {
       data: {
         orderId: order._id,
         status: order.status,
-        estimatedTime: estimatedTime || order.estimatedPreparationTime
+        estimatedTime: 60
       }
     });
   } catch (error) {
@@ -42560,7 +44247,7 @@ exports.updateStatus = async (req, res) => {
         status,
         ...(status === 'delivered' ? { deliveredAt: new Date() } : {})
       },
-      { new: true }
+       { returnDocument: 'after' }
     )
       .populate('user', 'name phone')
       .populate('driver', 'name phone')
@@ -44145,1651 +45832,95 @@ exports.getOrderLocation = async (req, res) => {
     });
   }
 };
-module.exports = exports;
-</file>
-
-<file path="src/routes/admin.routes.js">
-const express = require('express');
-const router = express.Router();
-const {
-  userController,
-  storeController,
-  productController,
-  orderController,
-  driverController,
-  vendorController,
-  aggregateController,
-  notificationController,
-  analyticsController,
-  securityController
-} = require('../controllers');
-const auth = require('../middlewares/auth.middleware');
-const role = require('../middlewares/role.middleware');
-const handleFormData = require('../middlewares/formDataHandler');
-const validate = require('../middlewares/validate.middleware');
-const rateLimiter = require('../middlewares/rateLimit.middleware');
-const upload = require('../middlewares/upload');
-const PaginationUtils = require('../utils/pagination.util');
-const {
-  createUserSchema,
-  updateUserByAdminSchema
-} = require('../validators/user.validator');
-const {
-  createStoreSchema,
-  updateStoreSchema
-} = require('../validators/store.validator');
-const {
-  assignDriverSchema,
-  cancelOrderSchema
-} = require('../validators/order.validator');
-const {
-  createProductSchema,
-  updateProductSchema,
-  updateInventorySchema
-} = require('../validators/product.validator');
-router.use(auth);
-router.use(role('admin'));
-router.get('/dashboard', aggregateController.getAdminDashboard);
-router.get('/stats', aggregateController.getAdminStats);
-router.get('/stats/users', aggregateController.getAdminUserStats);
-router.get('/stats/orders', aggregateController.getAdminOrderStats);
-router.get('/stats/revenue', aggregateController.getAdminRevenueStats);
-router.get('/users', PaginationUtils.validatePaginationParams, userController.getUsers);
-router.get('/users/:id', userController.getUserById);
-router.post('/users', validate(createUserSchema), userController.createUser);
-router.put('/users/:id', validate(updateUserByAdminSchema), userController.updateUserById);
-router.delete('/users/:id', userController.deleteUserById);
-router.get('/vendors', PaginationUtils.validatePaginationParams, vendorController.getVendors);
-router.get('/vendors/:id', vendorController.getVendorById);
-router.put('/vendors/:id/verify', vendorController.verifyVendor);
-router.put('/vendors/:id/status', vendorController.toggleVendorStatus);
-router.get('/stores', PaginationUtils.validatePaginationParams, storeController.getStoresPaginated);
-router.get('/stores/:id', storeController.getStoreDetails);
-router.post('/stores',
-  upload('stores', ['image']).fields([
-    { name: 'logo', maxCount: 1 },
-    { name: 'coverImage', maxCount: 1 }
-  ]),
-  handleFormData,
-  validate(createStoreSchema),
-  storeController.createStore
-);
-router.put('/stores/:id',
-  upload('stores', ['image']).fields([
-    { name: 'logo', maxCount: 1 },
-    { name: 'coverImage', maxCount: 1 }
-  ]),
-  handleFormData,
-  validate(updateStoreSchema),
-  storeController.updateStore
-);
-router.post('/stores/update-coordinates', storeController.updateStoreCoordinates);
-router.delete('/stores/:id', storeController.deleteStore);
-router.put('/stores/:id/verify', storeController.verifyStore);
-router.put('/stores/:id/toggle-status', storeController.toggleStoreStatus);
-router.get('/products', PaginationUtils.validatePaginationParams, productController.getAllProducts);
-router.get('/products/stats', productController.getProductStats);
-router.get('/products/:id', productController.getProductById);
-router.post('/products',
-  upload('products', ['image']).single('image'),
-  handleFormData,
-  validate(createProductSchema),
-  productController.createProduct
-);
-router.put('/products/:id',
-  handleFormData,
-  validate(updateProductSchema),
-  productController.updateProduct
-);
-router.delete('/products/:id', productController.deleteProduct);
-router.put('/products/:id/feature', productController.toggleFeatured);
-router.put('/products/:id/image',
-  upload('products', ['image']).single('image'),
-  productController.updateProductImage
-);
-router.put('/products/:id/toggle-availability', productController.toggleAvailability);
-router.put('/products/:id/inventory',
-  validate(updateInventorySchema),
-  productController.updateInventory
-);
-router.get('/orders', PaginationUtils.validatePaginationParams, orderController.getAllOrdersPaginated);
-router.get('/orders/:id', orderController.getOrderDetails);
-router.get('/orders/stats/overview', orderController.getOrderStats);
-router.get('/orders/stats/daily', orderController.getDailyStats);
-router.get('/orders/stats/monthly', orderController.getMonthlyStats);
-router.put('/orders/:id/assign', validate(assignDriverSchema), orderController.assignDriver);
-router.put('/orders/:id/reassign', orderController.reassignDriver);
-router.put('/orders/:id/force-cancel', validate(cancelOrderSchema), orderController.forceCancelOrder);
-router.get('/drivers', PaginationUtils.validatePaginationParams, driverController.getDrivers);
-router.get('/drivers/:id', driverController.getDriverById);
-router.get('/drivers/:id/location', driverController.getDriverLocation);
-router.get('/drivers/:id/stats', driverController.getDriverStatsById);
-router.get('/drivers/:id/orders', PaginationUtils.validatePaginationParams, orderController.getDriverOrdersById);
-router.put('/drivers/:id/verify', driverController.verifyDriver);
-router.put('/drivers/:id/status', driverController.toggleDriverStatus);
-router.post('/notifications/send', notificationController.sendCustomNotification);
-router.get('/notifications/campaign/:campaignId/stats', notificationController.getCampaignStats);
-router.get('/notifications/all/stats', notificationController.getAllNotificationsStats);
-router.get('/cache/stats', aggregateController.getCacheStats);
-router.post('/cache/clear', aggregateController.clearCache);
-router.post('/cache/clear/:pattern', aggregateController.clearCachePattern);
-router.get('/rate-limit/stats', rateLimiter.getStats);
-router.post('/rate-limit/reset/:userId', rateLimiter.resetUserLimits);
-router.delete('/rate-limit/clear-all', rateLimiter.clearAll);
-router.get('/analytics/users', analyticsController.getUserAnalytics);
-router.get('/analytics/orders', analyticsController.getOrderAnalytics);
-router.get('/analytics/revenue', analyticsController.getRevenueAnalytics);
-router.get('/security/headers', securityController.getSecurityHeaders);
-router.get('/reports/orders', aggregateController.exportOrdersReport);
-router.get('/reports/users', aggregateController.exportUsersReport);
-router.get('/reports/revenue', aggregateController.exportRevenueReport);
-router.get('/reports/drivers', aggregateController.exportDriversReport);
-router.get('/reports/stores', aggregateController.exportStoresReport);
-router.get('/advanced-stats/daily', aggregateController.getDailyAdvancedStats);
-router.get('/advanced-stats/weekly', aggregateController.getWeeklyAdvancedStats);
-router.get('/advanced-stats/monthly', aggregateController.getMonthlyAdvancedStats);
-router.get('/advanced-stats/custom', aggregateController.getCustomStats);
-module.exports = router;
-</file>
-
-<file path="src/controllers/driver.controller.js">
-const { User, Order, DriverLocation } = require('../models');
-const cache = require("../utils/cache.util");
-const PaginationUtils = require('../utils/pagination.util');
-const fileService = require('../services/file.service');
-const { AppError } = require('../middlewares/errorHandler.middleware');
-const getStatusText = (status) => {
-  const statusMap = {
-    pending: 'قيد الانتظار',
-    accepted: 'تم القبول',
-    ready: 'جاهز',
-    picked: 'تم الاستلام',
-    delivered: 'تم التوصيل',
-    cancelled: 'ملغي'
-  };
-  return statusMap[status] || status;
-};
-const calculateETA = (order) => {
-  if (!order) return 'غير معروف';
-  const now = new Date();
-  const created = new Date(order.createdAt);
-  const elapsedMinutes = Math.floor((now - created) / 60000);
-  const baseTime = order.estimatedDeliveryTime || 30;
-  const remaining = Math.max(0, baseTime - elapsedMinutes);
-  const statusTimes = {
-    pending: `${baseTime} دقيقة`,
-    accepted: `${Math.max(5, remaining)} دقيقة`,
-    ready: `${Math.max(2, remaining - 5)} دقيقة`,
-    picked: `${Math.max(2, remaining - 10)} دقيقة`,
-    delivered: 'تم التوصيل',
-    cancelled: 'ملغي'
-  };
-  return statusTimes[order.status] || 'قيد الحساب';
-};
-const createOrderTimeline = (order) => {
-  return [
-    {
-      status: 'created',
-      title: 'تم إنشاء الطلب',
-      timestamp: order.createdAt,
-      completed: true,
-      icon: '🛒'
-    },
-    {
-      status: 'accepted',
-      title: 'تم قبول الطلب',
-      timestamp: order.status !== 'pending' ? order.updatedAt : null,
-      completed: ['accepted', 'ready', 'picked', 'delivered'].includes(order.status),
-      icon: '✅'
-    },
-    {
-      status: 'ready',
-      title: 'الطلب جاهز',
-      timestamp: order.status === 'ready' ? order.updatedAt : null,
-      completed: ['ready', 'picked', 'delivered'].includes(order.status),
-      icon: '🍽️'
-    },
-    {
-      status: 'picked',
-      title: 'تم الاستلام من المتجر',
-      timestamp: ['picked', 'delivered'].includes(order.status) ? order.updatedAt : null,
-      completed: ['picked', 'delivered'].includes(order.status),
-      icon: '📦'
-    },
-    {
-      status: 'delivered',
-      title: 'تم التوصيل',
-      timestamp: order.status === 'delivered' ? order.updatedAt : null,
-      completed: order.status === 'delivered',
-      icon: '🚚'
-    }
-  ];
-};
-const invalidateDriverCache = (driverId) => {
-  cache.del(`driver:profile:${driverId}`);
-  cache.del(`driver:stats:${driverId}`);
-  cache.invalidatePattern(`driver:orders:${driverId}:*`);
-  cache.del(`user:complete:${driverId}`);
-};
-exports.getMyProfile = async (req, res) => {
+exports.acceptOrderByDriver = async (req, res) => {
   try {
+    const { id } = req.params;
     const driverId = req.user.id;
-    const cacheKey = `driver:profile:${driverId}`;
-    const cachedData = cache.get(cacheKey);
-    if (cachedData) {
-      return res.json({
-        success: true,
-        data: cachedData,
-        cached: true
-      });
-    }
-    const driver = await User.findById(driverId)
-      .select('name phone image email driverInfo isOnline lastLogin')
-      .lean();
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: "Driver not found"
-      });
-    }
-    const [todayOrders, totalEarnings, currentOrder] = await Promise.all([
-      Order.countDocuments({
-        driver: driverId,
-        status: 'delivered',
-        createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
-      }),
-      Order.aggregate([
-        { $match: { driver: driverId, status: 'delivered' } },
-        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
-      ]),
-      Order.findOne({
-        driver: driverId,
-        status: { $in: ['accepted', 'ready', 'picked'] }
-      }).select('_id status pickupAddress deliveryAddress')
-    ]);
-    const profileData = {
-      ...driver,
-      stats: {
-        todayOrders,
-        totalEarnings: totalEarnings[0]?.total || 0,
-        currentOrder: currentOrder || null
-      }
-    };
-    cache.set(cacheKey, profileData, 300);
-    res.json({
-      success: true,
-      data: profileData
-    });
-  } catch (error) {
-    console.error("❌ Get driver profile error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get driver profile"
-    });
-  }
-};
-exports.getAvailableOrders = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    console.log(`🚚 Driver ${driverId} requesting available orders`);
-    const driver = await User.findById(driverId).select('driverInfo.isAvailable isOnline name phone');
-    const isDriverAvailable = driver?.driverInfo?.isAvailable || false;
-    const isDriverOnline = driver?.isOnline || false;
-    console.log(`📊 Driver ${driverId} current availability: isAvailable=${isDriverAvailable}, isOnline=${isDriverOnline}`);
-    if (!isDriverAvailable) {
-      console.log(`⚠️ Driver ${driverId} is not available, returning empty orders`);
-      return res.json({
-        success: true,
-        data: {
-          orders: [],
-          stats: {
-            total: 0,
-            byStore: {},
-            averageValue: 0
-          },
-          timestamp: new Date(),
-          driverId: driverId,
-          isAvailable: false,
-          isOnline: false,
-          driverName: driver?.name,
-          driverPhone: driver?.phone
-        }
-      });
-    }
-    const availableOrders = await Order.find({
-      status: 'pending',
+    console.log(`🚚 Driver ${driverId} attempting to accept order ${id}`);
+    const order = await Order.findOne({
+      _id: id,
+      status: "pending",
       $or: [
         { driver: { $exists: false } },
         { driver: null }
       ]
-    })
-      .populate('user', 'name phone')
-      .populate('store', 'name image phone addressLine deliveryInfo')
-      .populate('pickupAddress')
-      .populate('deliveryAddress')
-      .sort({ createdAt: 1 })
-      .lean();
-    console.log(`✅ Found ${availableOrders.length} available orders`);
-    const formattedOrders = availableOrders.map(order => ({
-      id: order._id,
-      _id: order._id,
-      store: {
-        _id: order.store?._id,
-        name: order.store?.name,
-        image: order.store?.image,
-        phone: order.store?.phone,
-        addressLine: order.store?.addressLine,
-        deliveryInfo: order.store?.deliveryInfo
-      },
-      items: order.items || [],
-      totalPrice: order.totalPrice || 0,
-      deliveryAddress: order.deliveryAddress ? {
-        _id: order.deliveryAddress._id,
-        addressLine: order.deliveryAddress.addressLine,
-        city: order.deliveryAddress.city,
-        latitude: order.deliveryAddress.latitude,
-        longitude: order.deliveryAddress.longitude
-      } : null,
-      pickupAddress: order.pickupAddress ? {
-        _id: order.pickupAddress._id,
-        addressLine: order.pickupAddress.addressLine,
-        city: order.pickupAddress.city
-      } : null,
-      status: order.status,
-      statusText: getStatusText(order.status),
-      createdAt: order.createdAt,
-      notes: order.notes || '',
-      paymentMethod: order.paymentMethod || 'cash',
-      estimatedDeliveryTime: order.estimatedDeliveryTime || 30
-    }));
-    const stats = {
-      total: formattedOrders.length,
-      byStore: {},
-      averageValue: formattedOrders.length > 0
-        ? formattedOrders.reduce((sum, o) => sum + o.totalPrice, 0) / formattedOrders.length
-        : 0
-    };
-    formattedOrders.forEach(order => {
-      const storeId = order.store?._id?.toString() || 'unknown';
-      if (!stats.byStore[storeId]) {
-        stats.byStore[storeId] = {
-          name: order.store?.name || 'Unknown',
-          count: 0,
-          totalValue: 0
-        };
-      }
-      stats.byStore[storeId].count++;
-      stats.byStore[storeId].totalValue += order.totalPrice;
-    });
-    res.json({
-      success: true,
-      data: {
-        orders: formattedOrders,
-        stats: stats,
-        timestamp: new Date(),
-        driverId: driverId,
-        isAvailable: true,
-        isOnline: true,
-        driverName: driver?.name,
-        driverPhone: driver?.phone
-      }
-    });
-  } catch (error) {
-    console.error('❌ Get available orders error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'فشل جلب الطلبات المتاحة',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-exports.toggleAvailability = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const { isAvailable, isOnline } = req.body;
-    let finalStatus = null;
-    if (isAvailable !== undefined) {
-      finalStatus = isAvailable;
-    } else if (isOnline !== undefined) {
-      finalStatus = isOnline;
-    }
-    if (finalStatus === null) {
-      return res.status(400).json({
-        success: false,
-        message: "يجب توفير حالة التوفر (isAvailable أو isOnline)"
-      });
-    }
-    console.log(`🔄 Driver ${driverId} toggling availability to: ${finalStatus}`);
-    const driver = await User.findByIdAndUpdate(
-      driverId,
-      {
-        'driverInfo.isAvailable': finalStatus,
-        isOnline: finalStatus,
-        lastStatusUpdate: new Date()
-      },
-      { new: true, runValidators: false }
-    ).select('driverInfo.isAvailable isOnline name phone');
-    if (!driver) {
+    }).populate('user', 'name phone')
+      .populate('store', 'name address deliveryInfo');
+    if (!order) {
       return res.status(404).json({
         success: false,
-        message: "المندوب غير موجود"
+        message: "الطلب غير موجود أو تم قبوله مسبقاً"
       });
     }
-    invalidateDriverCache(driverId);
+    order.driver = driverId;
+    order.status = "accepted";
+    order.estimatedPreparationTime = 60;
+    order.acceptedAt = new Date();
+    await order.save();
+    await User.findByIdAndUpdate(driverId, {
+      'driverInfo.isAvailable': false,
+      'driverInfo.currentOrder': order._id
+    });
+    await notificationService.sendNotification({
+      user: order.user._id,
+      type: "order_accepted",
+      title: "✅ تم قبول طلبك",
+      content: `تم تعيين مندوب لتوصيل طلبك، الوقت المتوقع: 60 دقيقة`,
+      data: {
+        orderId: order._id,
+        driverId: driverId,
+        estimatedTime: 60
+      },
+      priority: "high",
+      link: `/orders/${order._id}`,
+      icon: "✅"
+    });
+    await notificationService.sendNotification({
+      user: driverId,
+      type: "order_assigned",
+      title: "🛵 طلب جديد",
+      content: `تم تعيينك لتوصيل طلب #${order._id.toString().slice(-6)}`,
+      data: { orderId: order._id },
+      priority: "high",
+      link: `/driver/orders/${order._id}`,
+      icon: "🛵"
+    });
+    await invalidateOrderCache(order._id, order.user._id);
     const io = req.app.get('io');
     if (io) {
-      io.emit('driver:status:changed', {
-        driverId: driver._id,
-        driverName: driver.name,
-        isAvailable: driver.driverInfo.isAvailable,
-        isOnline: driver.isOnline,
-        timestamp: new Date()
-      });
-      if (finalStatus === true) {
-        io.to(`driver:${driverId}`).emit('driver:available:orders:refresh', {
-          timestamp: new Date()
-        });
-      }
-    }
-    res.json({
-      success: true,
-      message: finalStatus ? "✅ أنت الآن متاح للطلبات" : "⛔ أنت الآن غير متاح",
-      data: {
-        isAvailable: driver.driverInfo.isAvailable,
-        isOnline: driver.isOnline,
-        lastStatusUpdate: driver.lastStatusUpdate,
-        driverInfo: {
-          name: driver.name,
-          phone: driver.phone
-        }
-      }
-    });
-  } catch (error) {
-    console.error("❌ Toggle availability error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تحديث حالة التوفر",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-exports.updateLocation = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const { latitude, longitude, orderId, accuracy, heading, speed } = req.body;
-    if (!latitude || !longitude) {
-      return res.status(400).json({
-        success: false,
-        message: "Latitude and longitude are required"
-      });
-    }
-    if (isNaN(latitude) || isNaN(longitude) ||
-        latitude < -90 || latitude > 90 ||
-        longitude < -180 || longitude > 180) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid coordinates"
-      });
-    }
-    console.log(`📍 Driver ${driverId} updating location: [${latitude}, ${longitude}]`);
-    await User.findByIdAndUpdate(driverId, {
-      'driverInfo.currentLocation': {
-        type: 'Point',
-        coordinates: [parseFloat(longitude), parseFloat(latitude)]
-      },
-      lastLocationUpdate: new Date()
-    });
-    const location = await DriverLocation.findOneAndUpdate(
-      { driver: driverId },
-      {
-        driver: driverId,
-        location: {
-          type: 'Point',
-          coordinates: [parseFloat(longitude), parseFloat(latitude)]
-        },
-        order: orderId || null,
-        accuracy: accuracy || null,
-        heading: heading || null,
-        speed: speed || null,
-        createdAt: new Date()
-      },
-      { upsert: true, new: true }
-    );
-    const io = req.app.get('io');
-    if (io && orderId) {
-      io.to(`order:${orderId}`).emit('driver:location:updated', {
-        orderId,
-        driverId,
-        location: { latitude, longitude },
-        accuracy,
-        heading,
-        speed,
+      io.to(`order:${order._id}`).emit('order:status:updated', {
+        orderId: order._id,
+        status: 'accepted',
+        driverId: driverId,
+        estimatedTime: 60,
         timestamp: new Date()
       });
     }
     res.json({
       success: true,
-      message: "Location updated successfully",
+      message: "تم قبول الطلب بنجاح",
       data: {
-        location: { latitude, longitude },
-        accuracy,
-        heading,
-        speed,
-        timestamp: location.createdAt,
-        orderId: orderId || null
+        orderId: order._id,
+        status: order.status,
+        estimatedTime: 60,
+        store: {
+          name: order.store.name,
+          address: order.store.address,
+          pickupLocation: order.pickupAddress
+        },
+        deliveryLocation: order.deliveryAddress
       }
     });
   } catch (error) {
-    console.error("❌ Update location error:", error);
+    console.error("❌ Driver accept order error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to update location",
+      message: "فشل قبول الطلب",
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-exports.getCurrentOrder = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const currentOrder = await Order.findOne({
-      driver: driverId,
-      status: { $in: ['accepted', 'ready', 'picked'] }
-    })
-      .populate('user', 'name phone image')
-      .populate('store', 'name image phone addressLine')
-      .populate('pickupAddress')
-      .populate('deliveryAddress')
-      .populate('items.item')
-      .lean();
-    if (!currentOrder) {
-      return res.json({
-        success: true,
-        data: null,
-        message: "No active order"
-      });
-    }
-    const orderData = {
-      ...currentOrder,
-      statusText: getStatusText(currentOrder.status),
-      estimatedDelivery: calculateETA(currentOrder),
-      timeline: createOrderTimeline(currentOrder)
-    };
-    res.json({
-      success: true,
-      data: orderData
-    });
-  } catch (error) {
-    console.error("❌ Get current order error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get current order"
-    });
-  }
-};
-exports.getMyStats = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const cacheKey = `driver:stats:${driverId}`;
-    const cachedData = cache.get(cacheKey);
-    if (cachedData) {
-      return res.json({
-        success: true,
-        data: cachedData,
-        cached: true
-      });
-    }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const monthAgo = new Date();
-    monthAgo.setMonth(monthAgo.getMonth() - 1);
-    const [
-      todayStats,
-      weekStats,
-      monthStats,
-      totalStats,
-      recentOrders
-    ] = await Promise.all([
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            createdAt: { $gte: today }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
-            distance: { $sum: '$estimatedDistance' || 0 }
-          }
-        }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            createdAt: { $gte: weekAgo }
-          }
-        },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } }
-          }
-        },
-        { $sort: { _id: 1 } }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            createdAt: { $gte: monthAgo }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
-            avgTime: { $avg: '$deliveryTime' }
-          }
-        }
-      ]),
-      User.findById(driverId).select('driverInfo'),
-      Order.find({ driver: driverId, status: 'delivered' })
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .select('totalPrice createdAt')
-        .lean()
-    ]);
-    const stats = {
-      today: {
-        orders: todayStats[0]?.orders || 0,
-        earnings: todayStats[0]?.earnings || 0,
-        distance: todayStats[0]?.distance || 0
-      },
-      week: {
-        daily: weekStats,
-        total: weekStats.reduce((sum, day) => sum + day.orders, 0),
-        earnings: weekStats.reduce((sum, day) => sum + day.earnings, 0)
-      },
-      month: {
-        orders: monthStats[0]?.orders || 0,
-        earnings: monthStats[0]?.earnings || 0,
-        avgTime: monthStats[0]?.avgTime || 0
-      },
-      total: {
-        orders: totalStats?.driverInfo?.totalDeliveries || 0,
-        earnings: totalStats?.driverInfo?.earnings || 0,
-        rating: totalStats?.driverInfo?.rating || 0
-      },
-      recentOrders
-    };
-    cache.set(cacheKey, stats, 300);
-    res.json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    console.error("❌ Get driver stats error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get statistics"
-    });
-  }
-};
-exports.getCurrentLocation = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const location = await DriverLocation.findOne({ driver: driverId })
-      .sort({ createdAt: -1 })
-      .lean();
-    if (!location) {
-      return res.json({
-        success: true,
-        data: null,
-        message: "لا يوجد موقع مسجل حالياً"
-      });
-    }
-    res.json({
-      success: true,
-      data: {
-        driverId,
-        location: {
-          latitude: location.location.coordinates[1],
-          longitude: location.location.coordinates[0]
-        },
-        accuracy: location.accuracy,
-        speed: location.speed,
-        heading: location.heading,
-        updatedAt: location.createdAt
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get current location error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب الموقع الحالي"
-    });
-  }
-};
-exports.updateAvatar = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "لم يتم رفع أي صورة"
-      });
-    }
-    const driverId = req.user.id;
-    const oldDriver = await User.findById(driverId).select('image');
-    if (oldDriver?.image) {
-      const oldPublicId = fileService.extractPublicIdFromUrl(oldDriver.image);
-      if (oldPublicId) {
-        fileService.deleteFile(oldPublicId).catch(err =>
-          console.error('Error deleting old avatar:', err)
-        );
-      }
-    }
-    const driver = await User.findByIdAndUpdate(
-      driverId,
-      { image: req.file.path },
-      { new: true }
-    ).select('name phone image');
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: "المندوب غير موجود"
-      });
-    }
-    invalidateDriverCache(driverId);
-    res.json({
-      success: true,
-      message: "تم تحديث الصورة الشخصية بنجاح",
-      data: {
-        image: driver.image,
-        optimized: req.file.thumbnail || null
-      }
-    });
-  } catch (error) {
-    console.error("❌ Update avatar error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تحديث الصورة الشخصية"
-    });
-  }
-};
-exports.getEarningsHistory = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const { page = 1, limit = 20, from, to } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    let dateQuery = {};
-    if (from || to) {
-      dateQuery = {};
-      if (from) dateQuery.$gte = new Date(from);
-      if (to) dateQuery.$lte = new Date(to);
-    }
-    const orders = await Order.find({
-      driver: driverId,
-      status: 'delivered',
-      ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
-    })
-      .select('totalPrice deliveredAt items store')
-      .populate('store', 'name')
-      .sort({ deliveredAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .lean();
-    const total = await Order.countDocuments({
-      driver: driverId,
-      status: 'delivered',
-      ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
-    });
-    const earnings = orders.map(order => ({
-      orderId: order._id,
-      storeName: order.store?.name || 'غير معروف',
-      date: order.deliveredAt,
-      amount: order.totalPrice,
-      commission: order.totalPrice * 0.2,
-      netEarnings: order.totalPrice * 0.8,
-      itemsCount: order.items?.reduce((sum, item) => sum + item.qty, 0) || 0
-    }));
-    const stats = {
-      totalEarnings: earnings.reduce((sum, e) => sum + e.netEarnings, 0),
-      totalOrders: earnings.length,
-      averagePerOrder: earnings.length > 0
-        ? earnings.reduce((sum, e) => sum + e.netEarnings, 0) / earnings.length
-        : 0,
-      totalCommission: earnings.reduce((sum, e) => sum + e.commission, 0)
-    };
-    const monthlyStats = await Order.aggregate([
-      {
-        $match: {
-          driver: driverId,
-          status: 'delivered',
-          ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
-        }
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$deliveredAt" },
-            month: { $month: "$deliveredAt" }
-          },
-          earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
-          orders: { $sum: 1 }
-        }
-      },
-      { $sort: { "_id.year": -1, "_id.month": -1 } },
-      { $limit: 12 }
-    ]);
-    res.json({
-      success: true,
-      data: {
-        earnings,
-        monthlyStats,
-        stats,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / parseInt(limit))
-        }
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get earnings history error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب سجل الأرباح"
-    });
-  }
-};
-exports.getPerformanceReport = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const now = new Date();
-    const today = new Date(now.setHours(0, 0, 0, 0));
-    const weekAgo = new Date(now.setDate(now.getDate() - 7));
-    const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
-    const [
-      dailyStats,
-      weeklyStats,
-      monthlyStats,
-      deliveryTimes,
-      ratings
-    ] = await Promise.all([
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            deliveredAt: { $gte: today }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
-            totalDistance: { $sum: "$estimatedDistance" }
-          }
-        }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            deliveredAt: { $gte: weekAgo }
-          }
-        },
-        {
-          $group: {
-            _id: { $dateToString: { format: "%Y-%m-%d", date: "$deliveredAt" } },
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } }
-          }
-        },
-        { $sort: { _id: 1 } }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            deliveredAt: { $gte: monthAgo }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
-            avgOrderValue: { $avg: "$totalPrice" }
-          }
-        }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            deliveryTime: { $exists: true }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            avgDeliveryTime: { $avg: "$deliveryTime" },
-            fastestDelivery: { $min: "$deliveryTime" },
-            slowestDelivery: { $max: "$deliveryTime" },
-            totalDeliveries: { $sum: 1 }
-          }
-        }
-      ]),
-      User.findById(driverId).select('driverInfo.rating driverInfo.totalRatings')
-    ]);
-    const acceptedOrders = await Order.countDocuments({
-      driver: driverId,
-      status: { $in: ['accepted', 'ready', 'picked', 'delivered'] }
-    });
-    const rejectedOrders = await Order.countDocuments({
-      driver: driverId,
-      status: 'cancelled',
-      cancelledBy: driverId
-    });
-    const acceptanceRate = acceptedOrders + rejectedOrders > 0
-      ? (acceptedOrders / (acceptedOrders + rejectedOrders)) * 100
-      : 100;
-    res.json({
-      success: true,
-      data: {
-        period: {
-          today: dailyStats[0] || { orders: 0, earnings: 0, totalDistance: 0 },
-          weekly: {
-            daily: weeklyStats,
-            total: weeklyStats.reduce((sum, day) => sum + day.orders, 0),
-            earnings: weeklyStats.reduce((sum, day) => sum + day.earnings, 0)
-          },
-          monthly: monthlyStats[0] || { orders: 0, earnings: 0, avgOrderValue: 0 }
-        },
-        performance: {
-          acceptanceRate: acceptanceRate.toFixed(1),
-          deliveryTime: deliveryTimes[0] || {
-            avgDeliveryTime: 0,
-            fastestDelivery: 0,
-            slowestDelivery: 0
-          },
-          rating: ratings?.driverInfo?.rating || 0,
-          totalRatings: ratings?.driverInfo?.totalRatings || 0
-        },
-        summary: {
-          totalDeliveries: acceptedOrders,
-          totalEarnings: monthlyStats[0]?.earnings || 0,
-          averagePerDay: weeklyStats.length > 0
-            ? weeklyStats.reduce((sum, day) => sum + day.orders, 0) / weeklyStats.length
-            : 0
-        }
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get performance report error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب تقرير الأداء"
-    });
-  }
-};
-exports.getDrivers = async (req, res) => {
-  try {
-    const paginationOptions = PaginationUtils.getPaginationOptions(req);
-    const { skip, limit, sort, filters } = paginationOptions;
-    let query = { role: 'driver' };
-    if (filters.isAvailable !== undefined) {
-      query['driverInfo.isAvailable'] = filters.isAvailable === 'true';
-    }
-    if (filters.isOnline !== undefined) {
-      query.isOnline = filters.isOnline === 'true';
-    }
-    if (filters.minRating) {
-      query['driverInfo.rating'] = { $gte: Number(filters.minRating) };
-    }
-    const [drivers, total] = await Promise.all([
-      User.find(query)
-        .select('name phone image email driverInfo isOnline lastLogin')
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      User.countDocuments(query)
-    ]);
-    const driversWithStats = await Promise.all(
-      drivers.map(async (driver) => {
-        const todayOrders = await Order.countDocuments({
-          driver: driver._id,
-          status: 'delivered',
-          createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
-        });
-        return {
-          ...driver,
-          todayOrders
-        };
-      })
-    );
-    const response = PaginationUtils.createPaginationResponse(
-      driversWithStats,
-      total,
-      paginationOptions,
-      {
-        available: await User.countDocuments({ role: 'driver', 'driverInfo.isAvailable': true }),
-        online: await User.countDocuments({ role: 'driver', isOnline: true })
-      }
-    );
-    res.json(response);
-  } catch (error) {
-    console.error("❌ Get drivers error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get drivers"
-    });
-  }
-};
-exports.getDriverById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const driver = await User.findById(id)
-      .select('name phone email image driverInfo isOnline lastLogin')
-      .lean();
-    if (!driver || driver.role !== 'driver') {
-      return res.status(404).json({
-        success: false,
-        message: "المندوب غير موجود"
-      });
-    }
-    res.json({
-      success: true,
-      data: driver
-    });
-  } catch (error) {
-    console.error("❌ Get driver by id error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب بيانات المندوب"
-    });
-  }
-};
-exports.getDriverLocation = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const location = await DriverLocation.findOne({ driver: id })
-      .sort({ createdAt: -1 })
-      .lean();
-    if (!location) {
-      return res.status(404).json({
-        success: false,
-        message: "Driver location not found"
-      });
-    }
-    res.json({
-      success: true,
-      data: {
-        driverId: id,
-        location: {
-          latitude: location.location.coordinates[1],
-          longitude: location.location.coordinates[0]
-        },
-        updatedAt: location.createdAt
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get driver location error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get driver location"
-    });
-  }
-};
-exports.getDriverStatsById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const driver = await User.findById(id)
-      .select('name phone email driverInfo')
-      .lean();
-    if (!driver || driver.role !== 'driver') {
-      return res.status(404).json({
-        success: false,
-        message: "Driver not found"
-      });
-    }
-    const [orders, earnings] = await Promise.all([
-      Order.aggregate([
-        { $match: { driver: id, status: 'delivered' } },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
-            count: { $sum: 1 },
-            revenue: { $sum: '$totalPrice' }
-          }
-        },
-        { $sort: { _id: -1 } },
-        { $limit: 6 }
-      ]),
-      Order.aggregate([
-        { $match: { driver: id, status: 'delivered' } },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$totalPrice' },
-            avg: { $avg: '$totalPrice' },
-            min: { $min: '$totalPrice' },
-            max: { $max: '$totalPrice' }
-          }
-        }
-      ])
-    ]);
-    res.json({
-      success: true,
-      data: {
-        driver,
-        monthlyStats: orders,
-        earnings: earnings[0] || { total: 0, avg: 0, min: 0, max: 0 }
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get driver stats error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get driver statistics"
-    });
-  }
-};
-exports.verifyDriver = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const driver = await User.findByIdAndUpdate(
-      id,
-      {
-        isVerified: true,
-        'driverInfo.documents.$[].verified': true
-      },
-      { new: true }
-    ).select('name phone email driverInfo isVerified');
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: "المندوب غير موجود"
-      });
-    }
-    res.json({
-      success: true,
-      message: "تم توثيق المندوب بنجاح",
-      data: {
-        id: driver._id,
-        isVerified: driver.isVerified,
-        driverInfo: driver.driverInfo
-      }
-    });
-  } catch (error) {
-    console.error("❌ Verify driver error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل توثيق المندوب"
-    });
-  }
-};
-exports.toggleDriverStatus = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { isActive } = req.body;
-    const driver = await User.findByIdAndUpdate(
-      id,
-      { isActive },
-      { new: true }
-    ).select('name phone email isActive');
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: "المندوب غير موجود"
-      });
-    }
-    res.json({
-      success: true,
-      message: `تم ${isActive ? 'تفعيل' : 'تعطيل'} المندوب بنجاح`,
-      data: {
-        id: driver._id,
-        isActive: driver.isActive
-      }
-    });
-  } catch (error) {
-    console.error("❌ Toggle driver status error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تغيير حالة المندوب"
     });
   }
 };
 module.exports = exports;
-</file>
-
-<file path="src/middlewares/rateLimit.middleware.js">
-const rateLimit = require('express-rate-limit');
-const redisClient = require('../config/redis');
-const { businessLogger } = require("../utils/logger.util");
-class RateLimiterService {
-  constructor() {
-    this.limiters = new Map();
-    this.redis = null;
-    this.store = null;
-    this.stats = {
-      totalLimited: 0,
-      byPath: {},
-      byType: {},
-      lastReset: new Date(),
-      startTime: new Date()
-    };
-    this.initRedis();
-    businessLogger.info('RateLimiterService initialized');
-  }
-  async initRedis() {
-    try {
-      this.redis = redisClient.getClient();
-      if (this.redis) {
-        const checkConnection = () => {
-          if (redisClient.isConnected && redisClient.isConnected()) {
-            this.initRedisStore();
-            businessLogger.info('Redis connected for rate limiting');
-          } else {
-            setTimeout(checkConnection, 500);
-          }
-        };
-        setTimeout(checkConnection, 500);
-      } else {
-        businessLogger.warn('Redis client not available, using memory store');
-      }
-    } catch (error) {
-      businessLogger.warn('Redis not available for rate limiting', error);
-    }
-  }
-  initRedisStore() {
-    try {
-      const { RedisStore } = require('rate-limit-redis');
-      this.store = new RedisStore({
-        sendCommand: (...args) => this.redis.call(...args),
-        prefix: 'rl:',
-        timeout: 5000
-      });
-      businessLogger.info('RedisStore initialized for rate limiting');
-    } catch (error) {
-      businessLogger.warn('Failed to initialize RedisStore, using memory store', error);
-      this.store = null;
-    }
-  }
-  getStore() {
-    return this.store;
-  }
-  getLimitMessage(type = 'general') {
-    const messages = {
-      auth: {
-        ar: 'محاولات تسجيل دخول كثيرة جداً، الرجاء المحاولة بعد ساعة',
-        en: 'Too many login attempts, please try again after an hour'
-      },
-      api: {
-        ar: 'طلبات كثيرة جداً، الرجاء المحاولة بعد 15 دقيقة',
-        en: 'Too many requests, please try again after 15 minutes'
-      },
-      strict: {
-        ar: 'لقد تجاوزت الحد المسموح من المحاولات لهذا اليوم',
-        en: 'You have exceeded the allowed attempts for today'
-      },
-      upload: {
-        ar: 'رفعت ملفات كثيرة جداً، الرجاء المحاولة بعد 10 دقائق',
-        en: 'Too many file uploads, please try again after 10 minutes'
-      },
-      search: {
-        ar: 'طلبات بحث كثيرة جداً، الرجاء التهدئة قليلاً',
-        en: 'Too many search requests, please slow down'
-      },
-      premium: {
-        ar: 'لقد تجاوزت الحد المسموح للمستخدم المميز',
-        en: 'You have exceeded the premium user limit'
-      },
-      general: {
-        ar: 'محاولات كثيرة جداً، الرجاء المحاولة بعد 15 دقيقة',
-        en: 'Too many attempts, please try again after 15 minutes'
-      }
-    };
-    return messages[type] || messages.general;
-  }
-  defaultKeyGenerator(req) {
-    if (req.user && req.user.id) {
-      return `${req.user.id}:${req.path}`;
-    }
-    const ip = req.ip || req.connection.remoteAddress;
-    return `${ip}:${req.path}`;
-  }
-  authKeyGenerator(req) {
-    if (req.user && req.user.id) {
-      return `user:${req.user.id}`;
-    }
-    const identifier = req.body.email || req.body.phone || req.ip;
-    return `auth:${identifier}`;
-  }
-  defaultSkipChecker(req) {
-    if (req.method === 'OPTIONS') return true;
-    const skipPaths = ['/health', '/', '/api-docs', '/swagger.json', '/swagger.yaml'];
-    if (skipPaths.includes(req.path)) return true;
-    if (req.path.startsWith('/api-docs')) return true;
-    return false;
-  }
-  createHandler(type, windowMs) {
-    return (req, res) => {
-      this.stats.totalLimited++;
-      this.stats.byPath[req.path] = (this.stats.byPath[req.path] || 0) + 1;
-      this.stats.byType[type] = (this.stats.byType[type] || 0) + 1;
-      const retryAfter = Math.ceil(windowMs / 1000);
-      const message = this.getLimitMessage(type);
-      businessLogger.warn('Rate limit exceeded', {
-        ip: req.ip,
-        path: req.path,
-        type,
-        userId: req.user?.id,
-        retryAfter
-      });
-      res.status(429).json({
-        success: false,
-        message: message.ar,
-        messageEn: message.en,
-        code: 'RATE_LIMIT_EXCEEDED',
-        type,
-        retryAfter: `${retryAfter} ثانية`,
-        retryAfterSeconds: retryAfter,
-        timestamp: new Date().toISOString()
-      });
-    };
-  }
-  createLimiter(options = {}) {
-    const {
-      windowMs = 15 * 60 * 1000,
-      max = 100,
-      type = 'general',
-      skipSuccessful = false,
-      keyGenerator = null,
-      skipChecker = null
-    } = options;
-    const message = this.getLimitMessage(type);
-    const handler = this.createHandler(type, windowMs);
-    const store = this.getStore();
-    const limiterOptions = {
-      windowMs,
-      max,
-      message: {
-        success: false,
-        message: message.ar,
-        messageEn: message.en,
-        code: 'RATE_LIMIT_EXCEEDED',
-        type
-      },
-      standardHeaders: true,
-      legacyHeaders: false,
-      skipSuccessfulRequests: skipSuccessful,
-      keyGenerator: keyGenerator || this.defaultKeyGenerator.bind(this),
-      skip: skipChecker || this.defaultSkipChecker.bind(this),
-      handler
-    };
-    if (store) {
-      limiterOptions.store = store;
-    }
-    return rateLimit(limiterOptions);
-  }
-  get authLimiter() {
-    if (!this.limiters.has('auth')) {
-      this.limiters.set('auth', this.createLimiter({
-        windowMs: 60 * 60 * 1000,
-        max: 10,
-        type: 'auth',
-        skipSuccessful: true,
-        keyGenerator: this.authKeyGenerator.bind(this)
-      }));
-    }
-    return this.limiters.get('auth');
-  }
-  get apiLimiter() {
-    if (!this.limiters.has('api')) {
-      this.limiters.set('api', this.createLimiter({
-        windowMs: 15 * 60 * 1000,
-        max: 100,
-        type: 'api'
-      }));
-    }
-    return this.limiters.get('api');
-  }
-  get strictLimiter() {
-    if (!this.limiters.has('strict')) {
-      this.limiters.set('strict', this.createLimiter({
-        windowMs: 24 * 60 * 60 * 1000,
-        max: 3,
-        type: 'strict',
-        skipSuccessful: true
-      }));
-    }
-    return this.limiters.get('strict');
-  }
-  get uploadLimiter() {
-    if (!this.limiters.has('upload')) {
-      this.limiters.set('upload', this.createLimiter({
-        windowMs: 10 * 60 * 1000,
-        max: 20,
-        type: 'upload'
-      }));
-    }
-    return this.limiters.get('upload');
-  }
-  get searchLimiter() {
-    if (!this.limiters.has('search')) {
-      this.limiters.set('search', this.createLimiter({
-        windowMs: 60 * 1000,
-        max: 30,
-        type: 'search'
-      }));
-    }
-    return this.limiters.get('search');
-  }
-  get premiumLimiter() {
-    if (!this.limiters.has('premium')) {
-      this.limiters.set('premium', this.createLimiter({
-        windowMs: 15 * 60 * 1000,
-        max: 500,
-        type: 'premium',
-        keyGenerator: (req) => req.user?.id || req.ip
-      }));
-    }
-    return this.limiters.get('premium');
-  }
-  get uniqueRequestLimiter() {
-    if (!this.limiters.has('unique')) {
-      this.limiters.set('unique', this.createLimiter({
-        windowMs: 60 * 1000,
-        max: 1,
-        type: 'unique',
-        keyGenerator: (req) => `${req.user?.id || req.ip}:${req.path}:${JSON.stringify(req.body)}`
-      }));
-    }
-    return this.limiters.get('unique');
-  }
-  getUserLimiter(userId, max = 200, windowMs = 15 * 60 * 1000) {
-    return this.createLimiter({
-      windowMs,
-      max,
-      type: 'user',
-      keyGenerator: () => `user:${userId}`
-    });
-  }
-  async getStats(req, res) {
-    try {
-      const stats = {
-        totalLimited: this.stats.totalLimited,
-        byPath: this.stats.byPath,
-        byType: this.stats.byType,
-        lastReset: this.stats.lastReset,
-        uptime: Math.floor((Date.now() - this.stats.startTime) / 1000),
-        redis: {
-          available: !!(this.redis && redisClient.isConnected && redisClient.isConnected()),
-          storeType: this.store ? 'redis' : 'memory'
-        }
-      };
-      if (this.redis && redisClient.isConnected && redisClient.isConnected()) {
-        try {
-          const keys = await this.redis.keys('rl:*');
-          const details = [];
-          for (const key of keys.slice(0, 50)) {
-            const ttl = await this.redis.ttl(key);
-            const value = await this.redis.get(key);
-            details.push({
-              key: key.replace('rl:', ''),
-              ttl,
-              ttlHuman: this.formatTTL(ttl),
-              hits: parseInt(value) || 0
-            });
-          }
-          stats.redis.keys = keys.length;
-          stats.redis.activeKeys = details.filter(d => d.ttl > 0).length;
-          stats.redis.details = details;
-        } catch (error) {
-          businessLogger.warn('Error fetching Redis rate limit stats:', error);
-        }
-      }
-      res.json({
-        success: true,
-        data: stats,
-        timestamp: new Date().toISOString()
-      });
-    } catch (error) {
-      businessLogger.error('Error getting rate limit stats:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to get rate limit stats',
-        error: error.message
-      });
-    }
-  }
-  async resetUserLimits(req, res) {
-    const { userId } = req.params;
-    if (!userId) {
-      return res.status(400).json({
-        success: false,
-        message: 'User ID is required'
-      });
-    }
-    if (!this.redis || !redisClient.isConnected || !redisClient.isConnected()) {
-      return res.status(503).json({
-        success: false,
-        message: 'Redis not available for rate limit reset'
-      });
-    }
-    try {
-      const keys = await this.redis.keys(`rl:*:${userId}:*`);
-      if (keys.length > 0) {
-        await this.redis.del(...keys);
-        businessLogger.info(`Reset rate limits for user ${userId}`, {
-          keysCount: keys.length,
-          userId
-        });
-      }
-      res.json({
-        success: true,
-        message: `Reset ${keys.length} rate limits for user ${userId}`,
-        data: {
-          userId,
-          resetKeys: keys.length,
-          timestamp: new Date().toISOString()
-        }
-      });
-    } catch (error) {
-      businessLogger.error('Error resetting user limits:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to reset user limits',
-        error: error.message
-      });
-    }
-  }
-  async clearAll(req, res) {
-    if (!this.redis || !redisClient.isConnected || !redisClient.isConnected()) {
-      return res.status(503).json({
-        success: false,
-        message: 'Redis not available for rate limit clear'
-      });
-    }
-    try {
-      const keys = await this.redis.keys('rl:*');
-      if (keys.length > 0) {
-        await this.redis.del(...keys);
-        businessLogger.info(`Cleared all rate limits`, {
-          keysCount: keys.length
-        });
-      }
-      this.stats.totalLimited = 0;
-      this.stats.byPath = {};
-      this.stats.byType = {};
-      this.stats.lastReset = new Date();
-      res.json({
-        success: true,
-        message: `Cleared ${keys.length} rate limits`,
-        data: {
-          clearedKeys: keys.length,
-          timestamp: new Date().toISOString()
-        }
-      });
-    } catch (error) {
-      businessLogger.error('Error clearing all limits:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Failed to clear all limits',
-        error: error.message
-      });
-    }
-  }
-  formatTTL(seconds) {
-    if (seconds <= 0) return 'منتهي';
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    const parts = [];
-    if (hours > 0) parts.push(`${hours} ساعة`);
-    if (minutes > 0) parts.push(`${minutes} دقيقة`);
-    if (secs > 0 && hours === 0) parts.push(`${secs} ثانية`);
-    return parts.join(' و ') || 'أقل من ثانية';
-  }
-  resetStats() {
-    this.stats = {
-      totalLimited: 0,
-      byPath: {},
-      byType: {},
-      lastReset: new Date(),
-      startTime: this.stats.startTime
-    };
-    businessLogger.info('Rate limit stats reset');
-  }
-  getStatus() {
-    return {
-      redisAvailable: !!(this.redis && redisClient.isConnected && redisClient.isConnected()),
-      storeType: this.store ? 'redis' : 'memory',
-      limitersCount: this.limiters.size,
-      totalLimited: this.stats.totalLimited,
-      uptime: Math.floor((Date.now() - this.stats.startTime) / 1000)
-    };
-  }
-}
-module.exports = new RateLimiterService();
 </file>
 
 <file path="src/models/user.model.js">

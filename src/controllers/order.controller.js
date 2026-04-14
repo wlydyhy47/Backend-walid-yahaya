@@ -1,12 +1,11 @@
 // ============================================
-// ملف: src/controllers/order.controller.js (مصحح)
+// ملف: src/controllers/order.controller.js (مصحح بالكامل)
 // الوصف: التحكم الكامل في عمليات الطلبات
-// الإصدار: 4.0 (مصحح بالكامل)
+// الإصدار: 4.0 (مصحح بالكامل مع دعم Product بدلاً من Item)
 // ============================================
 
 // ========== استيراد النماذج ==========
 const { Order, User, Address, Store, DriverLocation, Review, Notification, StoreAddress } = require('../models');
-
 
 const cache = require("../utils/cache.util");
 const PaginationUtils = require('../utils/pagination.util');
@@ -20,7 +19,6 @@ const { AppError } = require('../middlewares/errorHandler.middleware');
  */
 const assignClosestDriver = async (orderId, pickupCoordinates) => {
   try {
-    // البحث عن سائق متاح بالقرب من موقع الاستلام
     const nearestDriver = await DriverLocation.findOne({
       order: null
     }).where('location').near({
@@ -28,7 +26,7 @@ const assignClosestDriver = async (orderId, pickupCoordinates) => {
         type: 'Point',
         coordinates: pickupCoordinates
       },
-      maxDistance: 5000, // 5 كم
+      maxDistance: 5000,
       spherical: true
     }).populate('driver', 'name phone image rating');
 
@@ -37,13 +35,11 @@ const assignClosestDriver = async (orderId, pickupCoordinates) => {
       return null;
     }
 
-    // تحديث الطلب بالسائق المعين
     await Order.findByIdAndUpdate(orderId, {
       driver: nearestDriver.driver._id,
       status: "accepted",
     });
 
-    // تحديث موقع السائق ليشير إلى هذا الطلب
     await DriverLocation.findByIdAndUpdate(nearestDriver._id, {
       order: orderId
     });
@@ -61,20 +57,14 @@ const assignClosestDriver = async (orderId, pickupCoordinates) => {
  */
 const invalidateOrderCache = async (orderId, userId) => {
   try {
-    // كاش المستخدم
     cache.del(`dashboard:${userId}`);
     cache.del(`user:complete:${userId}`);
     cache.del(`user:stats:${userId}`);
-
-    // كاش الطلب
     cache.del(`order:tracking:${orderId}:${userId}`);
     cache.del(`order:full:${orderId}`);
-
-    // كاش عام
     cache.invalidatePattern('orders:user:*');
     cache.invalidatePattern('orders:admin:*');
     cache.invalidatePattern('dashboard:*');
-
     console.log(`🗑️ Invalidated cache for order ${orderId}`);
   } catch (error) {
     console.error('❌ Cache invalidation error:', error);
@@ -132,7 +122,7 @@ const isValidStatusTransition = (oldStatus, newStatus, userRole) => {
       picked: ['delivered', 'cancelled'],
       ready: ['picked', 'cancelled'],
       delivered: [],
-      cancelled: ['pending'] // يمكن إعادة فتح الطلب الملغي
+      cancelled: ['pending']
     },
     driver: {
       pending: [],
@@ -211,16 +201,11 @@ const createOrderTimeline = (order) => {
  * @route   POST /api/v1/client/orders
  * @access  Client
  */
-/**
- */
-
 exports.createOrder = async (req, res) => {
   try {
     const { items, pickupAddress, deliveryAddress, store, notes, paymentMethod } = req.body;
     const userId = req.user.id;
 
-    // ========== 1. التحقق من البيانات الأساسية ==========
-    
     if (!items || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         success: false,
@@ -242,8 +227,6 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // ========== 2. حساب totalPrice تلقائياً ==========
-    
     let calculatedTotalPrice = 0;
     const validatedItems = [];
 
@@ -257,14 +240,14 @@ exports.createOrder = async (req, res) => {
 
       const qty = Number(item.qty);
       const price = Number(item.price);
-      
+
       if (isNaN(qty) || qty <= 0) {
         return res.status(400).json({
           success: false,
           message: `الكمية غير صالحة للمنتج ${item.name}`
         });
       }
-      
+
       if (isNaN(price) || price < 0) {
         return res.status(400).json({
           success: false,
@@ -273,7 +256,7 @@ exports.createOrder = async (req, res) => {
       }
 
       calculatedTotalPrice += price * qty;
-      
+
       validatedItems.push({
         name: item.name,
         qty: qty,
@@ -293,11 +276,9 @@ exports.createOrder = async (req, res) => {
 
     console.log(`💰 Calculated total price: ${calculatedTotalPrice}`);
 
-    // ========== 3. التحقق من العناوين (معدل) ==========
-    
-    // التحقق من عنوان التوصيل (يخص المستخدم)
+    // التحقق من عنوان التوصيل
     const delivery = await Address.findOne({ _id: deliveryAddress, user: userId });
-    
+
     if (!delivery) {
       return res.status(400).json({
         success: false,
@@ -305,18 +286,14 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // التحقق من عنوان الاستلام (يمكن أن يكون عنوان متجر أو معرف متجر)
+    // التحقق من عنوان الاستلام
     let pickup = null;
-    
-    // محاولة البحث في StoreAddress أولاً
     pickup = await StoreAddress.findOne({ _id: pickupAddress });
-    
-    // إذا لم يوجد، محاولة البحث في Store
+
     if (!pickup) {
       pickup = await Store.findById(pickupAddress).select('name address location');
     }
-    
-    // إذا لم يوجد، استخدام معرف المتجر نفسه
+
     if (!pickup) {
       pickup = { _id: pickupAddress, name: 'عنوان المتجر', addressLine: 'عنوان المتجر' };
     }
@@ -326,8 +303,6 @@ exports.createOrder = async (req, res) => {
       pickupAddress: pickup.addressLine || pickup.name || pickup._id
     });
 
-    // ========== 4. التحقق من المتجر ==========
-    
     const storeInfo = await Store.findById(store);
     if (!storeInfo) {
       return res.status(404).json({
@@ -335,7 +310,7 @@ exports.createOrder = async (req, res) => {
         message: "المتجر غير موجود"
       });
     }
-    
+
     if (!storeInfo.isOpen) {
       return res.status(400).json({
         success: false,
@@ -343,8 +318,6 @@ exports.createOrder = async (req, res) => {
       });
     }
 
-    // ========== 5. إنشاء الطلب ==========
-    
     const order = await Order.create({
       user: userId,
       items: validatedItems,
@@ -360,8 +333,6 @@ exports.createOrder = async (req, res) => {
 
     console.log(`✅ Order created: ${order._id} with total ${calculatedTotalPrice}`);
 
-    // ========== 6. تعيين أقرب سائق (اختياري) ==========
-    
     let assignedDriver = null;
     if (delivery.latitude && delivery.longitude) {
       assignedDriver = await assignClosestDriver(
@@ -370,23 +341,17 @@ exports.createOrder = async (req, res) => {
       );
     }
 
-    // ========== 7. إرسال الإشعارات ==========
-    
     try {
       await notificationService.createOrderNotifications(order);
     } catch (notificationError) {
       console.error('❌ Notification error:', notificationError.message);
     }
 
-    // ========== 8. تحديث إحصائيات المستخدم ==========
-    
     await User.findByIdAndUpdate(userId, {
       $inc: { 'stats.totalOrders': 1 },
       $set: { 'stats.lastOrderDate': new Date() }
     });
 
-    // ========== 9. جلب الطلب مع البيانات المرتبطة ==========
-    
     const populatedOrder = await Order.findById(order._id)
       .populate("user", "name phone image")
       .populate("driver", "name phone image rating")
@@ -395,12 +360,8 @@ exports.createOrder = async (req, res) => {
       .populate("deliveryAddress")
       .lean();
 
-    // ========== 10. إبطال الكاش ==========
-    
     await invalidateOrderCache(order._id, userId);
 
-    // ========== 11. إرسال الرد ==========
-    
     res.status(201).json({
       success: true,
       message: "تم إنشاء الطلب بنجاح",
@@ -419,7 +380,7 @@ exports.createOrder = async (req, res) => {
       },
       timestamp: new Date()
     });
-    
+
   } catch (error) {
     console.error('❌ Create order error:', error.message);
     console.error('Stack:', error.stack);
@@ -453,7 +414,7 @@ exports.getOrderDetails = async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    const cacheKey = `order:full:${id}`;
+    const cacheKey = `order:full:${id}:${userId}`;
     const cachedData = cache.get(cacheKey);
 
     if (cachedData && cachedData.userId === userId) {
@@ -464,13 +425,19 @@ exports.getOrderDetails = async (req, res) => {
       });
     }
 
+    // ✅ استخدام Product بدلاً من Item
     const order = await Order.findById(id)
       .populate('user', 'name phone email image')
       .populate('driver', 'name phone email image rating totalDeliveries')
-      .populate('store', 'name image phone addressLine')
+      .populate('store', 'name image phone addressLine deliveryInfo')
       .populate('pickupAddress')
       .populate('deliveryAddress')
-      .populate('items.item')
+      .populate({
+        path: 'items.item',
+        model: 'Product',
+        select: 'name price image description category isAvailable',
+        options: { strictPopulate: false }
+      })
       .lean();
 
     if (!order) {
@@ -480,7 +447,6 @@ exports.getOrderDetails = async (req, res) => {
       });
     }
 
-    // التحقق من الصلاحيات
     const isOwner = order.user && order.user._id.toString() === userId;
     const isDriver = order.driver && order.driver._id.toString() === userId;
     const isAdmin = userRole === 'admin';
@@ -492,18 +458,46 @@ exports.getOrderDetails = async (req, res) => {
       });
     }
 
-    // جلب موقع المندوب إذا كان موجود
+    // معالجة items
+    const processedItems = (order.items || []).map(item => ({
+      id: item._id,
+      name: item.name,
+      quantity: item.qty,
+      price: item.price,
+      totalPrice: (item.price || 0) * (item.qty || 0),
+      notes: item.notes || '',
+      category: item.category || '',
+      options: item.options || [],
+      product: item.item ? {
+        id: item.item._id,
+        name: item.item.name,
+        price: item.item.price,
+        image: item.item.image,
+        description: item.item.description
+      } : null
+    }));
+
     let driverLocation = null;
     let locationHistory = [];
 
     if (order.driver && ['accepted', 'ready', 'picked'].includes(order.status)) {
-      [driverLocation, locationHistory] = await Promise.all([
-        DriverLocation.findOne({
+      try {
+        const locationData = await DriverLocation.findOne({
           driver: order.driver._id,
           order: order._id
-        }).lean(),
+        }).lean();
+        
+        if (locationData && locationData.location && locationData.location.coordinates) {
+          driverLocation = {
+            latitude: locationData.location.coordinates[1],
+            longitude: locationData.location.coordinates[0],
+            updatedAt: locationData.createdAt,
+            accuracy: locationData.accuracy,
+            speed: locationData.speed
+          };
+        }
 
-        DriverLocation.find({
+        const history = await DriverLocation.find({
           driver: order.driver._id,
           order: order._id,
           createdAt: { $gte: new Date(Date.now() - 30 * 60 * 1000) }
@@ -511,49 +505,79 @@ exports.getOrderDetails = async (req, res) => {
           .select('location createdAt')
           .sort({ createdAt: 1 })
           .limit(20)
-          .lean()
-      ]);
+          .lean();
+
+        locationHistory = history
+          .filter(h => h.location && h.location.coordinates)
+          .map(loc => ({
+            latitude: loc.location.coordinates[1],
+            longitude: loc.location.coordinates[0],
+            timestamp: loc.createdAt
+          }));
+      } catch (locError) {
+        console.log('⚠️ Error fetching driver location:', locError.message);
+      }
     }
 
-    // إنشاء timeline
     const timeline = createOrderTimeline(order);
+    const totalItems = (order.items || []).reduce((sum, item) => sum + (item.qty || 0), 0);
 
     const responseData = {
       success: true,
       data: {
-        order,
-        tracking: {
-          currentLocation: driverLocation ? {
-            latitude: driverLocation.location.coordinates[1],
-            longitude: driverLocation.location.coordinates[0]
-          } : null,
-          locationHistory: locationHistory.map(loc => ({
-            latitude: loc.location.coordinates[1],
-            longitude: loc.location.coordinates[0],
-            timestamp: loc.createdAt
-          })),
-          lastUpdated: driverLocation?.createdAt || null,
-          estimatedDelivery: calculateETA(order)
+        order: {
+          ...order,
+          items: processedItems,
+          totalItems: totalItems,
+          statusText: getStatusText(order.status),
+          formattedTotal: `${order.totalPrice || 0} د.ع`,
+          createdAtFormatted: order.createdAt ? new Date(order.createdAt).toLocaleString('ar-SA') : null,
+          deliveredAtFormatted: order.deliveredAt ? new Date(order.deliveredAt).toLocaleString('ar-SA') : null
         },
-        timeline,
+        tracking: {
+          currentLocation: driverLocation,
+          locationHistory: locationHistory,
+          lastUpdated: driverLocation?.updatedAt || null,
+          estimatedDelivery: calculateETA(order),
+          hasLocation: !!driverLocation
+        },
+        timeline: timeline,
         permissions: {
           canCancel: ['pending', 'accepted'].includes(order.status) && (isOwner || isAdmin),
           canUpdateStatus: (isDriver && ['accepted', 'ready', 'picked'].includes(order.status)) || isAdmin,
           canContactDriver: !!order.driver && ['accepted', 'ready', 'picked'].includes(order.status),
-          canReassign: isAdmin
-        }
+          canReassign: isAdmin,
+          canRate: order.status === 'delivered' && isOwner
+        },
+        store: order.store ? {
+          id: order.store._id,
+          name: order.store.name,
+          phone: order.store.phone,
+          address: order.store.addressLine,
+          image: order.store.image
+        } : null,
+        driver: order.driver ? {
+          id: order.driver._id,
+          name: order.driver.name,
+          phone: order.driver.phone,
+          image: order.driver.image,
+          rating: order.driver.rating
+        } : null
       },
       userId,
-      timestamp: new Date()
+      timestamp: new Date().toISOString()
     };
 
-    cache.set(cacheKey, responseData, 30); // 30 ثانية فقط
+    cache.set(cacheKey, responseData, 30);
     res.json(responseData);
   } catch (error) {
-    console.error('❌ Get order error:', error);
+    console.error('❌ Get order details error:', error);
+    console.error('Stack:', error.stack);
+    
     res.status(500).json({
       success: false,
-      message: 'فشل جلب بيانات الطلب'
+      message: 'فشل جلب بيانات الطلب',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -607,11 +631,9 @@ exports.getMyOrdersPaginated = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-
       Order.countDocuments(query)
     ]);
 
-    // إضافة معلومات إضافية لكل طلب
     const ordersWithDetails = orders.map(order => ({
       ...order,
       statusText: getStatusText(order.status),
@@ -619,7 +641,6 @@ exports.getMyOrdersPaginated = async (req, res) => {
       itemCount: order.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0
     }));
 
-    // إحصائيات الطلبات
     const orderStats = await Order.aggregate([
       { $match: { user: userId } },
       {
@@ -655,8 +676,7 @@ exports.getMyOrdersPaginated = async (req, res) => {
       }
     );
 
-    cache.set(cacheKey, response, 60); // دقيقة واحدة
-
+    cache.set(cacheKey, response, 60);
     res.json(response);
   } catch (error) {
     console.error('❌ Get my orders error:', error.message);
@@ -708,11 +728,9 @@ exports.getDriverOrders = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-
       Order.countDocuments(query)
     ]);
 
-    // إحصائيات المندوب
     const driverStats = await Order.aggregate([
       { $match: { driver: driverId } },
       {
@@ -829,7 +847,6 @@ exports.getAllOrdersPaginated = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-
       Order.countDocuments(query)
     ]);
 
@@ -847,8 +864,6 @@ exports.getAllOrdersPaginated = async (req, res) => {
 
     const totalRevenue = stats.reduce((sum, stat) => sum + stat.totalRevenue, 0);
     const totalOrders = stats.reduce((sum, stat) => sum + stat.count, 0);
-
-    // إيرادات اليوم
     const todayRevenue = await exports.getTodayRevenue(query);
 
     const response = PaginationUtils.createPaginationResponse(
@@ -874,8 +889,7 @@ exports.getAllOrdersPaginated = async (req, res) => {
       }
     );
 
-    cache.set(cacheKey, response, 30); // 30 ثانية
-
+    cache.set(cacheKey, response, 30);
     res.json(response);
   } catch (error) {
     console.error('❌ Get all orders error:', error.message);
@@ -896,9 +910,8 @@ exports.getAllOrdersPaginated = async (req, res) => {
 exports.acceptOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    // ✅ إزالة سطر estimatedTime من req.body
     const userId = req.user.id;
-    
+
     const user = await User.findById(userId).select('storeOwnerInfo');
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
@@ -906,27 +919,25 @@ exports.acceptOrder = async (req, res) => {
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    
+
     const storeId = user.storeOwnerInfo.store;
     const order = await Order.findOne({
       _id: id,
       store: storeId,
       status: "pending"
     }).populate('user', 'name phone');
-    
+
     if (!order) {
       return res.status(404).json({
         success: false,
         message: "الطلب غير موجود أو تم التعامل معه مسبقاً"
       });
     }
-    
+
     order.status = "accepted";
-    // ✅ تعيين الوقت المتوقع إلى 60 دقيقة (ساعة واحدة)
     order.estimatedPreparationTime = 60;
     await order.save();
-    
-    // ✅ تحديث الإشعارات لتظهر 60 دقيقة
+
     await notificationService.sendNotification({
       user: order.user._id,
       type: "order_accepted",
@@ -937,16 +948,16 @@ exports.acceptOrder = async (req, res) => {
       link: `/orders/${order._id}`,
       icon: "✅"
     });
-    
+
     await invalidateOrderCache(order._id, order.user._id);
-    
+
     res.json({
       success: true,
       message: "تم قبول الطلب بنجاح",
       data: {
         orderId: order._id,
         status: order.status,
-        estimatedTime: 60  // ✅ إرسال 60 دقيقة في الرد
+        estimatedTime: 60
       }
     });
   } catch (error) {
@@ -957,6 +968,7 @@ exports.acceptOrder = async (req, res) => {
     });
   }
 };
+
 /**
  * @desc    رفض الطلب (لصاحب المتجر)
  * @route   PUT /api/v1/vendor/orders/:id/reject
@@ -968,9 +980,8 @@ exports.rejectOrder = async (req, res) => {
     const { reason } = req.body;
     const userId = req.user.id;
 
-    // جلب المستخدم للتحقق من المتجر
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -1006,7 +1017,6 @@ exports.rejectOrder = async (req, res) => {
     order.cancelledAt = new Date();
     await order.save();
 
-    // إرسال إشعار للعميل
     await notificationService.sendNotification({
       user: order.user._id,
       type: "order_cancelled",
@@ -1018,7 +1028,6 @@ exports.rejectOrder = async (req, res) => {
       icon: "❌"
     });
 
-    // إبطال الكاش
     await invalidateOrderCache(order._id, order.user._id);
 
     res.json({
@@ -1048,9 +1057,8 @@ exports.markOrderReady = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    // جلب المستخدم للتحقق من المتجر
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -1076,7 +1084,6 @@ exports.markOrderReady = async (req, res) => {
     order.status = "ready";
     await order.save();
 
-    // إرسال إشعار للمندوب إذا كان موجود
     if (order.driver) {
       await notificationService.sendNotification({
         user: order.driver._id,
@@ -1090,7 +1097,6 @@ exports.markOrderReady = async (req, res) => {
       });
     }
 
-    // إرسال إشعار للعميل
     await notificationService.sendNotification({
       user: order.user._id,
       type: "order_ready",
@@ -1102,7 +1108,6 @@ exports.markOrderReady = async (req, res) => {
       icon: "🍽️"
     });
 
-    // إبطال الكاش
     await invalidateOrderCache(order._id, order.user._id);
 
     res.json({
@@ -1131,9 +1136,8 @@ exports.getVendorOrders = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // جلب المستخدم للتحقق من المتجر
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -1166,11 +1170,9 @@ exports.getVendorOrders = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-
       Order.countDocuments(query)
     ]);
 
-    // إحصائيات سريعة
     const stats = {
       pending: await Order.countDocuments({ store: storeId, status: 'pending' }),
       accepted: await Order.countDocuments({ store: storeId, status: 'accepted' }),
@@ -1204,9 +1206,8 @@ exports.getVendorOrderStats = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // جلب المستخدم للتحقق من المتجر
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -1223,7 +1224,6 @@ exports.getVendorOrderStats = async (req, res) => {
     weekAgo.setDate(weekAgo.getDate() - 7);
 
     const [todayStats, weekStats, totalStats, byStatus] = await Promise.all([
-      // إحصائيات اليوم
       Order.aggregate([
         { $match: { store: storeId, createdAt: { $gte: today } } },
         {
@@ -1234,8 +1234,6 @@ exports.getVendorOrderStats = async (req, res) => {
           }
         }
       ]),
-
-      // إحصائيات الأسبوع
       Order.aggregate([
         { $match: { store: storeId, createdAt: { $gte: weekAgo } } },
         {
@@ -1247,8 +1245,6 @@ exports.getVendorOrderStats = async (req, res) => {
         },
         { $sort: { _id: 1 } }
       ]),
-
-      // الإحصائيات الكلية
       Order.aggregate([
         { $match: { store: storeId } },
         {
@@ -1260,8 +1256,6 @@ exports.getVendorOrderStats = async (req, res) => {
           }
         }
       ]),
-
-      // الطلبات حسب الحالة
       Order.aggregate([
         { $match: { store: storeId } },
         { $group: { _id: '$status', count: { $sum: 1 } } }
@@ -1299,9 +1293,8 @@ exports.startPreparing = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    // جلب المستخدم للتحقق من المتجر
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -1324,12 +1317,10 @@ exports.startPreparing = async (req, res) => {
       });
     }
 
-    // إذا كان هناك وقت تقديري محدد
     const estimatedTime = req.body.estimatedTime || order.estimatedPreparationTime || 15;
     order.estimatedPreparationTime = estimatedTime;
     await order.save();
 
-    // إرسال إشعار للعميل
     await notificationService.sendNotification({
       user: order.user._id,
       type: "order_preparing",
@@ -1368,9 +1359,8 @@ exports.getTodayOrders = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    // جلب المستخدم للتحقق من المتجر
     const user = await User.findById(userId).select('storeOwnerInfo');
-    
+
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
@@ -1436,7 +1426,6 @@ exports.updateStatus = async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    // التحقق من الحالة
     const validStatuses = ["pending", "accepted", "ready", "picked", "delivered", "cancelled"];
     if (!validStatuses.includes(status)) {
       return res.status(400).json({
@@ -1445,7 +1434,6 @@ exports.updateStatus = async (req, res) => {
       });
     }
 
-    // جلب الطلب القديم
     const oldOrder = await Order.findById(id)
       .populate('user', 'id name phone')
       .populate('driver', 'id name')
@@ -1458,7 +1446,6 @@ exports.updateStatus = async (req, res) => {
       });
     }
 
-    // التحقق من الصلاحية
     const isDriver = userRole === 'driver' && oldOrder.driver?._id.toString() === userId;
     const isAdmin = userRole === 'admin';
 
@@ -1469,7 +1456,6 @@ exports.updateStatus = async (req, res) => {
       });
     }
 
-    // التحقق من تسلسل الحالات
     if (!isValidStatusTransition(oldOrder.status, status, userRole)) {
       return res.status(400).json({
         success: false,
@@ -1477,14 +1463,13 @@ exports.updateStatus = async (req, res) => {
       });
     }
 
-    // تحديث حالة الطلب
     const order = await Order.findByIdAndUpdate(
       id,
       {
         status,
         ...(status === 'delivered' ? { deliveredAt: new Date() } : {})
       },
-      { new: true }
+      { returnDocument: 'after' }
     )
       .populate('user', 'name phone')
       .populate('driver', 'name phone')
@@ -1492,7 +1477,6 @@ exports.updateStatus = async (req, res) => {
       .populate('pickupAddress')
       .populate('deliveryAddress');
 
-    // تحديث إحصائيات السائق إذا تم التوصيل
     if (status === 'delivered' && order.driver) {
       await User.findByIdAndUpdate(order.driver._id, {
         $inc: {
@@ -1502,7 +1486,6 @@ exports.updateStatus = async (req, res) => {
       });
     }
 
-    // إرسال إشعارات تحديث الحالة
     try {
       await notificationService.updateOrderStatusNotifications(
         order,
@@ -1513,7 +1496,6 @@ exports.updateStatus = async (req, res) => {
       console.error('❌ Notification error:', notificationError.message);
     }
 
-    // إبطال الكاش
     await invalidateOrderCache(order._id, order.user._id);
 
     res.json({
@@ -1552,7 +1534,6 @@ exports.cancelOrder = async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    // جلب الطلب
     const order = await Order.findOne({ _id: id })
       .populate('user', 'id name phone')
       .populate('driver', 'id name');
@@ -1564,7 +1545,6 @@ exports.cancelOrder = async (req, res) => {
       });
     }
 
-    // التحقق من الصلاحية
     const isOwner = order.user._id.toString() === userId;
     const isAdmin = userRole === 'admin';
 
@@ -1575,7 +1555,6 @@ exports.cancelOrder = async (req, res) => {
       });
     }
 
-    // التحقق من إمكانية الإلغاء
     if (!['pending', 'accepted'].includes(order.status)) {
       return res.status(400).json({
         success: false,
@@ -1583,7 +1562,6 @@ exports.cancelOrder = async (req, res) => {
       });
     }
 
-    // التحقق من سبب الإلغاء
     if (!reason || reason.trim().length < 5) {
       return res.status(400).json({
         success: false,
@@ -1591,14 +1569,12 @@ exports.cancelOrder = async (req, res) => {
       });
     }
 
-    // تحديث حالة الطلب
     order.status = 'cancelled';
     order.cancellationReason = reason.trim();
     order.cancelledAt = new Date();
     order.cancelledBy = userId;
     await order.save();
 
-    // إذا كان هناك سائق معين، تحريره
     if (order.driver) {
       await DriverLocation.findOneAndUpdate(
         { driver: order.driver._id, order: id },
@@ -1606,7 +1582,6 @@ exports.cancelOrder = async (req, res) => {
       );
     }
 
-    // إرسال إشعارات الإلغاء
     try {
       await notificationService.updateOrderStatusNotifications(
         order,
@@ -1617,12 +1592,10 @@ exports.cancelOrder = async (req, res) => {
       console.error('❌ Notification error:', notificationError.message);
     }
 
-    // تحديث إحصائيات المستخدم
     await User.findByIdAndUpdate(userId, {
       $inc: { 'stats.cancelledOrders': 1 }
     });
 
-    // إبطال الكاش
     await invalidateOrderCache(order._id, userId);
 
     res.json({
@@ -1671,7 +1644,6 @@ exports.assignDriver = async (req, res) => {
       });
     }
 
-    // التحقق من وجود الطلب
     const oldOrder = await Order.findById(id)
       .populate('user', 'id name')
       .populate('store', 'name');
@@ -1683,7 +1655,6 @@ exports.assignDriver = async (req, res) => {
       });
     }
 
-    // التحقق من وجود المندوب
     const driver = await User.findOne({
       _id: driverId,
       role: 'driver',
@@ -1697,7 +1668,6 @@ exports.assignDriver = async (req, res) => {
       });
     }
 
-    // تحرير السائق القديم إذا وجد
     if (oldOrder.driver) {
       await DriverLocation.findOneAndUpdate(
         { driver: oldOrder.driver, order: id },
@@ -1705,7 +1675,6 @@ exports.assignDriver = async (req, res) => {
       );
     }
 
-    // تحديث الطلب
     const order = await Order.findByIdAndUpdate(
       id,
       {
@@ -1720,7 +1689,6 @@ exports.assignDriver = async (req, res) => {
       .populate("pickupAddress")
       .populate("deliveryAddress");
 
-    // تحديث موقع السائق
     await DriverLocation.findOneAndUpdate(
       { driver: driverId },
       {
@@ -1734,7 +1702,6 @@ exports.assignDriver = async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // إرسال إشعارات
     try {
       await notificationService.sendNotification({
         user: order.user._id,
@@ -1761,7 +1728,6 @@ exports.assignDriver = async (req, res) => {
       console.error('❌ Notification error:', notificationError.message);
     }
 
-    // إبطال الكاش
     await invalidateOrderCache(order._id, order.user._id);
 
     res.json({
@@ -1814,7 +1780,6 @@ exports.reassignDriver = async (req, res) => {
       });
     }
 
-    // تحرير السائق القديم
     if (order.driver) {
       await DriverLocation.findOneAndUpdate(
         { driver: order.driver, order: orderId },
@@ -1822,12 +1787,10 @@ exports.reassignDriver = async (req, res) => {
       );
     }
 
-    // إعادة تعيين السائق
     order.driver = null;
     order.status = "pending";
     await order.save();
 
-    // محاولة تعيين سائق جديد
     let newDriver = null;
     if (order.pickupAddress && order.pickupAddress.latitude && order.pickupAddress.longitude) {
       newDriver = await assignClosestDriver(order._id, [
@@ -1836,7 +1799,6 @@ exports.reassignDriver = async (req, res) => {
       ]);
     }
 
-    // إبطال الكاش
     await invalidateOrderCache(order._id, order.user._id);
 
     res.json({
@@ -1889,7 +1851,6 @@ exports.trackOrder = async (req, res) => {
       });
     }
 
-    // التحقق من الصلاحيات
     const isOwner = order.user.toString() === userId;
     const isDriver = order.driver && order.driver._id.toString() === userId;
     const isAdmin = userRole === 'admin';
@@ -1901,7 +1862,6 @@ exports.trackOrder = async (req, res) => {
       });
     }
 
-    // جلب موقع المندوب إذا كان موجود
     let driverLocation = null;
     if (order.driver && ['accepted', 'ready', 'picked'].includes(order.status)) {
       const location = await DriverLocation.findOne({
@@ -1918,10 +1878,8 @@ exports.trackOrder = async (req, res) => {
       }
     }
 
-    // حساب وقت التوصيل المتبقي
     const estimatedRemaining = calculateETA(order);
 
-    // إنشاء نقاط المسار
     const trackingPoints = [
       {
         status: 'order_placed',
@@ -1974,7 +1932,6 @@ exports.trackOrder = async (req, res) => {
       }
     ];
 
-    // معلومات المندوب للتتبع
     let driverInfo = null;
     if (order.driver) {
       driverInfo = {
@@ -2039,7 +1996,6 @@ exports.updateDriverLocation = async (req, res) => {
       });
     }
 
-    // التحقق من أن الطلب معين لهذا المندوب
     const order = await Order.findOne({
       _id: id,
       driver: req.user.id
@@ -2052,7 +2008,6 @@ exports.updateDriverLocation = async (req, res) => {
       });
     }
 
-    // التحقق من الإحداثيات
     if (!latitude || !longitude || isNaN(latitude) || isNaN(longitude)) {
       return res.status(400).json({
         success: false,
@@ -2060,7 +2015,6 @@ exports.updateDriverLocation = async (req, res) => {
       });
     }
 
-    // تحديث أو إنشاء موقع السائق
     const driverLocation = await DriverLocation.findOneAndUpdate(
       { driver: req.user.id, order: id },
       {
@@ -2075,7 +2029,6 @@ exports.updateDriverLocation = async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // إرسال تحديث عبر Socket.io
     const io = req.app.get('io');
     if (io) {
       io.to(`order:${id}`).emit('driver:location:updated', {
@@ -2086,7 +2039,6 @@ exports.updateDriverLocation = async (req, res) => {
       });
     }
 
-    // إبطال الكاش
     cache.del(`order:full:${id}`);
     cache.del(`order:tracking:${id}:${order.user}`);
 
@@ -2118,7 +2070,6 @@ exports.getDriverLocation = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    // التحقق من أن الطلب يخص المستخدم
     const order = await Order.findOne({
       _id: id,
       user: userId
@@ -2138,7 +2089,6 @@ exports.getDriverLocation = async (req, res) => {
       });
     }
 
-    // الحصول على موقع السائق
     const driverLocation = await DriverLocation.findOne({
       driver: order.driver,
       order: id
@@ -2151,7 +2101,6 @@ exports.getDriverLocation = async (req, res) => {
       });
     }
 
-    // الحصول على معلومات السائق
     const driverInfo = await User.findById(order.driver).select('name phone image rating');
 
     res.json({
@@ -2197,7 +2146,6 @@ exports.getOrderTimeline = async (req, res) => {
       });
     }
 
-    // التحقق من الصلاحيات
     const isOwner = order.user.toString() === userId;
     const isDriver = order.driver && order.driver._id.toString() === userId;
     const isAdmin = req.user.role === 'admin';
@@ -2327,7 +2275,12 @@ exports.getCurrentDelivery = async (req, res) => {
       .populate('store', 'name image phone addressLine')
       .populate('pickupAddress')
       .populate('deliveryAddress')
-      .populate('items.item')
+      .populate({
+        path: 'items.item',
+        model: 'Product',
+        select: 'name price image description',
+        options: { strictPopulate: false }
+      })
       .lean();
 
     if (!currentOrder) {
@@ -2338,30 +2291,63 @@ exports.getCurrentDelivery = async (req, res) => {
       });
     }
 
-    // جلب آخر موقع
-    const driverLocation = await DriverLocation.findOne({
-      driver: driverId,
-      order: currentOrder._id
-    }).lean();
+    // معالجة items
+    const processedItems = (currentOrder.items || []).map(item => ({
+      ...item,
+      productDetails: item.item || null,
+      item: undefined
+    }));
+
+    let driverLocation = null;
+    try {
+      const location = await DriverLocation.findOne({
+        driver: driverId,
+        order: currentOrder._id
+      }).lean();
+
+      if (location && location.location && location.location.coordinates) {
+        driverLocation = {
+          latitude: location.location.coordinates[1],
+          longitude: location.location.coordinates[0],
+          updatedAt: location.createdAt,
+          accuracy: location.accuracy,
+          speed: location.speed,
+          heading: location.heading
+        };
+      }
+    } catch (locError) {
+      console.log('⚠️ Could not fetch driver location:', locError.message);
+    }
+
+    const cleanOrder = {
+      ...currentOrder,
+      items: processedItems,
+      __v: undefined
+    };
 
     res.json({
       success: true,
       data: {
-        order: currentOrder,
-        driverLocation: driverLocation ? {
-          latitude: driverLocation.location.coordinates[1],
-          longitude: driverLocation.location.coordinates[0],
-          updatedAt: driverLocation.createdAt
-        } : null,
+        order: cleanOrder,
+        driverLocation: driverLocation,
         estimatedDelivery: calculateETA(currentOrder),
-        timeline: createOrderTimeline(currentOrder)
+        timeline: createOrderTimeline(currentOrder),
+        metadata: {
+          hasDriverLocation: !!driverLocation,
+          itemCount: currentOrder.items?.length || 0,
+          statusText: getStatusText(currentOrder.status)
+        }
       }
     });
   } catch (error) {
     console.error("❌ Get current delivery error:", error.message);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب التوصيلة الحالية"
+    console.error("Stack:", error.stack);
+
+    res.status(200).json({
+      success: true,
+      data: null,
+      message: "لا يوجد توصيلة حالية",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -2491,8 +2477,7 @@ exports.getOrderStats = async (req, res) => {
       timestamp: new Date()
     };
 
-    cache.set(cacheKey, response, 300); // 5 دقائق
-
+    cache.set(cacheKey, response, 300);
     res.json(response);
   } catch (error) {
     console.error('❌ Get order stats error:', error.message);
@@ -2700,7 +2685,6 @@ exports.forceCancelOrder = async (req, res) => {
     order.cancelledBy = req.user.id;
     await order.save();
 
-    // إرسال إشعار للعميل
     if (order.user) {
       await notificationService.sendNotification({
         user: order.user._id,
@@ -2714,7 +2698,6 @@ exports.forceCancelOrder = async (req, res) => {
       });
     }
 
-    // إرسال إشعار للمندوب إذا كان موجود
     if (order.driver) {
       await notificationService.sendNotification({
         user: order.driver._id,
@@ -2728,7 +2711,6 @@ exports.forceCancelOrder = async (req, res) => {
       });
     }
 
-    // تحرير المندوب من الطلب
     if (order.driver) {
       await DriverLocation.findOneAndUpdate(
         { driver: order.driver._id, order: id },
@@ -2736,7 +2718,6 @@ exports.forceCancelOrder = async (req, res) => {
       );
     }
 
-    // إبطال الكاش
     await invalidateOrderCache(order._id, order.user?._id);
 
     res.json({
@@ -2791,11 +2772,9 @@ exports.getDriverOrdersById = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-
       Order.countDocuments(query)
     ]);
 
-    // إحصائيات المندوب
     const driverStats = await Order.aggregate([
       { $match: { driver: driverId } },
       {
@@ -2862,11 +2841,9 @@ exports.getStoreOrdersById = async (req, res) => {
         .skip(skip)
         .limit(limit)
         .lean(),
-
       Order.countDocuments(query)
     ]);
 
-    // إحصائيات المتجر
     const storeStats = await Order.aggregate([
       { $match: { store: storeId } },
       {
@@ -2940,7 +2917,6 @@ exports.rateOrder = async (req, res) => {
       });
     }
 
-    // التحقق من عدم وجود تقييم سابق
     const existingReview = await Review.findOne({
       user: req.user.id,
       order: id
@@ -2953,7 +2929,6 @@ exports.rateOrder = async (req, res) => {
       });
     }
 
-    // إنشاء تقييم للطلب
     const review = await Review.create({
       user: req.user.id,
       store: order.store._id,
@@ -2962,7 +2937,6 @@ exports.rateOrder = async (req, res) => {
       comment: comment?.trim()
     });
 
-    // تحديث متوسط تقييم المتجر
     if (order.store) {
       const storeStats = await Review.aggregate([
         { $match: { store: order.store._id } },
@@ -2981,7 +2955,6 @@ exports.rateOrder = async (req, res) => {
       });
     }
 
-    // تقييم المندوب إذا طلب
     if (rateDriver && order.driver) {
       const driverRating = typeof rateDriver === 'number' ? rateDriver : rating;
 
@@ -2991,7 +2964,6 @@ exports.rateOrder = async (req, res) => {
       });
     }
 
-    // إرسال إشعار للمتجر
     await notificationService.sendNotification({
       user: order.store.owner || order.store.createdBy,
       type: "new_review",
@@ -3003,7 +2975,6 @@ exports.rateOrder = async (req, res) => {
       icon: "⭐"
     });
 
-    // إبطال الكاش
     await invalidateOrderCache(order._id, req.user.id);
     cache.del(`store:complete:${order.store._id}`);
 
@@ -3054,7 +3025,6 @@ exports.reportOrderIssue = async (req, res) => {
       });
     }
 
-    // إنشاء تذكرة دعم
     const supportTicket = {
       orderId: order._id,
       userId: req.user.id,
@@ -3064,7 +3034,6 @@ exports.reportOrderIssue = async (req, res) => {
       createdAt: new Date()
     };
 
-    // إرسال إشعار للمشرفين
     const admins = await User.find({ role: 'admin' }).select('_id');
 
     for (const admin of admins) {
@@ -3085,7 +3054,6 @@ exports.reportOrderIssue = async (req, res) => {
       });
     }
 
-    // إضافة ملاحظة للطلب
     order.notes = order.notes
       ? `${order.notes}\n[مشكلة] ${issue}: ${description}`
       : `[مشكلة] ${issue}: ${description}`;
@@ -3121,27 +3089,24 @@ exports.startDelivery = async (req, res) => {
   try {
     const { id } = req.params;
     const driverId = req.user.id;
-    
-    // التحقق من وجود الطلب وحالته
+
     const order = await Order.findOne({
       _id: id,
       driver: driverId,
       status: 'accepted'
     }).populate('user', 'name phone');
-    
+
     if (!order) {
       return res.status(404).json({
         success: false,
         message: 'الطلب غير موجود أو ليس في حالة قبول'
       });
     }
-    
-    // تحديث الحالة
+
     order.status = 'picked';
     order.pickedAt = new Date();
     await order.save();
-    
-    // إرسال إشعار للعميل عبر Socket.io
+
     const io = req.app.get('io');
     if (io) {
       io.to(`order:${order._id}`).emit('order:status:updated', {
@@ -3150,8 +3115,7 @@ exports.startDelivery = async (req, res) => {
         timestamp: new Date()
       });
     }
-    
-    // إرسال إشعار عبر Notification Service
+
     await notificationService.sendNotification({
       user: order.user._id,
       type: 'order_picked',
@@ -3162,10 +3126,9 @@ exports.startDelivery = async (req, res) => {
       link: `/orders/${order._id}`,
       icon: '🚚'
     });
-    
-    // إبطال الكاش
+
     await invalidateOrderCache(order._id, order.user._id);
-    
+
     res.json({
       success: true,
       message: 'تم بدء التوصيل بنجاح',
@@ -3194,45 +3157,39 @@ exports.completeOrder = async (req, res) => {
     const { id } = req.params;
     const driverId = req.user.id;
     const { signature, deliveryPhoto } = req.body;
-    
-    // التحقق من وجود الطلب وحالته
+
     const order = await Order.findOne({
       _id: id,
       driver: driverId,
       status: 'picked'
     }).populate('user', 'name phone');
-    
+
     if (!order) {
       return res.status(404).json({
         success: false,
         message: 'الطلب غير موجود أو ليس في حالة توصيل'
       });
     }
-    
-    // تحديث الحالة
+
     order.status = 'delivered';
     order.deliveredAt = new Date();
-    
-    // حساب وقت التوصيل الفعلي
+
     if (order.createdAt) {
       order.deliveryTime = Math.round((order.deliveredAt - order.createdAt) / 60000);
     }
-    
-    // إضافة التوقيع أو الصورة إذا وجدت
+
     if (signature) order.signature = signature;
     if (deliveryPhoto) order.deliveryPhoto = deliveryPhoto;
-    
+
     await order.save();
-    
-    // تحديث إحصائيات المندوب
+
     await User.findByIdAndUpdate(driverId, {
       $inc: {
         'driverInfo.totalDeliveries': 1,
         'driverInfo.earnings': order.totalPrice * 0.8
       }
     });
-    
-    // إرسال إشعار للعميل
+
     await notificationService.sendNotification({
       user: order.user._id,
       type: 'order_delivered',
@@ -3243,8 +3200,7 @@ exports.completeOrder = async (req, res) => {
       link: `/orders/${order._id}`,
       icon: '✅'
     });
-    
-    // إرسال عبر Socket.io
+
     const io = req.app.get('io');
     if (io) {
       io.to(`order:${order._id}`).emit('order:status:updated', {
@@ -3253,10 +3209,9 @@ exports.completeOrder = async (req, res) => {
         timestamp: new Date()
       });
     }
-    
-    // إبطال الكاش
+
     await invalidateOrderCache(order._id, order.user._id);
-    
+
     res.json({
       success: true,
       message: 'تم إنهاء الطلب بنجاح',
@@ -3285,17 +3240,16 @@ exports.getDriverOrdersHistory = async (req, res) => {
   try {
     const driverId = req.user.id;
     const { page = 1, limit = 20, from, to } = req.query;
-    
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
-    // بناء استعلام التاريخ
+
     let dateQuery = {};
     if (from || to) {
       dateQuery.deliveredAt = {};
       if (from) dateQuery.deliveredAt.$gte = new Date(from);
       if (to) dateQuery.deliveredAt.$lte = new Date(to);
     }
-    
+
     const [orders, total] = await Promise.all([
       Order.find({
         driver: driverId,
@@ -3308,15 +3262,13 @@ exports.getDriverOrdersHistory = async (req, res) => {
         .skip(skip)
         .limit(parseInt(limit))
         .lean(),
-      
       Order.countDocuments({
         driver: driverId,
         status: 'delivered',
         ...dateQuery
       })
     ]);
-    
-    // إحصائيات الفترة
+
     const stats = await Order.aggregate([
       {
         $match: {
@@ -3335,8 +3287,7 @@ exports.getDriverOrdersHistory = async (req, res) => {
         }
       }
     ]);
-    
-    // إحصائيات شهرية للرسم البياني
+
     const monthlyStats = await Order.aggregate([
       {
         $match: {
@@ -3357,7 +3308,7 @@ exports.getDriverOrdersHistory = async (req, res) => {
       { $sort: { '_id.year': -1, '_id.month': -1 } },
       { $limit: 12 }
     ]);
-    
+
     res.json({
       success: true,
       data: {
@@ -3404,7 +3355,7 @@ exports.getOrderLocation = async (req, res) => {
   try {
     const { orderId } = req.params;
     const driverId = req.user.id;
-    
+
     const order = await Order.findOne({
       _id: orderId,
       driver: driverId
@@ -3412,14 +3363,14 @@ exports.getOrderLocation = async (req, res) => {
       .populate('pickupAddress')
       .populate('deliveryAddress')
       .lean();
-    
+
     if (!order) {
       return res.status(404).json({
         success: false,
         message: 'الطلب غير موجود'
       });
     }
-    
+
     res.json({
       success: true,
       data: {
@@ -3450,14 +3401,18 @@ exports.getOrderLocation = async (req, res) => {
   }
 };
 
+/**
+ * @desc    قبول الطلب بواسطة المندوب
+ * @route   PUT /api/v1/driver/orders/:id/accept
+ * @access  Driver
+ */
 exports.acceptOrderByDriver = async (req, res) => {
   try {
     const { id } = req.params;
     const driverId = req.user.id;
-    
+
     console.log(`🚚 Driver ${driverId} attempting to accept order ${id}`);
-    
-    // البحث عن الطلب المتاح
+
     const order = await Order.findOne({
       _id: id,
       status: "pending",
@@ -3467,35 +3422,32 @@ exports.acceptOrderByDriver = async (req, res) => {
       ]
     }).populate('user', 'name phone')
       .populate('store', 'name address deliveryInfo');
-    
+
     if (!order) {
       return res.status(404).json({
         success: false,
         message: "الطلب غير موجود أو تم قبوله مسبقاً"
       });
     }
-    
-    // تعيين المندوب للطلب
+
     order.driver = driverId;
     order.status = "accepted";
-    order.estimatedPreparationTime = 60; // ساعة واحدة
+    order.estimatedPreparationTime = 60;
     order.acceptedAt = new Date();
-    
+
     await order.save();
-    
-    // تحديث حالة المندوب
+
     await User.findByIdAndUpdate(driverId, {
       'driverInfo.isAvailable': false,
       'driverInfo.currentOrder': order._id
     });
-    
-    // إرسال إشعار للعميل
+
     await notificationService.sendNotification({
       user: order.user._id,
       type: "order_accepted",
       title: "✅ تم قبول طلبك",
       content: `تم تعيين مندوب لتوصيل طلبك، الوقت المتوقع: 60 دقيقة`,
-      data: { 
+      data: {
         orderId: order._id,
         driverId: driverId,
         estimatedTime: 60
@@ -3504,8 +3456,7 @@ exports.acceptOrderByDriver = async (req, res) => {
       link: `/orders/${order._id}`,
       icon: "✅"
     });
-    
-    // إشعار للمندوب
+
     await notificationService.sendNotification({
       user: driverId,
       type: "order_assigned",
@@ -3516,10 +3467,9 @@ exports.acceptOrderByDriver = async (req, res) => {
       link: `/driver/orders/${order._id}`,
       icon: "🛵"
     });
-    
+
     await invalidateOrderCache(order._id, order.user._id);
-    
-    // إرسال تحديث عبر Socket.io
+
     const io = req.app.get('io');
     if (io) {
       io.to(`order:${order._id}`).emit('order:status:updated', {
@@ -3530,7 +3480,7 @@ exports.acceptOrderByDriver = async (req, res) => {
         timestamp: new Date()
       });
     }
-    
+
     res.json({
       success: true,
       message: "تم قبول الطلب بنجاح",
@@ -3546,7 +3496,7 @@ exports.acceptOrderByDriver = async (req, res) => {
         deliveryLocation: order.deliveryAddress
       }
     });
-    
+
   } catch (error) {
     console.error("❌ Driver accept order error:", error);
     res.status(500).json({

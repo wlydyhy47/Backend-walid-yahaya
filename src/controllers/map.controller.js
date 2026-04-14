@@ -324,7 +324,7 @@ exports.updateDriverLocation = async (req, res) => {
         speed,
         createdAt: new Date()
       },
-      { upsert: true, new: true }
+      { upsert: true, returnDocument: 'after' }
     );
 
     // تحديث موقع المندوب في User

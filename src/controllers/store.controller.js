@@ -823,7 +823,7 @@ exports.updateStore = async (req, res) => {  // ✅ updateStore -> updateStore
     const store = await Store.findByIdAndUpdate(
       storeId,
       updateData,
-      { new: true, runValidators: true }
+      { returnDocument: 'after', runValidators: true }
     );
 
     if (!store) {

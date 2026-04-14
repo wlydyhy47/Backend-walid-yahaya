@@ -336,7 +336,7 @@ exports.toggleAvailability = async (req, res) => {
         isOnline: finalStatus,
         lastStatusUpdate: new Date()
       },
-      { new: true, runValidators: false }
+       { returnDocument: 'after' }
     ).select('driverInfo.isAvailable isOnline name phone');
     
     if (!driver) {

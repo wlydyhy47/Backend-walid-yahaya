@@ -65,7 +65,7 @@ const orderSchema = new mongoose.Schema(
         },
         item: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: "Item",
+          ref: "Product",
         },
         notes: String,
         category: String,
