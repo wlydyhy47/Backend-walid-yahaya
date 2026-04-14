@@ -3450,4 +3450,111 @@ exports.getOrderLocation = async (req, res) => {
   }
 };
 
+exports.acceptOrderByDriver = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driverId = req.user.id;
+    
+    console.log(`🚚 Driver ${driverId} attempting to accept order ${id}`);
+    
+    // البحث عن الطلب المتاح
+    const order = await Order.findOne({
+      _id: id,
+      status: "pending",
+      $or: [
+        { driver: { $exists: false } },
+        { driver: null }
+      ]
+    }).populate('user', 'name phone')
+      .populate('store', 'name address deliveryInfo');
+    
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "الطلب غير موجود أو تم قبوله مسبقاً"
+      });
+    }
+    
+    // تعيين المندوب للطلب
+    order.driver = driverId;
+    order.status = "accepted";
+    order.estimatedPreparationTime = 60; // ساعة واحدة
+    order.acceptedAt = new Date();
+    
+    await order.save();
+    
+    // تحديث حالة المندوب
+    await User.findByIdAndUpdate(driverId, {
+      'driverInfo.isAvailable': false,
+      'driverInfo.currentOrder': order._id
+    });
+    
+    // إرسال إشعار للعميل
+    await notificationService.sendNotification({
+      user: order.user._id,
+      type: "order_accepted",
+      title: "✅ تم قبول طلبك",
+      content: `تم تعيين مندوب لتوصيل طلبك، الوقت المتوقع: 60 دقيقة`,
+      data: { 
+        orderId: order._id,
+        driverId: driverId,
+        estimatedTime: 60
+      },
+      priority: "high",
+      link: `/orders/${order._id}`,
+      icon: "✅"
+    });
+    
+    // إشعار للمندوب
+    await notificationService.sendNotification({
+      user: driverId,
+      type: "order_assigned",
+      title: "🛵 طلب جديد",
+      content: `تم تعيينك لتوصيل طلب #${order._id.toString().slice(-6)}`,
+      data: { orderId: order._id },
+      priority: "high",
+      link: `/driver/orders/${order._id}`,
+      icon: "🛵"
+    });
+    
+    await invalidateOrderCache(order._id, order.user._id);
+    
+    // إرسال تحديث عبر Socket.io
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`order:${order._id}`).emit('order:status:updated', {
+        orderId: order._id,
+        status: 'accepted',
+        driverId: driverId,
+        estimatedTime: 60,
+        timestamp: new Date()
+      });
+    }
+    
+    res.json({
+      success: true,
+      message: "تم قبول الطلب بنجاح",
+      data: {
+        orderId: order._id,
+        status: order.status,
+        estimatedTime: 60,
+        store: {
+          name: order.store.name,
+          address: order.store.address,
+          pickupLocation: order.pickupAddress
+        },
+        deliveryLocation: order.deliveryAddress
+      }
+    });
+    
+  } catch (error) {
+    console.error("❌ Driver accept order error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل قبول الطلب",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = exports;

@@ -46,7 +46,7 @@ router.get('/orders/history', PaginationUtils.validatePaginationParams, orderCon
 
 router.get('/orders/:id', orderController.getOrderDetails);
 
-router.put('/orders/:id/accept', orderController.acceptOrder);
+router.put('/orders/:id/accept', orderController.acceptOrderByDriver);
 
 router.put('/orders/:id/reject', orderController.rejectOrder);
 
