@@ -169,6 +169,7 @@ exports.getMyProfile = async (req, res) => {
  */
 
 
+
 exports.getAvailableOrders = async (req, res) => {
   try {
     const driverId = req.user.id;
@@ -182,7 +183,29 @@ exports.getAvailableOrders = async (req, res) => {
     
     console.log(`📊 Driver ${driverId} current availability: isAvailable=${isDriverAvailable}, isOnline=${isDriverOnline}`);
     
-    // جلب الطلبات المتاحة
+    // ✅ إذا كان المندوب غير متاح، أعد مصفوفة فارغة فوراً
+    if (!isDriverAvailable) {
+      console.log(`⚠️ Driver ${driverId} is not available, returning empty orders`);
+      return res.json({
+        success: true,
+        data: {
+          orders: [],
+          stats: {
+            total: 0,
+            byStore: {},
+            averageValue: 0
+          },
+          timestamp: new Date(),
+          driverId: driverId,
+          isAvailable: false,
+          isOnline: false,
+          driverName: driver?.name,
+          driverPhone: driver?.phone
+        }
+      });
+    }
+    
+    // جلب الطلبات المتاحة فقط إذا كان المندوب متاحاً
     const availableOrders = await Order.find({
       status: 'pending',
       $or: [
@@ -255,7 +278,6 @@ exports.getAvailableOrders = async (req, res) => {
       stats.byStore[storeId].totalValue += order.totalPrice;
     });
     
-    // ✅ إرجاع الحالة الصحيحة للمندوب من قاعدة البيانات
     res.json({
       success: true,
       data: {
@@ -263,8 +285,8 @@ exports.getAvailableOrders = async (req, res) => {
         stats: stats,
         timestamp: new Date(),
         driverId: driverId,
-        isAvailable: isDriverAvailable,
-        isOnline: isDriverOnline,
+        isAvailable: true,
+        isOnline: true,
         driverName: driver?.name,
         driverPhone: driver?.phone
       }
@@ -279,7 +301,6 @@ exports.getAvailableOrders = async (req, res) => {
     });
   }
 };
-
 /**
  * @desc    تحديث حالة التوفر (متصل/غير متصل)
  * @route   PUT /api/v1/driver/profile/availability
