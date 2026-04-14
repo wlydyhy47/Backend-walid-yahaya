@@ -896,62 +896,57 @@ exports.getAllOrdersPaginated = async (req, res) => {
 exports.acceptOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const { estimatedTime } = req.body;
+    // ✅ إزالة سطر estimatedTime من req.body
     const userId = req.user.id;
-
-    // جلب المستخدم للتحقق من المتجر
-    const user = await User.findById(userId).select('storeOwnerInfo');
     
+    const user = await User.findById(userId).select('storeOwnerInfo');
     if (!user?.storeOwnerInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-
+    
     const storeId = user.storeOwnerInfo.store;
-
     const order = await Order.findOne({
       _id: id,
       store: storeId,
       status: "pending"
     }).populate('user', 'name phone');
-
+    
     if (!order) {
       return res.status(404).json({
         success: false,
         message: "الطلب غير موجود أو تم التعامل معه مسبقاً"
       });
     }
-
+    
     order.status = "accepted";
-    if (estimatedTime) {
-      order.estimatedPreparationTime = estimatedTime;
-    }
+    // ✅ تعيين الوقت المتوقع إلى 60 دقيقة (ساعة واحدة)
+    order.estimatedPreparationTime = 60;
     await order.save();
-
-    // إرسال إشعار للعميل
+    
+    // ✅ تحديث الإشعارات لتظهر 60 دقيقة
     await notificationService.sendNotification({
       user: order.user._id,
       type: "order_accepted",
       title: "✅ تم قبول طلبك",
-      content: `تم قبول طلبك، الوقت المتوقع: ${estimatedTime || order.estimatedPreparationTime} دقيقة`,
+      content: `تم قبول طلبك، الوقت المتوقع: 60 دقيقة`,
       data: { orderId: order._id },
       priority: "high",
       link: `/orders/${order._id}`,
       icon: "✅"
     });
-
-    // إبطال الكاش
+    
     await invalidateOrderCache(order._id, order.user._id);
-
+    
     res.json({
       success: true,
       message: "تم قبول الطلب بنجاح",
       data: {
         orderId: order._id,
         status: order.status,
-        estimatedTime: estimatedTime || order.estimatedPreparationTime
+        estimatedTime: 60  // ✅ إرسال 60 دقيقة في الرد
       }
     });
   } catch (error) {
@@ -962,7 +957,6 @@ exports.acceptOrder = async (req, res) => {
     });
   }
 };
-
 /**
  * @desc    رفض الطلب (لصاحب المتجر)
  * @route   PUT /api/v1/vendor/orders/:id/reject

@@ -38142,56 +38142,6 @@ module.exports.maxFileSizes = maxFileSizes;
 module.exports.uploadToCloudinary = uploadToCloudinary;
 </file>
 
-<file path="src/routes/driver.routes.js">
-const express = require('express');
-const router = express.Router();
-const {
-  driverController,
-  orderController
-} = require('../controllers');
-const auth = require('../middlewares/auth.middleware');
-const { driverMiddleware } = require('../middlewares/role.middleware');
-const validate = require('../middlewares/validate.middleware');
-const upload = require('../middlewares/upload');
-const PaginationUtils = require('../utils/pagination.util');
-const {
-  avatarSchema,
-  presenceSchema
-} = require('../validators/user.validator');
-const {
-  updateStatusSchema
-} = require('../validators/order.validator');
-router.use(auth);
-router.use(driverMiddleware);
-router.get('/profile', driverController.getMyProfile);
-router.put('/profile/avatar',
-  validate(avatarSchema),
-  upload('users/avatars', ['image']).single('image'),
-  driverController.updateAvatar
-);
-router.put('/profile/availability', validate(presenceSchema), driverController.toggleAvailability);
-router.put('/profile/location', driverController.updateLocation);
-router.get('/orders', PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
-router.get('/orders/available', driverController.getAvailableOrders);
-router.get('/orders/active', orderController.getCurrentDelivery);
-router.get('/orders/history', PaginationUtils.validatePaginationParams, orderController.getDriverOrdersHistory);
-router.get('/orders/:id', orderController.getOrderDetails);
-router.put('/orders/:id/accept', orderController.acceptOrder);
-router.put('/orders/:id/reject', orderController.rejectOrder);
-router.put('/orders/:id/status', validate(updateStatusSchema), orderController.updateStatus);
-router.post('/orders/:id/start', orderController.startDelivery);
-router.post('/orders/:id/complete', orderController.completeOrder);
-router.put('/location', driverController.updateLocation);
-router.get('/location/current', driverController.getCurrentLocation);
-router.get('/location/order/:orderId', orderController.getOrderLocation);
-router.get('/earnings', orderController.getDriverEarnings);
-router.get('/earnings/stats', driverController.getMyStats);
-router.get('/earnings/history', PaginationUtils.validatePaginationParams, driverController.getEarningsHistory);
-router.get('/stats', driverController.getMyStats);
-router.get('/performance', driverController.getPerformanceReport);
-module.exports = router;
-</file>
-
 <file path="src/server.js">
 require("dotenv").config();
 const http = require("http");
@@ -38392,1065 +38342,54 @@ const server = startServer();
 module.exports = server;
 </file>
 
-<file path="src/controllers/driver.controller.js">
-const { User, Order, DriverLocation } = require('../models');
-const cache = require("../utils/cache.util");
+<file path="src/routes/driver.routes.js">
+const express = require('express');
+const router = express.Router();
+const {
+  driverController,
+  orderController
+} = require('../controllers');
+const auth = require('../middlewares/auth.middleware');
+const { driverMiddleware } = require('../middlewares/role.middleware');
+const validate = require('../middlewares/validate.middleware');
+const upload = require('../middlewares/upload');
 const PaginationUtils = require('../utils/pagination.util');
-const fileService = require('../services/file.service');
-const { AppError } = require('../middlewares/errorHandler.middleware');
-const getStatusText = (status) => {
-  const statusMap = {
-    pending: 'قيد الانتظار',
-    accepted: 'تم القبول',
-    ready: 'جاهز',
-    picked: 'تم الاستلام',
-    delivered: 'تم التوصيل',
-    cancelled: 'ملغي'
-  };
-  return statusMap[status] || status;
-};
-const calculateETA = (order) => {
-  if (!order) return 'غير معروف';
-  const now = new Date();
-  const created = new Date(order.createdAt);
-  const elapsedMinutes = Math.floor((now - created) / 60000);
-  const baseTime = order.estimatedDeliveryTime || 30;
-  const remaining = Math.max(0, baseTime - elapsedMinutes);
-  const statusTimes = {
-    pending: `${baseTime} دقيقة`,
-    accepted: `${Math.max(5, remaining)} دقيقة`,
-    ready: `${Math.max(2, remaining - 5)} دقيقة`,
-    picked: `${Math.max(2, remaining - 10)} دقيقة`,
-    delivered: 'تم التوصيل',
-    cancelled: 'ملغي'
-  };
-  return statusTimes[order.status] || 'قيد الحساب';
-};
-const createOrderTimeline = (order) => {
-  return [
-    {
-      status: 'created',
-      title: 'تم إنشاء الطلب',
-      timestamp: order.createdAt,
-      completed: true,
-      icon: '🛒'
-    },
-    {
-      status: 'accepted',
-      title: 'تم قبول الطلب',
-      timestamp: order.status !== 'pending' ? order.updatedAt : null,
-      completed: ['accepted', 'ready', 'picked', 'delivered'].includes(order.status),
-      icon: '✅'
-    },
-    {
-      status: 'ready',
-      title: 'الطلب جاهز',
-      timestamp: order.status === 'ready' ? order.updatedAt : null,
-      completed: ['ready', 'picked', 'delivered'].includes(order.status),
-      icon: '🍽️'
-    },
-    {
-      status: 'picked',
-      title: 'تم الاستلام من المتجر',
-      timestamp: ['picked', 'delivered'].includes(order.status) ? order.updatedAt : null,
-      completed: ['picked', 'delivered'].includes(order.status),
-      icon: '📦'
-    },
-    {
-      status: 'delivered',
-      title: 'تم التوصيل',
-      timestamp: order.status === 'delivered' ? order.updatedAt : null,
-      completed: order.status === 'delivered',
-      icon: '🚚'
-    }
-  ];
-};
-const invalidateDriverCache = (driverId) => {
-  cache.del(`driver:profile:${driverId}`);
-  cache.del(`driver:stats:${driverId}`);
-  cache.invalidatePattern(`driver:orders:${driverId}:*`);
-  cache.del(`user:complete:${driverId}`);
-};
-exports.getMyProfile = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const cacheKey = `driver:profile:${driverId}`;
-    const cachedData = cache.get(cacheKey);
-    if (cachedData) {
-      return res.json({
-        success: true,
-        data: cachedData,
-        cached: true
-      });
-    }
-    const driver = await User.findById(driverId)
-      .select('name phone image email driverInfo isOnline lastLogin')
-      .lean();
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: "Driver not found"
-      });
-    }
-    const [todayOrders, totalEarnings, currentOrder] = await Promise.all([
-      Order.countDocuments({
-        driver: driverId,
-        status: 'delivered',
-        createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
-      }),
-      Order.aggregate([
-        { $match: { driver: driverId, status: 'delivered' } },
-        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
-      ]),
-      Order.findOne({
-        driver: driverId,
-        status: { $in: ['accepted', 'ready', 'picked'] }
-      }).select('_id status pickupAddress deliveryAddress')
-    ]);
-    const profileData = {
-      ...driver,
-      stats: {
-        todayOrders,
-        totalEarnings: totalEarnings[0]?.total || 0,
-        currentOrder: currentOrder || null
-      }
-    };
-    cache.set(cacheKey, profileData, 300);
-    res.json({
-      success: true,
-      data: profileData
-    });
-  } catch (error) {
-    console.error("❌ Get driver profile error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get driver profile"
-    });
-  }
-};
-exports.getAvailableOrders = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    console.log(`🚚 Driver ${driverId} requesting available orders`);
-    const availableOrders = await Order.find({
-      status: 'pending',
-      $or: [
-        { driver: { $exists: false } },
-        { driver: null }
-      ]
-    })
-      .populate('user', 'name phone')
-      .populate('store', 'name image phone addressLine deliveryInfo')
-      .populate('pickupAddress')
-      .populate('deliveryAddress')
-      .sort({ createdAt: 1 })
-      .lean();
-    console.log(`✅ Found ${availableOrders.length} available orders`);
-    const formattedOrders = availableOrders.map(order => ({
-      id: order._id,
-      _id: order._id,
-      store: {
-        _id: order.store?._id,
-        name: order.store?.name,
-        image: order.store?.image,
-        phone: order.store?.phone,
-        addressLine: order.store?.addressLine,
-        deliveryInfo: order.store?.deliveryInfo
-      },
-      items: order.items || [],
-      totalPrice: order.totalPrice || 0,
-      deliveryAddress: order.deliveryAddress ? {
-        _id: order.deliveryAddress._id,
-        addressLine: order.deliveryAddress.addressLine,
-        city: order.deliveryAddress.city,
-        latitude: order.deliveryAddress.latitude,
-        longitude: order.deliveryAddress.longitude
-      } : null,
-      pickupAddress: order.pickupAddress ? {
-        _id: order.pickupAddress._id,
-        addressLine: order.pickupAddress.addressLine,
-        city: order.pickupAddress.city
-      } : null,
-      status: order.status,
-      statusText: getStatusText(order.status),
-      createdAt: order.createdAt,
-      notes: order.notes || '',
-      paymentMethod: order.paymentMethod || 'cash',
-      estimatedDeliveryTime: order.estimatedDeliveryTime || 30
-    }));
-    const stats = {
-      total: formattedOrders.length,
-      byStore: {},
-      averageValue: formattedOrders.length > 0
-        ? formattedOrders.reduce((sum, o) => sum + o.totalPrice, 0) / formattedOrders.length
-        : 0
-    };
-    formattedOrders.forEach(order => {
-      const storeId = order.store?._id?.toString() || 'unknown';
-      if (!stats.byStore[storeId]) {
-        stats.byStore[storeId] = {
-          name: order.store?.name || 'Unknown',
-          count: 0,
-          totalValue: 0
-        };
-      }
-      stats.byStore[storeId].count++;
-      stats.byStore[storeId].totalValue += order.totalPrice;
-    });
-    res.json({
-      success: true,
-      data: {
-        orders: formattedOrders,
-        stats: stats,
-        timestamp: new Date(),
-        driverId: driverId,
-        isAvailable: req.user?.driverInfo?.isAvailable || false
-      }
-    });
-  } catch (error) {
-    console.error('❌ Get available orders error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'فشل جلب الطلبات المتاحة',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-exports.toggleAvailability = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const { isAvailable, isOnline } = req.body;
-    let finalStatus = null;
-    if (isAvailable !== undefined) {
-      finalStatus = isAvailable;
-    } else if (isOnline !== undefined) {
-      finalStatus = isOnline;
-    }
-    if (finalStatus === null) {
-      return res.status(400).json({
-        success: false,
-        message: "يجب توفير حالة التوفر (isAvailable أو isOnline)"
-      });
-    }
-    console.log(`🔄 Driver ${driverId} toggling availability to: ${finalStatus}`);
-    const driver = await User.findByIdAndUpdate(
-      driverId,
-      {
-        'driverInfo.isAvailable': finalStatus,
-        isOnline: finalStatus,
-        lastStatusUpdate: new Date()
-      },
-      { new: true, runValidators: false }
-    ).select('driverInfo.isAvailable isOnline name phone');
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: "المندوب غير موجود"
-      });
-    }
-    invalidateDriverCache(driverId);
-    const io = req.app.get('io');
-    if (io) {
-      io.emit('driver:status:changed', {
-        driverId: driver._id,
-        driverName: driver.name,
-        isAvailable: driver.driverInfo.isAvailable,
-        isOnline: driver.isOnline,
-        timestamp: new Date()
-      });
-      if (finalStatus === true) {
-        io.to(`driver:${driverId}`).emit('driver:available:orders:refresh', {
-          timestamp: new Date()
-        });
-      }
-    }
-    res.json({
-      success: true,
-      message: finalStatus ? "✅ أنت الآن متاح للطلبات" : "⛔ أنت الآن غير متاح",
-      data: {
-        isAvailable: driver.driverInfo.isAvailable,
-        isOnline: driver.isOnline,
-        lastStatusUpdate: driver.lastStatusUpdate,
-        driverInfo: {
-          name: driver.name,
-          phone: driver.phone
-        }
-      }
-    });
-  } catch (error) {
-    console.error("❌ Toggle availability error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تحديث حالة التوفر",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-exports.updateLocation = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const { latitude, longitude, orderId, accuracy, heading, speed } = req.body;
-    if (!latitude || !longitude) {
-      return res.status(400).json({
-        success: false,
-        message: "Latitude and longitude are required"
-      });
-    }
-    if (isNaN(latitude) || isNaN(longitude) ||
-        latitude < -90 || latitude > 90 ||
-        longitude < -180 || longitude > 180) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid coordinates"
-      });
-    }
-    console.log(`📍 Driver ${driverId} updating location: [${latitude}, ${longitude}]`);
-    await User.findByIdAndUpdate(driverId, {
-      'driverInfo.currentLocation': {
-        type: 'Point',
-        coordinates: [parseFloat(longitude), parseFloat(latitude)]
-      },
-      lastLocationUpdate: new Date()
-    });
-    const location = await DriverLocation.findOneAndUpdate(
-      { driver: driverId },
-      {
-        driver: driverId,
-        location: {
-          type: 'Point',
-          coordinates: [parseFloat(longitude), parseFloat(latitude)]
-        },
-        order: orderId || null,
-        accuracy: accuracy || null,
-        heading: heading || null,
-        speed: speed || null,
-        createdAt: new Date()
-      },
-      { upsert: true, new: true }
-    );
-    const io = req.app.get('io');
-    if (io && orderId) {
-      io.to(`order:${orderId}`).emit('driver:location:updated', {
-        orderId,
-        driverId,
-        location: { latitude, longitude },
-        accuracy,
-        heading,
-        speed,
-        timestamp: new Date()
-      });
-    }
-    res.json({
-      success: true,
-      message: "Location updated successfully",
-      data: {
-        location: { latitude, longitude },
-        accuracy,
-        heading,
-        speed,
-        timestamp: location.createdAt,
-        orderId: orderId || null
-      }
-    });
-  } catch (error) {
-    console.error("❌ Update location error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to update location",
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-};
-exports.getCurrentOrder = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const currentOrder = await Order.findOne({
-      driver: driverId,
-      status: { $in: ['accepted', 'ready', 'picked'] }
-    })
-      .populate('user', 'name phone image')
-      .populate('store', 'name image phone addressLine')
-      .populate('pickupAddress')
-      .populate('deliveryAddress')
-      .populate('items.item')
-      .lean();
-    if (!currentOrder) {
-      return res.json({
-        success: true,
-        data: null,
-        message: "No active order"
-      });
-    }
-    const orderData = {
-      ...currentOrder,
-      statusText: getStatusText(currentOrder.status),
-      estimatedDelivery: calculateETA(currentOrder),
-      timeline: createOrderTimeline(currentOrder)
-    };
-    res.json({
-      success: true,
-      data: orderData
-    });
-  } catch (error) {
-    console.error("❌ Get current order error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get current order"
-    });
-  }
-};
-exports.getMyStats = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const cacheKey = `driver:stats:${driverId}`;
-    const cachedData = cache.get(cacheKey);
-    if (cachedData) {
-      return res.json({
-        success: true,
-        data: cachedData,
-        cached: true
-      });
-    }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const monthAgo = new Date();
-    monthAgo.setMonth(monthAgo.getMonth() - 1);
-    const [
-      todayStats,
-      weekStats,
-      monthStats,
-      totalStats,
-      recentOrders
-    ] = await Promise.all([
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            createdAt: { $gte: today }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
-            distance: { $sum: '$estimatedDistance' || 0 }
-          }
-        }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            createdAt: { $gte: weekAgo }
-          }
-        },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } }
-          }
-        },
-        { $sort: { _id: 1 } }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            createdAt: { $gte: monthAgo }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
-            avgTime: { $avg: '$deliveryTime' }
-          }
-        }
-      ]),
-      User.findById(driverId).select('driverInfo'),
-      Order.find({ driver: driverId, status: 'delivered' })
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .select('totalPrice createdAt')
-        .lean()
-    ]);
-    const stats = {
-      today: {
-        orders: todayStats[0]?.orders || 0,
-        earnings: todayStats[0]?.earnings || 0,
-        distance: todayStats[0]?.distance || 0
-      },
-      week: {
-        daily: weekStats,
-        total: weekStats.reduce((sum, day) => sum + day.orders, 0),
-        earnings: weekStats.reduce((sum, day) => sum + day.earnings, 0)
-      },
-      month: {
-        orders: monthStats[0]?.orders || 0,
-        earnings: monthStats[0]?.earnings || 0,
-        avgTime: monthStats[0]?.avgTime || 0
-      },
-      total: {
-        orders: totalStats?.driverInfo?.totalDeliveries || 0,
-        earnings: totalStats?.driverInfo?.earnings || 0,
-        rating: totalStats?.driverInfo?.rating || 0
-      },
-      recentOrders
-    };
-    cache.set(cacheKey, stats, 300);
-    res.json({
-      success: true,
-      data: stats
-    });
-  } catch (error) {
-    console.error("❌ Get driver stats error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get statistics"
-    });
-  }
-};
-exports.getCurrentLocation = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const location = await DriverLocation.findOne({ driver: driverId })
-      .sort({ createdAt: -1 })
-      .lean();
-    if (!location) {
-      return res.json({
-        success: true,
-        data: null,
-        message: "لا يوجد موقع مسجل حالياً"
-      });
-    }
-    res.json({
-      success: true,
-      data: {
-        driverId,
-        location: {
-          latitude: location.location.coordinates[1],
-          longitude: location.location.coordinates[0]
-        },
-        accuracy: location.accuracy,
-        speed: location.speed,
-        heading: location.heading,
-        updatedAt: location.createdAt
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get current location error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب الموقع الحالي"
-    });
-  }
-};
-exports.updateAvatar = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "لم يتم رفع أي صورة"
-      });
-    }
-    const driverId = req.user.id;
-    const oldDriver = await User.findById(driverId).select('image');
-    if (oldDriver?.image) {
-      const oldPublicId = fileService.extractPublicIdFromUrl(oldDriver.image);
-      if (oldPublicId) {
-        fileService.deleteFile(oldPublicId).catch(err =>
-          console.error('Error deleting old avatar:', err)
-        );
-      }
-    }
-    const driver = await User.findByIdAndUpdate(
-      driverId,
-      { image: req.file.path },
-      { new: true }
-    ).select('name phone image');
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: "المندوب غير موجود"
-      });
-    }
-    invalidateDriverCache(driverId);
-    res.json({
-      success: true,
-      message: "تم تحديث الصورة الشخصية بنجاح",
-      data: {
-        image: driver.image,
-        optimized: req.file.thumbnail || null
-      }
-    });
-  } catch (error) {
-    console.error("❌ Update avatar error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تحديث الصورة الشخصية"
-    });
-  }
-};
-exports.getEarningsHistory = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const { page = 1, limit = 20, from, to } = req.query;
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    let dateQuery = {};
-    if (from || to) {
-      dateQuery = {};
-      if (from) dateQuery.$gte = new Date(from);
-      if (to) dateQuery.$lte = new Date(to);
-    }
-    const orders = await Order.find({
-      driver: driverId,
-      status: 'delivered',
-      ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
-    })
-      .select('totalPrice deliveredAt items store')
-      .populate('store', 'name')
-      .sort({ deliveredAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .lean();
-    const total = await Order.countDocuments({
-      driver: driverId,
-      status: 'delivered',
-      ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
-    });
-    const earnings = orders.map(order => ({
-      orderId: order._id,
-      storeName: order.store?.name || 'غير معروف',
-      date: order.deliveredAt,
-      amount: order.totalPrice,
-      commission: order.totalPrice * 0.2,
-      netEarnings: order.totalPrice * 0.8,
-      itemsCount: order.items?.reduce((sum, item) => sum + item.qty, 0) || 0
-    }));
-    const stats = {
-      totalEarnings: earnings.reduce((sum, e) => sum + e.netEarnings, 0),
-      totalOrders: earnings.length,
-      averagePerOrder: earnings.length > 0
-        ? earnings.reduce((sum, e) => sum + e.netEarnings, 0) / earnings.length
-        : 0,
-      totalCommission: earnings.reduce((sum, e) => sum + e.commission, 0)
-    };
-    const monthlyStats = await Order.aggregate([
-      {
-        $match: {
-          driver: driverId,
-          status: 'delivered',
-          ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
-        }
-      },
-      {
-        $group: {
-          _id: {
-            year: { $year: "$deliveredAt" },
-            month: { $month: "$deliveredAt" }
-          },
-          earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
-          orders: { $sum: 1 }
-        }
-      },
-      { $sort: { "_id.year": -1, "_id.month": -1 } },
-      { $limit: 12 }
-    ]);
-    res.json({
-      success: true,
-      data: {
-        earnings,
-        monthlyStats,
-        stats,
-        pagination: {
-          page: parseInt(page),
-          limit: parseInt(limit),
-          total,
-          pages: Math.ceil(total / parseInt(limit))
-        }
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get earnings history error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب سجل الأرباح"
-    });
-  }
-};
-exports.getPerformanceReport = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-    const now = new Date();
-    const today = new Date(now.setHours(0, 0, 0, 0));
-    const weekAgo = new Date(now.setDate(now.getDate() - 7));
-    const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
-    const [
-      dailyStats,
-      weeklyStats,
-      monthlyStats,
-      deliveryTimes,
-      ratings
-    ] = await Promise.all([
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            deliveredAt: { $gte: today }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
-            totalDistance: { $sum: "$estimatedDistance" }
-          }
-        }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            deliveredAt: { $gte: weekAgo }
-          }
-        },
-        {
-          $group: {
-            _id: { $dateToString: { format: "%Y-%m-%d", date: "$deliveredAt" } },
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } }
-          }
-        },
-        { $sort: { _id: 1 } }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            deliveredAt: { $gte: monthAgo }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
-            avgOrderValue: { $avg: "$totalPrice" }
-          }
-        }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            driver: driverId,
-            status: 'delivered',
-            deliveryTime: { $exists: true }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            avgDeliveryTime: { $avg: "$deliveryTime" },
-            fastestDelivery: { $min: "$deliveryTime" },
-            slowestDelivery: { $max: "$deliveryTime" },
-            totalDeliveries: { $sum: 1 }
-          }
-        }
-      ]),
-      User.findById(driverId).select('driverInfo.rating driverInfo.totalRatings')
-    ]);
-    const acceptedOrders = await Order.countDocuments({
-      driver: driverId,
-      status: { $in: ['accepted', 'ready', 'picked', 'delivered'] }
-    });
-    const rejectedOrders = await Order.countDocuments({
-      driver: driverId,
-      status: 'cancelled',
-      cancelledBy: driverId
-    });
-    const acceptanceRate = acceptedOrders + rejectedOrders > 0
-      ? (acceptedOrders / (acceptedOrders + rejectedOrders)) * 100
-      : 100;
-    res.json({
-      success: true,
-      data: {
-        period: {
-          today: dailyStats[0] || { orders: 0, earnings: 0, totalDistance: 0 },
-          weekly: {
-            daily: weeklyStats,
-            total: weeklyStats.reduce((sum, day) => sum + day.orders, 0),
-            earnings: weeklyStats.reduce((sum, day) => sum + day.earnings, 0)
-          },
-          monthly: monthlyStats[0] || { orders: 0, earnings: 0, avgOrderValue: 0 }
-        },
-        performance: {
-          acceptanceRate: acceptanceRate.toFixed(1),
-          deliveryTime: deliveryTimes[0] || {
-            avgDeliveryTime: 0,
-            fastestDelivery: 0,
-            slowestDelivery: 0
-          },
-          rating: ratings?.driverInfo?.rating || 0,
-          totalRatings: ratings?.driverInfo?.totalRatings || 0
-        },
-        summary: {
-          totalDeliveries: acceptedOrders,
-          totalEarnings: monthlyStats[0]?.earnings || 0,
-          averagePerDay: weeklyStats.length > 0
-            ? weeklyStats.reduce((sum, day) => sum + day.orders, 0) / weeklyStats.length
-            : 0
-        }
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get performance report error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب تقرير الأداء"
-    });
-  }
-};
-exports.getDrivers = async (req, res) => {
-  try {
-    const paginationOptions = PaginationUtils.getPaginationOptions(req);
-    const { skip, limit, sort, filters } = paginationOptions;
-    let query = { role: 'driver' };
-    if (filters.isAvailable !== undefined) {
-      query['driverInfo.isAvailable'] = filters.isAvailable === 'true';
-    }
-    if (filters.isOnline !== undefined) {
-      query.isOnline = filters.isOnline === 'true';
-    }
-    if (filters.minRating) {
-      query['driverInfo.rating'] = { $gte: Number(filters.minRating) };
-    }
-    const [drivers, total] = await Promise.all([
-      User.find(query)
-        .select('name phone image email driverInfo isOnline lastLogin')
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      User.countDocuments(query)
-    ]);
-    const driversWithStats = await Promise.all(
-      drivers.map(async (driver) => {
-        const todayOrders = await Order.countDocuments({
-          driver: driver._id,
-          status: 'delivered',
-          createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
-        });
-        return {
-          ...driver,
-          todayOrders
-        };
-      })
-    );
-    const response = PaginationUtils.createPaginationResponse(
-      driversWithStats,
-      total,
-      paginationOptions,
-      {
-        available: await User.countDocuments({ role: 'driver', 'driverInfo.isAvailable': true }),
-        online: await User.countDocuments({ role: 'driver', isOnline: true })
-      }
-    );
-    res.json(response);
-  } catch (error) {
-    console.error("❌ Get drivers error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get drivers"
-    });
-  }
-};
-exports.getDriverById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const driver = await User.findById(id)
-      .select('name phone email image driverInfo isOnline lastLogin')
-      .lean();
-    if (!driver || driver.role !== 'driver') {
-      return res.status(404).json({
-        success: false,
-        message: "المندوب غير موجود"
-      });
-    }
-    res.json({
-      success: true,
-      data: driver
-    });
-  } catch (error) {
-    console.error("❌ Get driver by id error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب بيانات المندوب"
-    });
-  }
-};
-exports.getDriverLocation = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const location = await DriverLocation.findOne({ driver: id })
-      .sort({ createdAt: -1 })
-      .lean();
-    if (!location) {
-      return res.status(404).json({
-        success: false,
-        message: "Driver location not found"
-      });
-    }
-    res.json({
-      success: true,
-      data: {
-        driverId: id,
-        location: {
-          latitude: location.location.coordinates[1],
-          longitude: location.location.coordinates[0]
-        },
-        updatedAt: location.createdAt
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get driver location error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get driver location"
-    });
-  }
-};
-exports.getDriverStatsById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const driver = await User.findById(id)
-      .select('name phone email driverInfo')
-      .lean();
-    if (!driver || driver.role !== 'driver') {
-      return res.status(404).json({
-        success: false,
-        message: "Driver not found"
-      });
-    }
-    const [orders, earnings] = await Promise.all([
-      Order.aggregate([
-        { $match: { driver: id, status: 'delivered' } },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
-            count: { $sum: 1 },
-            revenue: { $sum: '$totalPrice' }
-          }
-        },
-        { $sort: { _id: -1 } },
-        { $limit: 6 }
-      ]),
-      Order.aggregate([
-        { $match: { driver: id, status: 'delivered' } },
-        {
-          $group: {
-            _id: null,
-            total: { $sum: '$totalPrice' },
-            avg: { $avg: '$totalPrice' },
-            min: { $min: '$totalPrice' },
-            max: { $max: '$totalPrice' }
-          }
-        }
-      ])
-    ]);
-    res.json({
-      success: true,
-      data: {
-        driver,
-        monthlyStats: orders,
-        earnings: earnings[0] || { total: 0, avg: 0, min: 0, max: 0 }
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get driver stats error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to get driver statistics"
-    });
-  }
-};
-exports.verifyDriver = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const driver = await User.findByIdAndUpdate(
-      id,
-      {
-        isVerified: true,
-        'driverInfo.documents.$[].verified': true
-      },
-      { new: true }
-    ).select('name phone email driverInfo isVerified');
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: "المندوب غير موجود"
-      });
-    }
-    res.json({
-      success: true,
-      message: "تم توثيق المندوب بنجاح",
-      data: {
-        id: driver._id,
-        isVerified: driver.isVerified,
-        driverInfo: driver.driverInfo
-      }
-    });
-  } catch (error) {
-    console.error("❌ Verify driver error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل توثيق المندوب"
-    });
-  }
-};
-exports.toggleDriverStatus = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { isActive } = req.body;
-    const driver = await User.findByIdAndUpdate(
-      id,
-      { isActive },
-      { new: true }
-    ).select('name phone email isActive');
-    if (!driver) {
-      return res.status(404).json({
-        success: false,
-        message: "المندوب غير موجود"
-      });
-    }
-    res.json({
-      success: true,
-      message: `تم ${isActive ? 'تفعيل' : 'تعطيل'} المندوب بنجاح`,
-      data: {
-        id: driver._id,
-        isActive: driver.isActive
-      }
-    });
-  } catch (error) {
-    console.error("❌ Toggle driver status error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تغيير حالة المندوب"
-    });
-  }
-};
-module.exports = exports;
+const {
+  avatarSchema,
+  presenceSchema
+} = require('../validators/user.validator');
+const {
+  updateStatusSchema
+} = require('../validators/order.validator');
+router.use(auth);
+router.use(driverMiddleware);
+router.get('/profile', driverController.getMyProfile);
+router.put('/profile/avatar',
+  validate(avatarSchema),
+  upload('users/avatars', ['image']).single('image'),
+  driverController.updateAvatar
+);
+router.put('/profile/availability', validate(presenceSchema), driverController.toggleAvailability);
+router.put('/profile/location', driverController.updateLocation);
+router.get('/orders', PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
+router.get('/orders/available', driverController.getAvailableOrders);
+router.get('/orders/active', orderController.getCurrentDelivery);
+router.get('/orders/history', PaginationUtils.validatePaginationParams, orderController.getDriverOrdersHistory);
+router.get('/orders/:id', orderController.getOrderDetails);
+router.put('/orders/:id/accept', orderController.acceptOrder);
+router.put('/orders/:id/reject', orderController.rejectOrder);
+router.put('/orders/:id/status', validate(updateStatusSchema), orderController.updateStatus);
+router.post('/orders/:id/start', orderController.startDelivery);
+router.post('/orders/:id/complete', orderController.completeOrder);
+router.put('/location', driverController.updateLocation);
+router.get('/location/current', driverController.getCurrentLocation);
+router.get('/location/order/:orderId', orderController.getOrderLocation);
+router.get('/earnings', orderController.getDriverEarnings);
+router.get('/earnings/stats', driverController.getMyStats);
+router.get('/earnings/history', PaginationUtils.validatePaginationParams, driverController.getEarningsHistory);
+router.get('/stats', driverController.getMyStats);
+router.get('/performance', driverController.getPerformanceReport);
+module.exports = router;
 </file>
 
 <file path="src/routes/order.routes.js">
@@ -45351,6 +44290,1094 @@ router.get('/advanced-stats/weekly', aggregateController.getWeeklyAdvancedStats)
 router.get('/advanced-stats/monthly', aggregateController.getMonthlyAdvancedStats);
 router.get('/advanced-stats/custom', aggregateController.getCustomStats);
 module.exports = router;
+</file>
+
+<file path="src/controllers/driver.controller.js">
+const { User, Order, DriverLocation } = require('../models');
+const cache = require("../utils/cache.util");
+const PaginationUtils = require('../utils/pagination.util');
+const fileService = require('../services/file.service');
+const { AppError } = require('../middlewares/errorHandler.middleware');
+const getStatusText = (status) => {
+  const statusMap = {
+    pending: 'قيد الانتظار',
+    accepted: 'تم القبول',
+    ready: 'جاهز',
+    picked: 'تم الاستلام',
+    delivered: 'تم التوصيل',
+    cancelled: 'ملغي'
+  };
+  return statusMap[status] || status;
+};
+const calculateETA = (order) => {
+  if (!order) return 'غير معروف';
+  const now = new Date();
+  const created = new Date(order.createdAt);
+  const elapsedMinutes = Math.floor((now - created) / 60000);
+  const baseTime = order.estimatedDeliveryTime || 30;
+  const remaining = Math.max(0, baseTime - elapsedMinutes);
+  const statusTimes = {
+    pending: `${baseTime} دقيقة`,
+    accepted: `${Math.max(5, remaining)} دقيقة`,
+    ready: `${Math.max(2, remaining - 5)} دقيقة`,
+    picked: `${Math.max(2, remaining - 10)} دقيقة`,
+    delivered: 'تم التوصيل',
+    cancelled: 'ملغي'
+  };
+  return statusTimes[order.status] || 'قيد الحساب';
+};
+const createOrderTimeline = (order) => {
+  return [
+    {
+      status: 'created',
+      title: 'تم إنشاء الطلب',
+      timestamp: order.createdAt,
+      completed: true,
+      icon: '🛒'
+    },
+    {
+      status: 'accepted',
+      title: 'تم قبول الطلب',
+      timestamp: order.status !== 'pending' ? order.updatedAt : null,
+      completed: ['accepted', 'ready', 'picked', 'delivered'].includes(order.status),
+      icon: '✅'
+    },
+    {
+      status: 'ready',
+      title: 'الطلب جاهز',
+      timestamp: order.status === 'ready' ? order.updatedAt : null,
+      completed: ['ready', 'picked', 'delivered'].includes(order.status),
+      icon: '🍽️'
+    },
+    {
+      status: 'picked',
+      title: 'تم الاستلام من المتجر',
+      timestamp: ['picked', 'delivered'].includes(order.status) ? order.updatedAt : null,
+      completed: ['picked', 'delivered'].includes(order.status),
+      icon: '📦'
+    },
+    {
+      status: 'delivered',
+      title: 'تم التوصيل',
+      timestamp: order.status === 'delivered' ? order.updatedAt : null,
+      completed: order.status === 'delivered',
+      icon: '🚚'
+    }
+  ];
+};
+const invalidateDriverCache = (driverId) => {
+  cache.del(`driver:profile:${driverId}`);
+  cache.del(`driver:stats:${driverId}`);
+  cache.invalidatePattern(`driver:orders:${driverId}:*`);
+  cache.del(`user:complete:${driverId}`);
+};
+exports.getMyProfile = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const cacheKey = `driver:profile:${driverId}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return res.json({
+        success: true,
+        data: cachedData,
+        cached: true
+      });
+    }
+    const driver = await User.findById(driverId)
+      .select('name phone image email driverInfo isOnline lastLogin')
+      .lean();
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "Driver not found"
+      });
+    }
+    const [todayOrders, totalEarnings, currentOrder] = await Promise.all([
+      Order.countDocuments({
+        driver: driverId,
+        status: 'delivered',
+        createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
+      }),
+      Order.aggregate([
+        { $match: { driver: driverId, status: 'delivered' } },
+        { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+      ]),
+      Order.findOne({
+        driver: driverId,
+        status: { $in: ['accepted', 'ready', 'picked'] }
+      }).select('_id status pickupAddress deliveryAddress')
+    ]);
+    const profileData = {
+      ...driver,
+      stats: {
+        todayOrders,
+        totalEarnings: totalEarnings[0]?.total || 0,
+        currentOrder: currentOrder || null
+      }
+    };
+    cache.set(cacheKey, profileData, 300);
+    res.json({
+      success: true,
+      data: profileData
+    });
+  } catch (error) {
+    console.error("❌ Get driver profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get driver profile"
+    });
+  }
+};
+exports.getAvailableOrders = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    console.log(`🚚 Driver ${driverId} requesting available orders`);
+    const driver = await User.findById(driverId).select('driverInfo.isAvailable isOnline name phone');
+    const isDriverAvailable = driver?.driverInfo?.isAvailable || false;
+    const isDriverOnline = driver?.isOnline || false;
+    console.log(`📊 Driver ${driverId} current availability: isAvailable=${isDriverAvailable}, isOnline=${isDriverOnline}`);
+    if (!isDriverAvailable) {
+      console.log(`⚠️ Driver ${driverId} is not available, returning empty orders`);
+      return res.json({
+        success: true,
+        data: {
+          orders: [],
+          stats: {
+            total: 0,
+            byStore: {},
+            averageValue: 0
+          },
+          timestamp: new Date(),
+          driverId: driverId,
+          isAvailable: false,
+          isOnline: false,
+          driverName: driver?.name,
+          driverPhone: driver?.phone
+        }
+      });
+    }
+    const availableOrders = await Order.find({
+      status: 'pending',
+      $or: [
+        { driver: { $exists: false } },
+        { driver: null }
+      ]
+    })
+      .populate('user', 'name phone')
+      .populate('store', 'name image phone addressLine deliveryInfo')
+      .populate('pickupAddress')
+      .populate('deliveryAddress')
+      .sort({ createdAt: 1 })
+      .lean();
+    console.log(`✅ Found ${availableOrders.length} available orders`);
+    const formattedOrders = availableOrders.map(order => ({
+      id: order._id,
+      _id: order._id,
+      store: {
+        _id: order.store?._id,
+        name: order.store?.name,
+        image: order.store?.image,
+        phone: order.store?.phone,
+        addressLine: order.store?.addressLine,
+        deliveryInfo: order.store?.deliveryInfo
+      },
+      items: order.items || [],
+      totalPrice: order.totalPrice || 0,
+      deliveryAddress: order.deliveryAddress ? {
+        _id: order.deliveryAddress._id,
+        addressLine: order.deliveryAddress.addressLine,
+        city: order.deliveryAddress.city,
+        latitude: order.deliveryAddress.latitude,
+        longitude: order.deliveryAddress.longitude
+      } : null,
+      pickupAddress: order.pickupAddress ? {
+        _id: order.pickupAddress._id,
+        addressLine: order.pickupAddress.addressLine,
+        city: order.pickupAddress.city
+      } : null,
+      status: order.status,
+      statusText: getStatusText(order.status),
+      createdAt: order.createdAt,
+      notes: order.notes || '',
+      paymentMethod: order.paymentMethod || 'cash',
+      estimatedDeliveryTime: order.estimatedDeliveryTime || 30
+    }));
+    const stats = {
+      total: formattedOrders.length,
+      byStore: {},
+      averageValue: formattedOrders.length > 0
+        ? formattedOrders.reduce((sum, o) => sum + o.totalPrice, 0) / formattedOrders.length
+        : 0
+    };
+    formattedOrders.forEach(order => {
+      const storeId = order.store?._id?.toString() || 'unknown';
+      if (!stats.byStore[storeId]) {
+        stats.byStore[storeId] = {
+          name: order.store?.name || 'Unknown',
+          count: 0,
+          totalValue: 0
+        };
+      }
+      stats.byStore[storeId].count++;
+      stats.byStore[storeId].totalValue += order.totalPrice;
+    });
+    res.json({
+      success: true,
+      data: {
+        orders: formattedOrders,
+        stats: stats,
+        timestamp: new Date(),
+        driverId: driverId,
+        isAvailable: true,
+        isOnline: true,
+        driverName: driver?.name,
+        driverPhone: driver?.phone
+      }
+    });
+  } catch (error) {
+    console.error('❌ Get available orders error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب الطلبات المتاحة',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+exports.toggleAvailability = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { isAvailable, isOnline } = req.body;
+    let finalStatus = null;
+    if (isAvailable !== undefined) {
+      finalStatus = isAvailable;
+    } else if (isOnline !== undefined) {
+      finalStatus = isOnline;
+    }
+    if (finalStatus === null) {
+      return res.status(400).json({
+        success: false,
+        message: "يجب توفير حالة التوفر (isAvailable أو isOnline)"
+      });
+    }
+    console.log(`🔄 Driver ${driverId} toggling availability to: ${finalStatus}`);
+    const driver = await User.findByIdAndUpdate(
+      driverId,
+      {
+        'driverInfo.isAvailable': finalStatus,
+        isOnline: finalStatus,
+        lastStatusUpdate: new Date()
+      },
+      { new: true, runValidators: false }
+    ).select('driverInfo.isAvailable isOnline name phone');
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    invalidateDriverCache(driverId);
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('driver:status:changed', {
+        driverId: driver._id,
+        driverName: driver.name,
+        isAvailable: driver.driverInfo.isAvailable,
+        isOnline: driver.isOnline,
+        timestamp: new Date()
+      });
+      if (finalStatus === true) {
+        io.to(`driver:${driverId}`).emit('driver:available:orders:refresh', {
+          timestamp: new Date()
+        });
+      }
+    }
+    res.json({
+      success: true,
+      message: finalStatus ? "✅ أنت الآن متاح للطلبات" : "⛔ أنت الآن غير متاح",
+      data: {
+        isAvailable: driver.driverInfo.isAvailable,
+        isOnline: driver.isOnline,
+        lastStatusUpdate: driver.lastStatusUpdate,
+        driverInfo: {
+          name: driver.name,
+          phone: driver.phone
+        }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Toggle availability error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث حالة التوفر",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+exports.updateLocation = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { latitude, longitude, orderId, accuracy, heading, speed } = req.body;
+    if (!latitude || !longitude) {
+      return res.status(400).json({
+        success: false,
+        message: "Latitude and longitude are required"
+      });
+    }
+    if (isNaN(latitude) || isNaN(longitude) ||
+        latitude < -90 || latitude > 90 ||
+        longitude < -180 || longitude > 180) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid coordinates"
+      });
+    }
+    console.log(`📍 Driver ${driverId} updating location: [${latitude}, ${longitude}]`);
+    await User.findByIdAndUpdate(driverId, {
+      'driverInfo.currentLocation': {
+        type: 'Point',
+        coordinates: [parseFloat(longitude), parseFloat(latitude)]
+      },
+      lastLocationUpdate: new Date()
+    });
+    const location = await DriverLocation.findOneAndUpdate(
+      { driver: driverId },
+      {
+        driver: driverId,
+        location: {
+          type: 'Point',
+          coordinates: [parseFloat(longitude), parseFloat(latitude)]
+        },
+        order: orderId || null,
+        accuracy: accuracy || null,
+        heading: heading || null,
+        speed: speed || null,
+        createdAt: new Date()
+      },
+      { upsert: true, new: true }
+    );
+    const io = req.app.get('io');
+    if (io && orderId) {
+      io.to(`order:${orderId}`).emit('driver:location:updated', {
+        orderId,
+        driverId,
+        location: { latitude, longitude },
+        accuracy,
+        heading,
+        speed,
+        timestamp: new Date()
+      });
+    }
+    res.json({
+      success: true,
+      message: "Location updated successfully",
+      data: {
+        location: { latitude, longitude },
+        accuracy,
+        heading,
+        speed,
+        timestamp: location.createdAt,
+        orderId: orderId || null
+      }
+    });
+  } catch (error) {
+    console.error("❌ Update location error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update location",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+exports.getCurrentOrder = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const currentOrder = await Order.findOne({
+      driver: driverId,
+      status: { $in: ['accepted', 'ready', 'picked'] }
+    })
+      .populate('user', 'name phone image')
+      .populate('store', 'name image phone addressLine')
+      .populate('pickupAddress')
+      .populate('deliveryAddress')
+      .populate('items.item')
+      .lean();
+    if (!currentOrder) {
+      return res.json({
+        success: true,
+        data: null,
+        message: "No active order"
+      });
+    }
+    const orderData = {
+      ...currentOrder,
+      statusText: getStatusText(currentOrder.status),
+      estimatedDelivery: calculateETA(currentOrder),
+      timeline: createOrderTimeline(currentOrder)
+    };
+    res.json({
+      success: true,
+      data: orderData
+    });
+  } catch (error) {
+    console.error("❌ Get current order error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get current order"
+    });
+  }
+};
+exports.getMyStats = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const cacheKey = `driver:stats:${driverId}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return res.json({
+        success: true,
+        data: cachedData,
+        cached: true
+      });
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const monthAgo = new Date();
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+    const [
+      todayStats,
+      weekStats,
+      monthStats,
+      totalStats,
+      recentOrders
+    ] = await Promise.all([
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            createdAt: { $gte: today }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
+            distance: { $sum: '$estimatedDistance' || 0 }
+          }
+        }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            createdAt: { $gte: weekAgo }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            createdAt: { $gte: monthAgo }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ['$totalPrice', 0.8] } },
+            avgTime: { $avg: '$deliveryTime' }
+          }
+        }
+      ]),
+      User.findById(driverId).select('driverInfo'),
+      Order.find({ driver: driverId, status: 'delivered' })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('totalPrice createdAt')
+        .lean()
+    ]);
+    const stats = {
+      today: {
+        orders: todayStats[0]?.orders || 0,
+        earnings: todayStats[0]?.earnings || 0,
+        distance: todayStats[0]?.distance || 0
+      },
+      week: {
+        daily: weekStats,
+        total: weekStats.reduce((sum, day) => sum + day.orders, 0),
+        earnings: weekStats.reduce((sum, day) => sum + day.earnings, 0)
+      },
+      month: {
+        orders: monthStats[0]?.orders || 0,
+        earnings: monthStats[0]?.earnings || 0,
+        avgTime: monthStats[0]?.avgTime || 0
+      },
+      total: {
+        orders: totalStats?.driverInfo?.totalDeliveries || 0,
+        earnings: totalStats?.driverInfo?.earnings || 0,
+        rating: totalStats?.driverInfo?.rating || 0
+      },
+      recentOrders
+    };
+    cache.set(cacheKey, stats, 300);
+    res.json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error("❌ Get driver stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get statistics"
+    });
+  }
+};
+exports.getCurrentLocation = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const location = await DriverLocation.findOne({ driver: driverId })
+      .sort({ createdAt: -1 })
+      .lean();
+    if (!location) {
+      return res.json({
+        success: true,
+        data: null,
+        message: "لا يوجد موقع مسجل حالياً"
+      });
+    }
+    res.json({
+      success: true,
+      data: {
+        driverId,
+        location: {
+          latitude: location.location.coordinates[1],
+          longitude: location.location.coordinates[0]
+        },
+        accuracy: location.accuracy,
+        speed: location.speed,
+        heading: location.heading,
+        updatedAt: location.createdAt
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get current location error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب الموقع الحالي"
+    });
+  }
+};
+exports.updateAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "لم يتم رفع أي صورة"
+      });
+    }
+    const driverId = req.user.id;
+    const oldDriver = await User.findById(driverId).select('image');
+    if (oldDriver?.image) {
+      const oldPublicId = fileService.extractPublicIdFromUrl(oldDriver.image);
+      if (oldPublicId) {
+        fileService.deleteFile(oldPublicId).catch(err =>
+          console.error('Error deleting old avatar:', err)
+        );
+      }
+    }
+    const driver = await User.findByIdAndUpdate(
+      driverId,
+      { image: req.file.path },
+      { new: true }
+    ).select('name phone image');
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    invalidateDriverCache(driverId);
+    res.json({
+      success: true,
+      message: "تم تحديث الصورة الشخصية بنجاح",
+      data: {
+        image: driver.image,
+        optimized: req.file.thumbnail || null
+      }
+    });
+  } catch (error) {
+    console.error("❌ Update avatar error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث الصورة الشخصية"
+    });
+  }
+};
+exports.getEarningsHistory = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { page = 1, limit = 20, from, to } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    let dateQuery = {};
+    if (from || to) {
+      dateQuery = {};
+      if (from) dateQuery.$gte = new Date(from);
+      if (to) dateQuery.$lte = new Date(to);
+    }
+    const orders = await Order.find({
+      driver: driverId,
+      status: 'delivered',
+      ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
+    })
+      .select('totalPrice deliveredAt items store')
+      .populate('store', 'name')
+      .sort({ deliveredAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit))
+      .lean();
+    const total = await Order.countDocuments({
+      driver: driverId,
+      status: 'delivered',
+      ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
+    });
+    const earnings = orders.map(order => ({
+      orderId: order._id,
+      storeName: order.store?.name || 'غير معروف',
+      date: order.deliveredAt,
+      amount: order.totalPrice,
+      commission: order.totalPrice * 0.2,
+      netEarnings: order.totalPrice * 0.8,
+      itemsCount: order.items?.reduce((sum, item) => sum + item.qty, 0) || 0
+    }));
+    const stats = {
+      totalEarnings: earnings.reduce((sum, e) => sum + e.netEarnings, 0),
+      totalOrders: earnings.length,
+      averagePerOrder: earnings.length > 0
+        ? earnings.reduce((sum, e) => sum + e.netEarnings, 0) / earnings.length
+        : 0,
+      totalCommission: earnings.reduce((sum, e) => sum + e.commission, 0)
+    };
+    const monthlyStats = await Order.aggregate([
+      {
+        $match: {
+          driver: driverId,
+          status: 'delivered',
+          ...(Object.keys(dateQuery).length > 0 ? { deliveredAt: dateQuery } : {})
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: "$deliveredAt" },
+            month: { $month: "$deliveredAt" }
+          },
+          earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
+          orders: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": -1, "_id.month": -1 } },
+      { $limit: 12 }
+    ]);
+    res.json({
+      success: true,
+      data: {
+        earnings,
+        monthlyStats,
+        stats,
+        pagination: {
+          page: parseInt(page),
+          limit: parseInt(limit),
+          total,
+          pages: Math.ceil(total / parseInt(limit))
+        }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get earnings history error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب سجل الأرباح"
+    });
+  }
+};
+exports.getPerformanceReport = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const now = new Date();
+    const today = new Date(now.setHours(0, 0, 0, 0));
+    const weekAgo = new Date(now.setDate(now.getDate() - 7));
+    const monthAgo = new Date(now.setMonth(now.getMonth() - 1));
+    const [
+      dailyStats,
+      weeklyStats,
+      monthlyStats,
+      deliveryTimes,
+      ratings
+    ] = await Promise.all([
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveredAt: { $gte: today }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
+            totalDistance: { $sum: "$estimatedDistance" }
+          }
+        }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveredAt: { $gte: weekAgo }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: "%Y-%m-%d", date: "$deliveredAt" } },
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveredAt: { $gte: monthAgo }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            earnings: { $sum: { $multiply: ["$totalPrice", 0.8] } },
+            avgOrderValue: { $avg: "$totalPrice" }
+          }
+        }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            driver: driverId,
+            status: 'delivered',
+            deliveryTime: { $exists: true }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            avgDeliveryTime: { $avg: "$deliveryTime" },
+            fastestDelivery: { $min: "$deliveryTime" },
+            slowestDelivery: { $max: "$deliveryTime" },
+            totalDeliveries: { $sum: 1 }
+          }
+        }
+      ]),
+      User.findById(driverId).select('driverInfo.rating driverInfo.totalRatings')
+    ]);
+    const acceptedOrders = await Order.countDocuments({
+      driver: driverId,
+      status: { $in: ['accepted', 'ready', 'picked', 'delivered'] }
+    });
+    const rejectedOrders = await Order.countDocuments({
+      driver: driverId,
+      status: 'cancelled',
+      cancelledBy: driverId
+    });
+    const acceptanceRate = acceptedOrders + rejectedOrders > 0
+      ? (acceptedOrders / (acceptedOrders + rejectedOrders)) * 100
+      : 100;
+    res.json({
+      success: true,
+      data: {
+        period: {
+          today: dailyStats[0] || { orders: 0, earnings: 0, totalDistance: 0 },
+          weekly: {
+            daily: weeklyStats,
+            total: weeklyStats.reduce((sum, day) => sum + day.orders, 0),
+            earnings: weeklyStats.reduce((sum, day) => sum + day.earnings, 0)
+          },
+          monthly: monthlyStats[0] || { orders: 0, earnings: 0, avgOrderValue: 0 }
+        },
+        performance: {
+          acceptanceRate: acceptanceRate.toFixed(1),
+          deliveryTime: deliveryTimes[0] || {
+            avgDeliveryTime: 0,
+            fastestDelivery: 0,
+            slowestDelivery: 0
+          },
+          rating: ratings?.driverInfo?.rating || 0,
+          totalRatings: ratings?.driverInfo?.totalRatings || 0
+        },
+        summary: {
+          totalDeliveries: acceptedOrders,
+          totalEarnings: monthlyStats[0]?.earnings || 0,
+          averagePerDay: weeklyStats.length > 0
+            ? weeklyStats.reduce((sum, day) => sum + day.orders, 0) / weeklyStats.length
+            : 0
+        }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get performance report error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب تقرير الأداء"
+    });
+  }
+};
+exports.getDrivers = async (req, res) => {
+  try {
+    const paginationOptions = PaginationUtils.getPaginationOptions(req);
+    const { skip, limit, sort, filters } = paginationOptions;
+    let query = { role: 'driver' };
+    if (filters.isAvailable !== undefined) {
+      query['driverInfo.isAvailable'] = filters.isAvailable === 'true';
+    }
+    if (filters.isOnline !== undefined) {
+      query.isOnline = filters.isOnline === 'true';
+    }
+    if (filters.minRating) {
+      query['driverInfo.rating'] = { $gte: Number(filters.minRating) };
+    }
+    const [drivers, total] = await Promise.all([
+      User.find(query)
+        .select('name phone image email driverInfo isOnline lastLogin')
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      User.countDocuments(query)
+    ]);
+    const driversWithStats = await Promise.all(
+      drivers.map(async (driver) => {
+        const todayOrders = await Order.countDocuments({
+          driver: driver._id,
+          status: 'delivered',
+          createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
+        });
+        return {
+          ...driver,
+          todayOrders
+        };
+      })
+    );
+    const response = PaginationUtils.createPaginationResponse(
+      driversWithStats,
+      total,
+      paginationOptions,
+      {
+        available: await User.countDocuments({ role: 'driver', 'driverInfo.isAvailable': true }),
+        online: await User.countDocuments({ role: 'driver', isOnline: true })
+      }
+    );
+    res.json(response);
+  } catch (error) {
+    console.error("❌ Get drivers error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get drivers"
+    });
+  }
+};
+exports.getDriverById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driver = await User.findById(id)
+      .select('name phone email image driverInfo isOnline lastLogin')
+      .lean();
+    if (!driver || driver.role !== 'driver') {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    res.json({
+      success: true,
+      data: driver
+    });
+  } catch (error) {
+    console.error("❌ Get driver by id error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب بيانات المندوب"
+    });
+  }
+};
+exports.getDriverLocation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const location = await DriverLocation.findOne({ driver: id })
+      .sort({ createdAt: -1 })
+      .lean();
+    if (!location) {
+      return res.status(404).json({
+        success: false,
+        message: "Driver location not found"
+      });
+    }
+    res.json({
+      success: true,
+      data: {
+        driverId: id,
+        location: {
+          latitude: location.location.coordinates[1],
+          longitude: location.location.coordinates[0]
+        },
+        updatedAt: location.createdAt
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get driver location error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get driver location"
+    });
+  }
+};
+exports.getDriverStatsById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driver = await User.findById(id)
+      .select('name phone email driverInfo')
+      .lean();
+    if (!driver || driver.role !== 'driver') {
+      return res.status(404).json({
+        success: false,
+        message: "Driver not found"
+      });
+    }
+    const [orders, earnings] = await Promise.all([
+      Order.aggregate([
+        { $match: { driver: id, status: 'delivered' } },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m', date: '$createdAt' } },
+            count: { $sum: 1 },
+            revenue: { $sum: '$totalPrice' }
+          }
+        },
+        { $sort: { _id: -1 } },
+        { $limit: 6 }
+      ]),
+      Order.aggregate([
+        { $match: { driver: id, status: 'delivered' } },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: '$totalPrice' },
+            avg: { $avg: '$totalPrice' },
+            min: { $min: '$totalPrice' },
+            max: { $max: '$totalPrice' }
+          }
+        }
+      ])
+    ]);
+    res.json({
+      success: true,
+      data: {
+        driver,
+        monthlyStats: orders,
+        earnings: earnings[0] || { total: 0, avg: 0, min: 0, max: 0 }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get driver stats error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to get driver statistics"
+    });
+  }
+};
+exports.verifyDriver = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driver = await User.findByIdAndUpdate(
+      id,
+      {
+        isVerified: true,
+        'driverInfo.documents.$[].verified': true
+      },
+      { new: true }
+    ).select('name phone email driverInfo isVerified');
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    res.json({
+      success: true,
+      message: "تم توثيق المندوب بنجاح",
+      data: {
+        id: driver._id,
+        isVerified: driver.isVerified,
+        driverInfo: driver.driverInfo
+      }
+    });
+  } catch (error) {
+    console.error("❌ Verify driver error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل توثيق المندوب"
+    });
+  }
+};
+exports.toggleDriverStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+    const driver = await User.findByIdAndUpdate(
+      id,
+      { isActive },
+      { new: true }
+    ).select('name phone email isActive');
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+    res.json({
+      success: true,
+      message: `تم ${isActive ? 'تفعيل' : 'تعطيل'} المندوب بنجاح`,
+      data: {
+        id: driver._id,
+        isActive: driver.isActive
+      }
+    });
+  } catch (error) {
+    console.error("❌ Toggle driver status error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تغيير حالة المندوب"
+    });
+  }
+};
+module.exports = exports;
 </file>
 
 <file path="src/middlewares/rateLimit.middleware.js">
