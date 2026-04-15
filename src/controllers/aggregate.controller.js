@@ -1,16 +1,78 @@
 // ============================================
 // ملف: src/controllers/aggregate.controller.js
 // الوصف: التحكم في عمليات التجميع والتحليلات
-// الإصدار: 3.0 (مصحح - استخدام Product بدلاً من )
+// الإصدار: 3.0 (مصحح - استخدام Product بدلاً من Item)
 // ============================================
 const { User, Address, Order, Store, StoreAddress, Review, Product, DriverLocation, Notification } = require('../models');
 const cache = require('../utils/cache.util');
 const PaginationUtils = require('../utils/pagination.util');
 
+// ============================================
+// 🛠️ الدوال المساعدة (Helper Functions)
+// ============================================
+
 /**
- * 1️⃣ بيانات لوحة تحكم المستخدم مع الكاش
- * GET /api/aggregate/dashboard
+ * حساب وقت التوصيل المتوقع
+ * @param {Object} order - كائن الطلب
+ * @returns {string} - وقت التوصيل المتوقع
  */
+const calculateETA = (order) => {
+  if (!order) return 'غير معروف';
+
+  const now = new Date();
+  const created = new Date(order.createdAt);
+  const elapsedMinutes = Math.floor((now - created) / 60000);
+  const baseTime = order.estimatedDeliveryTime || 30;
+  const remaining = Math.max(0, baseTime - elapsedMinutes);
+
+  const statusTimes = {
+    pending: `${baseTime} دقيقة`,
+    accepted: `${Math.max(5, remaining)} دقيقة`,
+    ready: `${Math.max(2, remaining - 5)} دقيقة`,
+    picked: `${Math.max(2, remaining - 10)} دقيقة`,
+    delivered: 'تم التوصيل',
+    cancelled: 'ملغي'
+  };
+
+  return statusTimes[order.status] || 'قيد الحساب';
+};
+
+/**
+ * الحصول على نص الحالة
+ * @param {string} status - حالة الطلب
+ * @returns {string} - النص المقابل للحالة
+ */
+const getStatusText = (status) => {
+  const statusTexts = {
+    pending: 'قيد الانتظار',
+    accepted: 'تم القبول',
+    ready: 'جاهز',
+    picked: 'تم الاستلام',
+    delivered: 'تم التوصيل',
+    cancelled: 'ملغي'
+  };
+  return statusTexts[status] || 'غير معروف';
+};
+
+/**
+ * حساب نسبة التغير بين قيمتين
+ * @param {number} current - القيمة الحالية
+ * @param {number} previous - القيمة السابقة
+ * @returns {Object} - نسبة التغير والاتجاه
+ */
+const calculateChange = (current, previous) => {
+  if (!previous || previous === 0) return { percentage: 100, trend: 'up' };
+  const change = ((current - previous) / previous) * 100;
+  return {
+    percentage: Math.abs(change).toFixed(1),
+    trend: change >= 0 ? 'up' : 'down'
+  };
+};
+
+// ============================================
+// 1️⃣ بيانات لوحة تحكم المستخدم مع الكاش
+// GET /api/aggregate/dashboard
+// ============================================
 exports.getDashboardData = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -69,7 +131,6 @@ exports.getDashboardData = async (req, res) => {
         .limit(5)
         .lean(),
 
-      // جلب عدد الإشعارات غير المقروءة
       (async () => {
         return await Notification.countDocuments({
           user: userId,
@@ -112,10 +173,10 @@ exports.getDashboardData = async (req, res) => {
   }
 };
 
-/**
- * 🔄 الحصول على المتاجر مع Pagination
- * GET /api/aggregate/stores
- */
+// ============================================
+// 2️⃣ الحصول على المتاجر مع Pagination
+// GET /api/aggregate/stores
+// ============================================
 exports.getStoresPaginated = async (req, res) => {
   try {
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
@@ -177,7 +238,6 @@ exports.getStoresPaginated = async (req, res) => {
           .limit(3)
           .lean();
 
-        // ✅ تم التصحيح: استخدام Product بدلاً من 
         const itemsCount = await Product.countDocuments({
           store: store._id,
           isAvailable: true
@@ -224,10 +284,10 @@ exports.getStoresPaginated = async (req, res) => {
   }
 };
 
-/**
- * 🔄 الحصول على عناصر المتجر مع Pagination
- * GET /api/aggregate/items
- */
+// ============================================
+// 3️⃣ الحصول على عناصر المتجر مع Pagination
+// GET /api/aggregate/items
+// ============================================
 exports.getItemsPaginated = async (req, res) => {
   try {
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
@@ -272,7 +332,6 @@ exports.getItemsPaginated = async (req, res) => {
       });
     }
 
-    // ✅ تم التصحيح: استخدام Product بدلاً من Item
     const [items, total] = await Promise.all([
       Product.find(query)
         .populate('store', 'name image type averageRating')
@@ -284,10 +343,7 @@ exports.getItemsPaginated = async (req, res) => {
       Product.countDocuments(query),
     ]);
 
-    // ✅ تم التصحيح: استخدام Product بدلاً من Item
     const categories = await Product.distinct('category', query);
-
-    // ✅ تم التصحيح: استخدام Product بدلاً من Item
     const priceStats = await Product.aggregate([
       { $match: query },
       {
@@ -299,8 +355,6 @@ exports.getItemsPaginated = async (req, res) => {
         }
       }
     ]);
-
-    // ✅ تم التصحيح: استخدام Product بدلاً من Item
     const totalStores = await Product.distinct('store', query).then(ids => ids.length);
 
     const responseData = PaginationUtils.createPaginationResponse(
@@ -328,10 +382,10 @@ exports.getItemsPaginated = async (req, res) => {
   }
 };
 
-/**
- * 🔄 الحصول على الطلبات مع Pagination (للأدمن)
- * GET /api/aggregate/orders/admin
- */
+// ============================================
+// 4️⃣ الحصول على الطلبات مع Pagination (للأدمن)
+// GET /api/aggregate/orders/admin
+// ============================================
 exports.getOrdersPaginatedAdmin = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -444,10 +498,10 @@ exports.getOrdersPaginatedAdmin = async (req, res) => {
   }
 };
 
-/**
- * 2️⃣ تفاصيل متجر كاملة مع الكاش
- * GET /api/aggregate/stores/:id/full
- */
+// ============================================
+// 5️⃣ تفاصيل متجر كاملة مع الكاش
+// GET /api/aggregate/stores/:id/full
+// ============================================
 exports.getStoreDetails = async (req, res) => {
   try {
     const { id } = req.params;
@@ -494,13 +548,11 @@ exports.getStoreDetails = async (req, res) => {
         .limit(10)
         .lean(),
 
-      // ✅ تم التصحيح: استخدام Product بدلاً من Item
       Product.find({ store: id, isAvailable: true })
         .select('name price image description category ingredients preparationTime')
         .sort({ category: 1, name: 1 })
         .lean(),
 
-      // ✅ تم التصحيح: استخدام Product بدلاً من Item
       Product.distinct('category', { store: id, isAvailable: true })
     ]);
 
@@ -561,10 +613,10 @@ exports.getStoreDetails = async (req, res) => {
   }
 };
 
-/**
- * 3️⃣ تفاصيل الطلب مع التتبع (كاش أقصر مدة)
- * GET /api/aggregate/orders/:id/full
- */
+// ============================================
+// 6️⃣ تفاصيل الطلب مع التتبع (كاش أقصر مدة)
+// GET /api/aggregate/orders/:id/full
+// ============================================
 exports.getOrderWithTracking = async (req, res) => {
   try {
     const { id } = req.params;
@@ -620,7 +672,7 @@ exports.getOrderWithTracking = async (req, res) => {
         DriverLocation.find({
           driver: order.driver._id,
           order: order._id,
-          createdAt: { $gte: new Date(Date.now() - 30 * 60 * 1000) } // آخر 30 دقيقة
+          createdAt: { $gte: new Date(Date.now() - 30 * 60 * 1000) }
         })
           .select('location createdAt')
           .sort({ createdAt: 1 })
@@ -669,13 +721,13 @@ exports.getOrderWithTracking = async (req, res) => {
           locationHistory,
           isActive: !!driverLocation,
           lastUpdated: driverLocation?.createdAt || null,
-          estimatedDeliveryTime: this.calculateETA(order)
+          estimatedDeliveryTime: calculateETA(order)
         },
         timeline: orderTimeline,
         metadata: {
           hasDriver: !!order.driver,
           status: order.status,
-          statusText: this.getStatusText(order.status),
+          statusText: getStatusText(order.status),
           canCancel: ['pending', 'accepted'].includes(order.status),
           canContactDriver: !!order.driver && ['accepted', 'picked'].includes(order.status)
         }
@@ -697,10 +749,10 @@ exports.getOrderWithTracking = async (req, res) => {
   }
 };
 
-/**
- * 4️⃣ بيانات صفحة الرئيسية مع كاش أطول
- * GET /api/aggregate/home
- */
+// ============================================
+// 7️⃣ بيانات صفحة الرئيسية مع كاش أطول
+// GET /api/aggregate/home
+// ============================================
 exports.getHomeData = async (req, res) => {
   try {
     const cacheKey = 'home:data';
@@ -723,7 +775,6 @@ exports.getHomeData = async (req, res) => {
             .select('name image averageRating type deliveryFee estimatedDeliveryTime')
             .lean(),
 
-          // ✅ تم التصحيح: استخدام Product بدلاً من Item
           Product.find({ isAvailable: true })
             .populate('store', 'name image')
             .sort({ createdAt: -1 })
@@ -743,7 +794,6 @@ exports.getHomeData = async (req, res) => {
 
           Promise.all([
             Store.countDocuments({ isOpen: true }),
-            // ✅ تم التصحيح: استخدام Product بدلاً من Item
             Product.countDocuments({ isAvailable: true }),
             Order.countDocuments({ status: 'delivered' }),
             Review.countDocuments()
@@ -798,10 +848,10 @@ exports.getHomeData = async (req, res) => {
   }
 };
 
-/**
- * 5️⃣ إدارة الكاش من خلال API
- * POST /api/aggregate/cache/clear
- */
+// ============================================
+// 8️⃣ إدارة الكاش من خلال API
+// POST /api/aggregate/cache/clear
+// ============================================
 exports.clearCache = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -853,10 +903,10 @@ exports.clearCache = async (req, res) => {
   }
 };
 
-/**
- * 6️⃣ الحصول على إحصائيات الكاش
- * GET /api/aggregate/cache/stats
- */
+// ============================================
+// 9️⃣ الحصول على إحصائيات الكاش
+// GET /api/aggregate/cache/stats
+// ============================================
 exports.getCacheStats = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -889,11 +939,10 @@ exports.getCacheStats = async (req, res) => {
   }
 };
 
-/**
- * @desc    مسح الكاش بنمط محدد
- * @route   POST /api/aggregate/cache/clear/:pattern
- * @access  Admin
- */
+// ============================================
+// 🔟 مسح الكاش بنمط محدد
+// POST /api/aggregate/cache/clear/:pattern
+// ============================================
 exports.clearCachePattern = async (req, res) => {
   try {
     if (req.user.role !== 'admin') {
@@ -912,9 +961,7 @@ exports.clearCachePattern = async (req, res) => {
       });
     }
 
-    // فك ترميز pattern إذا كان مشفراً
     const decodedPattern = decodeURIComponent(pattern);
-
     const clearedCount = cache.invalidatePattern(decodedPattern);
 
     res.json({
@@ -937,11 +984,10 @@ exports.clearCachePattern = async (req, res) => {
   }
 };
 
-/**
- * @desc    لوحة تحكم الأدمن
- * @route   GET /api/aggregate/admin/dashboard
- * @access  Admin
- */
+// ============================================
+// 1️⃣1️⃣ لوحة تحكم الأدمن
+// GET /api/aggregate/admin/dashboard
+// ============================================
 exports.getAdminDashboard = async (req, res) => {
   try {
     const [
@@ -1004,11 +1050,10 @@ exports.getAdminDashboard = async (req, res) => {
   }
 };
 
-/**
- * @desc    إحصائيات الأدمن العامة
- * @route   GET /api/aggregate/admin/stats
- * @access  Admin
- */
+// ============================================
+// 1️⃣2️⃣ إحصائيات الأدمن العامة
+// GET /api/aggregate/admin/stats
+// ============================================
 exports.getAdminStats = async (req, res) => {
   try {
     const { period = 'week' } = req.query;
@@ -1147,11 +1192,10 @@ exports.getAdminStats = async (req, res) => {
   }
 };
 
-/**
- * @desc    إحصائيات المستخدمين للأدمن
- * @route   GET /api/aggregate/admin/stats/users
- * @access  Admin
- */
+// ============================================
+// 1️⃣3️⃣ إحصائيات المستخدمين للأدمن
+// GET /api/aggregate/admin/stats/users
+// ============================================
 exports.getAdminUserStats = async (req, res) => {
   try {
     const stats = await User.aggregate([
@@ -1204,11 +1248,10 @@ exports.getAdminUserStats = async (req, res) => {
   }
 };
 
-/**
- * @desc    إحصائيات الطلبات للأدمن
- * @route   GET /api/aggregate/admin/stats/orders
- * @access  Admin
- */
+// ============================================
+// 1️⃣4️⃣ إحصائيات الطلبات للأدمن
+// GET /api/aggregate/admin/stats/orders
+// ============================================
 exports.getAdminOrderStats = async (req, res) => {
   try {
     const stats = await Order.aggregate([
@@ -1262,11 +1305,10 @@ exports.getAdminOrderStats = async (req, res) => {
   }
 };
 
-/**
- * @desc    إحصائيات الإيرادات للأدمن
- * @route   GET /api/aggregate/admin/stats/revenue
- * @access  Admin
- */
+// ============================================
+// 1️⃣5️⃣ إحصائيات الإيرادات للأدمن
+// GET /api/aggregate/admin/stats/revenue
+// ============================================
 exports.getAdminRevenueStats = async (req, res) => {
   try {
     const { period = 'month' } = req.query;
@@ -1341,11 +1383,10 @@ exports.getAdminRevenueStats = async (req, res) => {
   }
 };
 
-/**
- * @desc    تحليلات المستخدمين
- * @route   GET /api/aggregate/admin/analytics/users
- * @access  Admin
- */
+// ============================================
+// 1️⃣6️⃣ تحليلات المستخدمين
+// GET /api/aggregate/admin/analytics/users
+// ============================================
 exports.getUserAnalytics = async (req, res) => {
   try {
     const { period = 'month' } = req.query;
@@ -1356,7 +1397,6 @@ exports.getUserAnalytics = async (req, res) => {
     else startDate.setDate(startDate.getDate() - 30);
 
     const [growth, retention, byLocation] = await Promise.all([
-      // نمو المستخدمين
       User.aggregate([
         {
           $match: {
@@ -1374,7 +1414,6 @@ exports.getUserAnalytics = async (req, res) => {
         { $sort: { _id: 1 } }
       ]),
 
-      // الاحتفاظ بالمستخدمين
       User.aggregate([
         {
           $facet: {
@@ -1399,7 +1438,6 @@ exports.getUserAnalytics = async (req, res) => {
         }
       ]),
 
-      // المستخدمين حسب المدينة
       User.aggregate([
         {
           $group: {
@@ -1437,11 +1475,10 @@ exports.getUserAnalytics = async (req, res) => {
   }
 };
 
-/**
- * @desc    تحليلات الطلبات
- * @route   GET /api/aggregate/admin/analytics/orders
- * @access  Admin
- */
+// ============================================
+// 1️⃣7️⃣ تحليلات الطلبات
+// GET /api/aggregate/admin/analytics/orders
+// ============================================
 exports.getOrderAnalytics = async (req, res) => {
   try {
     const { period = 'month' } = req.query;
@@ -1452,7 +1489,6 @@ exports.getOrderAnalytics = async (req, res) => {
     else startDate.setDate(startDate.getDate() - 30);
 
     const [trends, byHour, completionRate] = await Promise.all([
-      // اتجاهات الطلبات
       Order.aggregate([
         {
           $match: {
@@ -1471,7 +1507,6 @@ exports.getOrderAnalytics = async (req, res) => {
         { $sort: { _id: 1 } }
       ]),
 
-      // الطلبات حسب الساعة
       Order.aggregate([
         {
           $match: {
@@ -1487,7 +1522,6 @@ exports.getOrderAnalytics = async (req, res) => {
         { $sort: { _id: 1 } }
       ]),
 
-      // معدل الإكمال
       Order.aggregate([
         {
           $match: {
@@ -1539,11 +1573,10 @@ exports.getOrderAnalytics = async (req, res) => {
   }
 };
 
-/**
- * @desc    تحليلات الإيرادات
- * @route   GET /api/aggregate/admin/analytics/revenue
- * @access  Admin
- */
+// ============================================
+// 1️⃣8️⃣ تحليلات الإيرادات
+// GET /api/aggregate/admin/analytics/revenue
+// ============================================
 exports.getRevenueAnalytics = async (req, res) => {
   try {
     const { period = 'month' } = req.query;
@@ -1557,7 +1590,6 @@ exports.getRevenueAnalytics = async (req, res) => {
     previousStartDate.setMonth(previousStartDate.getMonth() - 1);
 
     const [current, previous, byDay, byCategory] = await Promise.all([
-      // الإيرادات الحالية
       Order.aggregate([
         {
           $match: {
@@ -1575,7 +1607,6 @@ exports.getRevenueAnalytics = async (req, res) => {
         }
       ]),
 
-      // الإيرادات السابقة للمقارنة
       Order.aggregate([
         {
           $match: {
@@ -1591,7 +1622,6 @@ exports.getRevenueAnalytics = async (req, res) => {
         }
       ]),
 
-      // الإيرادات اليومية
       Order.aggregate([
         {
           $match: {
@@ -1611,7 +1641,6 @@ exports.getRevenueAnalytics = async (req, res) => {
         { $sort: { _id: 1 } }
       ]),
 
-      // الإيرادات حسب الفئة
       Order.aggregate([
         {
           $match: {
@@ -1665,11 +1694,10 @@ exports.getRevenueAnalytics = async (req, res) => {
   }
 };
 
-/**
- * @desc    بحث موحد في جميع المحتويات
- * @route   GET /api/aggregate/search
- * @access  Public
- */
+// ============================================
+// 1️⃣9️⃣ بحث موحد في جميع المحتويات
+// GET /api/aggregate/search
+// ============================================
 exports.unifiedSearch = async (req, res) => {
   try {
     const { q: searchTerm, type, limit = 10 } = req.query;
@@ -1683,7 +1711,6 @@ exports.unifiedSearch = async (req, res) => {
 
     const results = {};
 
-    // البحث في المتاجر
     if (!type || type === 'stores') {
       const stores = await Store.find({
         $or: [
@@ -1700,9 +1727,7 @@ exports.unifiedSearch = async (req, res) => {
       results.stores = stores;
     }
 
-    // البحث في الأصناف
     if (!type || type === 'items') {
-      // ✅ تم التصحيح: استخدام Product بدلاً من Item
       const items = await Product.find({
         name: { $regex: searchTerm, $options: 'i' },
         isAvailable: true
@@ -1715,7 +1740,6 @@ exports.unifiedSearch = async (req, res) => {
       results.items = items;
     }
 
-    // البحث في المستخدمين (للمسجلين فقط)
     if (req.user && (!type || type === 'users')) {
       const users = await User.find({
         $or: [
@@ -1731,7 +1755,6 @@ exports.unifiedSearch = async (req, res) => {
       results.users = users;
     }
 
-    // البحث في الطلبات (للمستخدم نفسه فقط)
     if (req.user && (!type || type === 'orders')) {
       const orders = await Order.find({
         user: req.user.id,
@@ -1760,11 +1783,10 @@ exports.unifiedSearch = async (req, res) => {
   }
 };
 
-/**
- * @desc    إحصائيات عامة للتطبيق
- * @route   GET /api/aggregate/stats
- * @access  Public
- */
+// ============================================
+// 2️⃣0️⃣ إحصائيات عامة للتطبيق
+// GET /api/aggregate/stats
+// ============================================
 exports.getPublicStats = async (req, res) => {
   try {
     const cacheKey = 'public:stats';
@@ -1787,32 +1809,19 @@ exports.getPublicStats = async (req, res) => {
       topCategories,
       topCities
     ] = await Promise.all([
-      // إجمالي المتاجر
       Store.countDocuments({ isOpen: true }),
-
-      // ✅ تم التصحيح: استخدام Product بدلاً من Item
       Product.countDocuments({ isAvailable: true }),
-
-      // إجمالي الطلبات المكتملة
       Order.countDocuments({ status: 'delivered' }),
-
-      // إجمالي التقييمات
       Review.countDocuments(),
-
-      // متوسط التقييم العام
       Review.aggregate([
         { $group: { _id: null, avg: { $avg: '$rating' } } }
       ]),
-
-      // ✅ تم التصحيح: استخدام Product بدلاً من Item
       Product.aggregate([
         { $match: { isAvailable: true } },
         { $group: { _id: '$category', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 5 }
       ]),
-
-      // أفضل المدن
       StoreAddress.aggregate([
         { $group: { _id: '$city', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
@@ -1837,7 +1846,7 @@ exports.getPublicStats = async (req, res) => {
       timestamp: new Date()
     };
 
-    cache.set(cacheKey, stats, 600); // 10 دقائق
+    cache.set(cacheKey, stats, 600);
 
     res.json({
       success: true,
@@ -1852,11 +1861,10 @@ exports.getPublicStats = async (req, res) => {
   }
 };
 
-/**
- * @desc    الحصول على طلبات المستخدم مع Pagination
- * @route   GET /api/aggregate/orders/me
- * @access  Authenticated
- */
+// ============================================
+// 2️⃣1️⃣ الحصول على طلبات المستخدم مع Pagination
+// GET /api/aggregate/orders/me
+// ============================================
 exports.getMyOrdersPaginated = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -1894,7 +1902,6 @@ exports.getMyOrdersPaginated = async (req, res) => {
       Order.countDocuments(query)
     ]);
 
-    // إضافة معلومات إضافية لكل طلب
     const ordersWithDetails = orders.map(order => ({
       ...order,
       statusText: getStatusText(order.status),
@@ -1902,7 +1909,6 @@ exports.getMyOrdersPaginated = async (req, res) => {
       itemCount: order.items?.reduce((sum, item) => sum + (item.qty || 0), 0) || 0
     }));
 
-    // إحصائيات الطلبات
     const orderStats = await Order.aggregate([
       { $match: { user: userId } },
       {
@@ -1948,53 +1954,10 @@ exports.getMyOrdersPaginated = async (req, res) => {
   }
 };
 
-// ====== دوال مساعدة ======
-
-/**
- * حساب وقت التوصيل المتوقع
- */
-exports.calculateETA = (order) => {
-  const statusTimes = {
-    pending: '15-25 دقيقة',
-    accepted: '10-20 دقيقة',
-    picked: '5-15 دقيقة',
-    delivered: 'تم التوصيل',
-    cancelled: 'ملغي'
-  };
-
-  return statusTimes[order.status] || 'غير معروف';
-};
-
-/**
- * الحصول على نص الحالة
- */
-exports.getStatusText = (status) => {
-  const statusTexts = {
-    pending: 'قيد الانتظار',
-    accepted: 'تم القبول',
-    picked: 'تم الاستلام',
-    delivered: 'تم التوصيل',
-    cancelled: 'ملغي'
-  };
-
-  return statusTexts[status] || 'غير معروف';
-};
-
-// دالة مساعدة لحساب التغير (للاستخدام الداخلي)
-function calculateChange(current, previous) {
-  if (!previous || previous === 0) return { percentage: 100, trend: 'up' };
-  const change = ((current - previous) / previous) * 100;
-  return {
-    percentage: Math.abs(change).toFixed(1),
-    trend: change >= 0 ? 'up' : 'down'
-  };
-}
-
-/**
- * @desc    تصدير تقرير الطلبات
- * @route   GET /api/v1/admin/reports/orders
- * @access  Admin
- */
+// ============================================
+// 2️⃣2️⃣ تصدير تقرير الطلبات
+// GET /api/v1/admin/reports/orders
+// ============================================
 exports.exportOrdersReport = async (req, res) => {
   try {
     const { from, to, format = 'json' } = req.query;
@@ -2022,7 +1985,6 @@ exports.exportOrdersReport = async (req, res) => {
       });
     }
 
-    // يمكن إضافة تصدير CSV أو Excel هنا
     res.json({
       success: true,
       data: orders,
@@ -2037,9 +1999,9 @@ exports.exportOrdersReport = async (req, res) => {
   }
 };
 
-/**
- * @desc    تصدير تقرير المستخدمين
- */
+// ============================================
+// 2️⃣3️⃣ تصدير تقرير المستخدمين
+// ============================================
 exports.exportUsersReport = async (req, res) => {
   try {
     const users = await User.find({})
@@ -2061,9 +2023,9 @@ exports.exportUsersReport = async (req, res) => {
   }
 };
 
-/**
- * @desc    تصدير تقرير الإيرادات
- */
+// ============================================
+// 2️⃣4️⃣ تصدير تقرير الإيرادات
+// ============================================
 exports.exportRevenueReport = async (req, res) => {
   try {
     const { from, to } = req.query;
@@ -2111,9 +2073,9 @@ exports.exportRevenueReport = async (req, res) => {
   }
 };
 
-/**
- * @desc    تصدير تقرير المندوبين
- */
+// ============================================
+// 2️⃣5️⃣ تصدير تقرير المندوبين
+// ============================================
 exports.exportDriversReport = async (req, res) => {
   try {
     const drivers = await User.find({ role: 'driver' })
@@ -2165,9 +2127,9 @@ exports.exportDriversReport = async (req, res) => {
   }
 };
 
-/**
- * @desc    تصدير تقرير المتاجر
- */
+// ============================================
+// 2️⃣6️⃣ تصدير تقرير المتاجر
+// ============================================
 exports.exportStoresReport = async (req, res) => {
   try {
     const stores = await Store.find({})
@@ -2217,11 +2179,10 @@ exports.exportStoresReport = async (req, res) => {
   }
 };
 
-/**
- * @desc    إحصائيات متقدمة يومية
- * @route   GET /api/v1/admin/advanced-stats/daily
- * @access  Admin
- */
+// ============================================
+// 2️⃣7️⃣ إحصائيات متقدمة يومية
+// GET /api/v1/admin/advanced-stats/daily
+// ============================================
 exports.getDailyAdvancedStats = async (req, res) => {
   try {
     const today = new Date();
@@ -2231,7 +2192,6 @@ exports.getDailyAdvancedStats = async (req, res) => {
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     const stats = await Promise.all([
-      // الطلبات اليوم
       Order.aggregate([
         {
           $match: {
@@ -2256,17 +2216,14 @@ exports.getDailyAdvancedStats = async (req, res) => {
         }
       ]),
 
-      // المستخدمين الجدد اليوم
       User.countDocuments({
         createdAt: { $gte: today, $lt: tomorrow }
       }),
 
-      // المتاجر الجديدة اليوم
       Store.countDocuments({
         createdAt: { $gte: today, $lt: tomorrow }
       }),
 
-      // الطلبات حسب الساعة
       Order.aggregate([
         {
           $match: {
@@ -2309,11 +2266,10 @@ exports.getDailyAdvancedStats = async (req, res) => {
   }
 };
 
-/**
- * @desc    إحصائيات متقدمة أسبوعية
- * @route   GET /api/v1/admin/advanced-stats/weekly
- * @access  Admin
- */
+// ============================================
+// 2️⃣8️⃣ إحصائيات متقدمة أسبوعية
+// GET /api/v1/admin/advanced-stats/weekly
+// ============================================
 exports.getWeeklyAdvancedStats = async (req, res) => {
   try {
     const weekAgo = new Date();
@@ -2384,11 +2340,10 @@ exports.getWeeklyAdvancedStats = async (req, res) => {
   }
 };
 
-/**
- * @desc    إحصائيات متقدمة شهرية
- * @route   GET /api/v1/admin/advanced-stats/monthly
- * @access  Admin
- */
+// ============================================
+// 2️⃣9️⃣ إحصائيات متقدمة شهرية
+// GET /api/v1/admin/advanced-stats/monthly
+// ============================================
 exports.getMonthlyAdvancedStats = async (req, res) => {
   try {
     const { year, month } = req.query;
@@ -2484,11 +2439,10 @@ exports.getMonthlyAdvancedStats = async (req, res) => {
   }
 };
 
-/**
- * @desc    إحصائيات مخصصة (فترة زمنية مخصصة)
- * @route   GET /api/v1/admin/advanced-stats/custom
- * @access  Admin
- */
+// ============================================
+// 3️⃣0️⃣ إحصائيات مخصصة (فترة زمنية مخصصة)
+// GET /api/v1/admin/advanced-stats/custom
+// ============================================
 exports.getCustomStats = async (req, res) => {
   try {
     const { from, to, groupBy = 'day' } = req.query;
@@ -2579,10 +2533,9 @@ exports.getCustomStats = async (req, res) => {
   }
 };
 
-/**
- * @desc    الحصول على إيرادات اليوم (دالة مساعدة)
- * @access  Internal
- */
+// ============================================
+// 3️⃣1️⃣ الحصول على إيرادات اليوم (دالة مساعدة)
+// ============================================
 exports.getTodayRevenue = async (query = {}) => {
   try {
     const startOfDay = new Date();
@@ -2615,10 +2568,9 @@ exports.getTodayRevenue = async (query = {}) => {
   }
 };
 
-/**
- * @desc    الحصول على إحصائيات المتجر (دالة مساعدة)
- * @access  Internal
- */
+// ============================================
+// 3️⃣2️⃣ الحصول على إحصائيات المتجر (دالة مساعدة)
+// ============================================
 exports.getStoreStats = async (storeId) => {
   try {
     const [
@@ -2677,46 +2629,4 @@ exports.getStoreStats = async (storeId) => {
       popularProducts: []
     };
   }
-};
-
-/**
- * @desc    حساب وقت التوصيل المتوقع (دالة مساعدة)
- * @access  Internal
- */
-exports.calculateETA = (order) => {
-  if (!order) return 'غير معروف';
-
-  const now = new Date();
-  const created = new Date(order.createdAt);
-  const elapsedMinutes = Math.floor((now - created) / 60000);
-
-  const baseTime = order.estimatedDeliveryTime || 30;
-  const remaining = Math.max(0, baseTime - elapsedMinutes);
-
-  const statusTimes = {
-    pending: `${baseTime} دقيقة`,
-    accepted: `${Math.max(5, remaining)} دقيقة`,
-    ready: `${Math.max(2, remaining - 5)} دقيقة`,
-    picked: `${Math.max(2, remaining - 10)} دقيقة`,
-    delivered: 'تم التوصيل',
-    cancelled: 'ملغي'
-  };
-
-  return statusTimes[order.status] || 'قيد الحساب';
-};
-
-/**
- * @desc    الحصول على نص الحالة (دالة مساعدة)
- * @access  Internal
- */
-exports.getStatusText = (status) => {
-  const statusTexts = {
-    pending: 'قيد الانتظار',
-    accepted: 'تم القبول',
-    ready: 'جاهز',
-    picked: 'تم الاستلام',
-    delivered: 'تم التوصيل',
-    cancelled: 'ملغي'
-  };
-  return statusTexts[status] || 'غير معروف';
 };
