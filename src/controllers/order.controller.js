@@ -406,7 +406,7 @@ exports.createOrder = async (req, res) => {
 /**
  * @desc    الحصول على تفاصيل الطلب (موحد)
  * @route   GET /api/v1/orders/:id
- * @access  Authenticated (Owner, Driver, Admin)
+ * @access  Authenticated (Vendor, Driver, Admin)
  */
 exports.getOrderDetails = async (req, res) => {
   try {
@@ -447,11 +447,11 @@ exports.getOrderDetails = async (req, res) => {
       });
     }
 
-    const isOwner = order.user && order.user._id.toString() === userId;
+    const isVendor = order.user && order.user._id.toString() === userId;
     const isDriver = order.driver && order.driver._id.toString() === userId;
     const isAdmin = userRole === 'admin';
 
-    if (!isOwner && !isDriver && !isAdmin) {
+    if (!isVendor && !isDriver && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'غير مصرح لك بالوصول إلى هذا الطلب'
@@ -486,7 +486,7 @@ exports.getOrderDetails = async (req, res) => {
           driver: order.driver._id,
           order: order._id
         }).lean();
-        
+
         if (locationData && locationData.location && locationData.location.coordinates) {
           driverLocation = {
             latitude: locationData.location.coordinates[1],
@@ -543,11 +543,11 @@ exports.getOrderDetails = async (req, res) => {
         },
         timeline: timeline,
         permissions: {
-          canCancel: ['pending', 'accepted'].includes(order.status) && (isOwner || isAdmin),
+          canCancel: ['pending', 'accepted'].includes(order.status) && (isVendor || isAdmin),
           canUpdateStatus: (isDriver && ['accepted', 'ready', 'picked'].includes(order.status)) || isAdmin,
           canContactDriver: !!order.driver && ['accepted', 'ready', 'picked'].includes(order.status),
           canReassign: isAdmin,
-          canRate: order.status === 'delivered' && isOwner
+          canRate: order.status === 'delivered' && isVendor
         },
         store: order.store ? {
           id: order.store._id,
@@ -573,7 +573,7 @@ exports.getOrderDetails = async (req, res) => {
   } catch (error) {
     console.error('❌ Get order details error:', error);
     console.error('Stack:', error.stack);
-    
+
     res.status(500).json({
       success: false,
       message: 'فشل جلب بيانات الطلب',
@@ -900,7 +900,7 @@ exports.getAllOrdersPaginated = async (req, res) => {
   }
 };
 
-// ========== 4. دوال أصحاب المتاجر (Store Owner) ==========
+// ========== 4. دوال أصحاب المتاجر (Store Vendor) ==========
 
 /**
  * @desc    قبول الطلب (لصاحب المتجر)
@@ -912,15 +912,15 @@ exports.acceptOrder = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const order = await Order.findOne({
       _id: id,
       store: storeId,
@@ -980,16 +980,16 @@ exports.rejectOrder = async (req, res) => {
     const { reason } = req.body;
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     if (!reason || reason.trim().length < 5) {
       return res.status(400).json({
@@ -1057,16 +1057,16 @@ exports.markOrderReady = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const order = await Order.findOne({
       _id: id,
@@ -1136,16 +1136,16 @@ exports.getVendorOrders = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, filters } = paginationOptions;
 
@@ -1206,16 +1206,16 @@ exports.getVendorOrderStats = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1293,16 +1293,16 @@ exports.startPreparing = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const order = await Order.findOne({
       _id: id,
@@ -1359,16 +1359,16 @@ exports.getTodayOrders = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1545,10 +1545,10 @@ exports.cancelOrder = async (req, res) => {
       });
     }
 
-    const isOwner = order.user._id.toString() === userId;
+    const isVendor = order.user._id.toString() === userId;
     const isAdmin = userRole === 'admin';
 
-    if (!isOwner && !isAdmin) {
+    if (!isVendor && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'غير مصرح لك بإلغاء هذا الطلب'
@@ -1829,7 +1829,7 @@ exports.reassignDriver = async (req, res) => {
 /**
  * @desc    تتبع الطلب (مبسط)
  * @route   GET /api/v1/orders/:id/track
- * @access  Authenticated (Owner, Driver, Admin)
+ * @access  Authenticated (Vendor, Driver, Admin)
  */
 exports.trackOrder = async (req, res) => {
   try {
@@ -1851,11 +1851,11 @@ exports.trackOrder = async (req, res) => {
       });
     }
 
-    const isOwner = order.user.toString() === userId;
+    const isVendor = order.user.toString() === userId;
     const isDriver = order.driver && order.driver._id.toString() === userId;
     const isAdmin = userRole === 'admin';
 
-    if (!isOwner && !isDriver && !isAdmin) {
+    if (!isVendor && !isDriver && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: "غير مصرح لك بتتبع هذا الطلب"
@@ -1965,7 +1965,7 @@ exports.trackOrder = async (req, res) => {
           price: item.price
         })),
         totalPrice: order.totalPrice,
-        canCancel: ['pending', 'accepted'].includes(order.status) && (isOwner || isAdmin),
+        canCancel: ['pending', 'accepted'].includes(order.status) && (isVendor || isAdmin),
         canContactDriver: !!order.driver && ['accepted', 'ready', 'picked'].includes(order.status)
       }
     });
@@ -2146,11 +2146,11 @@ exports.getOrderTimeline = async (req, res) => {
       });
     }
 
-    const isOwner = order.user.toString() === userId;
+    const isVendor = order.user.toString() === userId;
     const isDriver = order.driver && order.driver._id.toString() === userId;
     const isAdmin = req.user.role === 'admin';
 
-    if (!isOwner && !isDriver && !isAdmin) {
+    if (!isVendor && !isDriver && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: "غير مصرح لك بالوصول"
@@ -2965,7 +2965,7 @@ exports.rateOrder = async (req, res) => {
     }
 
     await notificationService.sendNotification({
-      user: order.store.owner || order.store.createdBy,
+      user: order.store.vendor || order.store.createdBy,
       type: "new_review",
       title: "⭐ تقييم جديد",
       content: `حصلت على تقييم ${rating} نجوم على طلب #${order._id.toString().slice(-6)}`,

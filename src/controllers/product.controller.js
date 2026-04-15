@@ -36,7 +36,7 @@ const validateStore = async (storeId, userId = null) => {
   }
 
   // إذا كان هناك userId، تحقق من الملكية
-  if (userId && store.owner?.toString() !== userId) {
+  if (userId && store.vendor?.toString() !== userId) {
     throw new AppError('غير مصرح لك بإدارة منتجات هذا المتجر', 403);
   }
 
@@ -89,7 +89,7 @@ exports.getAllProducts = async (req, res) => {
 
     const [products, total] = await Promise.all([
       Product.find(query)
-        .populate('store', 'name logo category owner')
+        .populate('store', 'name logo category vendor')
         .sort(sort)
         .skip(skip)
         .limit(limit)
@@ -318,7 +318,7 @@ exports.createProduct = async (req, res) => {
     // 1. من middleware للتاجر (req.storeId)
     // 2. من body للمشرف (req.body.store أو req.body.storeId)
     let storeId = req.storeId || req.body.store || req.body.storeId;
-    
+
     // التحقق من وجود storeId
     if (!storeId) {
       return res.status(400).json({
@@ -358,9 +358,9 @@ exports.createProduct = async (req, res) => {
         message: "المتجر غير موجود"
       });
     }
-    
+
     // فقط للتاجر: تحقق من ملكية المتجر
-    if (req.user.role === 'vendor' && store.owner?.toString() !== req.user.id) {
+    if (req.user.role === 'vendor' && store.vendor?.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: "غير مصرح لك بإدارة منتجات هذا المتجر"
@@ -390,15 +390,15 @@ exports.createProduct = async (req, res) => {
 
     let ingredientsArray = [];
     if (ingredients) {
-      ingredientsArray = Array.isArray(ingredients) 
-        ? ingredients 
+      ingredientsArray = Array.isArray(ingredients)
+        ? ingredients
         : ingredients.split(',').map(i => i.trim()).filter(i => i);
     }
 
     let tagsArray = [];
     if (tags) {
-      tagsArray = Array.isArray(tags) 
-        ? tags 
+      tagsArray = Array.isArray(tags)
+        ? tags
         : tags.split(',').map(t => t.trim()).filter(t => t);
     }
 
@@ -450,13 +450,13 @@ exports.createProduct = async (req, res) => {
     });
 
     console.log('📸 File upload check:', {
-    hasFile: !!req.file,
-    filePath: req.file?.path,
-    fileCloudinary: req.file?.cloudinary?.url,
-    contentType: req.headers['content-type'],
-    bodyKeys: Object.keys(req.body)
-  });
-    
+      hasFile: !!req.file,
+      filePath: req.file?.path,
+      fileCloudinary: req.file?.cloudinary?.url,
+      contentType: req.headers['content-type'],
+      bodyKeys: Object.keys(req.body)
+    });
+
   } catch (error) {
     console.error("❌ Create product error:", error);
 
@@ -652,14 +652,14 @@ exports.deleteProduct = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     const userRole = req.user.role;
-    
+
     console.log('Delete product request:', {
       id,
       userId,
       userRole,
       storeId: req.storeId
     });
-    
+
     // التحقق من صحة الـ ID
     if (!id || id.length !== 24) {
       return res.status(400).json({
@@ -667,17 +667,17 @@ exports.deleteProduct = async (req, res) => {
         message: 'معرف المنتج غير صالح'
       });
     }
-    
+
     // البحث عن المنتج
-    const product = await Product.findById(id).populate('store', 'owner');
-    
+    const product = await Product.findById(id).populate('store', 'vendor');
+
     if (!product) {
       return res.status(404).json({
         success: false,
         message: 'المنتج غير موجود'
       });
     }
-    
+
     // التحقق من الصلاحيات
     if (userRole === 'vendor') {
       // للتاجر: تحقق من ملكية المتجر
@@ -689,14 +689,14 @@ exports.deleteProduct = async (req, res) => {
       }
     }
     // للمشرف: لا حاجة للتحقق، يمكنه حذف أي منتج
-    
+
     console.log('Found product to delete:', {
       id: product._id,
       name: product.name,
       store: product.store._id,
       role: userRole
     });
-    
+
     // حذف الصورة من Cloudinary
     if (product.image) {
       try {
@@ -709,20 +709,20 @@ exports.deleteProduct = async (req, res) => {
         console.error('Error deleting product image:', imgError);
       }
     }
-    
+
     // حذف المنتج
     await Product.findByIdAndDelete(id);
-    
+
     // تحديث إحصائيات المتجر
     await Store.findByIdAndUpdate(product.store._id, {
       $inc: { 'stats.totalProducts': -1 }
     });
-    
+
     // إبطال الكاش
     invalidateProductCache(product.store._id, id);
-    
+
     console.log('Product deleted successfully:', id);
-    
+
     res.json({
       success: true,
       message: 'تم حذف المنتج بنجاح',
@@ -731,17 +731,17 @@ exports.deleteProduct = async (req, res) => {
         name: product.name
       }
     });
-    
+
   } catch (error) {
     console.error('❌ Delete product error:', error);
-    
+
     if (error.name === 'CastError') {
       return res.status(400).json({
         success: false,
         message: 'معرف المنتج غير صالح'
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: 'فشل في حذف المنتج',

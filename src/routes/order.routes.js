@@ -4,7 +4,7 @@ const router = express.Router();
 const { orderController } = require('../controllers');
 const auth = require("../middlewares/auth.middleware");
 const role = require("../middlewares/role.middleware");
-const { storeOwnerMiddleware, driverMiddleware } = require("../middlewares/role.middleware");
+const { storeVendorMiddleware, driverMiddleware } = require("../middlewares/role.middleware");
 const validate = require('../middlewares/validate.middleware');
 const { noCache } = require('../middlewares/cache.middleware');
 const PaginationUtils = require('../utils/pagination.util');
@@ -46,19 +46,19 @@ router.post("/driver/:id/location", auth, driverMiddleware, orderController.upda
 
 router.get('/driver/earnings', auth, driverMiddleware, orderController.getDriverEarnings);
 
-router.get('/vendor/orders', auth, storeOwnerMiddleware, PaginationUtils.validatePaginationParams, orderController.getVendorOrders);
+router.get('/vendor/orders', auth, storeVendorMiddleware, PaginationUtils.validatePaginationParams, orderController.getVendorOrders);
 
-router.get('/vendor/orders/stats', auth, storeOwnerMiddleware, orderController.getVendorOrderStats);
+router.get('/vendor/orders/stats', auth, storeVendorMiddleware, orderController.getVendorOrderStats);
 
-router.get('/vendor/orders/today', auth, storeOwnerMiddleware, orderController.getTodayOrders);
+router.get('/vendor/orders/today', auth, storeVendorMiddleware, orderController.getTodayOrders);
 
-router.put("/vendor/:id/accept", auth, storeOwnerMiddleware, orderController.acceptOrder);
+router.put("/vendor/:id/accept", auth, storeVendorMiddleware, orderController.acceptOrder);
 
-router.put("/vendor/:id/reject", auth, storeOwnerMiddleware, orderController.rejectOrder);
+router.put("/vendor/:id/reject", auth, storeVendorMiddleware, orderController.rejectOrder);
 
-router.put("/vendor/:id/mark-ready", auth, storeOwnerMiddleware, orderController.markOrderReady);
+router.put("/vendor/:id/mark-ready", auth, storeVendorMiddleware, orderController.markOrderReady);
 
-router.put("/vendor/:id/start-preparing", auth, storeOwnerMiddleware, orderController.startPreparing);
+router.put("/vendor/:id/start-preparing", auth, storeVendorMiddleware, orderController.startPreparing);
 
 router.get('/admin/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getAllOrdersPaginated);
 

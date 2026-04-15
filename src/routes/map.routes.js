@@ -11,7 +11,7 @@ const { validateCoordinates, validateRoute } = require('../middlewares/map.middl
 const mapController = require('../controllers/map.controller');
 const auth = require('../middlewares/auth.middleware');
 const role = require('../middlewares/role.middleware');
-const { driverMiddleware, storeOwnerMiddleware } = require('../middlewares/role.middleware');
+const { driverMiddleware, storeVendorMiddleware } = require('../middlewares/role.middleware');
 
 /**
  * @swagger
@@ -704,7 +704,7 @@ router.get('/driver/current-route', driverMiddleware, async (req, res) => {
  *                     isochrone:
  *                       type: object
  */
-router.get('/store/:storeId/isochrone', storeOwnerMiddleware, mapController.getStoreIsochrone);
+router.get('/store/:storeId/isochrone', storeVendorMiddleware, mapController.getStoreIsochrone);
 
 /**
  * @swagger
@@ -778,7 +778,7 @@ router.get('/store/:storeId/isochrone', storeOwnerMiddleware, mapController.getS
  *                     nearest:
  *                       type: object
  */
-router.post('/store/nearest-driver', storeOwnerMiddleware, mapController.findNearestDriver);
+router.post('/store/nearest-driver', storeVendorMiddleware, mapController.findNearestDriver);
 
 // ========== 5. مسارات الأدمن ==========
 
@@ -822,9 +822,9 @@ router.post('/store/nearest-driver', storeOwnerMiddleware, mapController.findNea
  *         description: قائمة أقرب المندوبين
  */
 router.post('/nearest-driver',
-   role('admin'),
-   validateCoordinates,
-    mapController.findNearestDriver);
+  role('admin'),
+  validateCoordinates,
+  mapController.findNearestDriver);
 
 /**
  * @swagger

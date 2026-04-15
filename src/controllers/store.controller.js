@@ -11,9 +11,9 @@ exports.getStoresPaginated = async (req, res) => {
   try {
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, search, filters } = paginationOptions;
-    
+
     let query = { isOpen: true };
-    
+
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
@@ -21,11 +21,11 @@ exports.getStoresPaginated = async (req, res) => {
         { tags: { $regex: search, $options: 'i' } }
       ];
     }
-    
+
     if (filters.category) {
       query.category = filters.category;
     }
-    
+
     if (filters.tags) {
       if (Array.isArray(filters.tags)) {
         query.tags = { $in: filters.tags };
@@ -33,22 +33,22 @@ exports.getStoresPaginated = async (req, res) => {
         query.tags = { $in: filters.tags.split(',') };
       }
     }
-    
+
     if (filters.minRating) {
       query.averageRating = { $gte: Number(filters.minRating) };
     }
-    
+
     if (filters.city) {
       query['address.city'] = { $regex: filters.city, $options: 'i' };
     }
-    
+
     if (filters.hasDelivery !== undefined) {
       query['deliveryInfo.hasDelivery'] = filters.hasDelivery === 'true';
     }
-    
+
     const cacheKey = `stores:${JSON.stringify(query)}:${skip}:${limit}:${JSON.stringify(sort)}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       console.log('📦 Serving paginated stores from cache');
       return res.json({
@@ -56,9 +56,9 @@ exports.getStoresPaginated = async (req, res) => {
         cached: true
       });
     }
-    
+
     console.log(`🔄 Fetching stores (page ${paginationOptions.page})`);
-    
+
     const [stores, total] = await Promise.all([
       Store.find(query)
         .select('name logo coverImage description category averageRating ratingsCount deliveryInfo tags address isOpen')
@@ -69,26 +69,26 @@ exports.getStoresPaginated = async (req, res) => {
         .lean(),
       Store.countDocuments(query)
     ]);
-    
+
     const storesWithDetails = await Promise.all(
       stores.map(async (store) => {
         const productsCount = await Product.countDocuments({
           store: store._id,
           isAvailable: true
         });
-        
+
         const addresses = await StoreAddress.find({
           store: store._id
         })
           .select('addressLine city latitude longitude label')
           .limit(3)
           .lean();
-        
+
         let isFavorite = false;
         if (req.user) {
           isFavorite = await Favorite.isFavorite(req.user.id, store._id);
         }
-        
+
         const optimizedImages = {};
         if (store.logo) {
           const publicId = fileService.extractPublicIdFromUrl(store.logo);
@@ -98,7 +98,7 @@ exports.getStoresPaginated = async (req, res) => {
             optimizedImages.medium = fileService.getOptimizedUrl(publicId, 'medium');
           }
         }
-        
+
         const vendorInfo = store.vendor ? {
           id: store.vendor._id,
           name: store.vendor.name,
@@ -106,7 +106,7 @@ exports.getStoresPaginated = async (req, res) => {
           email: store.vendor.email,
           isVerified: store.vendor.isVerified
         } : null;
-        
+
         return {
           ...store,
           vendor: vendorInfo,
@@ -122,7 +122,7 @@ exports.getStoresPaginated = async (req, res) => {
         };
       })
     );
-    
+
     const stats = {
       totalCount: await Store.countDocuments({ isOpen: true }),
       byCategory: await Store.aggregate([
@@ -134,7 +134,7 @@ exports.getStoresPaginated = async (req, res) => {
         { $group: { _id: null, avg: { $avg: "$averageRating" } } }
       ])
     };
-    
+
     const responseData = PaginationUtils.createPaginationResponse(
       storesWithDetails,
       total,
@@ -144,10 +144,10 @@ exports.getStoresPaginated = async (req, res) => {
         filtersApplied: Object.keys(filters).length > 0 ? filters : null
       }
     );
-    
+
     cache.set(cacheKey, responseData, 300);
     res.json(responseData);
-    
+
   } catch (error) {
     console.error('❌ Pagination error:', error);
     res.status(500).json({
@@ -254,7 +254,7 @@ exports.getStoreDetails = async (req, res) => {
     const { id } = req.params;
     const cacheKey = `store:complete:${id}`;
     const cachedData = cache.get(cacheKey);
-    
+
     if (cachedData) {
       console.log(`🏪 Serving complete store ${id} from cache`);
       return res.json({
@@ -262,9 +262,9 @@ exports.getStoreDetails = async (req, res) => {
         cached: true
       });
     }
-    
+
     console.log(`🔄 Fetching complete store ${id} from database`);
-    
+
     const [
       store,
       addresses,
@@ -292,26 +292,26 @@ exports.getStoreDetails = async (req, res) => {
       Product.distinct('category', { store: id, isAvailable: true }),
       exports.getStoreStats(id)
     ]);
-    
+
     if (!store) {
       return res.status(404).json({
         success: false,
         message: 'Store not found'
       });
     }
-    
+
     if (store.logo) {
       const publicId = fileService.extractPublicIdFromUrl(store.logo);
       if (publicId) {
         store.logoOptimized = fileService.getAllSizes(publicId);
       }
     }
-    
+
     let isFavorite = false;
     if (req.user) {
       isFavorite = await Favorite.isFavorite(req.user.id, id);
     }
-    
+
     const reviewStats = await Review.aggregate([
       { $match: { store: id } },
       {
@@ -328,14 +328,14 @@ exports.getStoreDetails = async (req, res) => {
         }
       }
     ]);
-    
+
     const ratingDistribution = {};
     if (reviewStats[0]?.ratingDistribution) {
       reviewStats[0].ratingDistribution.forEach(r => {
         ratingDistribution[r.rating] = (ratingDistribution[r.rating] || 0) + 1;
       });
     }
-    
+
     const vendorInfo = store.vendor ? {
       id: store.vendor._id,
       name: store.vendor.name,
@@ -345,7 +345,7 @@ exports.getStoreDetails = async (req, res) => {
       isVerified: store.vendor.isVerified,
       role: store.vendor.role
     } : null;
-    
+
     const responseData = {
       success: true,
       data: {
@@ -369,10 +369,10 @@ exports.getStoreDetails = async (req, res) => {
       },
       timestamp: new Date()
     };
-    
+
     cache.set(cacheKey, responseData, 300);
     res.json(responseData);
-    
+
   } catch (error) {
     console.error('❌ Get store details error:', error.message);
     res.status(500).json({
@@ -593,14 +593,14 @@ exports.createStore = async (req, res) => {
     console.log('📥 Request body:', req.body);
     console.log('📥 Request files:', req.files);
     console.log('📥 Request headers:', req.headers['content-type']);
-    
+
     const {
       name, description, category, phone, email, website,
       deliveryFee, minOrderAmount, estimatedDeliveryTime, deliveryRadius,
       tags, openingHours, address, vendor, vendorId,
       freeDeliveryThreshold
     } = req.body;
-    
+
     console.log('📥 Extracted values:', {
       name,
       description,
@@ -614,14 +614,14 @@ exports.createStore = async (req, res) => {
       deliveryInfo: { deliveryFee, minOrderAmount, estimatedDeliveryTime, deliveryRadius, freeDeliveryThreshold },
       tags
     });
-    
+
     if (!name || !name.trim()) {
       return res.status(400).json({
         success: false,
         message: "Store name is required"
       });
     }
-    
+
     let tagsArray = [];
     if (tags) {
       if (Array.isArray(tags)) {
@@ -630,7 +630,7 @@ exports.createStore = async (req, res) => {
         tagsArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
       }
     }
-    
+
     let openingHoursObj = {};
     if (openingHours) {
       if (typeof openingHours === 'object') {
@@ -643,7 +643,7 @@ exports.createStore = async (req, res) => {
         }
       }
     }
-    
+
     let addressObj = {};
     if (address) {
       if (typeof address === 'object') {
@@ -656,7 +656,7 @@ exports.createStore = async (req, res) => {
         }
       }
     }
-    
+
     let deliveryInfoObj = {};
     if (req.body.deliveryInfo) {
       if (typeof req.body.deliveryInfo === 'object') {
@@ -669,11 +669,11 @@ exports.createStore = async (req, res) => {
         }
       }
     }
-    
+
     const hasDelivery = req.body.hasDelivery !== undefined
       ? req.body.hasDelivery
       : (deliveryInfoObj.hasDelivery !== undefined ? deliveryInfoObj.hasDelivery : true);
-    
+
     const finalDeliveryInfo = {
       hasDelivery: hasDelivery,
       deliveryFee: Number(deliveryFee !== undefined ? deliveryFee : (deliveryInfoObj.deliveryFee || 0)),
@@ -682,49 +682,49 @@ exports.createStore = async (req, res) => {
       deliveryRadius: Number(deliveryRadius !== undefined ? deliveryRadius : (deliveryInfoObj.deliveryRadius || 10)),
       freeDeliveryThreshold: Number(freeDeliveryThreshold !== undefined ? freeDeliveryThreshold : (deliveryInfoObj.freeDeliveryThreshold || 0))
     };
-    
+
     let finalVendorId = req.user.id;
-    
+
     if (req.user.role === 'admin') {
       const selectedVendorId = vendorId || vendor;
-      
+
       if (selectedVendorId) {
         const vendorUser = await User.findById(selectedVendorId);
-        
+
         if (!vendorUser) {
           return res.status(400).json({
             success: false,
             message: 'التاجر المحدد غير موجود'
           });
         }
-        
+
         if (vendorUser.role !== 'vendor') {
           return res.status(400).json({
             success: false,
             message: 'المستخدم المحدد ليس تاجراً'
           });
         }
-        
+
         finalVendorId = selectedVendorId;
         console.log(`✅ Store will be assigned to vendor: ${vendorUser.name} (${vendorUser._id})`);
       }
     }
-    
+
     let logoUrl = null;
     let coverImageUrl = null;
-    
+
     if (req.files) {
       if (req.files.logo && req.files.logo.length > 0) {
         logoUrl = req.files.logo[0].url;
         console.log(`✅ Logo uploaded: ${logoUrl}`);
       }
-      
+
       if (req.files.coverImage && req.files.coverImage.length > 0) {
         coverImageUrl = req.files.coverImage[0].url;
         console.log(`✅ Cover image uploaded: ${coverImageUrl}`);
       }
     }
-    
+
     const store = await Store.create({
       name: name.trim(),
       description: description?.trim(),
@@ -742,15 +742,15 @@ exports.createStore = async (req, res) => {
       isOpen: req.body.isOpen === true || req.body.isOpen === 'true' || true,
       isVerified: req.user.role === 'admin'
     });
-    
+
     if (finalVendorId !== req.user.id) {
       await User.findByIdAndUpdate(finalVendorId, {
-        'storeOwnerInfo.store': store._id,
-        'storeOwnerInfo.isStoreOpen': store.isOpen
+        'storeVendorInfo.store': store._id,
+        'storeVendorInfo.isStoreOpen': store.isOpen
       });
       console.log(`✅ Updated vendor ${finalVendorId} with store ${store._id}`);
     }
-    
+
     const optimizedImages = {};
     if (store.logo) {
       const publicId = fileService.extractPublicIdFromUrl(store.logo);
@@ -759,12 +759,12 @@ exports.createStore = async (req, res) => {
         optimizedImages.medium = fileService.getOptimizedUrl(publicId, 'medium');
       }
     }
-    
+
     cache.invalidatePattern('stores:*');
     cache.invalidatePattern('home:*');
-    
+
     await store.populate("vendor", "name email phone role");
-    
+
     res.status(201).json({
       success: true,
       message: "Store created successfully",
@@ -774,7 +774,7 @@ exports.createStore = async (req, res) => {
         vendor: store.vendor
       }
     });
-    
+
   } catch (error) {
     console.error("❌ Error in createStore:", error);
     res.status(500).json({
@@ -1228,15 +1228,15 @@ exports.updateStoreCoordinates = async (req, res) => {
     for (const store of stores) {
       let lat = null;
       let lng = null;
-      
+
       if (store.address) {
         lat = store.address.latitude;
         lng = store.address.longitude;
       }
-      
+
       if (!lat || !lng) {
         const city = store.address?.city?.toLowerCase() || '';
-        
+
         const cityCoordinates = {
           'نيامي': [13.5126, 2.1098],
           'niamey': [13.5126, 2.1098],
@@ -1249,7 +1249,7 @@ exports.updateStoreCoordinates = async (req, res) => {
           'المدينة': [24.5247, 39.5692],
           'medina': [24.5247, 39.5692],
         };
-        
+
         if (cityCoordinates[city]) {
           [lat, lng] = cityCoordinates[city];
         } else {
@@ -1257,19 +1257,19 @@ exports.updateStoreCoordinates = async (req, res) => {
           lng = 2.1098;
         }
       }
-      
+
       if (lat && lng) {
         store.address = {
           ...store.address,
           latitude: lat,
           longitude: lng
         };
-        
+
         store.location = {
           type: 'Point',
           coordinates: [lng, lat]
         };
-        
+
         await store.save();
         updatedCount++;
         results.push({
@@ -1278,11 +1278,11 @@ exports.updateStoreCoordinates = async (req, res) => {
           latitude: lat,
           longitude: lng
         });
-        
+
         console.log(`✅ Updated store ${store.name}: [${lng}, ${lat}]`);
       }
     }
-    
+
     res.json({
       success: true,
       message: `تم تحديث ${updatedCount} متجر بنجاح`,
@@ -1304,14 +1304,14 @@ exports.updateStoreCoordinates = async (req, res) => {
 exports.getNearbyStores = async (req, res) => {
   try {
     const { lat, lng, radius = 5000, limit = 20 } = req.query;
-    
+
     if (!lat || !lng) {
       return res.status(400).json({
         success: false,
         message: 'يجب توفير خط العرض وخط الطول'
       });
     }
-    
+
     const stores = await Store.find({
       isOpen: true,
       location: {
@@ -1324,29 +1324,29 @@ exports.getNearbyStores = async (req, res) => {
         }
       }
     })
-    .select('name logo description category averageRating deliveryInfo address location')
-    .limit(parseInt(limit))
-    .lean();
-    
+      .select('name logo description category averageRating deliveryInfo address location')
+      .limit(parseInt(limit))
+      .lean();
+
     const storesWithDistance = stores.map(store => {
       let distance = null;
       if (store.location && store.location.coordinates) {
         const R = 6371;
         const dLat = (store.location.coordinates[1] - parseFloat(lat)) * Math.PI / 180;
         const dLon = (store.location.coordinates[0] - parseFloat(lng)) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(parseFloat(lat) * Math.PI / 180) * Math.cos(store.location.coordinates[1] * Math.PI / 180) *
-                  Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(parseFloat(lat) * Math.PI / 180) * Math.cos(store.location.coordinates[1] * Math.PI / 180) *
+          Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         distance = R * c;
       }
-      
+
       return {
         ...store,
         distance: distance ? distance.toFixed(1) : null
       };
     });
-    
+
     res.json({
       success: true,
       data: storesWithDistance,

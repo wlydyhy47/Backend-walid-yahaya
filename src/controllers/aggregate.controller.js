@@ -480,7 +480,7 @@ exports.getStoreDetails = async (req, res) => {
       categories
     ] = await Promise.all([
       Store.findById(id)
-        .populate('owner', 'name phone email')
+        .populate('vendor', 'name phone email')
         .lean(),
 
       StoreAddress.find({ store: id })
@@ -2171,7 +2171,7 @@ exports.exportDriversReport = async (req, res) => {
 exports.exportStoresReport = async (req, res) => {
   try {
     const stores = await Store.find({})
-      .populate('owner', 'name phone')
+      .populate('vendor', 'name phone')
       .lean();
 
     const storesWithStats = await Promise.all(

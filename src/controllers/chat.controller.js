@@ -375,11 +375,11 @@ exports.createOrderChat = async (req, res) => {
     }
 
     // التحقق من الصلاحية
-    const isOwner = order.user._id.toString() === userId;
+    const isVendor = order.user._id.toString() === userId;
     const isDriver = order.driver && order.driver._id.toString() === userId;
     const isAdmin = req.user.role === 'admin';
 
-    if (!isOwner && !isDriver && !isAdmin) {
+    if (!isVendor && !isDriver && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: "غير مصرح لك بإنشاء محادثة لهذا الطلب"

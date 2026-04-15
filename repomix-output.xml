@@ -13943,7 +13943,7 @@ class AutoSwaggerGenerator {
             const roleMatch = lines[j].match(/role\(['"](.+)['"]\)/);
             if (roleMatch && !roles.includes(roleMatch[1])) roles.push(roleMatch[1]);
           }
-          if (lines[j].includes('storeOwnerMiddleware') && !roles.includes('vendor')) roles.push('vendor');
+          if (lines[j].includes('storeVendorMiddleware') && !roles.includes('vendor')) roles.push('vendor');
           if (lines[j].includes('driverMiddleware') && !roles.includes('driver')) roles.push('driver');
         }
         break;
@@ -15694,10 +15694,10 @@ exports.getOrderRoute = async (req, res) => {
         message: 'Order not found'
       });
     }
-    const isOwner = order.user.toString() === userId;
+    const isVendor = order.user.toString() === userId;
     const isDriver = order.driver?.toString() === userId;
     const isAdmin = userRole === 'admin';
-    if (!isOwner && !isDriver && !isAdmin) {
+    if (!isVendor && !isDriver && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'
@@ -26145,14 +26145,14 @@ exports.getReviewById = async (req, res) => {
 exports.getVendorReviewStats = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const stats = await Review.aggregate([
       { $match: { store: storeId } },
       {
@@ -26240,14 +26240,14 @@ exports.getVendorReviews = async (req, res) => {
   try {
     const userId = req.user.id;
     const { page = 1, limit = 10, rating } = req.query;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const query = { store: storeId };
     if (rating) {
@@ -26291,14 +26291,14 @@ exports.replyToReview = async (req, res) => {
         message: "الرد مطلوب"
       });
     }
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const review = await Review.findOne({
       _id: id,
       store: storeId
@@ -27014,7 +27014,7 @@ const { validateCoordinates, validateRoute } = require('../middlewares/map.middl
 const mapController = require('../controllers/map.controller');
 const auth = require('../middlewares/auth.middleware');
 const role = require('../middlewares/role.middleware');
-const { driverMiddleware, storeOwnerMiddleware } = require('../middlewares/role.middleware');
+const { driverMiddleware, storeVendorMiddleware } = require('../middlewares/role.middleware');
 router.use(auth);
 router.post('/directions',
   validateRoute,
@@ -27049,8 +27049,8 @@ router.get('/driver/current-route', driverMiddleware, async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 });
-router.get('/store/:storeId/isochrone', storeOwnerMiddleware, mapController.getStoreIsochrone);
-router.post('/store/nearest-driver', storeOwnerMiddleware, mapController.findNearestDriver);
+router.get('/store/:storeId/isochrone', storeVendorMiddleware, mapController.getStoreIsochrone);
+router.post('/store/nearest-driver', storeVendorMiddleware, mapController.findNearestDriver);
 router.post('/nearest-driver',
    role('admin'),
    validateCoordinates,
@@ -27840,10 +27840,10 @@ exports.createOrderChat = async (req, res) => {
         message: "الطلب غير موجود"
       });
     }
-    const isOwner = order.user._id.toString() === userId;
+    const isVendor = order.user._id.toString() === userId;
     const isDriver = order.driver && order.driver._id.toString() === userId;
     const isAdmin = req.user.role === 'admin';
-    if (!isOwner && !isDriver && !isAdmin) {
+    if (!isVendor && !isDriver && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: "غير مصرح لك بإنشاء محادثة لهذا الطلب"
@@ -31020,10 +31020,10 @@ class NotificationService {
       if (order.store) {
         const store = await require("../models/store.model")
           .findById(order.store)
-          .populate('owner');
-        if (store?.owner) {
+          .populate('vendor');
+        if (store?.vendor) {
           notifications.push({
-            user: store.owner,
+            user: store.vendor,
             type: "order_created",
             title: "🛒 طلب جديد!",
             content: `طلب جديد بقيمة ${order.totalPrice} من ${order.user?.name || 'عميل'}`,
@@ -31822,7 +31822,7 @@ const validateStore = async (storeId, userId = null) => {
   if (!store) {
     throw new AppError('المتجر غير موجود', 404);
   }
-  if (userId && store.owner?.toString() !== userId) {
+  if (userId && store.vendor?.toString() !== userId) {
     throw new AppError('غير مصرح لك بإدارة منتجات هذا المتجر', 403);
   }
   return store;
@@ -31858,7 +31858,7 @@ exports.getAllProducts = async (req, res) => {
     }
     const [products, total] = await Promise.all([
       Product.find(query)
-        .populate('store', 'name logo category owner')
+        .populate('store', 'name logo category vendor')
         .sort(sort)
         .skip(skip)
         .limit(limit)
@@ -32061,7 +32061,7 @@ exports.createProduct = async (req, res) => {
         message: "المتجر غير موجود"
       });
     }
-    if (req.user.role === 'vendor' && store.owner?.toString() !== req.user.id) {
+    if (req.user.role === 'vendor' && store.vendor?.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
         message: "غير مصرح لك بإدارة منتجات هذا المتجر"
@@ -32301,7 +32301,7 @@ exports.deleteProduct = async (req, res) => {
         message: 'معرف المنتج غير صالح'
       });
     }
-    const product = await Product.findById(id).populate('store', 'owner');
+    const product = await Product.findById(id).populate('store', 'vendor');
     if (!product) {
       return res.status(404).json({
         success: false,
@@ -32543,7 +32543,7 @@ const invalidateVendorCache = (storeId, userId) => {
   cache.del(`store:complete:${storeId}`);
   cache.invalidatePattern('stores:*');
 };
-const checkStoreOwnership = async (storeId, userId, req = null) => {
+const checkStoreVendorship = async (storeId, userId, req = null) => {
   const store = await Store.findById(storeId);
   if (!store) {
     throw new AppError('المتجر غير موجود', 404);
@@ -32567,7 +32567,7 @@ exports.getMyProfile = async (req, res) => {
       });
     }
     const user = await User.findById(userId)
-      .select('name phone email image coverImage storeOwnerInfo')
+      .select('name phone email image coverImage storeVendorInfo')
       .lean();
     if (!user) {
       return res.status(404).json({
@@ -32576,8 +32576,8 @@ exports.getMyProfile = async (req, res) => {
       });
     }
     let storeStats = {};
-    if (user.storeOwnerInfo?.store) {
-      const storeId = user.storeOwnerInfo.store;
+    if (user.storeVendorInfo?.store) {
+      const storeId = user.storeVendorInfo.store;
       const [todayOrders, totalRevenue, pendingOrders] = await Promise.all([
         Order.countDocuments({
           store: storeId,
@@ -32694,14 +32694,14 @@ exports.updateAvatar = async (req, res) => {
 exports.getMyStore = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const cacheKey = `vendor:store:${storeId}`;
     const cachedData = cache.get(cacheKey);
     if (cachedData) {
@@ -32756,14 +32756,14 @@ exports.getMyStore = async (req, res) => {
 exports.updateStore = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const updates = req.body;
     const allowedUpdates = [
       'name', 'description', 'category', 'phone', 'email', 'website',
@@ -32826,14 +32826,14 @@ exports.updateStoreLogo = async (req, res) => {
       });
     }
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const oldStore = await Store.findById(storeId).select('logo');
     if (oldStore?.logo) {
       const oldPublicId = fileService.extractPublicIdFromUrl(oldStore.logo);
@@ -32880,14 +32880,14 @@ exports.updateStoreCover = async (req, res) => {
       });
     }
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const oldStore = await Store.findById(storeId).select('coverImage');
     if (oldStore?.coverImage) {
       const oldPublicId = fileService.extractPublicIdFromUrl(oldStore.coverImage);
@@ -32928,14 +32928,14 @@ exports.updateStoreCover = async (req, res) => {
 exports.toggleStoreStatus = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const store = await Store.findById(storeId);
     if (!store) {
       return res.status(404).json({
@@ -32946,7 +32946,7 @@ exports.toggleStoreStatus = async (req, res) => {
     store.isOpen = !store.isOpen;
     await store.save();
     await User.findByIdAndUpdate(userId, {
-      "storeOwnerInfo.isStoreOpen": store.isOpen
+      "storeVendorInfo.isStoreOpen": store.isOpen
     });
     invalidateVendorCache(storeId, userId);
     res.json({
@@ -32968,14 +32968,14 @@ exports.toggleStoreStatus = async (req, res) => {
 exports.getAddresses = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const addresses = await StoreAddress.find({
       store: storeId,
       isActive: true
@@ -32996,14 +32996,14 @@ exports.createAddress = async (req, res) => {
   try {
     const userId = req.user.id;
     const { label, addressLine, city, latitude, longitude, phone } = req.body;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const address = await StoreAddress.create({
       store: storeId,
       label: label || "Main Branch",
@@ -33033,14 +33033,14 @@ exports.updateAddress = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
     const { label, addressLine, city, latitude, longitude, phone, isActive } = req.body;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const address = await StoreAddress.findOne({
       _id: id,
       store: storeId
@@ -33077,14 +33077,14 @@ exports.deleteAddress = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const address = await StoreAddress.findOneAndDelete({
       _id: id,
       store: storeId
@@ -33112,14 +33112,14 @@ exports.getAddressById = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const address = await StoreAddress.findOne({
       _id: id,
       store: storeId
@@ -33145,14 +33145,14 @@ exports.getAddressById = async (req, res) => {
 exports.getAnalytics = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const cacheKey = `vendor:analytics:${storeId}`;
     const cachedData = cache.get(cacheKey);
     if (cachedData) {
@@ -33273,14 +33273,14 @@ exports.getFinancialReport = async (req, res) => {
   try {
     const userId = req.user.id;
     const { period = 'month' } = req.query;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     let startDate = new Date();
     switch (period) {
       case 'day':
@@ -33354,14 +33354,14 @@ exports.getFinancialReport = async (req, res) => {
 exports.getPerformanceReport = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const report = await Order.aggregate([
       { $match: { store: storeId } },
       {
@@ -33437,14 +33437,14 @@ exports.getPerformanceReport = async (req, res) => {
 exports.getProductAnalytics = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const analytics = await Product.aggregate([
       { $match: { store: storeId } },
       {
@@ -33497,9 +33497,9 @@ exports.getVendors = async (req, res) => {
       role: 'vendor',
       isActive: true
     })
-      .select('name phone email image storeOwnerInfo createdAt')
+      .select('name phone email image storeVendorInfo createdAt')
       .populate({
-        path: 'storeOwnerInfo.store',
+        path: 'storeVendorInfo.store',
         select: 'name logo category isOpen averageRating vendor'
       })
       .lean();
@@ -33521,7 +33521,7 @@ exports.getVendorById = async (req, res) => {
     const vendor = await User.findById(id)
       .select('-password -verificationCode -resetPasswordToken -activityLog')
       .populate({
-        path: 'storeOwnerInfo.store',
+        path: 'storeVendorInfo.store',
         select: 'name logo category isOpen averageRating vendor'
       })
       .lean();
@@ -33589,8 +33589,8 @@ exports.toggleVendorStatus = async (req, res) => {
     }
     vendor.isActive = isActive;
     await vendor.save();
-    if (vendor.storeOwnerInfo?.store) {
-      await Store.findByIdAndUpdate(vendor.storeOwnerInfo.store, {
+    if (vendor.storeVendorInfo?.store) {
+      await Store.findByIdAndUpdate(vendor.storeVendorInfo.store, {
         isOpen: isActive
       });
     }
@@ -33611,238 +33611,6 @@ exports.toggleVendorStatus = async (req, res) => {
   }
 };
 module.exports = exports;
-</file>
-
-<file path="src/middlewares/role.middleware.js">
-const { businessLogger } = require("../utils/logger.util");
-const ROLES = {
-  CLIENT: 'client',
-  DRIVER: 'driver',
-  ADMIN: 'admin',
-  VENDOR: 'vendor'
-};
-const ROLE_HIERARCHY = {
-  [ROLES.ADMIN]: [ROLES.ADMIN, ROLES.VENDOR, ROLES.DRIVER, ROLES.CLIENT],
-  [ROLES.VENDOR]: [ROLES.VENDOR, ROLES.DRIVER, ROLES.CLIENT],
-  [ROLES.DRIVER]: [ROLES.DRIVER, ROLES.CLIENT],
-  [ROLES.CLIENT]: [ROLES.CLIENT]
-};
-const ROLE_PERMISSIONS = {
-  [ROLES.ADMIN]: [
-    'manage_users',
-    'manage_stores',
-    'manage_orders',
-    'manage_drivers',
-    'view_analytics',
-    'manage_system',
-    'send_notifications',
-    'manage_loyalty',
-    'view_logs'
-  ],
-  [ROLES.VENDOR]: [
-    'manage_own_store',
-    'view_own_orders',
-    'update_order_status',
-    'manage_products',
-    'view_own_analytics',
-    'manage_staff'
-  ],
-  [ROLES.DRIVER]: [
-    'view_assigned_orders',
-    'update_order_status',
-    'update_location',
-    'view_earnings',
-    'toggle_availability'
-  ],
-  [ROLES.CLIENT]: [
-    'create_orders',
-    'view_own_orders',
-    'cancel_own_orders',
-    'manage_addresses',
-    'write_reviews',
-    'manage_favorites',
-    'view_loyalty'
-  ]
-};
-const roleMiddleware = (...allowedRoles) => {
-  return (req, res, next) => {
-    try {
-      if (!req.user || !req.user.role) {
-        return res.status(401).json({
-          success: false,
-          message: "غير مصرح لك - لم يتم التعرف على المستخدم",
-          code: "UNAUTHORIZED"
-        });
-      }
-      const userRole = req.user.role;
-      if (!allowedRoles.includes(userRole)) {
-        businessLogger.warn('Access denied - insufficient permissions', {
-          userId: req.user.id,
-          userRole,
-          requiredRoles: allowedRoles,
-          path: req.originalUrl
-        });
-        return res.status(403).json({
-          success: false,
-          message: "غير مصرح لك - ليس لديك الصلاحيات المطلوبة",
-          code: "FORBIDDEN",
-          requiredRoles: allowedRoles,
-          yourRole: userRole
-        });
-      }
-      next();
-    } catch (error) {
-      businessLogger.error('Role middleware error:', error);
-      res.status(500).json({
-        success: false,
-        message: "خطأ في التحقق من الصلاحيات",
-        code: "ROLE_CHECK_ERROR"
-      });
-    }
-  };
-};
-const hasPermission = (permission) => {
-  return (req, res, next) => {
-    try {
-      if (!req.user || !req.user.role) {
-        return res.status(401).json({
-          success: false,
-          message: "غير مصرح لك",
-          code: "UNAUTHORIZED"
-        });
-      }
-      const userRole = req.user.role;
-      const userPermissions = ROLE_PERMISSIONS[userRole] || [];
-      if (!userPermissions.includes(permission)) {
-        return res.status(403).json({
-          success: false,
-          message: "ليس لديك الصلاحية المطلوبة",
-          code: "PERMISSION_DENIED",
-          requiredPermission: permission
-        });
-      }
-      next();
-    } catch (error) {
-      businessLogger.error('Permission middleware error:', error);
-      res.status(500).json({
-        success: false,
-        message: "خطأ في التحقق من الصلاحية"
-      });
-    }
-  };
-};
-const storeOwnerMiddleware = async (req, res, next) => {
-  try {
-    const Store = require("../models/store.model");
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: "غير مصرح لك - يجب تسجيل الدخول",
-        code: "UNAUTHORIZED"
-      });
-    }
-    if (req.user.role === ROLES.ADMIN) {
-      return next();
-    }
-    if (req.user.role !== ROLES.VENDOR) {
-      return res.status(403).json({
-        success: false,
-        message: "هذا المسار مخصص لأصحاب المتاجر فقط",
-        code: "FORBIDDEN"
-      });
-    }
-    const user = await require("../models/user.model").findById(req.user.id)
-      .select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(400).json({
-        success: false,
-        message: "لم يتم ربطك بأي متجر بعد",
-        code: "NO_STORE"
-      });
-    }
-    const requestedStoreId = req.params.storeId ||
-      req.params.id ||
-      req.body.storeId;
-    if (requestedStoreId) {
-      const ownsStore = user.storeOwnerInfo.store.toString() === requestedStoreId;
-      if (!ownsStore) {
-        return res.status(403).json({
-          success: false,
-          message: "هذا المتجر لا ينتمي إليك",
-          code: "NOT_OWNER"
-        });
-      }
-    }
-    req.storeId = user.storeOwnerInfo.store;
-    req.storeOwner = user.storeOwnerInfo;
-    next();
-  } catch (error) {
-    businessLogger.error("Store owner middleware error:", error);
-    res.status(500).json({
-      success: false,
-      message: "خطأ في التحقق من الصلاحيات",
-      code: "MIDDLEWARE_ERROR"
-    });
-  }
-};
-const driverMiddleware = async (req, res, next) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: "غير مصرح لك",
-        code: "UNAUTHORIZED"
-      });
-    }
-    if (req.user.role !== ROLES.DRIVER && req.user.role !== ROLES.ADMIN) {
-      return res.status(403).json({
-        success: false,
-        message: "هذا المسار مخصص للمندوبين فقط",
-        code: "FORBIDDEN"
-      });
-    }
-    if (req.user.role === ROLES.ADMIN) {
-      return next();
-    }
-    const user = await require("../models/user.model").findById(req.user.id)
-      .select('driverInfo.isAvailable isOnline');
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "المستخدم غير موجود",
-        code: "USER_NOT_FOUND"
-      });
-    }
-    req.driverInfo = {
-      isAvailable: user.driverInfo?.isAvailable || false,
-      isOnline: user.isOnline
-    };
-    next();
-  } catch (error) {
-    businessLogger.error("Driver middleware error:", error);
-    res.status(500).json({
-      success: false,
-      message: "خطأ في التحقق من صلاحيات المندوب"
-    });
-  }
-};
-const getRoles = () => ROLES;
-const getPermissionsForRole = (role) => {
-  return ROLE_PERMISSIONS[role] || [];
-};
-const hasRoleHierarchy = (userRole, requiredRole) => {
-  const allowedRoles = ROLE_HIERARCHY[userRole] || [userRole];
-  return allowedRoles.includes(requiredRole);
-};
-module.exports = roleMiddleware;
-module.exports.roleMiddleware = roleMiddleware;
-module.exports.storeOwnerMiddleware = storeOwnerMiddleware;
-module.exports.driverMiddleware = driverMiddleware;
-module.exports.hasPermission = hasPermission;
-module.exports.getRoles = getRoles;
-module.exports.getPermissionsForRole = getPermissionsForRole;
-module.exports.hasRoleHierarchy = hasRoleHierarchy;
-module.exports.ROLES = ROLES;
 </file>
 
 <file path="src/models/notification.model.js">
@@ -34142,210 +33910,6 @@ notificationSchema.methods.retryDelivery = async function () {
 module.exports = mongoose.model("Notification", notificationSchema);
 </file>
 
-<file path="src/models/store.model.js">
-const mongoose = require("mongoose");
-const storeSchema = new mongoose.Schema(
-  {
-    logo: { type: String },
-    coverImage: { type: String },
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-      index: true,
-    },
-    description: String,
-    category: {
-      type: String,
-      required: true,
-      index: true,
-    },
-    phone: { type: String, trim: true },
-    email: { type: String, trim: true, lowercase: true },
-    website: String,
-    address: {
-      street: String,
-      city: String,
-      state: String,
-      country: { type: String, default: "Niger" },
-      postalCode: String,
-      latitude: Number,
-      longitude: Number,
-    },
-    location: {
-      type: { type: String, enum: ["Point"], default: "Point" },
-      coordinates: { type: [Number], default: [2.1098, 13.5126] },
-    },
-    isOpen: { type: Boolean, default: true },
-    isVerified: { type: Boolean, default: false },
-    vendor: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      index: true,
-      required: true
-    },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    averageRating: { type: Number, default: 0, min: 0, max: 5 },
-    ratingsCount: { type: Number, default: 0 },
-    deliveryInfo: {
-      hasDelivery: { type: Boolean, default: true },
-      deliveryFee: { type: Number, default: 0, min: 0 },
-      minOrderAmount: { type: Number, default: 0, min: 0 },
-      estimatedDeliveryTime: { type: Number, default: 30 },
-      deliveryRadius: { type: Number, default: 10 },
-      freeDeliveryThreshold: { type: Number, default: 0 },
-    },
-    openingHours: {
-      type: Map,
-      of: { open: String, close: String, isOpen: Boolean },
-      default: {},
-    },
-    stats: {
-      totalOrders: { type: Number, default: 0 },
-      completedOrders: { type: Number, default: 0 },
-      cancelledOrders: { type: Number, default: 0 },
-      totalRevenue: { type: Number, default: 0 },
-      averageOrderValue: { type: Number, default: 0 },
-      lastOrderDate: Date,
-      totalProducts: { type: Number, default: 0 },
-      totalCustomers: { type: Number, default: 0 },
-    },
-    settings: {
-      autoAcceptOrders: { type: Boolean, default: false },
-      preparationTimeBuffer: { type: Number, default: 5 },
-      maxOrdersPerHour: { type: Number, default: 50 },
-      currency: { type: String, default: "XOF" },
-      taxRate: { type: Number, default: 0 },
-      notifications: {
-        email: { type: Boolean, default: true },
-        push: { type: Boolean, default: true },
-        sms: { type: Boolean, default: false },
-      },
-    },
-    preferredDrivers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    tags: [{ type: String, trim: true }],
-    gallery: [{ url: String, caption: String, order: Number }],
-    documents: [{
-      type: { type: String, enum: ["license", "tax", "id", "other"] },
-      url: String,
-      verified: { type: Boolean, default: false },
-      verifiedAt: Date,
-    }],
-    deletedAt: Date,
-  },
-  {
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true }
-  }
-);
-storeSchema.virtual("products", {
-  ref: "Product",
-  localField: "_id",
-  foreignField: "store",
-});
-storeSchema.virtual("addresses", {
-  ref: "StoreAddress",
-  localField: "_id",
-  foreignField: "store",
-});
-storeSchema.virtual("reviews", {
-  ref: "Review",
-  localField: "_id",
-  foreignField: "store",
-});
-storeSchema.virtual("orders", {
-  ref: "Order",
-  localField: "_id",
-  foreignField: "store",
-});
-storeSchema.virtual("successRate").get(function () {
-  if (this.stats.totalOrders === 0) return 0;
-  return ((this.stats.completedOrders / this.stats.totalOrders) * 100).toFixed(1);
-});
-storeSchema.virtual("isOpenNow").get(function () {
-  if (!this.openingHours) return false;
-  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const today = days[new Date().getDay()];
-  const hours = this.openingHours.get(today);
-  if (!hours || !hours.isOpen) return false;
-  const now = new Date();
-  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-  return currentTime >= hours.open && currentTime <= hours.close;
-});
-storeSchema.index({ category: 1, averageRating: -1 });
-storeSchema.index({ isOpen: 1, isVerified: 1 });
-storeSchema.index({ tags: 1 });
-storeSchema.index({ location: "2dsphere" });
-storeSchema.index({ 'stats.totalOrders': -1 });
-storeSchema.index({ name: 'text', description: 'text', tags: 'text' });
-storeSchema.index({ vendor: 1 });
-storeSchema.methods.updateStats = async function () {
-  try {
-    const Order = require("./order.model");
-    const stats = await Order.aggregate([
-      { $match: { store: this._id } },
-      {
-        $group: {
-          _id: null,
-          totalOrders: { $sum: 1 },
-          completedOrders: { $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } },
-          cancelledOrders: { $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } },
-          totalRevenue: { $sum: "$totalPrice" },
-          lastOrderDate: { $max: "$createdAt" },
-          avgOrderValue: { $avg: "$totalPrice" }
-        }
-      }
-    ]);
-    if (stats.length > 0) {
-      this.stats = {
-        ...this.stats.toObject(),
-        ...stats[0]
-      };
-      await this.save();
-    }
-    return this;
-  } catch (error) {
-    console.error('❌ Error updating store stats:', error);
-    return this;
-  }
-};
-storeSchema.methods.updateRating = async function () {
-  try {
-    const Review = require("./review.model");
-    const stats = await Review.aggregate([
-      { $match: { store: this._id } },
-      { $group: { _id: null, avgRating: { $avg: '$rating' }, count: { $sum: 1 } } }
-    ]);
-    if (stats.length > 0) {
-      this.averageRating = stats[0].avgRating;
-      this.ratingsCount = stats[0].count;
-    } else {
-      this.averageRating = 0;
-      this.ratingsCount = 0;
-    }
-    await this.save();
-    return this;
-  } catch (error) {
-    console.error('❌ Error updating store rating:', error);
-    return this;
-  }
-};
-storeSchema.methods.incrementProductsCount = async function () {
-  this.stats.totalProducts = (this.stats.totalProducts || 0) + 1;
-  await this.save();
-  return this;
-};
-storeSchema.methods.decrementProductsCount = async function () {
-  this.stats.totalProducts = Math.max(0, (this.stats.totalProducts || 0) - 1);
-  await this.save();
-  return this;
-};
-const Store = mongoose.model("Store", storeSchema);
-console.log('✅ Store model loaded with vendor field');
-module.exports = Store;
-</file>
-
 <file path="src/routes/public.routes.js">
 const express = require('express');
 const router = express.Router();
@@ -34408,96 +33972,6 @@ router.get('/info', (req, res) => {
     }
   });
 });
-module.exports = router;
-</file>
-
-<file path="src/routes/vendor.routes.js">
-const express = require('express');
-const router = express.Router();
-const {
-  vendorController,
-  productController,
-  orderController,
-  reviewController
-} = require('../controllers');
-const auth = require('../middlewares/auth.middleware');
-const { storeOwnerMiddleware } = require('../middlewares/role.middleware');
-const handleFormData = require('../middlewares/formDataHandler');
-const validate = require('../middlewares/validate.middleware');
-const upload = require('../middlewares/upload');
-const PaginationUtils = require('../utils/pagination.util');
-const {
-  updateProfileSchema,
-  avatarSchema
-} = require('../validators/user.validator');
-const {
-  createStoreSchema,
-  updateStoreSchema
-} = require('../validators/store.validator');
-const {
-  createProductSchema,
-  updateProductSchema,
-  updateInventorySchema
-} = require('../validators/product.validator');
-router.use(auth);
-router.use(storeOwnerMiddleware);
-router.get('/profile', vendorController.getMyProfile);
-router.put('/profile', validate(updateProfileSchema), vendorController.updateProfile);
-router.put('/profile/avatar',
-  validate(avatarSchema),
-  upload('users/avatars', ['image']).single('image'),
-  vendorController.updateAvatar
-);
-router.get('/store', vendorController.getMyStore);
-router.put('/store', validate(updateStoreSchema), vendorController.updateStore);
-router.put('/store/logo',
-  upload('stores/logos', ['image']).single('logo'),
-  vendorController.updateStoreLogo
-);
-router.put('/store/cover',
-  upload('stores/covers', ['image']).single('cover'),
-  vendorController.updateStoreCover
-);
-router.put('/store/toggle-status', vendorController.toggleStoreStatus);
-router.get('/store/addresses', vendorController.getAddresses);
-router.post('/store/addresses', vendorController.createAddress);
-router.put('/store/addresses/:id', vendorController.updateAddress);
-router.delete('/store/addresses/:id', vendorController.deleteAddress);
-router.get('/store/addresses/:id', vendorController.getAddressById);
-router.get('/products', PaginationUtils.validatePaginationParams, productController.getVendorProducts);
-router.post('/products',
-  validate(createProductSchema),
-  upload('products', ['image']).single('image'),
-   handleFormData,
-  productController.createProduct
-);
-router.get('/products/:id', productController.getProductById);
-router.put('/products/:id',
-   validate(updateProductSchema),
-   handleFormData,
-    productController.updateProduct);
-router.put('/products/:id/image',
-  upload('products', ['image']).single('image'),
-  productController.updateProductImage
-);
-router.delete('/products/:id', productController.deleteProduct);
-router.put('/products/:id/toggle-availability', productController.toggleAvailability);
-router.put('/products/:id/inventory', validate(updateInventorySchema), productController.updateInventory);
-router.get('/orders', PaginationUtils.validatePaginationParams, orderController.getVendorOrders);
-router.get('/orders/:id', orderController.getOrderDetails);
-router.put('/orders/:id/accept', orderController.acceptOrder);
-router.put('/orders/:id/reject', orderController.rejectOrder);
-router.put('/orders/:id/start-preparing', orderController.startPreparing);
-router.put('/orders/:id/mark-ready', orderController.markOrderReady);
-router.get('/orders/today', orderController.getTodayOrders);
-router.get('/orders/stats', orderController.getVendorOrderStats);
-router.get('/analytics', vendorController.getAnalytics);
-router.get('/analytics/financial', vendorController.getFinancialReport);
-router.get('/analytics/performance', vendorController.getPerformanceReport);
-router.get('/analytics/products', vendorController.getProductAnalytics);
-router.get('/reviews', PaginationUtils.validatePaginationParams, reviewController.getVendorReviews);
-router.get('/reviews/stats', reviewController.getVendorReviewStats);
-router.post('/reviews/:id/reply', reviewController.replyToReview);
 module.exports = router;
 </file>
 
@@ -36017,8 +35491,8 @@ exports.createStore = async (req, res) => {
     });
     if (finalVendorId !== req.user.id) {
       await User.findByIdAndUpdate(finalVendorId, {
-        'storeOwnerInfo.store': store._id,
-        'storeOwnerInfo.isStoreOpen': store.isOpen
+        'storeVendorInfo.store': store._id,
+        'storeVendorInfo.isStoreOpen': store.isOpen
       });
       console.log(`✅ Updated vendor ${finalVendorId} with store ${store._id}`);
     }
@@ -36557,6 +36031,209 @@ exports.getNearbyStores = async (req, res) => {
   }
 };
 module.exports = exports;
+</file>
+
+<file path="src/models/store.model.js">
+const mongoose = require("mongoose");
+const storeSchema = new mongoose.Schema(
+  {
+    logo: { type: String },
+    coverImage: { type: String },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    description: String,
+    category: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    phone: { type: String, trim: true },
+    email: { type: String, trim: true, lowercase: true },
+    website: String,
+    address: {
+      street: String,
+      city: String,
+      state: String,
+      country: { type: String, default: "Niger" },
+      postalCode: String,
+      latitude: Number,
+      longitude: Number,
+    },
+    location: {
+      type: { type: String, enum: ["Point"], default: "Point" },
+      coordinates: { type: [Number], default: [2.1098, 13.5126] },
+    },
+    isOpen: { type: Boolean, default: true },
+    isVerified: { type: Boolean, default: false },
+    vendor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true
+    },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    averageRating: { type: Number, default: 0, min: 0, max: 5 },
+    ratingsCount: { type: Number, default: 0 },
+    deliveryInfo: {
+      hasDelivery: { type: Boolean, default: true },
+      deliveryFee: { type: Number, default: 0, min: 0 },
+      minOrderAmount: { type: Number, default: 0, min: 0 },
+      estimatedDeliveryTime: { type: Number, default: 30 },
+      deliveryRadius: { type: Number, default: 10 },
+      freeDeliveryThreshold: { type: Number, default: 0 },
+    },
+    openingHours: {
+      type: Map,
+      of: { open: String, close: String, isOpen: Boolean },
+      default: {},
+    },
+    stats: {
+      totalOrders: { type: Number, default: 0 },
+      completedOrders: { type: Number, default: 0 },
+      cancelledOrders: { type: Number, default: 0 },
+      totalRevenue: { type: Number, default: 0 },
+      averageOrderValue: { type: Number, default: 0 },
+      lastOrderDate: Date,
+      totalProducts: { type: Number, default: 0 },
+      totalCustomers: { type: Number, default: 0 },
+    },
+    settings: {
+      autoAcceptOrders: { type: Boolean, default: false },
+      preparationTimeBuffer: { type: Number, default: 5 },
+      maxOrdersPerHour: { type: Number, default: 50 },
+      currency: { type: String, default: "XOF" },
+      taxRate: { type: Number, default: 0 },
+      notifications: {
+        email: { type: Boolean, default: true },
+        push: { type: Boolean, default: true },
+        sms: { type: Boolean, default: false },
+      },
+    },
+    preferredDrivers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    tags: [{ type: String, trim: true }],
+    gallery: [{ url: String, caption: String, order: Number }],
+    documents: [{
+      type: { type: String, enum: ["license", "tax", "id", "other"] },
+      url: String,
+      verified: { type: Boolean, default: false },
+      verifiedAt: Date,
+    }],
+    deletedAt: Date,
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
+);
+storeSchema.virtual("products", {
+  ref: "Product",
+  localField: "_id",
+  foreignField: "store",
+});
+storeSchema.virtual("addresses", {
+  ref: "StoreAddress",
+  localField: "_id",
+  foreignField: "store",
+});
+storeSchema.virtual("reviews", {
+  ref: "Review",
+  localField: "_id",
+  foreignField: "store",
+});
+storeSchema.virtual("orders", {
+  ref: "Order",
+  localField: "_id",
+  foreignField: "store",
+});
+storeSchema.virtual("successRate").get(function () {
+  if (this.stats.totalOrders === 0) return 0;
+  return ((this.stats.completedOrders / this.stats.totalOrders) * 100).toFixed(1);
+});
+storeSchema.virtual("isOpenNow").get(function () {
+  if (!this.openingHours) return false;
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const today = days[new Date().getDay()];
+  const hours = this.openingHours.get(today);
+  if (!hours || !hours.isOpen) return false;
+  const now = new Date();
+  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  return currentTime >= hours.open && currentTime <= hours.close;
+});
+storeSchema.index({ category: 1, averageRating: -1 });
+storeSchema.index({ isOpen: 1, isVerified: 1 });
+storeSchema.index({ tags: 1 });
+storeSchema.index({ location: "2dsphere" });
+storeSchema.index({ 'stats.totalOrders': -1 });
+storeSchema.index({ name: 'text', description: 'text', tags: 'text' });
+storeSchema.index({ vendor: 1 });
+storeSchema.methods.updateStats = async function () {
+  try {
+    const Order = require("./order.model");
+    const stats = await Order.aggregate([
+      { $match: { store: this._id } },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          completedOrders: { $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } },
+          cancelledOrders: { $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } },
+          totalRevenue: { $sum: "$totalPrice" },
+          lastOrderDate: { $max: "$createdAt" },
+          avgOrderValue: { $avg: "$totalPrice" }
+        }
+      }
+    ]);
+    if (stats.length > 0) {
+      this.stats = {
+        ...this.stats.toObject(),
+        ...stats[0]
+      };
+      await this.save();
+    }
+    return this;
+  } catch (error) {
+    console.error('❌ Error updating store stats:', error);
+    return this;
+  }
+};
+storeSchema.methods.updateRating = async function () {
+  try {
+    const Review = require("./review.model");
+    const stats = await Review.aggregate([
+      { $match: { store: this._id } },
+      { $group: { _id: null, avgRating: { $avg: '$rating' }, count: { $sum: 1 } } }
+    ]);
+    if (stats.length > 0) {
+      this.averageRating = stats[0].avgRating;
+      this.ratingsCount = stats[0].count;
+    } else {
+      this.averageRating = 0;
+      this.ratingsCount = 0;
+    }
+    await this.save();
+    return this;
+  } catch (error) {
+    console.error('❌ Error updating store rating:', error);
+    return this;
+  }
+};
+storeSchema.methods.incrementProductsCount = async function () {
+  this.stats.totalProducts = (this.stats.totalProducts || 0) + 1;
+  await this.save();
+  return this;
+};
+storeSchema.methods.decrementProductsCount = async function () {
+  this.stats.totalProducts = Math.max(0, (this.stats.totalProducts || 0) - 1);
+  await this.save();
+  return this;
+};
+const Store = mongoose.model("Store", storeSchema);
+console.log('✅ Store model loaded with vendor field');
+module.exports = Store;
 </file>
 
 <file path="src/routes/aggregate.routes.js">
@@ -37676,6 +37353,242 @@ exports.getAllUsers = exports.getUsers;
 module.exports = exports;
 </file>
 
+<file path="src/middlewares/role.middleware.js">
+const { businessLogger } = require("../utils/logger.util");
+const ROLES = {
+  CLIENT: 'client',
+  DRIVER: 'driver',
+  ADMIN: 'admin',
+  VENDOR: 'vendor'
+};
+const ROLE_HIERARCHY = {
+  [ROLES.ADMIN]: [ROLES.ADMIN, ROLES.VENDOR, ROLES.DRIVER, ROLES.CLIENT],
+  [ROLES.VENDOR]: [ROLES.VENDOR, ROLES.DRIVER, ROLES.CLIENT],
+  [ROLES.DRIVER]: [ROLES.DRIVER, ROLES.CLIENT],
+  [ROLES.CLIENT]: [ROLES.CLIENT]
+};
+const ROLE_PERMISSIONS = {
+  [ROLES.ADMIN]: [
+    'manage_users',
+    'manage_stores',
+    'manage_orders',
+    'manage_drivers',
+    'view_analytics',
+    'manage_system',
+    'send_notifications',
+    'manage_loyalty',
+    'view_logs'
+  ],
+  [ROLES.VENDOR]: [
+    'manage_own_store',
+    'view_own_orders',
+    'update_order_status',
+    'manage_products',
+    'view_own_analytics',
+    'manage_staff'
+  ],
+  [ROLES.DRIVER]: [
+    'view_assigned_orders',
+    'update_order_status',
+    'update_location',
+    'view_earnings',
+    'toggle_availability'
+  ],
+  [ROLES.CLIENT]: [
+    'create_orders',
+    'view_own_orders',
+    'cancel_own_orders',
+    'manage_addresses',
+    'write_reviews',
+    'manage_favorites',
+    'view_loyalty'
+  ]
+};
+const roleMiddleware = (...allowedRoles) => {
+  return (req, res, next) => {
+    try {
+      if (!req.user || !req.user.role) {
+        return res.status(401).json({
+          success: false,
+          message: "غير مصرح لك - لم يتم التعرف على المستخدم",
+          code: "UNAUTHORIZED"
+        });
+      }
+      const userRole = req.user.role;
+      if (!allowedRoles.includes(userRole)) {
+        businessLogger.warn('Access denied - insufficient permissions', {
+          userId: req.user.id,
+          userRole,
+          requiredRoles: allowedRoles,
+          path: req.originalUrl
+        });
+        return res.status(403).json({
+          success: false,
+          message: "غير مصرح لك - ليس لديك الصلاحيات المطلوبة",
+          code: "FORBIDDEN",
+          requiredRoles: allowedRoles,
+          yourRole: userRole
+        });
+      }
+      next();
+    } catch (error) {
+      businessLogger.error('Role middleware error:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطأ في التحقق من الصلاحيات",
+        code: "ROLE_CHECK_ERROR"
+      });
+    }
+  };
+};
+const hasPermission = (permission) => {
+  return (req, res, next) => {
+    try {
+      if (!req.user || !req.user.role) {
+        return res.status(401).json({
+          success: false,
+          message: "غير مصرح لك",
+          code: "UNAUTHORIZED"
+        });
+      }
+      const userRole = req.user.role;
+      const userPermissions = ROLE_PERMISSIONS[userRole] || [];
+      if (!userPermissions.includes(permission)) {
+        return res.status(403).json({
+          success: false,
+          message: "ليس لديك الصلاحية المطلوبة",
+          code: "PERMISSION_DENIED",
+          requiredPermission: permission
+        });
+      }
+      next();
+    } catch (error) {
+      businessLogger.error('Permission middleware error:', error);
+      res.status(500).json({
+        success: false,
+        message: "خطأ في التحقق من الصلاحية"
+      });
+    }
+  };
+};
+const storeVendorMiddleware = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "غير مصرح لك - يجب تسجيل الدخول",
+        code: "UNAUTHORIZED"
+      });
+    }
+    if (req.user.role === ROLES.ADMIN) {
+      return next();
+    }
+    if (req.user.role !== ROLES.VENDOR) {
+      return res.status(403).json({
+        success: false,
+        message: "هذا المسار مخصص لأصحاب المتاجر فقط",
+        code: "FORBIDDEN"
+      });
+    }
+    const User = require("../models/user.model");
+    const user = await User.findById(req.user.id).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
+      return res.status(400).json({
+        success: false,
+        message: "لم يتم ربطك بأي متجر بعد",
+        code: "NO_STORE"
+      });
+    }
+    let requestedStoreId = null;
+    if (req.params && typeof req.params === 'object') {
+      requestedStoreId = req.params.storeId || req.params.id;
+    }
+    if (!requestedStoreId && req.body && typeof req.body === 'object') {
+      requestedStoreId = req.body.storeId || req.body.store;
+    }
+    if (requestedStoreId) {
+      const ownsStore = user.storeVendorInfo.store.toString() === requestedStoreId;
+      if (!ownsStore) {
+        return res.status(403).json({
+          success: false,
+          message: "هذا المتجر لا ينتمي إليك",
+          code: "NOT_OWNER"
+        });
+      }
+    }
+    req.storeId = user.storeVendorInfo.store;
+    req.storeVendor = user.storeVendorInfo;
+    next();
+  } catch (error) {
+    console.error("Store vendor middleware error:", error);
+    res.status(500).json({
+      success: false,
+      message: "خطأ في التحقق من الصلاحيات",
+      code: "MIDDLEWARE_ERROR",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+const driverMiddleware = async (req, res, next) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "غير مصرح لك",
+        code: "UNAUTHORIZED"
+      });
+    }
+    if (req.user.role !== ROLES.DRIVER && req.user.role !== ROLES.ADMIN) {
+      return res.status(403).json({
+        success: false,
+        message: "هذا المسار مخصص للمندوبين فقط",
+        code: "FORBIDDEN"
+      });
+    }
+    if (req.user.role === ROLES.ADMIN) {
+      return next();
+    }
+    const User = require("../models/user.model");
+    const user = await User.findById(req.user.id).select('driverInfo.isAvailable isOnline');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "المستخدم غير موجود",
+        code: "USER_NOT_FOUND"
+      });
+    }
+    req.driverInfo = {
+      isAvailable: user.driverInfo?.isAvailable || false,
+      isOnline: user.isOnline
+    };
+    next();
+  } catch (error) {
+    businessLogger.error("Driver middleware error:", error);
+    res.status(500).json({
+      success: false,
+      message: "خطأ في التحقق من صلاحيات المندوب"
+    });
+  }
+};
+const getRoles = () => ROLES;
+const getPermissionsForRole = (role) => {
+  return ROLE_PERMISSIONS[role] || [];
+};
+const hasRoleHierarchy = (userRole, requiredRole) => {
+  const allowedRoles = ROLE_HIERARCHY[userRole] || [userRole];
+  return allowedRoles.includes(requiredRole);
+};
+module.exports = roleMiddleware;
+module.exports.roleMiddleware = roleMiddleware;
+module.exports.storeVendorMiddleware = storeVendorMiddleware;
+module.exports.driverMiddleware = driverMiddleware;
+module.exports.hasPermission = hasPermission;
+module.exports.getRoles = getRoles;
+module.exports.getPermissionsForRole = getPermissionsForRole;
+module.exports.hasRoleHierarchy = hasRoleHierarchy;
+module.exports.ROLES = ROLES;
+</file>
+
 <file path="src/middlewares/security.middleware.js">
 exports.securityHeaders = (req, res, next) => {
   res.removeHeader('X-Powered-By');
@@ -38266,6 +38179,97 @@ orderSchema.methods.calculateTotalPrice = function () {
 module.exports = mongoose.model("Order", orderSchema);
 </file>
 
+<file path="src/routes/vendor.routes.js">
+const express = require('express');
+const router = express.Router();
+const {
+  vendorController,
+  productController,
+  orderController,
+  reviewController
+} = require('../controllers');
+const auth = require('../middlewares/auth.middleware');
+const { storeVendorMiddleware } = require('../middlewares/role.middleware');
+const handleFormData = require('../middlewares/formDataHandler');
+const validate = require('../middlewares/validate.middleware');
+const upload = require('../middlewares/upload');
+const PaginationUtils = require('../utils/pagination.util');
+const {
+  updateProfileSchema,
+  avatarSchema
+} = require('../validators/user.validator');
+const {
+  createStoreSchema,
+  updateStoreSchema
+} = require('../validators/store.validator');
+const {
+  createProductSchema,
+  updateProductSchema,
+  updateInventorySchema
+} = require('../validators/product.validator');
+router.use(auth);
+router.use(storeVendorMiddleware);
+router.get('/profile', vendorController.getMyProfile);
+router.put('/profile', validate(updateProfileSchema), vendorController.updateProfile);
+router.put('/profile/avatar',
+  validate(avatarSchema),
+  upload('users/avatars', ['image']).single('image'),
+  vendorController.updateAvatar
+);
+router.get('/store', vendorController.getMyStore);
+router.put('/store', validate(updateStoreSchema), vendorController.updateStore);
+router.put('/store/logo',
+  upload('stores/logos', ['image']).single('logo'),
+  vendorController.updateStoreLogo
+);
+router.put('/store/cover',
+  upload('stores/covers', ['image']).single('cover'),
+  vendorController.updateStoreCover
+);
+router.put('/store/toggle-status', vendorController.toggleStoreStatus);
+router.get('/store/addresses', vendorController.getAddresses);
+router.post('/store/addresses', vendorController.createAddress);
+router.put('/store/addresses/:id', vendorController.updateAddress);
+router.delete('/store/addresses/:id', vendorController.deleteAddress);
+router.get('/store/addresses/:id', vendorController.getAddressById);
+router.get('/products', PaginationUtils.validatePaginationParams, productController.getVendorProducts);
+router.post('/products',
+  validate(createProductSchema),
+  upload('products', ['image']).single('image'),
+  handleFormData,
+  productController.createProduct
+);
+router.get('/products/:id', productController.getProductById);
+router.put('/products/:id',
+  validate(updateProductSchema),
+  handleFormData,
+  productController.updateProduct
+);
+router.put('/products/:id/image',
+  upload('products', ['image']).single('image'),
+  productController.updateProductImage
+);
+router.delete('/products/:id', productController.deleteProduct);
+router.put('/products/:id/toggle-availability', productController.toggleAvailability);
+router.put('/products/:id/inventory', validate(updateInventorySchema), productController.updateInventory);
+router.get('/orders/stats', orderController.getVendorOrderStats);
+router.get('/orders/today', orderController.getTodayOrders);
+router.get('/orders', PaginationUtils.validatePaginationParams, orderController.getVendorOrders);
+router.get('/orders/:id', orderController.getOrderDetails);
+router.put('/orders/:id/accept', orderController.acceptOrder);
+router.put('/orders/:id/reject', orderController.rejectOrder);
+router.put('/orders/:id/start-preparing', orderController.startPreparing);
+router.put('/orders/:id/mark-ready', orderController.markOrderReady);
+router.get('/analytics', vendorController.getAnalytics);
+router.get('/analytics/financial', vendorController.getFinancialReport);
+router.get('/analytics/performance', vendorController.getPerformanceReport);
+router.get('/analytics/products', vendorController.getProductAnalytics);
+router.get('/reviews', PaginationUtils.validatePaginationParams, reviewController.getVendorReviews);
+router.get('/reviews/stats', reviewController.getVendorReviewStats);
+router.post('/reviews/:id/reply', reviewController.replyToReview);
+module.exports = router;
+</file>
+
 <file path="src/server.js">
 require("dotenv").config();
 const http = require("http");
@@ -38464,57 +38468,6 @@ const startServer = async () => {
 };
 const server = startServer();
 module.exports = server;
-</file>
-
-<file path="src/routes/order.routes.js">
-const express = require("express");
-const router = express.Router();
-const { orderController } = require('../controllers');
-const auth = require("../middlewares/auth.middleware");
-const role = require("../middlewares/role.middleware");
-const { storeOwnerMiddleware, driverMiddleware } = require("../middlewares/role.middleware");
-const validate = require('../middlewares/validate.middleware');
-const { noCache } = require('../middlewares/cache.middleware');
-const PaginationUtils = require('../utils/pagination.util');
-const {
-  createOrderSchema,
-  updateStatusSchema,
-  cancelOrderSchema,
-  rateOrderSchema,
-  reportIssueSchema,
-  assignDriverSchema
-} = require('../validators/order.validator');
-router.get('/me', auth, role('client'), PaginationUtils.validatePaginationParams, orderController.getMyOrdersPaginated);
-router.post("/", auth, role("client"), validate(createOrderSchema), orderController.createOrder);
-router.get("/:id", auth, orderController.getOrderDetails);
-router.put("/:id/cancel", auth, role("client"), validate(cancelOrderSchema), orderController.cancelOrder);
-router.get("/track/:id", auth, orderController.trackOrder);
-router.post("/:id/rate", auth, role('client'), validate(rateOrderSchema), orderController.rateOrder);
-router.post("/:id/report-issue", auth, validate(reportIssueSchema), orderController.reportOrderIssue);
-router.get("/:id/location", auth, orderController.getDriverLocation);
-router.get("/:id/timeline", auth, orderController.getOrderTimeline);
-router.get('/driver/deliveries', auth, driverMiddleware, PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
-router.get('/driver/current-delivery', auth, driverMiddleware, orderController.getCurrentDelivery);
-router.put("/driver/:id/status", auth, driverMiddleware, noCache, validate(updateStatusSchema), orderController.updateStatus);
-router.post("/driver/:id/location", auth, driverMiddleware, orderController.updateDriverLocation);
-router.get('/driver/earnings', auth, driverMiddleware, orderController.getDriverEarnings);
-router.get('/vendor/orders', auth, storeOwnerMiddleware, PaginationUtils.validatePaginationParams, orderController.getVendorOrders);
-router.get('/vendor/orders/stats', auth, storeOwnerMiddleware, orderController.getVendorOrderStats);
-router.get('/vendor/orders/today', auth, storeOwnerMiddleware, orderController.getTodayOrders);
-router.put("/vendor/:id/accept", auth, storeOwnerMiddleware, orderController.acceptOrder);
-router.put("/vendor/:id/reject", auth, storeOwnerMiddleware, orderController.rejectOrder);
-router.put("/vendor/:id/mark-ready", auth, storeOwnerMiddleware, orderController.markOrderReady);
-router.put("/vendor/:id/start-preparing", auth, storeOwnerMiddleware, orderController.startPreparing);
-router.get('/admin/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getAllOrdersPaginated);
-router.get('/admin/orders/stats/overview', auth, role('admin'), orderController.getOrderStats);
-router.get('/admin/orders/stats/daily', auth, role('admin'), orderController.getDailyStats);
-router.get('/admin/orders/stats/monthly', auth, role('admin'), orderController.getMonthlyStats);
-router.put("/admin/:id/assign", auth, role("admin"), validate(assignDriverSchema), orderController.assignDriver);
-router.put("/admin/:id/reassign", auth, role("admin"), orderController.reassignDriver);
-router.put("/admin/:id/force-cancel", auth, role("admin"), validate(cancelOrderSchema), orderController.forceCancelOrder);
-router.get('/admin/drivers/:id/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getDriverOrdersById);
-router.get('/admin/stores/:id/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getStoreOrdersById);
-module.exports = router;
 </file>
 
 <file path="src/routes/user.routes.js">
@@ -39285,6 +39238,57 @@ router.get('/performance', driverController.getPerformanceReport);
 module.exports = router;
 </file>
 
+<file path="src/routes/order.routes.js">
+const express = require("express");
+const router = express.Router();
+const { orderController } = require('../controllers');
+const auth = require("../middlewares/auth.middleware");
+const role = require("../middlewares/role.middleware");
+const { storeVendorMiddleware, driverMiddleware } = require("../middlewares/role.middleware");
+const validate = require('../middlewares/validate.middleware');
+const { noCache } = require('../middlewares/cache.middleware');
+const PaginationUtils = require('../utils/pagination.util');
+const {
+  createOrderSchema,
+  updateStatusSchema,
+  cancelOrderSchema,
+  rateOrderSchema,
+  reportIssueSchema,
+  assignDriverSchema
+} = require('../validators/order.validator');
+router.get('/me', auth, role('client'), PaginationUtils.validatePaginationParams, orderController.getMyOrdersPaginated);
+router.post("/", auth, role("client"), validate(createOrderSchema), orderController.createOrder);
+router.get("/:id", auth, orderController.getOrderDetails);
+router.put("/:id/cancel", auth, role("client"), validate(cancelOrderSchema), orderController.cancelOrder);
+router.get("/track/:id", auth, orderController.trackOrder);
+router.post("/:id/rate", auth, role('client'), validate(rateOrderSchema), orderController.rateOrder);
+router.post("/:id/report-issue", auth, validate(reportIssueSchema), orderController.reportOrderIssue);
+router.get("/:id/location", auth, orderController.getDriverLocation);
+router.get("/:id/timeline", auth, orderController.getOrderTimeline);
+router.get('/driver/deliveries', auth, driverMiddleware, PaginationUtils.validatePaginationParams, orderController.getDriverOrders);
+router.get('/driver/current-delivery', auth, driverMiddleware, orderController.getCurrentDelivery);
+router.put("/driver/:id/status", auth, driverMiddleware, noCache, validate(updateStatusSchema), orderController.updateStatus);
+router.post("/driver/:id/location", auth, driverMiddleware, orderController.updateDriverLocation);
+router.get('/driver/earnings', auth, driverMiddleware, orderController.getDriverEarnings);
+router.get('/vendor/orders', auth, storeVendorMiddleware, PaginationUtils.validatePaginationParams, orderController.getVendorOrders);
+router.get('/vendor/orders/stats', auth, storeVendorMiddleware, orderController.getVendorOrderStats);
+router.get('/vendor/orders/today', auth, storeVendorMiddleware, orderController.getTodayOrders);
+router.put("/vendor/:id/accept", auth, storeVendorMiddleware, orderController.acceptOrder);
+router.put("/vendor/:id/reject", auth, storeVendorMiddleware, orderController.rejectOrder);
+router.put("/vendor/:id/mark-ready", auth, storeVendorMiddleware, orderController.markOrderReady);
+router.put("/vendor/:id/start-preparing", auth, storeVendorMiddleware, orderController.startPreparing);
+router.get('/admin/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getAllOrdersPaginated);
+router.get('/admin/orders/stats/overview', auth, role('admin'), orderController.getOrderStats);
+router.get('/admin/orders/stats/daily', auth, role('admin'), orderController.getDailyStats);
+router.get('/admin/orders/stats/monthly', auth, role('admin'), orderController.getMonthlyStats);
+router.put("/admin/:id/assign", auth, role("admin"), validate(assignDriverSchema), orderController.assignDriver);
+router.put("/admin/:id/reassign", auth, role("admin"), orderController.reassignDriver);
+router.put("/admin/:id/force-cancel", auth, role("admin"), validate(cancelOrderSchema), orderController.forceCancelOrder);
+router.get('/admin/drivers/:id/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getDriverOrdersById);
+router.get('/admin/stores/:id/orders', auth, role('admin'), PaginationUtils.validatePaginationParams, orderController.getStoreOrdersById);
+module.exports = router;
+</file>
+
 <file path="src/controllers/aggregate.controller.js">
 const { User, Address, Order, Store, StoreAddress, Review, Product, DriverLocation, Notification } = require('../models');
 const cache = require('../utils/cache.util');
@@ -39665,7 +39669,7 @@ exports.getStoreDetails = async (req, res) => {
       categories
     ] = await Promise.all([
       Store.findById(id)
-        .populate('owner', 'name phone email')
+        .populate('vendor', 'name phone email')
         .lean(),
       StoreAddress.find({ store: id })
         .select('addressLine city latitude longitude')
@@ -41080,7 +41084,7 @@ exports.exportDriversReport = async (req, res) => {
 exports.exportStoresReport = async (req, res) => {
   try {
     const stores = await Store.find({})
-      .populate('owner', 'name phone')
+      .populate('vendor', 'name phone')
       .lean();
     const storesWithStats = await Promise.all(
       stores.map(async (store) => {
@@ -43546,10 +43550,10 @@ exports.getOrderDetails = async (req, res) => {
         message: 'الطلب غير موجود'
       });
     }
-    const isOwner = order.user && order.user._id.toString() === userId;
+    const isVendor = order.user && order.user._id.toString() === userId;
     const isDriver = order.driver && order.driver._id.toString() === userId;
     const isAdmin = userRole === 'admin';
-    if (!isOwner && !isDriver && !isAdmin) {
+    if (!isVendor && !isDriver && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'غير مصرح لك بالوصول إلى هذا الطلب'
@@ -43632,11 +43636,11 @@ exports.getOrderDetails = async (req, res) => {
         },
         timeline: timeline,
         permissions: {
-          canCancel: ['pending', 'accepted'].includes(order.status) && (isOwner || isAdmin),
+          canCancel: ['pending', 'accepted'].includes(order.status) && (isVendor || isAdmin),
           canUpdateStatus: (isDriver && ['accepted', 'ready', 'picked'].includes(order.status)) || isAdmin,
           canContactDriver: !!order.driver && ['accepted', 'ready', 'picked'].includes(order.status),
           canReassign: isAdmin,
-          canRate: order.status === 'delivered' && isOwner
+          canRate: order.status === 'delivered' && isVendor
         },
         store: order.store ? {
           id: order.store._id,
@@ -43934,14 +43938,14 @@ exports.acceptOrder = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const order = await Order.findOne({
       _id: id,
       store: storeId,
@@ -43989,14 +43993,14 @@ exports.rejectOrder = async (req, res) => {
     const { id } = req.params;
     const { reason } = req.body;
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     if (!reason || reason.trim().length < 5) {
       return res.status(400).json({
         success: false,
@@ -44050,14 +44054,14 @@ exports.markOrderReady = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const order = await Order.findOne({
       _id: id,
       store: storeId,
@@ -44113,14 +44117,14 @@ exports.markOrderReady = async (req, res) => {
 exports.getVendorOrders = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const paginationOptions = PaginationUtils.getPaginationOptions(req);
     const { skip, limit, sort, filters } = paginationOptions;
     let query = { store: storeId };
@@ -44167,14 +44171,14 @@ exports.getVendorOrders = async (req, res) => {
 exports.getVendorOrderStats = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const weekAgo = new Date();
@@ -44241,14 +44245,14 @@ exports.startPreparing = async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const order = await Order.findOne({
       _id: id,
       store: storeId,
@@ -44293,14 +44297,14 @@ exports.startPreparing = async (req, res) => {
 exports.getTodayOrders = async (req, res) => {
   try {
     const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const orders = await Order.find({
@@ -44445,9 +44449,9 @@ exports.cancelOrder = async (req, res) => {
         message: 'الطلب غير موجود'
       });
     }
-    const isOwner = order.user._id.toString() === userId;
+    const isVendor = order.user._id.toString() === userId;
     const isAdmin = userRole === 'admin';
-    if (!isOwner && !isAdmin) {
+    if (!isVendor && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'غير مصرح لك بإلغاء هذا الطلب'
@@ -44696,10 +44700,10 @@ exports.trackOrder = async (req, res) => {
         message: "الطلب غير موجود"
       });
     }
-    const isOwner = order.user.toString() === userId;
+    const isVendor = order.user.toString() === userId;
     const isDriver = order.driver && order.driver._id.toString() === userId;
     const isAdmin = userRole === 'admin';
-    if (!isOwner && !isDriver && !isAdmin) {
+    if (!isVendor && !isDriver && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: "غير مصرح لك بتتبع هذا الطلب"
@@ -44803,7 +44807,7 @@ exports.trackOrder = async (req, res) => {
           price: item.price
         })),
         totalPrice: order.totalPrice,
-        canCancel: ['pending', 'accepted'].includes(order.status) && (isOwner || isAdmin),
+        canCancel: ['pending', 'accepted'].includes(order.status) && (isVendor || isAdmin),
         canContactDriver: !!order.driver && ['accepted', 'ready', 'picked'].includes(order.status)
       }
     });
@@ -44947,10 +44951,10 @@ exports.getOrderTimeline = async (req, res) => {
         message: "الطلب غير موجود"
       });
     }
-    const isOwner = order.user.toString() === userId;
+    const isVendor = order.user.toString() === userId;
     const isDriver = order.driver && order.driver._id.toString() === userId;
     const isAdmin = req.user.role === 'admin';
-    if (!isOwner && !isDriver && !isAdmin) {
+    if (!isVendor && !isDriver && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: "غير مصرح لك بالوصول"
@@ -45635,7 +45639,7 @@ exports.rateOrder = async (req, res) => {
       });
     }
     await notificationService.sendNotification({
-      user: order.store.owner || order.store.createdBy,
+      user: order.store.vendor || order.store.createdBy,
       type: "new_review",
       title: "⭐ تقييم جديد",
       content: `حصلت على تقييم ${rating} نجوم على طلب #${order._id.toString().slice(-6)}`,
@@ -46287,7 +46291,7 @@ const userSchema = new mongoose.Schema(
         verifiedAt: Date,
       }],
     },
-    storeOwnerInfo: {
+    storeVendorInfo: {
       store: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Store",

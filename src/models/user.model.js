@@ -232,8 +232,8 @@ const userSchema = new mongoose.Schema(
       }],
     },
 
-    // ✅ لصاحب المتجر (التاجر) - يبقى storeOwnerInfo كما هو
-    storeOwnerInfo: {
+    // ✅ لصاحب المتجر (التاجر) - يبقى storeVendorInfo كما هو
+    storeVendorInfo: {
       store: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Store",
@@ -399,11 +399,11 @@ userSchema.methods.logActivity = async function (action, details = {}) {
 userSchema.methods.addLoyaltyPoints = async function (amount, reason, orderId = null) {
   try {
     this.loyaltyPoints = (this.loyaltyPoints || 0) + amount;
-    
+
     if (!this.loyaltyTransactions) {
       this.loyaltyTransactions = [];
     }
-    
+
     this.loyaltyTransactions.push({
       type: 'earn',
       amount,
@@ -412,7 +412,7 @@ userSchema.methods.addLoyaltyPoints = async function (amount, reason, orderId = 
       balance: this.loyaltyPoints,
       timestamp: new Date()
     });
-    
+
     await this.save();
     return this.loyaltyPoints;
   } catch (error) {
@@ -429,13 +429,13 @@ userSchema.methods.redeemLoyaltyPoints = async function (amount, reason, rewardI
     if ((this.loyaltyPoints || 0) < amount) {
       throw new Error('Insufficient points');
     }
-    
+
     this.loyaltyPoints -= amount;
-    
+
     if (!this.loyaltyTransactions) {
       this.loyaltyTransactions = [];
     }
-    
+
     this.loyaltyTransactions.push({
       type: 'redeem',
       amount,
@@ -444,7 +444,7 @@ userSchema.methods.redeemLoyaltyPoints = async function (amount, reason, rewardI
       balance: this.loyaltyPoints,
       timestamp: new Date()
     });
-    
+
     await this.save();
     return this.loyaltyPoints;
   } catch (error) {
@@ -463,13 +463,13 @@ userSchema.methods.incLoginAttempts = async function () {
       $unset: { lockUntil: 1 }
     });
   }
-  
+
   const updates = { $inc: { loginAttempts: 1 } };
-  
+
   if (this.loginAttempts + 1 >= 5 && !this.isLocked) {
     updates.$set = { lockUntil: new Date(Date.now() + 2 * 60 * 60 * 1000) };
   }
-  
+
   return this.updateOne(updates);
 };
 

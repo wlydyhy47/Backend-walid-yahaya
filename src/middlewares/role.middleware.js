@@ -162,7 +162,7 @@ const hasPermission = (permission) => {
 /**
  * @desc    التحقق من أن المستخدم يملك المتجر المطلوب
  */
-const storeOwnerMiddleware = async (req, res, next) => {
+const storeVendorMiddleware = async (req, res, next) => {
   try {
     // ✅ التحقق من وجود المستخدم
     if (!req.user) {
@@ -189,10 +189,10 @@ const storeOwnerMiddleware = async (req, res, next) => {
 
     // ✅ جلب بيانات التاجر
     const User = require("../models/user.model");
-    const user = await User.findById(req.user.id).select('storeOwnerInfo');
+    const user = await User.findById(req.user.id).select('storeVendorInfo');
 
     // ✅ التحقق من وجود متجر مرتبط
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(400).json({
         success: false,
         message: "لم يتم ربطك بأي متجر بعد",
@@ -202,12 +202,12 @@ const storeOwnerMiddleware = async (req, res, next) => {
 
     // ✅ التحقق الآمن من وجود params و body
     let requestedStoreId = null;
-    
+
     // التحقق من params فقط إذا كان موجوداً
     if (req.params && typeof req.params === 'object') {
       requestedStoreId = req.params.storeId || req.params.id;
     }
-    
+
     // التحقق من body فقط إذا كان موجوداً
     if (!requestedStoreId && req.body && typeof req.body === 'object') {
       requestedStoreId = req.body.storeId || req.body.store;
@@ -215,7 +215,7 @@ const storeOwnerMiddleware = async (req, res, next) => {
 
     // ✅ فقط إذا كان هناك متجر مطلوب، تحقق من ملكيته
     if (requestedStoreId) {
-      const ownsStore = user.storeOwnerInfo.store.toString() === requestedStoreId;
+      const ownsStore = user.storeVendorInfo.store.toString() === requestedStoreId;
       if (!ownsStore) {
         return res.status(403).json({
           success: false,
@@ -226,13 +226,13 @@ const storeOwnerMiddleware = async (req, res, next) => {
     }
 
     // ✅ إضافة storeId إلى req لاستخدامه في الـ Controllers
-    req.storeId = user.storeOwnerInfo.store;
-    req.storeOwner = user.storeOwnerInfo;
+    req.storeId = user.storeVendorInfo.store;
+    req.storeVendor = user.storeVendorInfo;
 
     next();
 
   } catch (error) {
-    console.error("Store owner middleware error:", error);
+    console.error("Store vendor middleware error:", error);
     res.status(500).json({
       success: false,
       message: "خطأ في التحقق من الصلاحيات",
@@ -325,7 +325,7 @@ const hasRoleHierarchy = (userRole, requiredRole) => {
 
 module.exports = roleMiddleware;
 module.exports.roleMiddleware = roleMiddleware;
-module.exports.storeOwnerMiddleware = storeOwnerMiddleware;
+module.exports.storeVendorMiddleware = storeVendorMiddleware;
 module.exports.driverMiddleware = driverMiddleware;
 module.exports.hasPermission = hasPermission;
 module.exports.getRoles = getRoles;

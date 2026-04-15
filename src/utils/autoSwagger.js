@@ -21,7 +21,7 @@ class AutoSwaggerGenerator {
   parseRouteFile(filePath) {
     const content = fs.readFileSync(filePath, 'utf8');
     const routes = [];
-    
+
     // الأنماط المختلفة للمسارات
     const patterns = [
       // router.get('/path', controller.method)
@@ -31,7 +31,7 @@ class AutoSwaggerGenerator {
       // controller.method مباشرة
       /router\.(get|post|put|delete|patch)\s*\(\s*['"`]([^'"`]+)['"`]\s*,\s*(\w+)/g
     ];
-    
+
     patterns.forEach(pattern => {
       let match;
       while ((match = pattern.exec(content)) !== null) {
@@ -47,7 +47,7 @@ class AutoSwaggerGenerator {
           routePath = match[1];
           handler = match[3];
         }
-        
+
         routes.push({
           method,
           path: this.normalizePath(routePath),
@@ -58,7 +58,7 @@ class AutoSwaggerGenerator {
         });
       }
     });
-    
+
     return routes;
   }
 
@@ -80,7 +80,7 @@ class AutoSwaggerGenerator {
     const lines = content.split('\n');
     let hasAuth = false;
     let roles = [];
-    
+
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].includes(routePath) || lines[i].includes(`'${routePath}'`) || lines[i].includes(`"${routePath}"`)) {
         // ابحث عن auth middleware في الأسطر التالية
@@ -92,13 +92,13 @@ class AutoSwaggerGenerator {
             const roleMatch = lines[j].match(/role\(['"](.+)['"]\)/);
             if (roleMatch && !roles.includes(roleMatch[1])) roles.push(roleMatch[1]);
           }
-          if (lines[j].includes('storeOwnerMiddleware') && !roles.includes('vendor')) roles.push('vendor');
+          if (lines[j].includes('storeVendorMiddleware') && !roles.includes('vendor')) roles.push('vendor');
           if (lines[j].includes('driverMiddleware') && !roles.includes('driver')) roles.push('driver');
         }
         break;
       }
     }
-    
+
     return { required: hasAuth, roles: roles.length ? roles : null };
   }
 
@@ -127,7 +127,7 @@ class AutoSwaggerGenerator {
       PATCH: 'تحديث جزئي للمورد',
       DELETE: 'حذف المورد'
     };
-    
+
     const pathDoc = {
       [methodLower]: {
         tags: [this.getTagFromPath(route.path)],
@@ -144,14 +144,14 @@ class AutoSwaggerGenerator {
         }
       }
     };
-    
+
     if (route.auth.required) {
       pathDoc[methodLower].security = [{ bearerAuth: [] }];
       if (route.auth.roles) {
         pathDoc[methodLower].description += ` (الأدوار: ${route.auth.roles.join(', ')})`;
       }
     }
-    
+
     if (['POST', 'PUT', 'PATCH'].includes(route.method)) {
       pathDoc[methodLower].requestBody = {
         required: true,
@@ -162,7 +162,7 @@ class AutoSwaggerGenerator {
         }
       };
     }
-    
+
     return pathDoc;
   }
 
@@ -218,7 +218,7 @@ class AutoSwaggerGenerator {
   scanAllRoutes() {
     const files = fs.readdirSync(this.routesDir);
     const allRoutes = [];
-    
+
     files.forEach(file => {
       if (file.endsWith('.routes.js')) {
         const filePath = pathModule.join(this.routesDir, file);
@@ -231,7 +231,7 @@ class AutoSwaggerGenerator {
         }
       }
     });
-    
+
     return allRoutes;
   }
 
@@ -240,10 +240,10 @@ class AutoSwaggerGenerator {
    */
   generateFullSwagger() {
     console.log('\n📂 مسح ملفات المسارات...\n');
-    
+
     const routes = this.scanAllRoutes();
     console.log(`\n📊 تم العثور على ${routes.length} مساراً إجمالاً\n`);
-    
+
     // تجميع المسارات
     const paths = {};
     routes.forEach(route => {
@@ -252,7 +252,7 @@ class AutoSwaggerGenerator {
       }
       Object.assign(paths[route.path], this.generateSwaggerPath(route));
     });
-    
+
     // إنشاء التوثيق الكامل
     const swaggerDoc = {
       openapi: '3.0.0',
@@ -287,17 +287,17 @@ class AutoSwaggerGenerator {
       tags: this.generateTags(routes),
       paths
     };
-    
+
     // حفظ الملف
     const outputPath = pathModule.join(this.outputDir, 'swagger.auto.json');
     fs.writeFileSync(outputPath, JSON.stringify(swaggerDoc, null, 2));
-    
+
     console.log(`✅ تم إنشاء التوثيق التلقائي في: ${outputPath}`);
     console.log(`📈 إجمالي المسارات الفريدة الموثقة: ${Object.keys(paths).length}`);
-    
+
     // إنشاء تقرير
     this.generateReport(routes);
-    
+
     return swaggerDoc;
   }
 
@@ -350,7 +350,7 @@ class AutoSwaggerGenerator {
       if (!grouped[tag]) grouped[tag] = [];
       grouped[tag].push(route);
     });
-    
+
     console.log('\n📊 تقرير المسارات حسب المجموعة:\n');
     console.log('┌' + '─'.repeat(50) + '┐');
     for (const [tag, tagRoutes] of Object.entries(grouped).sort()) {
@@ -358,17 +358,17 @@ class AutoSwaggerGenerator {
       console.log(`│ ${tag.padEnd(20)} │ ${String(tagRoutes.length).padStart(4)} مسار │ 🔒 ${secured} │`);
     }
     console.log('└' + '─'.repeat(50) + '┘');
-    
+
     const totalEndpoints = routes.length;
     const securedEndpoints = routes.filter(r => r.auth.required).length;
     const publicEndpoints = totalEndpoints - securedEndpoints;
-    
+
     console.log('\n📈 ملخص نهائي:');
     console.log(`   ┌─────────────────────────────────────────┐`);
     console.log(`   │ إجمالي المسارات: ${String(totalEndpoints).padStart(32)} │`);
     console.log(`   │ مسارات محمية: ${String(securedEndpoints).padStart(34)} │`);
     console.log(`   │ مسارات عامة: ${String(publicEndpoints).padStart(35)} │`);
-    console.log(`   │ نسبة التغطية: ${String(Math.round(securedEndpoints/totalEndpoints*100) + '%').padStart(34)} │`);
+    console.log(`   │ نسبة التغطية: ${String(Math.round(securedEndpoints / totalEndpoints * 100) + '%').padStart(34)} │`);
     console.log(`   └─────────────────────────────────────────┘`);
   }
 }

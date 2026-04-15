@@ -427,11 +427,11 @@ class NotificationService {
       if (order.store) {
         const store = await require("../models/store.model")
           .findById(order.store)
-          .populate('owner');
+          .populate('vendor');
 
-        if (store?.owner) {
+        if (store?.vendor) {
           notifications.push({
-            user: store.owner,
+            user: store.vendor,
             type: "order_created",
             title: "🛒 طلب جديد!",
             content: `طلب جديد بقيمة ${order.totalPrice} من ${order.user?.name || 'عميل'}`,

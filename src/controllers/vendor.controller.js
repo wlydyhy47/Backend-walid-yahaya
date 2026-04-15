@@ -1,7 +1,7 @@
 // ============================================
 // ملف: src/controllers/vendor.controller.js (المصحح بالكامل)
 // الوصف: التحكم في عمليات التجار (أصحاب المتاجر)
-// الإصدار: 4.0 - استخدام vendor بدلاً من owner
+// الإصدار: 4.0 - استخدام vendor بدلاً من vendor
 // ============================================
 
 const { Store, StoreAddress, Product, User, Order, Review } = require('../models');
@@ -27,7 +27,7 @@ const invalidateVendorCache = (storeId, userId) => {
 /**
  * التحقق من ملكية المتجر (باستخدام vendor)
  */
-const checkStoreOwnership = async (storeId, userId, req = null) => {
+const checkStoreVendorship = async (storeId, userId, req = null) => {
   const store = await Store.findById(storeId);
   if (!store) {
     throw new AppError('المتجر غير موجود', 404);
@@ -36,7 +36,7 @@ const checkStoreOwnership = async (storeId, userId, req = null) => {
   // المشرف يمكنه الوصول لأي متجر
   if (req?.user?.role === 'admin') return { store };
 
-  // ✅ استخدام vendor بدلاً من owner
+  // ✅ استخدام vendor بدلاً من vendor
   if (!store.vendor || store.vendor.toString() !== userId) {
     throw new AppError('غير مصرح لك بالوصول إلى هذا المتجر', 403);
   }
@@ -67,7 +67,7 @@ exports.getMyProfile = async (req, res) => {
     }
 
     const user = await User.findById(userId)
-      .select('name phone email image coverImage storeOwnerInfo')
+      .select('name phone email image coverImage storeVendorInfo')
       .lean();
 
     if (!user) {
@@ -79,8 +79,8 @@ exports.getMyProfile = async (req, res) => {
 
     // إحصائيات سريعة
     let storeStats = {};
-    if (user.storeOwnerInfo?.store) {
-      const storeId = user.storeOwnerInfo.store;
+    if (user.storeVendorInfo?.store) {
+      const storeId = user.storeVendorInfo.store;
 
       const [todayOrders, totalRevenue, pendingOrders] = await Promise.all([
         Order.countDocuments({
@@ -235,16 +235,16 @@ exports.getMyStore = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const cacheKey = `vendor:store:${storeId}`;
     const cachedData = cache.get(cacheKey);
@@ -315,16 +315,16 @@ exports.updateStore = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
     const updates = req.body;
 
     const allowedUpdates = [
@@ -401,16 +401,16 @@ exports.updateStoreLogo = async (req, res) => {
 
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const oldStore = await Store.findById(storeId).select('logo');
     if (oldStore?.logo) {
@@ -470,16 +470,16 @@ exports.updateStoreCover = async (req, res) => {
 
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const oldStore = await Store.findById(storeId).select('coverImage');
     if (oldStore?.coverImage) {
@@ -532,16 +532,16 @@ exports.toggleStoreStatus = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const store = await Store.findById(storeId);
 
@@ -556,7 +556,7 @@ exports.toggleStoreStatus = async (req, res) => {
     await store.save();
 
     await User.findByIdAndUpdate(userId, {
-      "storeOwnerInfo.isStoreOpen": store.isOpen
+      "storeVendorInfo.isStoreOpen": store.isOpen
     });
 
     invalidateVendorCache(storeId, userId);
@@ -589,16 +589,16 @@ exports.getAddresses = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const addresses = await StoreAddress.find({
       store: storeId,
@@ -628,16 +628,16 @@ exports.createAddress = async (req, res) => {
     const userId = req.user.id;
     const { label, addressLine, city, latitude, longitude, phone } = req.body;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const address = await StoreAddress.create({
       store: storeId,
@@ -677,16 +677,16 @@ exports.updateAddress = async (req, res) => {
     const userId = req.user.id;
     const { label, addressLine, city, latitude, longitude, phone, isActive } = req.body;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const address = await StoreAddress.findOne({
       _id: id,
@@ -736,16 +736,16 @@ exports.deleteAddress = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const address = await StoreAddress.findOneAndDelete({
       _id: id,
@@ -784,16 +784,16 @@ exports.getAddressById = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const address = await StoreAddress.findOne({
       _id: id,
@@ -831,16 +831,16 @@ exports.getAnalytics = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const cacheKey = `vendor:analytics:${storeId}`;
     const cachedData = cache.get(cacheKey);
@@ -981,16 +981,16 @@ exports.getFinancialReport = async (req, res) => {
     const userId = req.user.id;
     const { period = 'month' } = req.query;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     let startDate = new Date();
     switch (period) {
@@ -1074,16 +1074,16 @@ exports.getPerformanceReport = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const report = await Order.aggregate([
       { $match: { store: storeId } },
@@ -1168,16 +1168,16 @@ exports.getProductAnalytics = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const user = await User.findById(userId).select('storeOwnerInfo');
+    const user = await User.findById(userId).select('storeVendorInfo');
 
-    if (!user?.storeOwnerInfo?.store) {
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const analytics = await Product.aggregate([
       { $match: { store: storeId } },
@@ -1240,9 +1240,9 @@ exports.getVendors = async (req, res) => {
       role: 'vendor',
       isActive: true
     })
-      .select('name phone email image storeOwnerInfo createdAt')
+      .select('name phone email image storeVendorInfo createdAt')
       .populate({
-        path: 'storeOwnerInfo.store',
+        path: 'storeVendorInfo.store',
         select: 'name logo category isOpen averageRating vendor'
       })
       .lean();
@@ -1272,7 +1272,7 @@ exports.getVendorById = async (req, res) => {
     const vendor = await User.findById(id)
       .select('-password -verificationCode -resetPasswordToken -activityLog')
       .populate({
-        path: 'storeOwnerInfo.store',
+        path: 'storeVendorInfo.store',
         select: 'name logo category isOpen averageRating vendor'
       })
       .lean();
@@ -1363,8 +1363,8 @@ exports.toggleVendorStatus = async (req, res) => {
     await vendor.save();
 
     // إذا كان للتاجر متجر، تحديث حالة المتجر أيضاً
-    if (vendor.storeOwnerInfo?.store) {
-      await Store.findByIdAndUpdate(vendor.storeOwnerInfo.store, {
+    if (vendor.storeVendorInfo?.store) {
+      await Store.findByIdAndUpdate(vendor.storeVendorInfo.store, {
         isOpen: isActive
       });
     }

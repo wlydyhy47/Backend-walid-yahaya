@@ -65,11 +65,11 @@ exports.getOrderRoute = async (req, res) => {
     }
 
     // التحقق من الصلاحيات
-    const isOwner = order.user.toString() === userId;
+    const isVendor = order.user.toString() === userId;
     const isDriver = order.driver?.toString() === userId;
     const isAdmin = userRole === 'admin';
 
-    if (!isOwner && !isDriver && !isAdmin) {
+    if (!isVendor && !isDriver && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'Access denied'
@@ -83,7 +83,7 @@ exports.getOrderRoute = async (req, res) => {
         driver: order.driver,
         order: orderId
       }).sort({ createdAt: -1 });
-      
+
       if (driverLoc) {
         driverLocation = {
           latitude: driverLoc.location.coordinates[1],

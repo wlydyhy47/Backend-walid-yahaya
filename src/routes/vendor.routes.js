@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const { 
+const {
   vendorController,
   productController,
   orderController,
@@ -9,7 +9,7 @@ const {
 } = require('../controllers');
 
 const auth = require('../middlewares/auth.middleware');
-const { storeOwnerMiddleware } = require('../middlewares/role.middleware');
+const { storeVendorMiddleware } = require('../middlewares/role.middleware');
 const handleFormData = require('../middlewares/formDataHandler');
 const validate = require('../middlewares/validate.middleware');
 const upload = require('../middlewares/upload');
@@ -32,15 +32,15 @@ const {
 } = require('../validators/product.validator');
 
 router.use(auth);
-router.use(storeOwnerMiddleware);
+router.use(storeVendorMiddleware);
 
 router.get('/profile', vendorController.getMyProfile);
 
 router.put('/profile', validate(updateProfileSchema), vendorController.updateProfile);
 
-router.put('/profile/avatar', 
+router.put('/profile/avatar',
   validate(avatarSchema),
-  upload('users/avatars', ['image']).single('image'), 
+  upload('users/avatars', ['image']).single('image'),
   vendorController.updateAvatar
 );
 
@@ -48,13 +48,13 @@ router.get('/store', vendorController.getMyStore);
 
 router.put('/store', validate(updateStoreSchema), vendorController.updateStore);
 
-router.put('/store/logo', 
-  upload('stores/logos', ['image']).single('logo'), 
+router.put('/store/logo',
+  upload('stores/logos', ['image']).single('logo'),
   vendorController.updateStoreLogo
 );
 
-router.put('/store/cover', 
-  upload('stores/covers', ['image']).single('cover'), 
+router.put('/store/cover',
+  upload('stores/covers', ['image']).single('cover'),
   vendorController.updateStoreCover
 );
 
@@ -72,10 +72,10 @@ router.get('/store/addresses/:id', vendorController.getAddressById);
 
 router.get('/products', PaginationUtils.validatePaginationParams, productController.getVendorProducts);
 
-router.post('/products', 
+router.post('/products',
   validate(createProductSchema),
   upload('products', ['image']).single('image'),
-  handleFormData, 
+  handleFormData,
   productController.createProduct
 );
 
@@ -87,8 +87,8 @@ router.put('/products/:id',
   productController.updateProduct
 );
 
-router.put('/products/:id/image', 
-  upload('products', ['image']).single('image'), 
+router.put('/products/:id/image',
+  upload('products', ['image']).single('image'),
   productController.updateProductImage
 );
 

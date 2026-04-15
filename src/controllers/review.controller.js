@@ -171,7 +171,7 @@ exports.addReview = async (req, res) => {
     });
   }
 };
- 
+
 
 /**
  * @desc    الحصول على تقييمات المستخدم الحالي
@@ -298,7 +298,7 @@ exports.deleteReview = async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    const query = userRole === 'admin' 
+    const query = userRole === 'admin'
       ? { _id: id }
       : { _id: id, user: userId };
 
@@ -559,7 +559,7 @@ exports.deleteReview = async (req, res) => {
     const userId = req.user.id;
     const userRole = req.user.role;
 
-    const query = userRole === 'admin' 
+    const query = userRole === 'admin'
       ? { _id: id }
       : { _id: id, user: userId };
 
@@ -637,16 +637,16 @@ exports.getVendorReviewStats = async (req, res) => {
     const userId = req.user.id;
 
     // جلب المتجر الخاص بالتاجر
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const stats = await Review.aggregate([
       { $match: { store: storeId } },
@@ -747,16 +747,16 @@ exports.getVendorReviews = async (req, res) => {
     const { page = 1, limit = 10, rating } = req.query;
 
     // جلب المتجر الخاص بالتاجر
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
@@ -814,16 +814,16 @@ exports.replyToReview = async (req, res) => {
     }
 
     // جلب المتجر الخاص بالتاجر
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    
-    if (!user?.storeOwnerInfo?.store) {
+    const user = await User.findById(userId).select('storeVendorInfo');
+
+    if (!user?.storeVendorInfo?.store) {
       return res.status(404).json({
         success: false,
         message: "لم تقم بإنشاء متجر بعد"
       });
     }
 
-    const storeId = user.storeOwnerInfo.store;
+    const storeId = user.storeVendorInfo.store;
 
     // التحقق من أن التقييم يخص هذا المتجر
     const review = await Review.findOne({
