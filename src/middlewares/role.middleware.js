@@ -1,7 +1,7 @@
 // ============================================
-// ملف: src/middlewares/role.middleware.js (مصحح)
+// ملف: src/middlewares/role.middleware.js
 // الوصف: التحقق من صلاحيات الأدوار
-// الإصدار: 3.0
+// الإصدار: 3.1
 // ============================================
 
 const { businessLogger } = require("../utils/logger.util");
@@ -86,7 +86,6 @@ const roleMiddleware = (...allowedRoles) => {
 
       const userRole = req.user.role;
 
-      // التحقق إذا كان الدور مسموحاً به
       if (!allowedRoles.includes(userRole)) {
         businessLogger.warn('Access denied - insufficient permissions', {
           userId: req.user.id,
@@ -163,11 +162,8 @@ const hasPermission = (permission) => {
 /**
  * @desc    التحقق من أن المستخدم يملك المتجر المطلوب
  */
-
 const storeOwnerMiddleware = async (req, res, next) => {
   try {
-    const Store = require("../models/store.model");
-
     // ✅ التحقق من وجود المستخدم
     if (!req.user) {
       return res.status(401).json({
@@ -192,8 +188,8 @@ const storeOwnerMiddleware = async (req, res, next) => {
     }
 
     // ✅ جلب بيانات التاجر
-    const user = await require("../models/user.model").findById(req.user.id)
-      .select('storeOwnerInfo');
+    const User = require("../models/user.model");
+    const user = await User.findById(req.user.id).select('storeOwnerInfo');
 
     // ✅ التحقق من وجود متجر مرتبط
     if (!user?.storeOwnerInfo?.store) {
@@ -204,20 +200,20 @@ const storeOwnerMiddleware = async (req, res, next) => {
       });
     }
 
-    // ✅ ✅ ✅ الإصلاح الأساسي: التحقق من وجود req.params
+    // ✅ التحقق الآمن من وجود params و body
     let requestedStoreId = null;
-
-    // التحقق من وجود req.params بأمان
+    
+    // التحقق من params فقط إذا كان موجوداً
     if (req.params && typeof req.params === 'object') {
       requestedStoreId = req.params.storeId || req.params.id;
     }
-
-    // التحقق من body إذا لم يوجد في params
+    
+    // التحقق من body فقط إذا كان موجوداً
     if (!requestedStoreId && req.body && typeof req.body === 'object') {
       requestedStoreId = req.body.storeId || req.body.store;
     }
 
-    // ✅ إذا كان هناك متجر مطلوب، تحقق من ملكيته
+    // ✅ فقط إذا كان هناك متجر مطلوب، تحقق من ملكيته
     if (requestedStoreId) {
       const ownsStore = user.storeOwnerInfo.store.toString() === requestedStoreId;
       if (!ownsStore) {
@@ -245,7 +241,6 @@ const storeOwnerMiddleware = async (req, res, next) => {
     });
   }
 };
-
 
 // ========== 4. Middleware خاص للمندوب ==========
 
@@ -276,8 +271,8 @@ const driverMiddleware = async (req, res, next) => {
     }
 
     // التحقق من حالة المندوب
-    const user = await require("../models/user.model").findById(req.user.id)
-      .select('driverInfo.isAvailable isOnline');
+    const User = require("../models/user.model");
+    const user = await User.findById(req.user.id).select('driverInfo.isAvailable isOnline');
 
     if (!user) {
       return res.status(404).json({
@@ -326,9 +321,11 @@ const hasRoleHierarchy = (userRole, requiredRole) => {
   return allowedRoles.includes(requiredRole);
 };
 
+// ========== 6. تصدير الوحدات ==========
+
 module.exports = roleMiddleware;
 module.exports.roleMiddleware = roleMiddleware;
-module.exports.storeOwnerMiddleware = storeOwnerMiddleware;  // ✅ تغيير من storeOwnerMiddleware
+module.exports.storeOwnerMiddleware = storeOwnerMiddleware;
 module.exports.driverMiddleware = driverMiddleware;
 module.exports.hasPermission = hasPermission;
 module.exports.getRoles = getRoles;
