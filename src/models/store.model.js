@@ -37,12 +37,11 @@ const storeSchema = new mongoose.Schema(
     isOpen: { type: Boolean, default: true },
     isVerified: { type: Boolean, default: false },
     
-    // ✅ استخدام vendor بدلاً من owner
+    
     vendor: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      index: true,
-      required: true  // جعله مطلوباً
+      required: true 
     },
     
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
@@ -149,7 +148,7 @@ storeSchema.index({ tags: 1 });
 storeSchema.index({ location: "2dsphere" });
 storeSchema.index({ 'stats.totalOrders': -1 });
 storeSchema.index({ name: 'text', description: 'text', tags: 'text' });
-storeSchema.index({ vendor: 1 }); // ✅ إضافة index لـ vendor
+storeSchema.index({ vendor: 1 }); 
 
 // Methods
 storeSchema.methods.updateStats = async function () {

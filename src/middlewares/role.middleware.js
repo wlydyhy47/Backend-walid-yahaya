@@ -13,7 +13,7 @@ const ROLES = {
   CLIENT: 'client',
   DRIVER: 'driver',
   ADMIN: 'admin',
-  VENDOR: 'vendor'  
+  VENDOR: 'vendor'
 };
 
 /**
@@ -32,7 +32,7 @@ const ROLE_HIERARCHY = {
 const ROLE_PERMISSIONS = {
   [ROLES.ADMIN]: [
     'manage_users',
-    'manage_stores',      // ✅ تغيير من manage_stores
+    'manage_stores',
     'manage_orders',
     'manage_drivers',
     'view_analytics',
@@ -41,11 +41,11 @@ const ROLE_PERMISSIONS = {
     'manage_loyalty',
     'view_logs'
   ],
-  [ROLES.VENDOR]: [  // ✅ تغيير من RESTAURANT_OWNER
-    'manage_own_store',    // ✅ تغيير من manage_own_store
+  [ROLES.VENDOR]: [
+    'manage_own_store',
     'view_own_orders',
     'update_order_status',
-    'manage_products',     // ✅ تغيير من manage_menu
+    'manage_products',
     'view_own_analytics',
     'manage_staff'
   ],
@@ -163,10 +163,12 @@ const hasPermission = (permission) => {
 /**
  * @desc    التحقق من أن المستخدم يملك المتجر المطلوب
  */
+
 const storeOwnerMiddleware = async (req, res, next) => {
   try {
     const Store = require("../models/store.model");
 
+    // ✅ التحقق من وجود المستخدم
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -175,11 +177,12 @@ const storeOwnerMiddleware = async (req, res, next) => {
       });
     }
 
-    // الأدمن يتجاوز التحقق من الملكية
+    // ✅ الأدمن يمكنه تجاوز التحقق
     if (req.user.role === ROLES.ADMIN) {
       return next();
     }
 
+    // ✅ التحقق من أن المستخدم تاجر
     if (req.user.role !== ROLES.VENDOR) {
       return res.status(403).json({
         success: false,
@@ -188,10 +191,11 @@ const storeOwnerMiddleware = async (req, res, next) => {
       });
     }
 
-    // التحقق من أن المستخدم يملك متجراً
+    // ✅ جلب بيانات التاجر
     const user = await require("../models/user.model").findById(req.user.id)
       .select('storeOwnerInfo');
 
+    // ✅ التحقق من وجود متجر مرتبط
     if (!user?.storeOwnerInfo?.store) {
       return res.status(400).json({
         success: false,
@@ -200,14 +204,22 @@ const storeOwnerMiddleware = async (req, res, next) => {
       });
     }
 
-    // إذا كان هناك storeId في params، تحقق من الملكية
-    const requestedStoreId = req.params.storeId ||
-      req.params.id ||
-      req.body.storeId;
+    // ✅ ✅ ✅ الإصلاح الأساسي: التحقق من وجود req.params
+    let requestedStoreId = null;
 
+    // التحقق من وجود req.params بأمان
+    if (req.params && typeof req.params === 'object') {
+      requestedStoreId = req.params.storeId || req.params.id;
+    }
+
+    // التحقق من body إذا لم يوجد في params
+    if (!requestedStoreId && req.body && typeof req.body === 'object') {
+      requestedStoreId = req.body.storeId || req.body.store;
+    }
+
+    // ✅ إذا كان هناك متجر مطلوب، تحقق من ملكيته
     if (requestedStoreId) {
       const ownsStore = user.storeOwnerInfo.store.toString() === requestedStoreId;
-
       if (!ownsStore) {
         return res.status(403).json({
           success: false,
@@ -217,21 +229,23 @@ const storeOwnerMiddleware = async (req, res, next) => {
       }
     }
 
-    // إضافة معلومات المتجر للـ req
+    // ✅ إضافة storeId إلى req لاستخدامه في الـ Controllers
     req.storeId = user.storeOwnerInfo.store;
     req.storeOwner = user.storeOwnerInfo;
 
     next();
-  } catch (error) {
-    businessLogger.error("Store owner middleware error:", error);
 
+  } catch (error) {
+    console.error("Store owner middleware error:", error);
     res.status(500).json({
       success: false,
       message: "خطأ في التحقق من الصلاحيات",
-      code: "MIDDLEWARE_ERROR"
+      code: "MIDDLEWARE_ERROR",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
+
 
 // ========== 4. Middleware خاص للمندوب ==========
 

@@ -30176,1082 +30176,6 @@ exports.broadcastMessage = async (req, res) => {
 module.exports = exports;
 </file>
 
-<file path="src/controllers/vendor.controller.js">
-const { Store, StoreAddress, Product, User, Order, Review } = require('../models');
-const cache = require("../utils/cache.util");
-const fileService = require('../services/file.service');
-const { AppError } = require('../middlewares/errorHandler.middleware');
-const invalidateVendorCache = (storeId, userId) => {
-  cache.del(`vendor:profile:${userId}`);
-  cache.del(`vendor:dashboard:${storeId}`);
-  cache.del(`vendor:stats:${storeId}`);
-  cache.invalidatePattern(`vendor:orders:${storeId}:*`);
-  cache.del(`store:complete:${storeId}`);
-  cache.invalidatePattern('stores:*');
-};
-const checkStoreOwnership = async (storeId, userId, req = null) => {
-  const store = await Store.findById(storeId);
-  if (!store) {
-    throw new AppError('المتجر غير موجود', 404);
-  }
-  if (req?.user?.role === 'admin') return { store };
-  if (!store.owner || store.owner.toString() !== userId) {
-    throw new AppError('غير مصرح لك بالوصول إلى هذا المتجر', 403);
-  }
-  return { store };
-};
-exports.getMyProfile = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const cacheKey = `vendor:profile:${userId}`;
-    const cachedData = cache.get(cacheKey);
-    if (cachedData) {
-      return res.json({
-        success: true,
-        data: cachedData,
-        cached: true
-      });
-    }
-    const user = await User.findById(userId)
-      .select('name phone email image coverImage storeOwnerInfo')
-      .lean();
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "المستخدم غير موجود"
-      });
-    }
-    let storeStats = {};
-    if (user.storeOwnerInfo?.store) {
-      const storeId = user.storeOwnerInfo.store;
-      const [todayOrders, totalRevenue, pendingOrders] = await Promise.all([
-        Order.countDocuments({
-          store: storeId,
-          status: 'delivered',
-          createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
-        }),
-        Order.aggregate([
-          { $match: { store: storeId, status: 'delivered' } },
-          { $group: { _id: null, total: { $sum: '$totalPrice' } } }
-        ]),
-        Order.countDocuments({
-          store: storeId,
-          status: 'pending'
-        })
-      ]);
-      storeStats = {
-        storeId,
-        todayOrders,
-        totalRevenue: totalRevenue[0]?.total || 0,
-        pendingOrders
-      };
-    }
-    const profileData = {
-      ...user,
-      storeStats
-    };
-    cache.set(cacheKey, profileData, 300);
-    res.json({
-      success: true,
-      data: profileData
-    });
-  } catch (error) {
-    console.error("❌ Get vendor profile error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب ملف التاجر"
-    });
-  }
-};
-exports.updateProfile = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { name, email, bio, phone } = req.body;
-    const updateData = {};
-    if (name) updateData.name = name;
-    if (email) updateData.email = email;
-    if (bio) updateData.bio = bio;
-    if (phone) updateData.phone = phone;
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    ).select('name phone email image bio');
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "المستخدم غير موجود"
-      });
-    }
-    cache.del(`vendor:profile:${userId}`);
-    res.json({
-      success: true,
-      message: "تم تحديث الملف الشخصي بنجاح",
-      data: user
-    });
-  } catch (error) {
-    console.error("❌ Update vendor profile error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تحديث الملف الشخصي"
-    });
-  }
-};
-exports.updateAvatar = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "لم يتم رفع أي صورة"
-      });
-    }
-    const userId = req.user.id;
-    const oldUser = await User.findById(userId).select('image');
-    if (oldUser?.image) {
-      const oldPublicId = fileService.extractPublicIdFromUrl(oldUser.image);
-      if (oldPublicId) {
-        fileService.deleteFile(oldPublicId).catch(err =>
-          console.error('Error deleting old avatar:', err)
-        );
-      }
-    }
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { image: req.file.path },
-      { new: true }
-    ).select('name email image');
-    cache.del(`vendor:profile:${userId}`);
-    res.json({
-      success: true,
-      message: "تم تحديث الصورة الشخصية بنجاح",
-      data: {
-        image: user.image,
-        optimized: req.file.thumbnail || null
-      }
-    });
-  } catch (error) {
-    console.error("❌ Update avatar error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تحديث الصورة الشخصية"
-    });
-  }
-};
-exports.getMyStore = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(404).json({
-        success: false,
-        message: "لم تقم بإنشاء متجر بعد"
-      });
-    }
-    const storeId = user.storeOwnerInfo.store;
-    const cacheKey = `vendor:store:${storeId}`;
-    const cachedData = cache.get(cacheKey);
-    if (cachedData) {
-      return res.json({
-        success: true,
-        data: cachedData,
-        cached: true
-      });
-    }
-    const store = await Store.findById(storeId)
-      .populate('addresses')
-      .populate({
-        path: 'products',
-        select: 'name price image category inventory isAvailable',
-        options: { limit: 10 }
-      })
-      .lean();
-    if (!store) {
-      return res.status(404).json({
-        success: false,
-        message: "المتجر غير موجود"
-      });
-    }
-    const [productsCount, ordersCount, reviewsCount] = await Promise.all([
-      Product.countDocuments({ store: storeId }),
-      Order.countDocuments({ store: storeId }),
-      Review.countDocuments({ store: storeId })
-    ]);
-    const storeData = {
-      ...store,
-      stats: {
-        productsCount,
-        ordersCount,
-        reviewsCount,
-        averageRating: store.averageRating || 0
-      }
-    };
-    cache.set(cacheKey, storeData, 300);
-    res.json({
-      success: true,
-      data: storeData
-    });
-  } catch (error) {
-    console.error("❌ Get store error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب بيانات المتجر"
-    });
-  }
-};
-exports.updateStore = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(404).json({
-        success: false,
-        message: "لم تقم بإنشاء متجر بعد"
-      });
-    }
-    const storeId = user.storeOwnerInfo.store;
-    const updates = req.body;
-    const allowedUpdates = [
-      'name', 'description', 'category', 'phone', 'email', 'website',
-      'address', 'deliveryInfo', 'tags', 'openingHours', 'isOpen'
-    ];
-    const updateData = {};
-    Object.keys(updates).forEach(key => {
-      if (allowedUpdates.includes(key)) {
-        if (key === 'tags' && typeof updates[key] === 'string') {
-          updateData[key] = updates[key].split(',').map(tag => tag.trim()).filter(tag => tag);
-        } else if (key === 'address' && typeof updates[key] === 'string') {
-          try {
-            updateData[key] = JSON.parse(updates[key]);
-          } catch (e) {
-            updateData[key] = updates[key];
-          }
-        } else if (key === 'deliveryInfo' && typeof updates[key] === 'string') {
-          try {
-            updateData[key] = JSON.parse(updates[key]);
-          } catch (e) {
-            updateData[key] = updates[key];
-          }
-        } else {
-          updateData[key] = updates[key];
-        }
-      }
-    });
-    const store = await Store.findByIdAndUpdate(
-      storeId,
-      updateData,
-      { new: true, runValidators: true }
-    );
-    if (!store) {
-      return res.status(404).json({
-        success: false,
-        message: "المتجر غير موجود"
-      });
-    }
-    invalidateVendorCache(storeId, userId);
-    res.json({
-      success: true,
-      message: "تم تحديث المتجر بنجاح",
-      data: store,
-      updatedFields: Object.keys(updateData)
-    });
-  } catch (error) {
-    console.error("❌ Update store error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تحديث المتجر"
-    });
-  }
-};
-exports.updateStoreLogo = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "لم يتم رفع أي صورة"
-      });
-    }
-    const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(404).json({
-        success: false,
-        message: "لم تقم بإنشاء متجر بعد"
-      });
-    }
-    const storeId = user.storeOwnerInfo.store;
-    const oldStore = await Store.findById(storeId).select('logo');
-    if (oldStore?.logo) {
-      const oldPublicId = fileService.extractPublicIdFromUrl(oldStore.logo);
-      if (oldPublicId) {
-        fileService.deleteFile(oldPublicId).catch(err =>
-          console.error('Error deleting old logo:', err)
-        );
-      }
-    }
-    const store = await Store.findByIdAndUpdate(
-      storeId,
-      { logo: req.file.path },
-      { new: true }
-    );
-    if (!store) {
-      return res.status(404).json({
-        success: false,
-        message: "المتجر غير موجود"
-      });
-    }
-    invalidateVendorCache(storeId, userId);
-    res.json({
-      success: true,
-      message: "تم تحديث شعار المتجر بنجاح",
-      data: {
-        logo: store.logo,
-        optimized: req.file.thumbnail || null
-      }
-    });
-  } catch (error) {
-    console.error("❌ Update store logo error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تحديث شعار المتجر"
-    });
-  }
-};
-exports.updateStoreCover = async (req, res) => {
-  try {
-    if (!req.file) {
-      return res.status(400).json({
-        success: false,
-        message: "لم يتم رفع أي صورة"
-      });
-    }
-    const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(404).json({
-        success: false,
-        message: "لم تقم بإنشاء متجر بعد"
-      });
-    }
-    const storeId = user.storeOwnerInfo.store;
-    const oldStore = await Store.findById(storeId).select('coverImage');
-    if (oldStore?.coverImage) {
-      const oldPublicId = fileService.extractPublicIdFromUrl(oldStore.coverImage);
-      if (oldPublicId) {
-        fileService.deleteFile(oldPublicId).catch(err =>
-          console.error('Error deleting old cover:', err)
-        );
-      }
-    }
-    const store = await Store.findByIdAndUpdate(
-      storeId,
-      { coverImage: req.file.path },
-      { new: true }
-    );
-    if (!store) {
-      return res.status(404).json({
-        success: false,
-        message: "المتجر غير موجود"
-      });
-    }
-    invalidateVendorCache(storeId, userId);
-    res.json({
-      success: true,
-      message: "تم تحديث صورة الغلاف بنجاح",
-      data: {
-        coverImage: store.coverImage,
-        optimized: req.file.thumbnail || null
-      }
-    });
-  } catch (error) {
-    console.error("❌ Update store cover error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تحديث صورة الغلاف"
-    });
-  }
-};
-exports.toggleStoreStatus = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(404).json({
-        success: false,
-        message: "لم تقم بإنشاء متجر بعد"
-      });
-    }
-    const storeId = user.storeOwnerInfo.store;
-    const store = await Store.findById(storeId);
-    if (!store) {
-      return res.status(404).json({
-        success: false,
-        message: "المتجر غير موجود"
-      });
-    }
-    store.isOpen = !store.isOpen;
-    await store.save();
-    await User.findByIdAndUpdate(userId, {
-      "storeOwnerInfo.isStoreOpen": store.isOpen
-    });
-    invalidateVendorCache(storeId, userId);
-    res.json({
-      success: true,
-      message: store.isOpen ? "المتجر الآن مفتوح" : "المتجر الآن مغلق",
-      data: {
-        isOpen: store.isOpen,
-        updatedAt: new Date()
-      }
-    });
-  } catch (error) {
-    console.error("❌ Toggle store status error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تغيير حالة المتجر"
-    });
-  }
-};
-exports.getAddresses = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(404).json({
-        success: false,
-        message: "لم تقم بإنشاء متجر بعد"
-      });
-    }
-    const storeId = user.storeOwnerInfo.store;
-    const addresses = await StoreAddress.find({
-      store: storeId,
-      isActive: true
-    }).lean();
-    res.json({
-      success: true,
-      data: addresses
-    });
-  } catch (error) {
-    console.error("❌ Get addresses error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب العناوين"
-    });
-  }
-};
-exports.createAddress = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { label, addressLine, city, latitude, longitude, phone } = req.body;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(404).json({
-        success: false,
-        message: "لم تقم بإنشاء متجر بعد"
-      });
-    }
-    const storeId = user.storeOwnerInfo.store;
-    const address = await StoreAddress.create({
-      store: storeId,
-      label: label || "Main Branch",
-      addressLine,
-      city: city || "Niamey",
-      latitude,
-      longitude,
-      phone,
-      isActive: true
-    });
-    invalidateVendorCache(storeId, userId);
-    res.status(201).json({
-      success: true,
-      message: "تم إنشاء العنوان بنجاح",
-      data: address
-    });
-  } catch (error) {
-    console.error("❌ Create address error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل إنشاء العنوان"
-    });
-  }
-};
-exports.updateAddress = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-    const { label, addressLine, city, latitude, longitude, phone, isActive } = req.body;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(404).json({
-        success: false,
-        message: "لم تقم بإنشاء متجر بعد"
-      });
-    }
-    const storeId = user.storeOwnerInfo.store;
-    const address = await StoreAddress.findOne({
-      _id: id,
-      store: storeId
-    });
-    if (!address) {
-      return res.status(404).json({
-        success: false,
-        message: "العنوان غير موجود"
-      });
-    }
-    if (label) address.label = label;
-    if (addressLine) address.addressLine = addressLine;
-    if (city) address.city = city;
-    if (latitude !== undefined) address.latitude = latitude;
-    if (longitude !== undefined) address.longitude = longitude;
-    if (phone) address.phone = phone;
-    if (isActive !== undefined) address.isActive = isActive;
-    await address.save();
-    invalidateVendorCache(storeId, userId);
-    res.json({
-      success: true,
-      message: "تم تحديث العنوان بنجاح",
-      data: address
-    });
-  } catch (error) {
-    console.error("❌ Update address error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تحديث العنوان"
-    });
-  }
-};
-exports.deleteAddress = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(404).json({
-        success: false,
-        message: "لم تقم بإنشاء متجر بعد"
-      });
-    }
-    const storeId = user.storeOwnerInfo.store;
-    const address = await StoreAddress.findOneAndDelete({
-      _id: id,
-      store: storeId
-    });
-    if (!address) {
-      return res.status(404).json({
-        success: false,
-        message: "العنوان غير موجود"
-      });
-    }
-    invalidateVendorCache(storeId, userId);
-    res.json({
-      success: true,
-      message: "تم حذف العنوان بنجاح"
-    });
-  } catch (error) {
-    console.error("❌ Delete address error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل حذف العنوان"
-    });
-  }
-};
-exports.getAddressById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(404).json({
-        success: false,
-        message: "لم تقم بإنشاء متجر بعد"
-      });
-    }
-    const storeId = user.storeOwnerInfo.store;
-    const address = await StoreAddress.findOne({
-      _id: id,
-      store: storeId
-    }).lean();
-    if (!address) {
-      return res.status(404).json({
-        success: false,
-        message: "العنوان غير موجود"
-      });
-    }
-    res.json({
-      success: true,
-      data: address
-    });
-  } catch (error) {
-    console.error("❌ Get address error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب العنوان"
-    });
-  }
-};
-exports.getAnalytics = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(404).json({
-        success: false,
-        message: "لم تقم بإنشاء متجر بعد"
-      });
-    }
-    const storeId = user.storeOwnerInfo.store;
-    const cacheKey = `vendor:analytics:${storeId}`;
-    const cachedData = cache.get(cacheKey);
-    if (cachedData) {
-      return res.json({
-        success: true,
-        data: cachedData,
-        cached: true
-      });
-    }
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const monthAgo = new Date();
-    monthAgo.setMonth(monthAgo.getMonth() - 1);
-    const [
-      todayStats,
-      weeklyStats,
-      monthlyStats,
-      topProducts,
-      orderStatusStats
-    ] = await Promise.all([
-      Order.aggregate([
-        {
-          $match: {
-            store: storeId,
-            createdAt: { $gte: today }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            revenue: { $sum: '$totalPrice' },
-            avgOrderValue: { $avg: '$totalPrice' }
-          }
-        }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            store: storeId,
-            createdAt: { $gte: weekAgo }
-          }
-        },
-        {
-          $group: {
-            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-            orders: { $sum: 1 },
-            revenue: { $sum: '$totalPrice' }
-          }
-        },
-        { $sort: { _id: 1 } }
-      ]),
-      Order.aggregate([
-        {
-          $match: {
-            store: storeId,
-            createdAt: { $gte: monthAgo }
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            orders: { $sum: 1 },
-            revenue: { $sum: '$totalPrice' },
-            avgOrderValue: { $avg: '$totalPrice' }
-          }
-        }
-      ]),
-      Order.aggregate([
-        { $match: { store: storeId, status: 'delivered' } },
-        { $unwind: '$items' },
-        {
-          $group: {
-            _id: '$items.name',
-            quantity: { $sum: '$items.qty' },
-            revenue: { $sum: { $multiply: ['$items.price', '$items.qty'] } }
-          }
-        },
-        { $sort: { quantity: -1 } },
-        { $limit: 5 }
-      ]),
-      Order.aggregate([
-        { $match: { store: storeId } },
-        { $group: { _id: '$status', count: { $sum: 1 } } }
-      ])
-    ]);
-    const analyticsData = {
-      today: todayStats[0] || { orders: 0, revenue: 0, avgOrderValue: 0 },
-      weekly: {
-        labels: weeklyStats.map(day => day._id),
-        orders: weeklyStats.map(day => day.orders),
-        revenue: weeklyStats.map(day => day.revenue)
-      },
-      monthly: monthlyStats[0] || { orders: 0, revenue: 0, avgOrderValue: 0 },
-      topProducts,
-      orderStatus: orderStatusStats.reduce((acc, curr) => {
-        acc[curr._id] = curr.count;
-        return acc;
-      }, {}),
-      timestamp: new Date()
-    };
-    cache.set(cacheKey, analyticsData, 600);
-    res.json({
-      success: true,
-      data: analyticsData
-    });
-  } catch (error) {
-    console.error("❌ Get analytics error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب التحليلات"
-    });
-  }
-};
-exports.getFinancialReport = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { period = 'month' } = req.query;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(404).json({
-        success: false,
-        message: "لم تقم بإنشاء متجر بعد"
-      });
-    }
-    const storeId = user.storeOwnerInfo.store;
-    let startDate = new Date();
-    switch (period) {
-      case 'day':
-        startDate.setDate(startDate.getDate() - 1);
-        break;
-      case 'week':
-        startDate.setDate(startDate.getDate() - 7);
-        break;
-      case 'month':
-        startDate.setMonth(startDate.getMonth() - 1);
-        break;
-      case 'year':
-        startDate.setFullYear(startDate.getFullYear() - 1);
-        break;
-    }
-    const report = await Order.aggregate([
-      {
-        $match: {
-          store: storeId,
-          createdAt: { $gte: startDate },
-          status: { $in: ['delivered', 'accepted'] }
-        }
-      },
-      {
-        $facet: {
-          daily: [
-            {
-              $group: {
-                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
-                orders: { $sum: 1 },
-                revenue: { $sum: '$totalPrice' }
-              }
-            },
-            { $sort: { _id: 1 } }
-          ],
-          summary: [
-            {
-              $group: {
-                _id: null,
-                totalOrders: { $sum: 1 },
-                totalRevenue: { $sum: '$totalPrice' },
-                avgOrderValue: { $avg: '$totalPrice' },
-                minOrder: { $min: '$totalPrice' },
-                maxOrder: { $max: '$totalPrice' }
-              }
-            }
-          ]
-        }
-      }
-    ]);
-    res.json({
-      success: true,
-      data: {
-        period,
-        dateRange: {
-          from: startDate,
-          to: new Date()
-        },
-        summary: report[0]?.summary[0] || { totalOrders: 0, totalRevenue: 0, avgOrderValue: 0 },
-        daily: report[0]?.daily || []
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get financial report error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل إنشاء التقرير المالي"
-    });
-  }
-};
-exports.getPerformanceReport = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(404).json({
-        success: false,
-        message: "لم تقم بإنشاء متجر بعد"
-      });
-    }
-    const storeId = user.storeOwnerInfo.store;
-    const report = await Order.aggregate([
-      { $match: { store: storeId } },
-      {
-        $facet: {
-          completionRate: [
-            {
-              $group: {
-                _id: null,
-                total: { $sum: 1 },
-                completed: {
-                  $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] }
-                },
-                cancelled: {
-                  $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] }
-                }
-              }
-            },
-            {
-              $project: {
-                completionRate: { $multiply: [{ $divide: ['$completed', '$total'] }, 100] },
-                cancellationRate: { $multiply: [{ $divide: ['$cancelled', '$total'] }, 100] }
-              }
-            }
-          ],
-          avgDeliveryTime: [
-            {
-              $match: { status: 'delivered', deliveryTime: { $exists: true } }
-            },
-            {
-              $group: {
-                _id: null,
-                avgTime: { $avg: '$deliveryTime' }
-              }
-            }
-          ],
-          customerSatisfaction: [
-            {
-              $lookup: {
-                from: 'reviews',
-                localField: '_id',
-                foreignField: 'order',
-                as: 'review'
-              }
-            },
-            { $unwind: '$review' },
-            {
-              $group: {
-                _id: null,
-                avgRating: { $avg: '$review.rating' },
-                totalReviews: { $sum: 1 }
-              }
-            }
-          ]
-        }
-      }
-    ]);
-    res.json({
-      success: true,
-      data: {
-        completionRate: report[0]?.completionRate[0] || { completionRate: 0, cancellationRate: 0 },
-        avgDeliveryTime: report[0]?.avgDeliveryTime[0]?.avgTime || 0,
-        customerSatisfaction: report[0]?.customerSatisfaction[0] || { avgRating: 0, totalReviews: 0 }
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get performance report error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل إنشاء تقرير الأداء"
-    });
-  }
-};
-exports.getProductAnalytics = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const user = await User.findById(userId).select('storeOwnerInfo');
-    if (!user?.storeOwnerInfo?.store) {
-      return res.status(404).json({
-        success: false,
-        message: "لم تقم بإنشاء متجر بعد"
-      });
-    }
-    const storeId = user.storeOwnerInfo.store;
-    const analytics = await Product.aggregate([
-      { $match: { store: storeId } },
-      {
-        $facet: {
-          byCategory: [
-            { $group: { _id: '$category', count: { $sum: 1 } } }
-          ],
-          availability: [
-            {
-              $group: {
-                _id: null,
-                total: { $sum: 1 },
-                available: { $sum: { $cond: [{ $eq: ['$isAvailable', true] }, 1, 0] } },
-                outOfStock: { $sum: { $cond: [{ $lte: ['$inventory.quantity', 0] }, 1, 0] } }
-              }
-            }
-          ],
-          priceRange: [
-            {
-              $group: {
-                _id: null,
-                minPrice: { $min: '$price' },
-                maxPrice: { $max: '$price' },
-                avgPrice: { $avg: '$price' }
-              }
-            }
-          ]
-        }
-      }
-    ]);
-    res.json({
-      success: true,
-      data: {
-        byCategory: analytics[0]?.byCategory || [],
-        availability: analytics[0]?.availability[0] || { total: 0, available: 0, outOfStock: 0 },
-        priceRange: analytics[0]?.priceRange[0] || { minPrice: 0, maxPrice: 0, avgPrice: 0 }
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get product analytics error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب تحليلات المنتجات"
-    });
-  }
-};
-exports.getVendors = async (req, res) => {
-  try {
-    const vendors = await User.find({
-      role: 'vendor',
-      isActive: true
-    })
-      .select('name phone email image storeOwnerInfo createdAt')
-      .populate('storeOwnerInfo.store', 'name logo category isOpen averageRating')
-      .lean();
-    res.json({
-      success: true,
-      data: vendors
-    });
-  } catch (error) {
-    console.error("❌ Get vendors error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب التجار"
-    });
-  }
-};
-exports.getVendorById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const vendor = await User.findById(id)
-      .select('-password -verificationCode -resetPasswordToken -activityLog')
-      .populate('storeOwnerInfo.store')
-      .lean();
-    if (!vendor || vendor.role !== 'vendor') {
-      return res.status(404).json({
-        success: false,
-        message: "التاجر غير موجود"
-      });
-    }
-    res.json({
-      success: true,
-      data: vendor
-    });
-  } catch (error) {
-    console.error("❌ Get vendor by id error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب بيانات التاجر"
-    });
-  }
-};
-exports.verifyVendor = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const vendor = await User.findByIdAndUpdate(
-      id,
-      { isVerified: true },
-      { new: true }
-    );
-    if (!vendor) {
-      return res.status(404).json({
-        success: false,
-        message: "التاجر غير موجود"
-      });
-    }
-    res.json({
-      success: true,
-      message: "تم توثيق التاجر بنجاح",
-      data: { isVerified: vendor.isVerified }
-    });
-  } catch (error) {
-    console.error("❌ Verify vendor error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل توثيق التاجر"
-    });
-  }
-};
-exports.toggleVendorStatus = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { isActive } = req.body;
-    if (isActive === undefined) {
-      return res.status(400).json({
-        success: false,
-        message: "حقل isActive مطلوب"
-      });
-    }
-    const vendor = await User.findById(id);
-    if (!vendor) {
-      return res.status(404).json({
-        success: false,
-        message: "التاجر غير موجود"
-      });
-    }
-    vendor.isActive = isActive;
-    await vendor.save();
-    if (vendor.storeOwnerInfo?.store) {
-      await Store.findByIdAndUpdate(vendor.storeOwnerInfo.store, {
-        isOpen: isActive
-      });
-    }
-    res.json({
-      success: true,
-      message: `تم ${isActive ? 'تفعيل' : 'تعطيل'} التاجر بنجاح`,
-      data: {
-        id: vendor._id,
-        isActive: vendor.isActive
-      }
-    });
-  } catch (error) {
-    console.error("❌ Toggle vendor status error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل تغيير حالة التاجر"
-    });
-  }
-};
-module.exports = exports;
-</file>
-
 <file path="src/middlewares/cache.middleware.js">
 const cache = require('../utils/cache.util');
 const { businessLogger } = require("../utils/logger.util");
@@ -31656,204 +30580,6 @@ module.exports = {
   catchAsync,
   socketErrorHandler
 };
-</file>
-
-<file path="src/models/store.model.js">
-const mongoose = require("mongoose");
-const storeSchema = new mongoose.Schema(
-  {
-    logo: { type: String },
-    coverImage: { type: String },
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-      index: true,
-    },
-    description: String,
-    category: {
-      type: String,
-      required: true,
-      index: true,
-    },
-    phone: { type: String, trim: true },
-    email: { type: String, trim: true, lowercase: true },
-    website: String,
-    address: {
-      street: String,
-      city: String,
-      state: String,
-      country: { type: String, default: "Niger" },
-      postalCode: String,
-      latitude: Number,
-      longitude: Number,
-    },
-    location: {
-      type: { type: String, enum: ["Point"], default: "Point" },
-      coordinates: { type: [Number], default: [2.1098, 13.5126] },
-    },
-    isOpen: { type: Boolean, default: true },
-    isVerified: { type: Boolean, default: false },
-    owner: { type: mongoose.Schema.Types.ObjectId, ref: "User", index: true },
-    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-    averageRating: { type: Number, default: 0, min: 0, max: 5 },
-    ratingsCount: { type: Number, default: 0 },
-    deliveryInfo: {
-      hasDelivery: { type: Boolean, default: true },
-      deliveryFee: { type: Number, default: 0, min: 0 },
-      minOrderAmount: { type: Number, default: 0, min: 0 },
-      estimatedDeliveryTime: { type: Number, default: 30 },
-      deliveryRadius: { type: Number, default: 10 },
-      freeDeliveryThreshold: { type: Number, default: 0 },
-    },
-    openingHours: {
-      type: Map,
-      of: { open: String, close: String, isOpen: Boolean },
-      default: {},
-    },
-    stats: {
-      totalOrders: { type: Number, default: 0 },
-      completedOrders: { type: Number, default: 0 },
-      cancelledOrders: { type: Number, default: 0 },
-      totalRevenue: { type: Number, default: 0 },
-      averageOrderValue: { type: Number, default: 0 },
-      lastOrderDate: Date,
-      totalProducts: { type: Number, default: 0 },
-      totalCustomers: { type: Number, default: 0 },
-    },
-    settings: {
-      autoAcceptOrders: { type: Boolean, default: false },
-      preparationTimeBuffer: { type: Number, default: 5 },
-      maxOrdersPerHour: { type: Number, default: 50 },
-      currency: { type: String, default: "XOF" },
-      taxRate: { type: Number, default: 0 },
-      notifications: {
-        email: { type: Boolean, default: true },
-        push: { type: Boolean, default: true },
-        sms: { type: Boolean, default: false },
-      },
-    },
-    preferredDrivers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    tags: [{ type: String, trim: true }],
-    gallery: [{ url: String, caption: String, order: Number }],
-    documents: [{
-      type: { type: String, enum: ["license", "tax", "id", "other"] },
-      url: String,
-      verified: { type: Boolean, default: false },
-      verifiedAt: Date,
-    }],
-    deletedAt: Date,
-  },
-  {
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true }
-  }
-);
-storeSchema.virtual("products", {
-  ref: "Product",
-  localField: "_id",
-  foreignField: "store",
-});
-storeSchema.virtual("addresses", {
-  ref: "StoreAddress",
-  localField: "_id",
-  foreignField: "store",
-});
-storeSchema.virtual("reviews", {
-  ref: "Review",
-  localField: "_id",
-  foreignField: "store",
-});
-storeSchema.virtual("orders", {
-  ref: "Order",
-  localField: "_id",
-  foreignField: "store",
-});
-storeSchema.virtual("successRate").get(function () {
-  if (this.stats.totalOrders === 0) return 0;
-  return ((this.stats.completedOrders / this.stats.totalOrders) * 100).toFixed(1);
-});
-storeSchema.virtual("isOpenNow").get(function () {
-  if (!this.openingHours) return false;
-  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-  const today = days[new Date().getDay()];
-  const hours = this.openingHours.get(today);
-  if (!hours || !hours.isOpen) return false;
-  const now = new Date();
-  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-  return currentTime >= hours.open && currentTime <= hours.close;
-});
-storeSchema.index({ category: 1, averageRating: -1 });
-storeSchema.index({ isOpen: 1, isVerified: 1 });
-storeSchema.index({ tags: 1 });
-storeSchema.index({ location: "2dsphere" });
-storeSchema.index({ 'stats.totalOrders': -1 });
-storeSchema.index({ name: 'text', description: 'text', tags: 'text' });
-storeSchema.methods.updateStats = async function () {
-  try {
-    const Order = require("./order.model");
-    const stats = await Order.aggregate([
-      { $match: { store: this._id } },
-      {
-        $group: {
-          _id: null,
-          totalOrders: { $sum: 1 },
-          completedOrders: { $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } },
-          cancelledOrders: { $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } },
-          totalRevenue: { $sum: "$totalPrice" },
-          lastOrderDate: { $max: "$createdAt" },
-          avgOrderValue: { $avg: "$totalPrice" }
-        }
-      }
-    ]);
-    if (stats.length > 0) {
-      this.stats = {
-        ...this.stats.toObject(),
-        ...stats[0]
-      };
-      await this.save();
-    }
-    return this;
-  } catch (error) {
-    console.error('❌ Error updating store stats:', error);
-    return this;
-  }
-};
-storeSchema.methods.updateRating = async function () {
-  try {
-    const Review = require("./review.model");
-    const stats = await Review.aggregate([
-      { $match: { store: this._id } },
-      { $group: { _id: null, avgRating: { $avg: '$rating' }, count: { $sum: 1 } } }
-    ]);
-    if (stats.length > 0) {
-      this.averageRating = stats[0].avgRating;
-      this.ratingsCount = stats[0].count;
-    } else {
-      this.averageRating = 0;
-      this.ratingsCount = 0;
-    }
-    await this.save();
-    return this;
-  } catch (error) {
-    console.error('❌ Error updating store rating:', error);
-    return this;
-  }
-};
-storeSchema.methods.incrementProductsCount = async function () {
-  this.stats.totalProducts = (this.stats.totalProducts || 0) + 1;
-  await this.save();
-  return this;
-};
-storeSchema.methods.decrementProductsCount = async function () {
-  this.stats.totalProducts = Math.max(0, (this.stats.totalProducts || 0) - 1);
-  await this.save();
-  return this;
-};
-const Store = mongoose.model("Store", storeSchema);
-console.log('✅ Store model loaded (NO middleware version)');
-module.exports = Store;
 </file>
 
 <file path="src/routes/address.routes.js">
@@ -33804,6 +32530,1089 @@ exports.getProductStats = async (req, res) => {
 module.exports = exports;
 </file>
 
+<file path="src/controllers/vendor.controller.js">
+const { Store, StoreAddress, Product, User, Order, Review } = require('../models');
+const cache = require("../utils/cache.util");
+const fileService = require('../services/file.service');
+const { AppError } = require('../middlewares/errorHandler.middleware');
+const invalidateVendorCache = (storeId, userId) => {
+  cache.del(`vendor:profile:${userId}`);
+  cache.del(`vendor:dashboard:${storeId}`);
+  cache.del(`vendor:stats:${storeId}`);
+  cache.invalidatePattern(`vendor:orders:${storeId}:*`);
+  cache.del(`store:complete:${storeId}`);
+  cache.invalidatePattern('stores:*');
+};
+const checkStoreOwnership = async (storeId, userId, req = null) => {
+  const store = await Store.findById(storeId);
+  if (!store) {
+    throw new AppError('المتجر غير موجود', 404);
+  }
+  if (req?.user?.role === 'admin') return { store };
+  if (!store.vendor || store.vendor.toString() !== userId) {
+    throw new AppError('غير مصرح لك بالوصول إلى هذا المتجر', 403);
+  }
+  return { store };
+};
+exports.getMyProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const cacheKey = `vendor:profile:${userId}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return res.json({
+        success: true,
+        data: cachedData,
+        cached: true
+      });
+    }
+    const user = await User.findById(userId)
+      .select('name phone email image coverImage storeOwnerInfo')
+      .lean();
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "المستخدم غير موجود"
+      });
+    }
+    let storeStats = {};
+    if (user.storeOwnerInfo?.store) {
+      const storeId = user.storeOwnerInfo.store;
+      const [todayOrders, totalRevenue, pendingOrders] = await Promise.all([
+        Order.countDocuments({
+          store: storeId,
+          status: 'delivered',
+          createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
+        }),
+        Order.aggregate([
+          { $match: { store: storeId, status: 'delivered' } },
+          { $group: { _id: null, total: { $sum: '$totalPrice' } } }
+        ]),
+        Order.countDocuments({
+          store: storeId,
+          status: 'pending'
+        })
+      ]);
+      storeStats = {
+        storeId,
+        todayOrders,
+        totalRevenue: totalRevenue[0]?.total || 0,
+        pendingOrders
+      };
+    }
+    const profileData = {
+      ...user,
+      storeStats
+    };
+    cache.set(cacheKey, profileData, 300);
+    res.json({
+      success: true,
+      data: profileData
+    });
+  } catch (error) {
+    console.error("❌ Get vendor profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب ملف التاجر"
+    });
+  }
+};
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { name, email, bio, phone } = req.body;
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (email) updateData.email = email;
+    if (bio) updateData.bio = bio;
+    if (phone) updateData.phone = phone;
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    ).select('name phone email image bio');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "المستخدم غير موجود"
+      });
+    }
+    cache.del(`vendor:profile:${userId}`);
+    res.json({
+      success: true,
+      message: "تم تحديث الملف الشخصي بنجاح",
+      data: user
+    });
+  } catch (error) {
+    console.error("❌ Update vendor profile error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث الملف الشخصي"
+    });
+  }
+};
+exports.updateAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "لم يتم رفع أي صورة"
+      });
+    }
+    const userId = req.user.id;
+    const oldUser = await User.findById(userId).select('image');
+    if (oldUser?.image) {
+      const oldPublicId = fileService.extractPublicIdFromUrl(oldUser.image);
+      if (oldPublicId) {
+        fileService.deleteFile(oldPublicId).catch(err =>
+          console.error('Error deleting old avatar:', err)
+        );
+      }
+    }
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { image: req.file.path },
+      { new: true }
+    ).select('name email image');
+    cache.del(`vendor:profile:${userId}`);
+    res.json({
+      success: true,
+      message: "تم تحديث الصورة الشخصية بنجاح",
+      data: {
+        image: user.image,
+        optimized: req.file.thumbnail || null
+      }
+    });
+  } catch (error) {
+    console.error("❌ Update avatar error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث الصورة الشخصية"
+    });
+  }
+};
+exports.getMyStore = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+    const storeId = user.storeOwnerInfo.store;
+    const cacheKey = `vendor:store:${storeId}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return res.json({
+        success: true,
+        data: cachedData,
+        cached: true
+      });
+    }
+    const store = await Store.findById(storeId)
+      .populate('vendor', 'name phone email image isVerified')
+      .populate('addresses')
+      .populate({
+        path: 'products',
+        select: 'name price image category inventory isAvailable',
+        options: { limit: 10 }
+      })
+      .lean();
+    if (!store) {
+      return res.status(404).json({
+        success: false,
+        message: "المتجر غير موجود"
+      });
+    }
+    const [productsCount, ordersCount, reviewsCount] = await Promise.all([
+      Product.countDocuments({ store: storeId }),
+      Order.countDocuments({ store: storeId }),
+      Review.countDocuments({ store: storeId })
+    ]);
+    const storeData = {
+      ...store,
+      stats: {
+        productsCount,
+        ordersCount,
+        reviewsCount,
+        averageRating: store.averageRating || 0
+      }
+    };
+    cache.set(cacheKey, storeData, 300);
+    res.json({
+      success: true,
+      data: storeData
+    });
+  } catch (error) {
+    console.error("❌ Get store error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب بيانات المتجر"
+    });
+  }
+};
+exports.updateStore = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+    const storeId = user.storeOwnerInfo.store;
+    const updates = req.body;
+    const allowedUpdates = [
+      'name', 'description', 'category', 'phone', 'email', 'website',
+      'address', 'deliveryInfo', 'tags', 'openingHours', 'isOpen'
+    ];
+    const updateData = {};
+    Object.keys(updates).forEach(key => {
+      if (allowedUpdates.includes(key)) {
+        if (key === 'tags' && typeof updates[key] === 'string') {
+          updateData[key] = updates[key].split(',').map(tag => tag.trim()).filter(tag => tag);
+        } else if (key === 'address' && typeof updates[key] === 'string') {
+          try {
+            updateData[key] = JSON.parse(updates[key]);
+          } catch (e) {
+            updateData[key] = updates[key];
+          }
+        } else if (key === 'deliveryInfo' && typeof updates[key] === 'string') {
+          try {
+            updateData[key] = JSON.parse(updates[key]);
+          } catch (e) {
+            updateData[key] = updates[key];
+          }
+        } else {
+          updateData[key] = updates[key];
+        }
+      }
+    });
+    const store = await Store.findByIdAndUpdate(
+      storeId,
+      updateData,
+      { new: true, runValidators: true }
+    );
+    if (!store) {
+      return res.status(404).json({
+        success: false,
+        message: "المتجر غير موجود"
+      });
+    }
+    invalidateVendorCache(storeId, userId);
+    res.json({
+      success: true,
+      message: "تم تحديث المتجر بنجاح",
+      data: store,
+      updatedFields: Object.keys(updateData)
+    });
+  } catch (error) {
+    console.error("❌ Update store error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث المتجر"
+    });
+  }
+};
+exports.updateStoreLogo = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "لم يتم رفع أي صورة"
+      });
+    }
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+    const storeId = user.storeOwnerInfo.store;
+    const oldStore = await Store.findById(storeId).select('logo');
+    if (oldStore?.logo) {
+      const oldPublicId = fileService.extractPublicIdFromUrl(oldStore.logo);
+      if (oldPublicId) {
+        fileService.deleteFile(oldPublicId).catch(err =>
+          console.error('Error deleting old logo:', err)
+        );
+      }
+    }
+    const store = await Store.findByIdAndUpdate(
+      storeId,
+      { logo: req.file.path },
+      { new: true }
+    );
+    if (!store) {
+      return res.status(404).json({
+        success: false,
+        message: "المتجر غير موجود"
+      });
+    }
+    invalidateVendorCache(storeId, userId);
+    res.json({
+      success: true,
+      message: "تم تحديث شعار المتجر بنجاح",
+      data: {
+        logo: store.logo,
+        optimized: req.file.thumbnail || null
+      }
+    });
+  } catch (error) {
+    console.error("❌ Update store logo error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث شعار المتجر"
+    });
+  }
+};
+exports.updateStoreCover = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "لم يتم رفع أي صورة"
+      });
+    }
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+    const storeId = user.storeOwnerInfo.store;
+    const oldStore = await Store.findById(storeId).select('coverImage');
+    if (oldStore?.coverImage) {
+      const oldPublicId = fileService.extractPublicIdFromUrl(oldStore.coverImage);
+      if (oldPublicId) {
+        fileService.deleteFile(oldPublicId).catch(err =>
+          console.error('Error deleting old cover:', err)
+        );
+      }
+    }
+    const store = await Store.findByIdAndUpdate(
+      storeId,
+      { coverImage: req.file.path },
+      { new: true }
+    );
+    if (!store) {
+      return res.status(404).json({
+        success: false,
+        message: "المتجر غير موجود"
+      });
+    }
+    invalidateVendorCache(storeId, userId);
+    res.json({
+      success: true,
+      message: "تم تحديث صورة الغلاف بنجاح",
+      data: {
+        coverImage: store.coverImage,
+        optimized: req.file.thumbnail || null
+      }
+    });
+  } catch (error) {
+    console.error("❌ Update store cover error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث صورة الغلاف"
+    });
+  }
+};
+exports.toggleStoreStatus = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+    const storeId = user.storeOwnerInfo.store;
+    const store = await Store.findById(storeId);
+    if (!store) {
+      return res.status(404).json({
+        success: false,
+        message: "المتجر غير موجود"
+      });
+    }
+    store.isOpen = !store.isOpen;
+    await store.save();
+    await User.findByIdAndUpdate(userId, {
+      "storeOwnerInfo.isStoreOpen": store.isOpen
+    });
+    invalidateVendorCache(storeId, userId);
+    res.json({
+      success: true,
+      message: store.isOpen ? "المتجر الآن مفتوح" : "المتجر الآن مغلق",
+      data: {
+        isOpen: store.isOpen,
+        updatedAt: new Date()
+      }
+    });
+  } catch (error) {
+    console.error("❌ Toggle store status error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تغيير حالة المتجر"
+    });
+  }
+};
+exports.getAddresses = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+    const storeId = user.storeOwnerInfo.store;
+    const addresses = await StoreAddress.find({
+      store: storeId,
+      isActive: true
+    }).lean();
+    res.json({
+      success: true,
+      data: addresses
+    });
+  } catch (error) {
+    console.error("❌ Get addresses error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب العناوين"
+    });
+  }
+};
+exports.createAddress = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { label, addressLine, city, latitude, longitude, phone } = req.body;
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+    const storeId = user.storeOwnerInfo.store;
+    const address = await StoreAddress.create({
+      store: storeId,
+      label: label || "Main Branch",
+      addressLine,
+      city: city || "Niamey",
+      latitude,
+      longitude,
+      phone,
+      isActive: true
+    });
+    invalidateVendorCache(storeId, userId);
+    res.status(201).json({
+      success: true,
+      message: "تم إنشاء العنوان بنجاح",
+      data: address
+    });
+  } catch (error) {
+    console.error("❌ Create address error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل إنشاء العنوان"
+    });
+  }
+};
+exports.updateAddress = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const { label, addressLine, city, latitude, longitude, phone, isActive } = req.body;
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+    const storeId = user.storeOwnerInfo.store;
+    const address = await StoreAddress.findOne({
+      _id: id,
+      store: storeId
+    });
+    if (!address) {
+      return res.status(404).json({
+        success: false,
+        message: "العنوان غير موجود"
+      });
+    }
+    if (label) address.label = label;
+    if (addressLine) address.addressLine = addressLine;
+    if (city) address.city = city;
+    if (latitude !== undefined) address.latitude = latitude;
+    if (longitude !== undefined) address.longitude = longitude;
+    if (phone) address.phone = phone;
+    if (isActive !== undefined) address.isActive = isActive;
+    await address.save();
+    invalidateVendorCache(storeId, userId);
+    res.json({
+      success: true,
+      message: "تم تحديث العنوان بنجاح",
+      data: address
+    });
+  } catch (error) {
+    console.error("❌ Update address error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث العنوان"
+    });
+  }
+};
+exports.deleteAddress = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+    const storeId = user.storeOwnerInfo.store;
+    const address = await StoreAddress.findOneAndDelete({
+      _id: id,
+      store: storeId
+    });
+    if (!address) {
+      return res.status(404).json({
+        success: false,
+        message: "العنوان غير موجود"
+      });
+    }
+    invalidateVendorCache(storeId, userId);
+    res.json({
+      success: true,
+      message: "تم حذف العنوان بنجاح"
+    });
+  } catch (error) {
+    console.error("❌ Delete address error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل حذف العنوان"
+    });
+  }
+};
+exports.getAddressById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+    const storeId = user.storeOwnerInfo.store;
+    const address = await StoreAddress.findOne({
+      _id: id,
+      store: storeId
+    }).lean();
+    if (!address) {
+      return res.status(404).json({
+        success: false,
+        message: "العنوان غير موجود"
+      });
+    }
+    res.json({
+      success: true,
+      data: address
+    });
+  } catch (error) {
+    console.error("❌ Get address error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب العنوان"
+    });
+  }
+};
+exports.getAnalytics = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+    const storeId = user.storeOwnerInfo.store;
+    const cacheKey = `vendor:analytics:${storeId}`;
+    const cachedData = cache.get(cacheKey);
+    if (cachedData) {
+      return res.json({
+        success: true,
+        data: cachedData,
+        cached: true
+      });
+    }
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    const monthAgo = new Date();
+    monthAgo.setMonth(monthAgo.getMonth() - 1);
+    const [
+      todayStats,
+      weeklyStats,
+      monthlyStats,
+      topProducts,
+      orderStatusStats
+    ] = await Promise.all([
+      Order.aggregate([
+        {
+          $match: {
+            store: storeId,
+            createdAt: { $gte: today }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            revenue: { $sum: '$totalPrice' },
+            avgOrderValue: { $avg: '$totalPrice' }
+          }
+        }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            store: storeId,
+            createdAt: { $gte: weekAgo }
+          }
+        },
+        {
+          $group: {
+            _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+            orders: { $sum: 1 },
+            revenue: { $sum: '$totalPrice' }
+          }
+        },
+        { $sort: { _id: 1 } }
+      ]),
+      Order.aggregate([
+        {
+          $match: {
+            store: storeId,
+            createdAt: { $gte: monthAgo }
+          }
+        },
+        {
+          $group: {
+            _id: null,
+            orders: { $sum: 1 },
+            revenue: { $sum: '$totalPrice' },
+            avgOrderValue: { $avg: '$totalPrice' }
+          }
+        }
+      ]),
+      Order.aggregate([
+        { $match: { store: storeId, status: 'delivered' } },
+        { $unwind: '$items' },
+        {
+          $group: {
+            _id: '$items.name',
+            quantity: { $sum: '$items.qty' },
+            revenue: { $sum: { $multiply: ['$items.price', '$items.qty'] } }
+          }
+        },
+        { $sort: { quantity: -1 } },
+        { $limit: 5 }
+      ]),
+      Order.aggregate([
+        { $match: { store: storeId } },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ])
+    ]);
+    const analyticsData = {
+      today: todayStats[0] || { orders: 0, revenue: 0, avgOrderValue: 0 },
+      weekly: {
+        labels: weeklyStats.map(day => day._id),
+        orders: weeklyStats.map(day => day.orders),
+        revenue: weeklyStats.map(day => day.revenue)
+      },
+      monthly: monthlyStats[0] || { orders: 0, revenue: 0, avgOrderValue: 0 },
+      topProducts,
+      orderStatus: orderStatusStats.reduce((acc, curr) => {
+        acc[curr._id] = curr.count;
+        return acc;
+      }, {}),
+      timestamp: new Date()
+    };
+    cache.set(cacheKey, analyticsData, 600);
+    res.json({
+      success: true,
+      data: analyticsData
+    });
+  } catch (error) {
+    console.error("❌ Get analytics error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب التحليلات"
+    });
+  }
+};
+exports.getFinancialReport = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { period = 'month' } = req.query;
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+    const storeId = user.storeOwnerInfo.store;
+    let startDate = new Date();
+    switch (period) {
+      case 'day':
+        startDate.setDate(startDate.getDate() - 1);
+        break;
+      case 'week':
+        startDate.setDate(startDate.getDate() - 7);
+        break;
+      case 'month':
+        startDate.setMonth(startDate.getMonth() - 1);
+        break;
+      case 'year':
+        startDate.setFullYear(startDate.getFullYear() - 1);
+        break;
+    }
+    const report = await Order.aggregate([
+      {
+        $match: {
+          store: storeId,
+          createdAt: { $gte: startDate },
+          status: { $in: ['delivered', 'accepted'] }
+        }
+      },
+      {
+        $facet: {
+          daily: [
+            {
+              $group: {
+                _id: { $dateToString: { format: '%Y-%m-%d', date: '$createdAt' } },
+                orders: { $sum: 1 },
+                revenue: { $sum: '$totalPrice' }
+              }
+            },
+            { $sort: { _id: 1 } }
+          ],
+          summary: [
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $sum: 1 },
+                totalRevenue: { $sum: '$totalPrice' },
+                avgOrderValue: { $avg: '$totalPrice' },
+                minOrder: { $min: '$totalPrice' },
+                maxOrder: { $max: '$totalPrice' }
+              }
+            }
+          ]
+        }
+      }
+    ]);
+    res.json({
+      success: true,
+      data: {
+        period,
+        dateRange: {
+          from: startDate,
+          to: new Date()
+        },
+        summary: report[0]?.summary[0] || { totalOrders: 0, totalRevenue: 0, avgOrderValue: 0 },
+        daily: report[0]?.daily || []
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get financial report error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل إنشاء التقرير المالي"
+    });
+  }
+};
+exports.getPerformanceReport = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+    const storeId = user.storeOwnerInfo.store;
+    const report = await Order.aggregate([
+      { $match: { store: storeId } },
+      {
+        $facet: {
+          completionRate: [
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                completed: {
+                  $sum: { $cond: [{ $eq: ['$status', 'delivered'] }, 1, 0] }
+                },
+                cancelled: {
+                  $sum: { $cond: [{ $eq: ['$status', 'cancelled'] }, 1, 0] }
+                }
+              }
+            },
+            {
+              $project: {
+                completionRate: { $multiply: [{ $divide: ['$completed', '$total'] }, 100] },
+                cancellationRate: { $multiply: [{ $divide: ['$cancelled', '$total'] }, 100] }
+              }
+            }
+          ],
+          avgDeliveryTime: [
+            {
+              $match: { status: 'delivered', deliveryTime: { $exists: true } }
+            },
+            {
+              $group: {
+                _id: null,
+                avgTime: { $avg: '$deliveryTime' }
+              }
+            }
+          ],
+          customerSatisfaction: [
+            {
+              $lookup: {
+                from: 'reviews',
+                localField: '_id',
+                foreignField: 'order',
+                as: 'review'
+              }
+            },
+            { $unwind: '$review' },
+            {
+              $group: {
+                _id: null,
+                avgRating: { $avg: '$review.rating' },
+                totalReviews: { $sum: 1 }
+              }
+            }
+          ]
+        }
+      }
+    ]);
+    res.json({
+      success: true,
+      data: {
+        completionRate: report[0]?.completionRate[0] || { completionRate: 0, cancellationRate: 0 },
+        avgDeliveryTime: report[0]?.avgDeliveryTime[0]?.avgTime || 0,
+        customerSatisfaction: report[0]?.customerSatisfaction[0] || { avgRating: 0, totalReviews: 0 }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get performance report error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل إنشاء تقرير الأداء"
+    });
+  }
+};
+exports.getProductAnalytics = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId).select('storeOwnerInfo');
+    if (!user?.storeOwnerInfo?.store) {
+      return res.status(404).json({
+        success: false,
+        message: "لم تقم بإنشاء متجر بعد"
+      });
+    }
+    const storeId = user.storeOwnerInfo.store;
+    const analytics = await Product.aggregate([
+      { $match: { store: storeId } },
+      {
+        $facet: {
+          byCategory: [
+            { $group: { _id: '$category', count: { $sum: 1 } } }
+          ],
+          availability: [
+            {
+              $group: {
+                _id: null,
+                total: { $sum: 1 },
+                available: { $sum: { $cond: [{ $eq: ['$isAvailable', true] }, 1, 0] } },
+                outOfStock: { $sum: { $cond: [{ $lte: ['$inventory.quantity', 0] }, 1, 0] } }
+              }
+            }
+          ],
+          priceRange: [
+            {
+              $group: {
+                _id: null,
+                minPrice: { $min: '$price' },
+                maxPrice: { $max: '$price' },
+                avgPrice: { $avg: '$price' }
+              }
+            }
+          ]
+        }
+      }
+    ]);
+    res.json({
+      success: true,
+      data: {
+        byCategory: analytics[0]?.byCategory || [],
+        availability: analytics[0]?.availability[0] || { total: 0, available: 0, outOfStock: 0 },
+        priceRange: analytics[0]?.priceRange[0] || { minPrice: 0, maxPrice: 0, avgPrice: 0 }
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get product analytics error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب تحليلات المنتجات"
+    });
+  }
+};
+exports.getVendors = async (req, res) => {
+  try {
+    const vendors = await User.find({
+      role: 'vendor',
+      isActive: true
+    })
+      .select('name phone email image storeOwnerInfo createdAt')
+      .populate({
+        path: 'storeOwnerInfo.store',
+        select: 'name logo category isOpen averageRating vendor'
+      })
+      .lean();
+    res.json({
+      success: true,
+      data: vendors
+    });
+  } catch (error) {
+    console.error("❌ Get vendors error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب التجار"
+    });
+  }
+};
+exports.getVendorById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const vendor = await User.findById(id)
+      .select('-password -verificationCode -resetPasswordToken -activityLog')
+      .populate({
+        path: 'storeOwnerInfo.store',
+        select: 'name logo category isOpen averageRating vendor'
+      })
+      .lean();
+    if (!vendor || vendor.role !== 'vendor') {
+      return res.status(404).json({
+        success: false,
+        message: "التاجر غير موجود"
+      });
+    }
+    res.json({
+      success: true,
+      data: vendor
+    });
+  } catch (error) {
+    console.error("❌ Get vendor by id error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب بيانات التاجر"
+    });
+  }
+};
+exports.verifyVendor = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const vendor = await User.findByIdAndUpdate(
+      id,
+      { isVerified: true },
+      { new: true }
+    );
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "التاجر غير موجود"
+      });
+    }
+    res.json({
+      success: true,
+      message: "تم توثيق التاجر بنجاح",
+      data: { isVerified: vendor.isVerified }
+    });
+  } catch (error) {
+    console.error("❌ Verify vendor error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل توثيق التاجر"
+    });
+  }
+};
+exports.toggleVendorStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isActive } = req.body;
+    if (isActive === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "حقل isActive مطلوب"
+      });
+    }
+    const vendor = await User.findById(id);
+    if (!vendor) {
+      return res.status(404).json({
+        success: false,
+        message: "التاجر غير موجود"
+      });
+    }
+    vendor.isActive = isActive;
+    await vendor.save();
+    if (vendor.storeOwnerInfo?.store) {
+      await Store.findByIdAndUpdate(vendor.storeOwnerInfo.store, {
+        isOpen: isActive
+      });
+    }
+    res.json({
+      success: true,
+      message: `تم ${isActive ? 'تفعيل' : 'تعطيل'} التاجر بنجاح`,
+      data: {
+        id: vendor._id,
+        isActive: vendor.isActive
+      }
+    });
+  } catch (error) {
+    console.error("❌ Toggle vendor status error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تغيير حالة التاجر"
+    });
+  }
+};
+module.exports = exports;
+</file>
+
 <file path="src/middlewares/role.middleware.js">
 const { businessLogger } = require("../utils/logger.util");
 const ROLES = {
@@ -34331,6 +34140,210 @@ notificationSchema.methods.retryDelivery = async function () {
   return this;
 };
 module.exports = mongoose.model("Notification", notificationSchema);
+</file>
+
+<file path="src/models/store.model.js">
+const mongoose = require("mongoose");
+const storeSchema = new mongoose.Schema(
+  {
+    logo: { type: String },
+    coverImage: { type: String },
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      index: true,
+    },
+    description: String,
+    category: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    phone: { type: String, trim: true },
+    email: { type: String, trim: true, lowercase: true },
+    website: String,
+    address: {
+      street: String,
+      city: String,
+      state: String,
+      country: { type: String, default: "Niger" },
+      postalCode: String,
+      latitude: Number,
+      longitude: Number,
+    },
+    location: {
+      type: { type: String, enum: ["Point"], default: "Point" },
+      coordinates: { type: [Number], default: [2.1098, 13.5126] },
+    },
+    isOpen: { type: Boolean, default: true },
+    isVerified: { type: Boolean, default: false },
+    vendor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      index: true,
+      required: true
+    },
+    createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    averageRating: { type: Number, default: 0, min: 0, max: 5 },
+    ratingsCount: { type: Number, default: 0 },
+    deliveryInfo: {
+      hasDelivery: { type: Boolean, default: true },
+      deliveryFee: { type: Number, default: 0, min: 0 },
+      minOrderAmount: { type: Number, default: 0, min: 0 },
+      estimatedDeliveryTime: { type: Number, default: 30 },
+      deliveryRadius: { type: Number, default: 10 },
+      freeDeliveryThreshold: { type: Number, default: 0 },
+    },
+    openingHours: {
+      type: Map,
+      of: { open: String, close: String, isOpen: Boolean },
+      default: {},
+    },
+    stats: {
+      totalOrders: { type: Number, default: 0 },
+      completedOrders: { type: Number, default: 0 },
+      cancelledOrders: { type: Number, default: 0 },
+      totalRevenue: { type: Number, default: 0 },
+      averageOrderValue: { type: Number, default: 0 },
+      lastOrderDate: Date,
+      totalProducts: { type: Number, default: 0 },
+      totalCustomers: { type: Number, default: 0 },
+    },
+    settings: {
+      autoAcceptOrders: { type: Boolean, default: false },
+      preparationTimeBuffer: { type: Number, default: 5 },
+      maxOrdersPerHour: { type: Number, default: 50 },
+      currency: { type: String, default: "XOF" },
+      taxRate: { type: Number, default: 0 },
+      notifications: {
+        email: { type: Boolean, default: true },
+        push: { type: Boolean, default: true },
+        sms: { type: Boolean, default: false },
+      },
+    },
+    preferredDrivers: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    tags: [{ type: String, trim: true }],
+    gallery: [{ url: String, caption: String, order: Number }],
+    documents: [{
+      type: { type: String, enum: ["license", "tax", "id", "other"] },
+      url: String,
+      verified: { type: Boolean, default: false },
+      verifiedAt: Date,
+    }],
+    deletedAt: Date,
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
+);
+storeSchema.virtual("products", {
+  ref: "Product",
+  localField: "_id",
+  foreignField: "store",
+});
+storeSchema.virtual("addresses", {
+  ref: "StoreAddress",
+  localField: "_id",
+  foreignField: "store",
+});
+storeSchema.virtual("reviews", {
+  ref: "Review",
+  localField: "_id",
+  foreignField: "store",
+});
+storeSchema.virtual("orders", {
+  ref: "Order",
+  localField: "_id",
+  foreignField: "store",
+});
+storeSchema.virtual("successRate").get(function () {
+  if (this.stats.totalOrders === 0) return 0;
+  return ((this.stats.completedOrders / this.stats.totalOrders) * 100).toFixed(1);
+});
+storeSchema.virtual("isOpenNow").get(function () {
+  if (!this.openingHours) return false;
+  const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  const today = days[new Date().getDay()];
+  const hours = this.openingHours.get(today);
+  if (!hours || !hours.isOpen) return false;
+  const now = new Date();
+  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  return currentTime >= hours.open && currentTime <= hours.close;
+});
+storeSchema.index({ category: 1, averageRating: -1 });
+storeSchema.index({ isOpen: 1, isVerified: 1 });
+storeSchema.index({ tags: 1 });
+storeSchema.index({ location: "2dsphere" });
+storeSchema.index({ 'stats.totalOrders': -1 });
+storeSchema.index({ name: 'text', description: 'text', tags: 'text' });
+storeSchema.index({ vendor: 1 });
+storeSchema.methods.updateStats = async function () {
+  try {
+    const Order = require("./order.model");
+    const stats = await Order.aggregate([
+      { $match: { store: this._id } },
+      {
+        $group: {
+          _id: null,
+          totalOrders: { $sum: 1 },
+          completedOrders: { $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] } },
+          cancelledOrders: { $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] } },
+          totalRevenue: { $sum: "$totalPrice" },
+          lastOrderDate: { $max: "$createdAt" },
+          avgOrderValue: { $avg: "$totalPrice" }
+        }
+      }
+    ]);
+    if (stats.length > 0) {
+      this.stats = {
+        ...this.stats.toObject(),
+        ...stats[0]
+      };
+      await this.save();
+    }
+    return this;
+  } catch (error) {
+    console.error('❌ Error updating store stats:', error);
+    return this;
+  }
+};
+storeSchema.methods.updateRating = async function () {
+  try {
+    const Review = require("./review.model");
+    const stats = await Review.aggregate([
+      { $match: { store: this._id } },
+      { $group: { _id: null, avgRating: { $avg: '$rating' }, count: { $sum: 1 } } }
+    ]);
+    if (stats.length > 0) {
+      this.averageRating = stats[0].avgRating;
+      this.ratingsCount = stats[0].count;
+    } else {
+      this.averageRating = 0;
+      this.ratingsCount = 0;
+    }
+    await this.save();
+    return this;
+  } catch (error) {
+    console.error('❌ Error updating store rating:', error);
+    return this;
+  }
+};
+storeSchema.methods.incrementProductsCount = async function () {
+  this.stats.totalProducts = (this.stats.totalProducts || 0) + 1;
+  await this.save();
+  return this;
+};
+storeSchema.methods.decrementProductsCount = async function () {
+  this.stats.totalProducts = Math.max(0, (this.stats.totalProducts || 0) - 1);
+  await this.save();
+  return this;
+};
+const Store = mongoose.model("Store", storeSchema);
+console.log('✅ Store model loaded with vendor field');
+module.exports = Store;
 </file>
 
 <file path="src/routes/public.routes.js">
@@ -43179,465 +43192,6 @@ exports.toggleDriverStatus = async (req, res) => {
 module.exports = exports;
 </file>
 
-<file path="src/models/user.model.js">
-const mongoose = require("mongoose");
-const userSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: true,
-      trim: true,
-      minlength: 2,
-      maxlength: 100,
-    },
-    phone: {
-      type: String,
-      required: true,
-      unique: true,
-      trim: true,
-      match: [/^\+?[\d\s\-\(\)]+$/, "Please enter a valid phone number"],
-    },
-    email: {
-      type: String,
-      trim: true,
-      lowercase: true,
-      sparse: true,
-      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"],
-    },
-    password: {
-      type: String,
-      required: true,
-      minlength: 6,
-      select: false,
-    },
-    image: {
-      type: String,
-      default: null,
-    },
-    coverImage: {
-      type: String,
-      default: null,
-    },
-    role: {
-      type: String,
-      enum: ["client", "driver", "admin", "vendor"],
-      default: "client",
-    },
-    isActive: {
-      type: Boolean,
-      default: true,
-    },
-    isVerified: {
-      type: Boolean,
-      default: false,
-    },
-    isOnline: {
-      type: Boolean,
-      default: false,
-    },
-    lastSeen: {
-      type: Date,
-      default: Date.now,
-    },
-    bio: {
-      type: String,
-      trim: true,
-      maxlength: 500,
-    },
-    address: {
-      type: String,
-      trim: true,
-    },
-    city: {
-      type: String,
-      trim: true,
-      default: "Niamey",
-    },
-    location: {
-      type: {
-        type: String,
-        enum: ["Point"],
-        default: "Point",
-      },
-      coordinates: {
-        type: [Number],
-        default: [2.1098, 13.5126],
-      },
-    },
-    dateOfBirth: {
-      type: Date,
-    },
-    gender: {
-      type: String,
-      enum: ["male", "female", "other", "prefer-not-to-say"],
-    },
-    loyaltyPoints: {
-      type: Number,
-      default: 0,
-      min: 0,
-    },
-    loyaltyTransactions: [{
-      type: {
-        type: String,
-        enum: ['earn', 'redeem'],
-        required: true
-      },
-      amount: {
-        type: Number,
-        required: true,
-        min: 0
-      },
-      reason: String,
-      orderId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Order'
-      },
-      rewardId: String,
-      balance: {
-        type: Number,
-        required: true
-      },
-      timestamp: {
-        type: Date,
-        default: Date.now
-      }
-    }],
-    loginAttempts: {
-      type: Number,
-      default: 0,
-      select: false
-    },
-    lockUntil: {
-      type: Date,
-      select: false
-    },
-    preferences: {
-      notifications: {
-        email: { type: Boolean, default: true },
-        sms: { type: Boolean, default: true },
-        push: { type: Boolean, default: true },
-        orderUpdates: { type: Boolean, default: true },
-        promotions: { type: Boolean, default: true },
-      },
-      language: {
-        type: String,
-        default: "fr",
-        enum: ["ar", "fr", "en", "ha"],
-      },
-      currency: {
-        type: String,
-        default: "XOF",
-        enum: ["XOF", "EUR", "USD"],
-      },
-      theme: {
-        type: String,
-        default: "light",
-        enum: ["light", "dark"],
-      },
-    },
-    stats: {
-      totalOrders: { type: Number, default: 0 },
-      completedOrders: { type: Number, default: 0 },
-      cancelledOrders: { type: Number, default: 0 },
-      totalSpent: { type: Number, default: 0 },
-      averageRating: { type: Number, default: 0 },
-      ratingCount: { type: Number, default: 0 },
-      lastOrderDate: { type: Date },
-      joinedDate: { type: Date, default: Date.now },
-    },
-    driverInfo: {
-      licenseNumber: String,
-      vehicleType: {
-        type: String,
-        enum: ["motorcycle", "car", "bicycle", "scooter"],
-      },
-      vehiclePlate: String,
-      isAvailable: { type: Boolean, default: true },
-      currentLocation: {
-        type: {
-          type: String,
-          enum: ["Point"],
-          default: "Point"
-        },
-        coordinates: {
-          type: [Number],
-          default: [2.1098, 13.5126]
-        }
-      },
-      rating: { type: Number, default: 0 },
-      totalDeliveries: { type: Number, default: 0 },
-      earnings: { type: Number, default: 0 },
-      documents: [{
-        type: { type: String, enum: ["license", "insurance", "registration"] },
-        url: String,
-        verified: { type: Boolean, default: false },
-        verifiedAt: Date,
-      }],
-    },
-    storeOwnerInfo: {
-      store: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Store",
-        default: null,
-      },
-      subscription: {
-        plan: {
-          type: String,
-          enum: ["free", "basic", "premium", "enterprise"],
-          default: "free",
-        },
-        expiresAt: Date,
-        isActive: { type: Boolean, default: true },
-      },
-      notificationSettings: {
-        newOrders: { type: Boolean, default: true },
-        orderUpdates: { type: Boolean, default: true },
-        lowStock: { type: Boolean, default: true },
-        dailyReport: { type: Boolean, default: true },
-        sound: { type: Boolean, default: true },
-        push: { type: Boolean, default: true },
-        email: { type: Boolean, default: true },
-      },
-      workingHours: {
-        monday: { open: String, close: String, isOpen: Boolean },
-        tuesday: { open: String, close: String, isOpen: Boolean },
-        wednesday: { open: String, close: String, isOpen: Boolean },
-        thursday: { open: String, close: String, isOpen: Boolean },
-        friday: { open: String, close: String, isOpen: Boolean },
-        saturday: { open: String, close: String, isOpen: Boolean },
-        sunday: { open: String, close: String, isOpen: Boolean },
-      },
-      stats: {
-        totalOrders: { type: Number, default: 0 },
-        totalRevenue: { type: Number, default: 0 },
-        averageOrderValue: { type: Number, default: 0 },
-        rating: { type: Number, default: 0 },
-        totalCustomers: { type: Number, default: 0 },
-        cancellationRate: { type: Number, default: 0 },
-      },
-      isStoreOpen: { type: Boolean, default: true },
-      staff: [{
-        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
-        role: { type: String, enum: ["manager", "chef", "cashier"] },
-        permissions: [String],
-        addedAt: { type: Date, default: Date.now },
-      }],
-    },
-    lastLogin: Date,
-    lastActivity: Date,
-    passwordChangedAt: Date,
-    verificationCode: String,
-    verificationCodeExpires: Date,
-    resetPasswordToken: String,
-    resetPasswordExpires: Date,
-    socialAccounts: {
-      googleId: String,
-      facebookId: String,
-      appleId: String,
-    },
-    favorites: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Store",
-    }],
-    activityLog: [{
-      action: String,
-      details: mongoose.Schema.Types.Mixed,
-      timestamp: { type: Date, default: Date.now },
-      ipAddress: String,
-      userAgent: String,
-    }],
-  },
-  {
-    timestamps: true,
-    toJSON: { virtuals: true },
-    toObject: { virtuals: true }
-  }
-);
-userSchema.index({ location: "2dsphere" });
-userSchema.index({ "driverInfo.currentLocation": "2dsphere" });
-userSchema.index({ role: 1, isActive: 1 });
-userSchema.index({ createdAt: -1 });
-userSchema.index({ loyaltyPoints: -1 });
-userSchema.virtual("age").get(function () {
-  if (!this.dateOfBirth) return null;
-  const today = new Date();
-  const birthDate = new Date(this.dateOfBirth);
-  let age = today.getFullYear() - birthDate.getFullYear();
-  const monthDiff = today.getMonth() - birthDate.getMonth();
-  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
-    age--;
-  }
-  return age;
-});
-userSchema.virtual("loyaltyTier").get(function () {
-  const points = this.loyaltyPoints || 0;
-  if (points >= 5000) return 'platinum';
-  if (points >= 2000) return 'gold';
-  if (points >= 500) return 'silver';
-  return 'bronze';
-});
-userSchema.virtual("isLocked").get(function () {
-  return !!(this.lockUntil && this.lockUntil > new Date());
-});
-userSchema.pre("save", async function () {
-  if (this.isModified("password")) {
-    this.passwordChangedAt = Date.now();
-  }
-});
-userSchema.methods.logActivity = async function (action, details = {}) {
-  try {
-    await this.model('User').updateOne(
-      { _id: this._id },
-      {
-        $push: {
-          activityLog: {
-            $each: [{
-              action,
-              details,
-              ipAddress: details.ip || '',
-              userAgent: details.userAgent || '',
-              timestamp: new Date()
-            }],
-            $slice: -100
-          }
-        },
-        $set: { lastActivity: new Date() }
-      }
-    );
-    this.lastActivity = new Date();
-    return this;
-  } catch (error) {
-    console.error('❌ Error logging activity:', error.message);
-    return this;
-  }
-};
-/**
- * إضافة نقاط ولاء
- */
-userSchema.methods.addLoyaltyPoints = async function (amount, reason, orderId = null) {
-  try {
-    this.loyaltyPoints = (this.loyaltyPoints || 0) + amount;
-    if (!this.loyaltyTransactions) {
-      this.loyaltyTransactions = [];
-    }
-    this.loyaltyTransactions.push({
-      type: 'earn',
-      amount,
-      reason,
-      orderId,
-      balance: this.loyaltyPoints,
-      timestamp: new Date()
-    });
-    await this.save();
-    return this.loyaltyPoints;
-  } catch (error) {
-    console.error('❌ Error adding loyalty points:', error);
-    throw error;
-  }
-};
-userSchema.methods.redeemLoyaltyPoints = async function (amount, reason, rewardId = null) {
-  try {
-    if ((this.loyaltyPoints || 0) < amount) {
-      throw new Error('Insufficient points');
-    }
-    this.loyaltyPoints -= amount;
-    if (!this.loyaltyTransactions) {
-      this.loyaltyTransactions = [];
-    }
-    this.loyaltyTransactions.push({
-      type: 'redeem',
-      amount,
-      reason,
-      rewardId,
-      balance: this.loyaltyPoints,
-      timestamp: new Date()
-    });
-    await this.save();
-    return this.loyaltyPoints;
-  } catch (error) {
-    console.error('❌ Error redeeming loyalty points:', error);
-    throw error;
-  }
-};
-userSchema.methods.incLoginAttempts = async function () {
-  if (this.lockUntil && this.lockUntil < new Date()) {
-    return this.updateOne({
-      $set: { loginAttempts: 1 },
-      $unset: { lockUntil: 1 }
-    });
-  }
-  const updates = { $inc: { loginAttempts: 1 } };
-  if (this.loginAttempts + 1 >= 5 && !this.isLocked) {
-    updates.$set = { lockUntil: new Date(Date.now() + 2 * 60 * 60 * 1000) };
-  }
-  return this.updateOne(updates);
-};
-userSchema.methods.resetLoginAttempts = async function () {
-  return this.updateOne({
-    $set: { loginAttempts: 0 },
-    $unset: { lockUntil: 1 }
-  });
-};
-userSchema.methods.updateStats = async function () {
-  try {
-    const Order = require("./order.model");
-    const Review = require("./review.model");
-    const [orderStats, reviewStats] = await Promise.all([
-      Order.aggregate([
-        { $match: { user: this._id } },
-        {
-          $group: {
-            _id: null,
-            totalOrders: { $sum: 1 },
-            completedOrders: {
-              $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] }
-            },
-            cancelledOrders: {
-              $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] }
-            },
-            totalSpent: { $sum: "$totalPrice" },
-            lastOrderDate: { $max: "$createdAt" },
-          },
-        },
-      ]),
-      Review.aggregate([
-        { $match: { user: this._id } },
-        {
-          $group: {
-            _id: null,
-            averageRating: { $avg: "$rating" },
-            ratingCount: { $sum: 1 }
-          }
-        }
-      ])
-    ]);
-    const updateData = {
-      'stats.lastOrderDate': orderStats[0]?.lastOrderDate || null
-    };
-    if (orderStats.length > 0) {
-      updateData['stats.totalOrders'] = orderStats[0].totalOrders || 0;
-      updateData['stats.completedOrders'] = orderStats[0].completedOrders || 0;
-      updateData['stats.cancelledOrders'] = orderStats[0].cancelledOrders || 0;
-      updateData['stats.totalSpent'] = orderStats[0].totalSpent || 0;
-    }
-    if (reviewStats.length > 0) {
-      updateData['stats.averageRating'] = reviewStats[0].averageRating || 0;
-      updateData['stats.ratingCount'] = reviewStats[0].ratingCount || 0;
-    }
-    await mongoose.model('User').findByIdAndUpdate(
-      this._id,
-      { $set: updateData },
-      { runValidators: false }
-    );
-    return this;
-  } catch (error) {
-    console.error("❌ Error updating user stats:", error.message);
-    return this;
-  }
-};
-module.exports = mongoose.model("User", userSchema);
-</file>
-
 <file path="src/controllers/order.controller.js">
 const { Order, User, Address, Store, DriverLocation, Review, Notification, StoreAddress } = require('../models');
 const cache = require("../utils/cache.util");
@@ -46536,6 +46090,465 @@ exports.acceptOrderByDriver = async (req, res) => {
   }
 };
 module.exports = exports;
+</file>
+
+<file path="src/models/user.model.js">
+const mongoose = require("mongoose");
+const userSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 2,
+      maxlength: 100,
+    },
+    phone: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      match: [/^\+?[\d\s\-\(\)]+$/, "Please enter a valid phone number"],
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      sparse: true,
+      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"],
+    },
+    password: {
+      type: String,
+      required: true,
+      minlength: 6,
+      select: false,
+    },
+    image: {
+      type: String,
+      default: null,
+    },
+    coverImage: {
+      type: String,
+      default: null,
+    },
+    role: {
+      type: String,
+      enum: ["client", "driver", "admin", "vendor"],
+      default: "client",
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    isOnline: {
+      type: Boolean,
+      default: false,
+    },
+    lastSeen: {
+      type: Date,
+      default: Date.now,
+    },
+    bio: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+    },
+    address: {
+      type: String,
+      trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+      default: "Niamey",
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: "Point",
+      },
+      coordinates: {
+        type: [Number],
+        default: [2.1098, 13.5126],
+      },
+    },
+    dateOfBirth: {
+      type: Date,
+    },
+    gender: {
+      type: String,
+      enum: ["male", "female", "other", "prefer-not-to-say"],
+    },
+    loyaltyPoints: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    loyaltyTransactions: [{
+      type: {
+        type: String,
+        enum: ['earn', 'redeem'],
+        required: true
+      },
+      amount: {
+        type: Number,
+        required: true,
+        min: 0
+      },
+      reason: String,
+      orderId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Order'
+      },
+      rewardId: String,
+      balance: {
+        type: Number,
+        required: true
+      },
+      timestamp: {
+        type: Date,
+        default: Date.now
+      }
+    }],
+    loginAttempts: {
+      type: Number,
+      default: 0,
+      select: false
+    },
+    lockUntil: {
+      type: Date,
+      select: false
+    },
+    preferences: {
+      notifications: {
+        email: { type: Boolean, default: true },
+        sms: { type: Boolean, default: true },
+        push: { type: Boolean, default: true },
+        orderUpdates: { type: Boolean, default: true },
+        promotions: { type: Boolean, default: true },
+      },
+      language: {
+        type: String,
+        default: "fr",
+        enum: ["ar", "fr", "en", "ha"],
+      },
+      currency: {
+        type: String,
+        default: "XOF",
+        enum: ["XOF", "EUR", "USD"],
+      },
+      theme: {
+        type: String,
+        default: "light",
+        enum: ["light", "dark"],
+      },
+    },
+    stats: {
+      totalOrders: { type: Number, default: 0 },
+      completedOrders: { type: Number, default: 0 },
+      cancelledOrders: { type: Number, default: 0 },
+      totalSpent: { type: Number, default: 0 },
+      averageRating: { type: Number, default: 0 },
+      ratingCount: { type: Number, default: 0 },
+      lastOrderDate: { type: Date },
+      joinedDate: { type: Date, default: Date.now },
+    },
+    driverInfo: {
+      licenseNumber: String,
+      vehicleType: {
+        type: String,
+        enum: ["motorcycle", "car", "bicycle", "scooter"],
+      },
+      vehiclePlate: String,
+      isAvailable: { type: Boolean, default: true },
+      currentLocation: {
+        type: {
+          type: String,
+          enum: ["Point"],
+          default: "Point"
+        },
+        coordinates: {
+          type: [Number],
+          default: [2.1098, 13.5126]
+        }
+      },
+      rating: { type: Number, default: 0 },
+      totalDeliveries: { type: Number, default: 0 },
+      earnings: { type: Number, default: 0 },
+      documents: [{
+        type: { type: String, enum: ["license", "insurance", "registration"] },
+        url: String,
+        verified: { type: Boolean, default: false },
+        verifiedAt: Date,
+      }],
+    },
+    storeOwnerInfo: {
+      store: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Store",
+        default: null,
+      },
+      subscription: {
+        plan: {
+          type: String,
+          enum: ["free", "basic", "premium", "enterprise"],
+          default: "free",
+        },
+        expiresAt: Date,
+        isActive: { type: Boolean, default: true },
+      },
+      notificationSettings: {
+        newOrders: { type: Boolean, default: true },
+        orderUpdates: { type: Boolean, default: true },
+        lowStock: { type: Boolean, default: true },
+        dailyReport: { type: Boolean, default: true },
+        sound: { type: Boolean, default: true },
+        push: { type: Boolean, default: true },
+        email: { type: Boolean, default: true },
+      },
+      workingHours: {
+        monday: { open: String, close: String, isOpen: Boolean },
+        tuesday: { open: String, close: String, isOpen: Boolean },
+        wednesday: { open: String, close: String, isOpen: Boolean },
+        thursday: { open: String, close: String, isOpen: Boolean },
+        friday: { open: String, close: String, isOpen: Boolean },
+        saturday: { open: String, close: String, isOpen: Boolean },
+        sunday: { open: String, close: String, isOpen: Boolean },
+      },
+      stats: {
+        totalOrders: { type: Number, default: 0 },
+        totalRevenue: { type: Number, default: 0 },
+        averageOrderValue: { type: Number, default: 0 },
+        rating: { type: Number, default: 0 },
+        totalCustomers: { type: Number, default: 0 },
+        cancellationRate: { type: Number, default: 0 },
+      },
+      isStoreOpen: { type: Boolean, default: true },
+      staff: [{
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        role: { type: String, enum: ["manager", "chef", "cashier"] },
+        permissions: [String],
+        addedAt: { type: Date, default: Date.now },
+      }],
+    },
+    lastLogin: Date,
+    lastActivity: Date,
+    passwordChangedAt: Date,
+    verificationCode: String,
+    verificationCodeExpires: Date,
+    resetPasswordToken: String,
+    resetPasswordExpires: Date,
+    socialAccounts: {
+      googleId: String,
+      facebookId: String,
+      appleId: String,
+    },
+    favorites: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Store",
+    }],
+    activityLog: [{
+      action: String,
+      details: mongoose.Schema.Types.Mixed,
+      timestamp: { type: Date, default: Date.now },
+      ipAddress: String,
+      userAgent: String,
+    }],
+  },
+  {
+    timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true }
+  }
+);
+userSchema.index({ location: "2dsphere" });
+userSchema.index({ "driverInfo.currentLocation": "2dsphere" });
+userSchema.index({ role: 1, isActive: 1 });
+userSchema.index({ createdAt: -1 });
+userSchema.index({ loyaltyPoints: -1 });
+userSchema.virtual("age").get(function () {
+  if (!this.dateOfBirth) return null;
+  const today = new Date();
+  const birthDate = new Date(this.dateOfBirth);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+    age--;
+  }
+  return age;
+});
+userSchema.virtual("loyaltyTier").get(function () {
+  const points = this.loyaltyPoints || 0;
+  if (points >= 5000) return 'platinum';
+  if (points >= 2000) return 'gold';
+  if (points >= 500) return 'silver';
+  return 'bronze';
+});
+userSchema.virtual("isLocked").get(function () {
+  return !!(this.lockUntil && this.lockUntil > new Date());
+});
+userSchema.pre("save", async function () {
+  if (this.isModified("password")) {
+    this.passwordChangedAt = Date.now();
+  }
+});
+userSchema.methods.logActivity = async function (action, details = {}) {
+  try {
+    await this.model('User').updateOne(
+      { _id: this._id },
+      {
+        $push: {
+          activityLog: {
+            $each: [{
+              action,
+              details,
+              ipAddress: details.ip || '',
+              userAgent: details.userAgent || '',
+              timestamp: new Date()
+            }],
+            $slice: -100
+          }
+        },
+        $set: { lastActivity: new Date() }
+      }
+    );
+    this.lastActivity = new Date();
+    return this;
+  } catch (error) {
+    console.error('❌ Error logging activity:', error.message);
+    return this;
+  }
+};
+/**
+ * إضافة نقاط ولاء
+ */
+userSchema.methods.addLoyaltyPoints = async function (amount, reason, orderId = null) {
+  try {
+    this.loyaltyPoints = (this.loyaltyPoints || 0) + amount;
+    if (!this.loyaltyTransactions) {
+      this.loyaltyTransactions = [];
+    }
+    this.loyaltyTransactions.push({
+      type: 'earn',
+      amount,
+      reason,
+      orderId,
+      balance: this.loyaltyPoints,
+      timestamp: new Date()
+    });
+    await this.save();
+    return this.loyaltyPoints;
+  } catch (error) {
+    console.error('❌ Error adding loyalty points:', error);
+    throw error;
+  }
+};
+userSchema.methods.redeemLoyaltyPoints = async function (amount, reason, rewardId = null) {
+  try {
+    if ((this.loyaltyPoints || 0) < amount) {
+      throw new Error('Insufficient points');
+    }
+    this.loyaltyPoints -= amount;
+    if (!this.loyaltyTransactions) {
+      this.loyaltyTransactions = [];
+    }
+    this.loyaltyTransactions.push({
+      type: 'redeem',
+      amount,
+      reason,
+      rewardId,
+      balance: this.loyaltyPoints,
+      timestamp: new Date()
+    });
+    await this.save();
+    return this.loyaltyPoints;
+  } catch (error) {
+    console.error('❌ Error redeeming loyalty points:', error);
+    throw error;
+  }
+};
+userSchema.methods.incLoginAttempts = async function () {
+  if (this.lockUntil && this.lockUntil < new Date()) {
+    return this.updateOne({
+      $set: { loginAttempts: 1 },
+      $unset: { lockUntil: 1 }
+    });
+  }
+  const updates = { $inc: { loginAttempts: 1 } };
+  if (this.loginAttempts + 1 >= 5 && !this.isLocked) {
+    updates.$set = { lockUntil: new Date(Date.now() + 2 * 60 * 60 * 1000) };
+  }
+  return this.updateOne(updates);
+};
+userSchema.methods.resetLoginAttempts = async function () {
+  return this.updateOne({
+    $set: { loginAttempts: 0 },
+    $unset: { lockUntil: 1 }
+  });
+};
+userSchema.methods.updateStats = async function () {
+  try {
+    const Order = require("./order.model");
+    const Review = require("./review.model");
+    const [orderStats, reviewStats] = await Promise.all([
+      Order.aggregate([
+        { $match: { user: this._id } },
+        {
+          $group: {
+            _id: null,
+            totalOrders: { $sum: 1 },
+            completedOrders: {
+              $sum: { $cond: [{ $eq: ["$status", "delivered"] }, 1, 0] }
+            },
+            cancelledOrders: {
+              $sum: { $cond: [{ $eq: ["$status", "cancelled"] }, 1, 0] }
+            },
+            totalSpent: { $sum: "$totalPrice" },
+            lastOrderDate: { $max: "$createdAt" },
+          },
+        },
+      ]),
+      Review.aggregate([
+        { $match: { user: this._id } },
+        {
+          $group: {
+            _id: null,
+            averageRating: { $avg: "$rating" },
+            ratingCount: { $sum: 1 }
+          }
+        }
+      ])
+    ]);
+    const updateData = {
+      'stats.lastOrderDate': orderStats[0]?.lastOrderDate || null
+    };
+    if (orderStats.length > 0) {
+      updateData['stats.totalOrders'] = orderStats[0].totalOrders || 0;
+      updateData['stats.completedOrders'] = orderStats[0].completedOrders || 0;
+      updateData['stats.cancelledOrders'] = orderStats[0].cancelledOrders || 0;
+      updateData['stats.totalSpent'] = orderStats[0].totalSpent || 0;
+    }
+    if (reviewStats.length > 0) {
+      updateData['stats.averageRating'] = reviewStats[0].averageRating || 0;
+      updateData['stats.ratingCount'] = reviewStats[0].ratingCount || 0;
+    }
+    await mongoose.model('User').findByIdAndUpdate(
+      this._id,
+      { $set: updateData },
+      { runValidators: false }
+    );
+    return this;
+  } catch (error) {
+    console.error("❌ Error updating user stats:", error.message);
+    return this;
+  }
+};
+module.exports = mongoose.model("User", userSchema);
 </file>
 
 <file path="package.json">
