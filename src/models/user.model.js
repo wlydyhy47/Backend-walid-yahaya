@@ -4,7 +4,7 @@
 // الإصدار: 4.0
 // ============================================
 
-const mongoose = require("mongoose"); // ✅ إضافة هذا السطر في البداية
+const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
   {
@@ -232,7 +232,7 @@ const userSchema = new mongoose.Schema(
       }],
     },
 
-    // لصاحب المتجر
+    // ✅ لصاحب المتجر (التاجر) - يبقى storeOwnerInfo كما هو
     storeOwnerInfo: {
       store: {
         type: mongoose.Schema.Types.ObjectId,

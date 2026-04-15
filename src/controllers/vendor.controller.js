@@ -1,9 +1,9 @@
 // ============================================
-// ملف: src/controllers/vendor.controller.js (المصحح)
+// ملف: src/controllers/vendor.controller.js (المصحح بالكامل)
 // الوصف: التحكم في عمليات التجار (أصحاب المتاجر)
+// الإصدار: 4.0 - استخدام vendor بدلاً من owner
 // ============================================
 
-// ✅ استيراد موحد من models/index.js
 const { Store, StoreAddress, Product, User, Order, Review } = require('../models');
 
 const cache = require("../utils/cache.util");
@@ -25,7 +25,7 @@ const invalidateVendorCache = (storeId, userId) => {
 };
 
 /**
- * التحقق من ملكية المتجر
+ * التحقق من ملكية المتجر (باستخدام vendor)
  */
 const checkStoreOwnership = async (storeId, userId, req = null) => {
   const store = await Store.findById(storeId);
@@ -36,7 +36,8 @@ const checkStoreOwnership = async (storeId, userId, req = null) => {
   // المشرف يمكنه الوصول لأي متجر
   if (req?.user?.role === 'admin') return { store };
 
-  if (!store.owner || store.owner.toString() !== userId) {
+  // ✅ استخدام vendor بدلاً من owner
+  if (!store.vendor || store.vendor.toString() !== userId) {
     throw new AppError('غير مصرح لك بالوصول إلى هذا المتجر', 403);
   }
 
@@ -112,7 +113,7 @@ exports.getMyProfile = async (req, res) => {
       storeStats
     };
 
-    cache.set(cacheKey, profileData, 300); // 5 دقائق
+    cache.set(cacheKey, profileData, 300);
 
     res.json({
       success: true,
@@ -156,7 +157,6 @@ exports.updateProfile = async (req, res) => {
       });
     }
 
-    // إبطال الكاش
     cache.del(`vendor:profile:${userId}`);
 
     res.json({
@@ -205,7 +205,6 @@ exports.updateAvatar = async (req, res) => {
       { new: true }
     ).select('name email image');
 
-    // إبطال الكاش
     cache.del(`vendor:profile:${userId}`);
 
     res.json({
@@ -258,7 +257,9 @@ exports.getMyStore = async (req, res) => {
       });
     }
 
+    // ✅ استخدام populate مع vendor
     const store = await Store.findById(storeId)
+      .populate('vendor', 'name phone email image isVerified')
       .populate('addresses')
       .populate({
         path: 'products',
@@ -274,7 +275,6 @@ exports.getMyStore = async (req, res) => {
       });
     }
 
-    // إحصائيات سريعة
     const [productsCount, ordersCount, reviewsCount] = await Promise.all([
       Product.countDocuments({ store: storeId }),
       Order.countDocuments({ store: storeId }),
@@ -291,7 +291,7 @@ exports.getMyStore = async (req, res) => {
       }
     };
 
-    cache.set(cacheKey, storeData, 300); // 5 دقائق
+    cache.set(cacheKey, storeData, 300);
 
     res.json({
       success: true,
@@ -327,7 +327,6 @@ exports.updateStore = async (req, res) => {
     const storeId = user.storeOwnerInfo.store;
     const updates = req.body;
 
-    // الحقول المسموح بتحديثها
     const allowedUpdates = [
       'name', 'description', 'category', 'phone', 'email', 'website',
       'address', 'deliveryInfo', 'tags', 'openingHours', 'isOpen'
@@ -369,7 +368,6 @@ exports.updateStore = async (req, res) => {
       });
     }
 
-    // إبطال الكاش
     invalidateVendorCache(storeId, userId);
 
     res.json({
@@ -437,7 +435,6 @@ exports.updateStoreLogo = async (req, res) => {
       });
     }
 
-    // إبطال الكاش
     invalidateVendorCache(storeId, userId);
 
     res.json({
@@ -507,7 +504,6 @@ exports.updateStoreCover = async (req, res) => {
       });
     }
 
-    // إبطال الكاش
     invalidateVendorCache(storeId, userId);
 
     res.json({
@@ -559,12 +555,10 @@ exports.toggleStoreStatus = async (req, res) => {
     store.isOpen = !store.isOpen;
     await store.save();
 
-    // تحديث معلومات المستخدم
     await User.findByIdAndUpdate(userId, {
       "storeOwnerInfo.isStoreOpen": store.isOpen
     });
 
-    // إبطال الكاش
     invalidateVendorCache(storeId, userId);
 
     res.json({
@@ -656,7 +650,6 @@ exports.createAddress = async (req, res) => {
       isActive: true
     });
 
-    // إبطال الكاش
     invalidateVendorCache(storeId, userId);
 
     res.status(201).json({
@@ -717,7 +710,6 @@ exports.updateAddress = async (req, res) => {
 
     await address.save();
 
-    // إبطال الكاش
     invalidateVendorCache(storeId, userId);
 
     res.json({
@@ -767,7 +759,6 @@ exports.deleteAddress = async (req, res) => {
       });
     }
 
-    // إبطال الكاش
     invalidateVendorCache(storeId, userId);
 
     res.json({
@@ -878,7 +869,6 @@ exports.getAnalytics = async (req, res) => {
       topProducts,
       orderStatusStats
     ] = await Promise.all([
-      // إحصائيات اليوم
       Order.aggregate([
         {
           $match: {
@@ -896,7 +886,6 @@ exports.getAnalytics = async (req, res) => {
         }
       ]),
 
-      // إحصائيات الأسبوع
       Order.aggregate([
         {
           $match: {
@@ -914,7 +903,6 @@ exports.getAnalytics = async (req, res) => {
         { $sort: { _id: 1 } }
       ]),
 
-      // إحصائيات الشهر
       Order.aggregate([
         {
           $match: {
@@ -932,7 +920,6 @@ exports.getAnalytics = async (req, res) => {
         }
       ]),
 
-      // أفضل المنتجات
       Order.aggregate([
         { $match: { store: storeId, status: 'delivered' } },
         { $unwind: '$items' },
@@ -947,7 +934,6 @@ exports.getAnalytics = async (req, res) => {
         { $limit: 5 }
       ]),
 
-      // الطلبات حسب الحالة
       Order.aggregate([
         { $match: { store: storeId } },
         { $group: { _id: '$status', count: { $sum: 1 } } }
@@ -970,7 +956,7 @@ exports.getAnalytics = async (req, res) => {
       timestamp: new Date()
     };
 
-    cache.set(cacheKey, analyticsData, 600); // 10 دقائق
+    cache.set(cacheKey, analyticsData, 600);
 
     res.json({
       success: true,
@@ -1255,7 +1241,10 @@ exports.getVendors = async (req, res) => {
       isActive: true
     })
       .select('name phone email image storeOwnerInfo createdAt')
-      .populate('storeOwnerInfo.store', 'name logo category isOpen averageRating')
+      .populate({
+        path: 'storeOwnerInfo.store',
+        select: 'name logo category isOpen averageRating vendor'
+      })
       .lean();
 
     res.json({
@@ -1282,7 +1271,10 @@ exports.getVendorById = async (req, res) => {
 
     const vendor = await User.findById(id)
       .select('-password -verificationCode -resetPasswordToken -activityLog')
-      .populate('storeOwnerInfo.store')
+      .populate({
+        path: 'storeOwnerInfo.store',
+        select: 'name logo category isOpen averageRating vendor'
+      })
       .lean();
 
     if (!vendor || vendor.role !== 'vendor') {
@@ -1342,7 +1334,7 @@ exports.verifyVendor = async (req, res) => {
 };
 
 /**
- * @desc    تغيير حالة المتجر (للمشرفين)
+ * @desc    تغيير حالة التاجر (للمشرفين)
  * @route   PUT /api/v1/admin/vendors/:id/status
  * @access  Admin
  */
