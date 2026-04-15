@@ -98,21 +98,18 @@ router.put('/products/:id/toggle-availability', productController.toggleAvailabi
 
 router.put('/products/:id/inventory', validate(updateInventorySchema), productController.updateInventory);
 
+// ========== مسارات الطلبات - الثابتة أولاً ==========
+// 1. المسارات الثابتة (بدون :id)
+router.get('/orders/stats', orderController.getVendorOrderStats);
+router.get('/orders/today', orderController.getTodayOrders);
 router.get('/orders', PaginationUtils.validatePaginationParams, orderController.getVendorOrders);
 
+// 2. المسارات الديناميكية (تحتوي على :id) - تأتي بعد الثابتة
 router.get('/orders/:id', orderController.getOrderDetails);
-
 router.put('/orders/:id/accept', orderController.acceptOrder);
-
 router.put('/orders/:id/reject', orderController.rejectOrder);
-
 router.put('/orders/:id/start-preparing', orderController.startPreparing);
-
 router.put('/orders/:id/mark-ready', orderController.markOrderReady);
-
-router.get('/orders/today', orderController.getTodayOrders);
-
-router.get('/orders/stats', orderController.getVendorOrderStats);
 
 router.get('/analytics', vendorController.getAnalytics);
 
