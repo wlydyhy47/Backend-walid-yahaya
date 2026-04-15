@@ -1,16 +1,5 @@
-// ============================================
-// ملف: src/validators/store.validator.js
-// الوصف: مصادقات بيانات المتاجر (المعدل النهائي)
-// الإصدار: 2.2
-// ============================================
-
 const Joi = require('joi');
-
-/**
- * Schema للعنوان - يقبل string أو object
- */
 const addressSchema = Joi.alternatives().try(
-  // إذا كان string (JSON)
   Joi.string().custom((value, helpers) => {
     if (!value || value === '') return {};
     try {
@@ -23,7 +12,6 @@ const addressSchema = Joi.alternatives().try(
       return helpers.error('string.json');
     }
   }),
-  // إذا كان object مباشر
   Joi.object({
     street: Joi.string().max(200).optional().allow('', null),
     city: Joi.string().max(100).optional().allow('', null),
@@ -35,9 +23,6 @@ const addressSchema = Joi.alternatives().try(
   }).optional().default({})
 );
 
-/**
- * Schema لمعلومات التوصيل
- */
 const deliveryInfoSchema = Joi.alternatives().try(
   Joi.string().custom((value, helpers) => {
     if (!value || value === '') return { hasDelivery: true };
@@ -61,9 +46,6 @@ const deliveryInfoSchema = Joi.alternatives().try(
   }).optional().default({})
 );
 
-/**
- * Schema لساعات العمل
- */
 const openingHoursSchema = Joi.alternatives().try(
   Joi.string().custom((value, helpers) => {
     if (!value || value === '') return {};
@@ -88,9 +70,6 @@ const openingHoursSchema = Joi.alternatives().try(
   }).optional().default({})
 );
 
-/**
- * Schema للتاغات - يقبل string أو array
- */
 const tagsSchema = Joi.alternatives().try(
   Joi.string().custom((value, helpers) => {
     if (!value || value === '') return [];
@@ -115,7 +94,6 @@ const createStoreSchema = Joi.object({
       'string.max': 'اسم المتجر يجب أن لا يتجاوز {#limit} حرف',
       'any.required': 'اسم المتجر مطلوب'
     }),
-  
   description: Joi.string()
     .max(500)
     .required()
@@ -123,7 +101,6 @@ const createStoreSchema = Joi.object({
       'string.max': 'الوصف يجب أن لا يتجاوز {#limit} حرف',
       'any.required': 'الوصف مطلوب'
     }),
-  
   category: Joi.string()
     .valid('restaurant', 'cafe', 'fast_food', 'bakery', 'grocery', 'supermarket', 'pharmacy', 'clothing', 'electronics', 'other')
     .required()
@@ -131,7 +108,6 @@ const createStoreSchema = Joi.object({
       'any.only': 'نوع المتجر غير صالح',
       'any.required': 'نوع المتجر مطلوب'
     }),
-  
   phone: Joi.string()
     .pattern(/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{4,6}$/)
     .required()
@@ -139,38 +115,35 @@ const createStoreSchema = Joi.object({
       'string.pattern.base': 'رقم الهاتف غير صالح',
       'any.required': 'رقم الهاتف مطلوب'
     }),
-  
   email: Joi.string()
     .email()
     .optional()
     .allow('', null),
-  
   website: Joi.string()
     .uri()
     .optional()
     .allow('', null),
-  
   logo: Joi.string()
     .optional()
     .allow('', null),
-  
   coverImage: Joi.string()
     .optional()
     .allow('', null),
-  
+  // ✅ حقل التاجر (vendor) - موحد
+  vendor: Joi.string()
+    .optional()
+    .allow('', null),
+  vendorId: Joi.string()
+    .optional()
+    .allow('', null),
   // ✅ السماح بأن تكون القيم فارغة
   address: addressSchema.optional().default({}),
-  
   deliveryInfo: deliveryInfoSchema.optional().default({}),
-  
   openingHours: openingHoursSchema.optional().default({}),
-  
   tags: tagsSchema.optional().default([]),
-  
   isOpen: Joi.boolean()
     .default(true)
     .optional(),
-  
   // ✅ دعم الحقول المنفردة
   hasDelivery: Joi.boolean().optional(),
   deliveryFee: Joi.number().min(0).optional(),
@@ -178,7 +151,6 @@ const createStoreSchema = Joi.object({
   estimatedDeliveryTime: Joi.number().min(5).max(120).optional(),
   deliveryRadius: Joi.number().min(1).max(50).optional(),
   freeDeliveryThreshold: Joi.number().min(0).optional(),
-  
   street: Joi.string().max(200).optional().allow('', null),
   city: Joi.string().max(100).optional().allow('', null),
   state: Joi.string().max(100).optional().allow('', null),
@@ -186,8 +158,7 @@ const createStoreSchema = Joi.object({
   postalCode: Joi.string().max(20).optional().allow('', null),
   latitude: Joi.number().min(-90).max(90).optional().allow('', null),
   longitude: Joi.number().min(-180).max(180).optional().allow('', null),
-  
-}).unknown(true); // ✅ السماح بحقول إضافية
+}).unknown(true);
 
 /**
  * تحديث متجر
@@ -197,47 +168,34 @@ const updateStoreSchema = Joi.object({
     .min(3)
     .max(100)
     .optional(),
-  
   description: Joi.string()
     .max(500)
     .optional(),
-  
   category: Joi.string()
     .valid('restaurant', 'cafe', 'fast_food', 'bakery', 'grocery', 'supermarket', 'pharmacy', 'clothing', 'electronics', 'other')
     .optional(),
-  
   phone: Joi.string()
     .pattern(/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{4,6}$/)
     .optional(),
-  
   email: Joi.string()
     .email()
     .optional()
     .allow('', null),
-  
   website: Joi.string()
     .uri()
     .optional()
     .allow('', null),
-  
   logo: Joi.string()
     .optional()
     .allow('', null),
-  
   coverImage: Joi.string()
     .optional()
     .allow('', null),
-  
   address: addressSchema.optional(),
-  
   deliveryInfo: deliveryInfoSchema.optional(),
-  
   openingHours: openingHoursSchema.optional(),
-  
   tags: tagsSchema.optional(),
-  
   isOpen: Joi.boolean().optional(),
-  
   settings: Joi.object({
     autoAcceptOrders: Joi.boolean(),
     preparationTimeBuffer: Joi.number().min(0).max(30),
@@ -250,7 +208,6 @@ const updateStoreSchema = Joi.object({
       sms: Joi.boolean()
     })
   }).optional()
-  
 }).unknown(true);
 
 /**
@@ -259,45 +216,35 @@ const updateStoreSchema = Joi.object({
 const storeAddressSchema = Joi.object({
   label: Joi.string()
     .default('Main Branch'),
-  
   addressLine: Joi.string()
     .min(5)
     .max(200)
     .required(),
-  
   city: Joi.string()
     .min(2)
     .max(100)
     .required(),
-  
   state: Joi.string()
     .max(100)
     .optional(),
-  
   country: Joi.string()
     .default('Niger'),
-  
   postalCode: Joi.string()
     .max(20)
     .optional(),
-  
   latitude: Joi.number()
     .min(-90)
     .max(90)
     .required(),
-  
   longitude: Joi.number()
     .min(-180)
     .max(180)
     .required(),
-  
   phone: Joi.string()
     .pattern(/^[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{4,6}$/)
     .optional(),
-  
   isDefault: Joi.boolean()
     .default(false),
-  
   isActive: Joi.boolean()
     .default(true)
 });
