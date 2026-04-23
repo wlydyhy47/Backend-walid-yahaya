@@ -209,7 +209,7 @@ const userSchema = new mongoose.Schema(
         enum: ["motorcycle", "car", "bicycle", "scooter"],
       },
       vehiclePlate: String,
-      isAvailable: { type: Boolean, default: true },
+      isAvailable: { type: Boolean, default: false },
       currentLocation: {
         type: {
           type: String,

@@ -142,7 +142,19 @@ exports.register = async (req, res) => {
         language: "ar",
         currency: "XOF",
         theme: "light",
-      }
+      },
+      // ✅ للمندوبين: تعيين الحالة الافتراضية
+      ...(role === 'driver' && {
+        isOnline: false,
+        driverInfo: {
+          isAvailable: false,  // ← غير متاح للطلبات افتراضياً
+          currentLocation: null,
+          rating: 0,
+          totalDeliveries: 0,
+          earnings: 0,
+          documents: []
+        }
+      })
     };
 
     if (email) userData.email = email;
