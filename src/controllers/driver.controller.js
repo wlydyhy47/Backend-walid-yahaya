@@ -1,7 +1,8 @@
 // ============================================
 // ملف: src/controllers/driver.controller.js
 // الوصف: إدارة عمليات المندوبين
-// الإصدار: 2.0 (تم الإصلاح)
+// الإصدار: 2.0 (تم الإصلاح الكامل)
+// التعديلات: فصل حالة الاتصال عن حالة التوفر، تحسين APIs المشرفين
 // ============================================
 
 const { User, Order, DriverLocation } = require('../models');
@@ -10,7 +11,7 @@ const PaginationUtils = require('../utils/pagination.util');
 const fileService = require('../services/file.service');
 const { AppError } = require('../middlewares/errorHandler.middleware');
 
-// ========== 1. دوال مساعدة (تعريف مرة واحدة فقط) ==========
+// ========== 1. دوال مساعدة ==========
 
 const getStatusText = (status) => {
   const statusMap = {
@@ -86,7 +87,39 @@ const invalidateDriverCache = (driverId) => {
   cache.del(`driver:profile:${driverId}`);
   cache.del(`driver:stats:${driverId}`);
   cache.invalidatePattern(`driver:orders:${driverId}:*`);
+  cache.del(`driver:status:${driverId}`);
   cache.del(`user:complete:${driverId}`);
+};
+
+/**
+ * الحصول على نص حالة المندوب بالعربية
+ */
+const getDriverStatusText = (driver) => {
+  if (driver.currentOrder) return 'مشغول (في توصيلة)';
+  if (driver.isOnline && driver.isAvailable) return 'متاح ✅';
+  if (driver.isOnline && !driver.isAvailable) return 'غير متاح ⛔';
+  return 'غير متصل 📴';
+};
+
+/**
+ * تسجيل تاريخ تغيير الحالة
+ */
+const logDriverStatusChange = async (driverId, oldStatus, newStatus, reason = null) => {
+  try {
+    await User.findByIdAndUpdate(driverId, {
+      $push: {
+        'driverInfo.statusHistory': {
+          oldStatus,
+          newStatus,
+          changedAt: new Date(),
+          reason: reason || null
+        }
+      },
+      'driverInfo.lastAvailableChange': new Date()
+    });
+  } catch (error) {
+    console.error('❌ Error logging driver status change:', error);
+  }
 };
 
 // ========== 2. دوال المندوب الحالي ==========
@@ -144,7 +177,12 @@ exports.getMyProfile = async (req, res) => {
         todayOrders,
         totalEarnings: totalEarnings[0]?.total || 0,
         currentOrder: currentOrder || null
-      }
+      },
+      statusDisplay: getDriverStatusText({
+        isOnline: driver.isOnline,
+        isAvailable: driver.driverInfo?.isAvailable,
+        currentOrder: currentOrder
+      })
     };
 
     cache.set(cacheKey, profileData, 300);
@@ -163,178 +201,99 @@ exports.getMyProfile = async (req, res) => {
 };
 
 /**
- * @desc    الحصول على الطلبات المتاحة للمندوبين
- * @route   GET /api/v1/driver/orders/available
+ * @desc    الحصول على حالة المندوب التفصيلية
+ * @route   GET /api/v1/driver/status
  * @access  Driver
  */
-
-
-
-exports.getAvailableOrders = async (req, res) => {
+exports.getMyDetailedStatus = async (req, res) => {
   try {
     const driverId = req.user.id;
 
-    console.log(`🚚 Driver ${driverId} requesting available orders`);
+    const cacheKey = `driver:status:${driverId}`;
+    const cachedData = cache.get(cacheKey);
 
-    // ✅ جلب حالة المندوب الحالية من قاعدة البيانات
-    const driver = await User.findById(driverId).select('driverInfo.isAvailable isOnline name phone');
-    const isDriverAvailable = driver?.driverInfo?.isAvailable || false;
-    const isDriverOnline = driver?.isOnline || false;
-
-    console.log(`📊 Driver ${driverId} current availability: isAvailable=${isDriverAvailable}, isOnline=${isDriverOnline}`);
-
-    // ✅ إذا كان المندوب غير متاح، أعد مصفوفة فارغة فوراً
-    if (!isDriverAvailable) {
-      console.log(`⚠️ Driver ${driverId} is not available, returning empty orders`);
+    if (cachedData) {
       return res.json({
         success: true,
-        data: {
-          orders: [],
-          stats: {
-            total: 0,
-            byStore: {},
-            averageValue: 0
-          },
-          timestamp: new Date(),
-          driverId: driverId,
-          isAvailable: false,
-          isOnline: false,
-          driverName: driver?.name,
-          driverPhone: driver?.phone
-        }
+        data: cachedData,
+        cached: true
       });
     }
 
-    // جلب الطلبات المتاحة فقط إذا كان المندوب متاحاً
-    const availableOrders = await Order.find({
-      status: 'pending',
-      $or: [
-        { driver: { $exists: false } },
-        { driver: null }
-      ]
-    })
-      .populate('user', 'name phone')
-      .populate('store', 'name image phone addressLine deliveryInfo')
-      .populate('pickupAddress')
-      .populate('deliveryAddress')
-      .sort({ createdAt: 1 })
+    const driver = await User.findById(driverId)
+      .select('driverInfo.isAvailable isOnline driverInfo.lastAvailableChange driverInfo.statusHistory')
       .lean();
 
-    console.log(`✅ Found ${availableOrders.length} available orders`);
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "Driver not found"
+      });
+    }
 
-    // تنسيق البيانات للتطبيق
-    const formattedOrders = availableOrders.map(order => ({
-      id: order._id,
-      _id: order._id,
-      store: {
-        _id: order.store?._id,
-        name: order.store?.name,
-        image: order.store?.image,
-        phone: order.store?.phone,
-        addressLine: order.store?.addressLine,
-        deliveryInfo: order.store?.deliveryInfo
-      },
-      items: order.items || [],
-      totalPrice: order.totalPrice || 0,
-      deliveryAddress: order.deliveryAddress ? {
-        _id: order.deliveryAddress._id,
-        addressLine: order.deliveryAddress.addressLine,
-        city: order.deliveryAddress.city,
-        latitude: order.deliveryAddress.latitude,
-        longitude: order.deliveryAddress.longitude
-      } : null,
-      pickupAddress: order.pickupAddress ? {
-        _id: order.pickupAddress._id,
-        addressLine: order.pickupAddress.addressLine,
-        city: order.pickupAddress.city
-      } : null,
-      status: order.status,
-      statusText: getStatusText(order.status),
-      createdAt: order.createdAt,
-      notes: order.notes || '',
-      paymentMethod: order.paymentMethod || 'cash',
-      estimatedDeliveryTime: order.estimatedDeliveryTime || 30
-    }));
+    const currentOrder = await Order.findOne({
+      driver: driverId,
+      status: { $in: ['accepted', 'ready', 'picked'] }
+    }).select('_id status');
 
-    // إحصائيات إضافية
-    const stats = {
-      total: formattedOrders.length,
-      byStore: {},
-      averageValue: formattedOrders.length > 0
-        ? formattedOrders.reduce((sum, o) => sum + o.totalPrice, 0) / formattedOrders.length
-        : 0
+    const statusData = {
+      isOnline: driver.isOnline,
+      isAvailable: driver.driverInfo?.isAvailable || false,
+      hasActiveOrder: !!currentOrder,
+      currentOrder: currentOrder || null,
+      statusText: getDriverStatusText({
+        isOnline: driver.isOnline,
+        isAvailable: driver.driverInfo?.isAvailable,
+        currentOrder: currentOrder
+      }),
+      lastAvailableChange: driver.driverInfo?.lastAvailableChange || null,
+      statusHistory: (driver.driverInfo?.statusHistory || []).slice(-10)
     };
 
-    formattedOrders.forEach(order => {
-      const storeId = order.store?._id?.toString() || 'unknown';
-      if (!stats.byStore[storeId]) {
-        stats.byStore[storeId] = {
-          name: order.store?.name || 'Unknown',
-          count: 0,
-          totalValue: 0
-        };
-      }
-      stats.byStore[storeId].count++;
-      stats.byStore[storeId].totalValue += order.totalPrice;
-    });
+    cache.set(cacheKey, statusData, 30);
 
     res.json({
       success: true,
-      data: {
-        orders: formattedOrders,
-        stats: stats,
-        timestamp: new Date(),
-        driverId: driverId,
-        isAvailable: true,
-        isOnline: true,
-        driverName: driver?.name,
-        driverPhone: driver?.phone
-      }
+      data: statusData
     });
-
   } catch (error) {
-    console.error('❌ Get available orders error:', error);
+    console.error("❌ Get driver detailed status error:", error);
     res.status(500).json({
       success: false,
-      message: 'فشل جلب الطلبات المتاحة',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: "Failed to get driver status"
     });
   }
 };
+
 /**
- * @desc    تحديث حالة التوفر (متصل/غير متصل)
- * @route   PUT /api/v1/driver/profile/availability
+ * @desc    تبديل حالة التوفر فقط (متاح/غير متاح للطلبات)
+ * @route   PUT /api/v1/driver/availability
  * @access  Driver
  */
-
 exports.toggleAvailability = async (req, res) => {
   try {
     const driverId = req.user.id;
-    const { isAvailable, isOnline } = req.body;
+    const { isAvailable } = req.body;
 
-    let finalStatus = null;
-    if (isAvailable !== undefined) {
-      finalStatus = isAvailable;
-    } else if (isOnline !== undefined) {
-      finalStatus = isOnline;
-    }
-
-    if (finalStatus === null) {
+    if (isAvailable === undefined) {
       return res.status(400).json({
         success: false,
-        message: "يجب توفير حالة التوفر (isAvailable أو isOnline)"
+        message: "حقل isAvailable مطلوب"
       });
     }
 
-    console.log(`🔄 Driver ${driverId} toggling availability to: ${finalStatus}`);
+    console.log(`🔄 Driver ${driverId} toggling availability to: ${isAvailable}`);
 
-    // ✅ تحديث كلا الحقلين للتأكد من التزامن
+    // الحصول على الحالة القديمة لتسجيل التغيير
+    const oldDriver = await User.findById(driverId).select('driverInfo.isAvailable');
+    const oldStatus = oldDriver?.driverInfo?.isAvailable || false;
+
+    // تحديث فقط isAvailable، لا نغير isOnline
     const driver = await User.findByIdAndUpdate(
       driverId,
       {
-        'driverInfo.isAvailable': finalStatus,
-        isOnline: finalStatus,
-        lastStatusUpdate: new Date()
+        'driverInfo.isAvailable': isAvailable,
+        'driverInfo.lastAvailableChange': new Date()
       },
       { returnDocument: 'after' }
     ).select('driverInfo.isAvailable isOnline name phone');
@@ -346,10 +305,13 @@ exports.toggleAvailability = async (req, res) => {
       });
     }
 
-    // ✅ إبطال الكاش
+    // تسجيل تاريخ التغيير
+    await logDriverStatusChange(driverId, oldStatus, isAvailable, 'manual_toggle');
+
+    // إبطال الكاش
     invalidateDriverCache(driverId);
 
-    // ✅ إرسال إشعار عبر Socket
+    // إرسال إشعار عبر Socket لجميع الأدمن والمندوب
     const io = req.app.get('io');
     if (io) {
       io.emit('driver:status:changed', {
@@ -360,21 +322,20 @@ exports.toggleAvailability = async (req, res) => {
         timestamp: new Date()
       });
 
-      if (finalStatus === true) {
+      if (isAvailable === true) {
         io.to(`driver:${driverId}`).emit('driver:available:orders:refresh', {
           timestamp: new Date()
         });
       }
     }
 
-    // ✅ إرجاع الحالة الصحيحة
     res.json({
       success: true,
-      message: finalStatus ? "✅ أنت الآن متاح للطلبات" : "⛔ أنت الآن غير متاح",
+      message: isAvailable ? "✅ أنت الآن متاح للطلبات" : "⛔ أنت الآن غير متاح للطلبات",
       data: {
         isAvailable: driver.driverInfo.isAvailable,
         isOnline: driver.isOnline,
-        lastStatusUpdate: driver.lastStatusUpdate,
+        lastStatusUpdate: driver.driverInfo?.lastAvailableChange,
         driverInfo: {
           name: driver.name,
           phone: driver.phone
@@ -391,6 +352,69 @@ exports.toggleAvailability = async (req, res) => {
     });
   }
 };
+
+/**
+ * @desc    تبديل حالة الاتصال فقط (متصل/غير متصل)
+ * @route   PUT /api/v1/driver/online
+ * @access  Driver
+ */
+exports.toggleOnline = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { isOnline } = req.body;
+
+    if (isOnline === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "حقل isOnline مطلوب"
+      });
+    }
+
+    console.log(`🔄 Driver ${driverId} toggling online to: ${isOnline}`);
+
+    const driver = await User.findByIdAndUpdate(
+      driverId,
+      { isOnline: isOnline },
+      { returnDocument: 'after' }
+    ).select('driverInfo.isAvailable isOnline name phone');
+
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+
+    invalidateDriverCache(driverId);
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('driver:online:changed', {
+        driverId: driver._id,
+        driverName: driver.name,
+        isOnline: driver.isOnline,
+        timestamp: new Date()
+      });
+    }
+
+    res.json({
+      success: true,
+      message: isOnline ? "🟢 أنت الآن متصل" : "🔴 أنت الآن غير متصل",
+      data: {
+        isOnline: driver.isOnline,
+        isAvailable: driver.driverInfo.isAvailable
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Toggle online error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث حالة الاتصال"
+    });
+  }
+};
+
 /**
  * @desc    تحديث موقع المندوب
  * @route   PUT /api/v1/driver/location
@@ -445,14 +469,25 @@ exports.updateLocation = async (req, res) => {
     );
 
     const io = req.app.get('io');
-    if (io && orderId) {
-      io.to(`order:${orderId}`).emit('driver:location:updated', {
-        orderId,
+    if (io) {
+      // إرسال الموقع للطلب المحدد
+      if (orderId) {
+        io.to(`order:${orderId}`).emit('driver:location:updated', {
+          orderId,
+          driverId,
+          location: { latitude, longitude },
+          accuracy,
+          heading,
+          speed,
+          timestamp: new Date()
+        });
+      }
+
+      // إرسال الموقع للأدمن للمتابعة
+      io.emit('driver:location:broadcast', {
         driverId,
         location: { latitude, longitude },
-        accuracy,
-        heading,
-        speed,
+        orderId: orderId || null,
         timestamp: new Date()
       });
     }
@@ -475,6 +510,199 @@ exports.updateLocation = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to update location",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على موقع المندوب الحالي
+ * @route   GET /api/v1/driver/location/current
+ * @access  Driver
+ */
+exports.getCurrentLocation = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+
+    const location = await DriverLocation.findOne({ driver: driverId })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (!location) {
+      return res.json({
+        success: true,
+        data: null,
+        message: "لا يوجد موقع مسجل حالياً"
+      });
+    }
+
+    res.json({
+      success: true,
+      data: {
+        driverId,
+        location: {
+          latitude: location.location.coordinates[1],
+          longitude: location.location.coordinates[0]
+        },
+        accuracy: location.accuracy,
+        speed: location.speed,
+        heading: location.heading,
+        updatedAt: location.createdAt
+      }
+    });
+  } catch (error) {
+    console.error("❌ Get current location error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل جلب الموقع الحالي"
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على الطلبات المتاحة للمندوبين
+ * @route   GET /api/v1/driver/orders/available
+ * @access  Driver
+ */
+exports.getAvailableOrders = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+
+    console.log(`🚚 Driver ${driverId} requesting available orders`);
+
+    // جلب حالة المندوب الحالية
+    const driver = await User.findById(driverId).select('driverInfo.isAvailable isOnline name phone');
+    const isDriverAvailable = driver?.driverInfo?.isAvailable || false;
+    const isDriverOnline = driver?.isOnline || false;
+
+    console.log(`📊 Driver ${driverId} status: isAvailable=${isDriverAvailable}, isOnline=${isDriverOnline}`);
+
+    // التحقق: يجب أن يكون المندوب متاحاً ومتصلاً
+    if (!isDriverAvailable) {
+      console.log(`⚠️ Driver ${driverId} is not available, returning empty orders`);
+      return res.json({
+        success: true,
+        data: {
+          orders: [],
+          stats: { total: 0, byStore: {}, averageValue: 0 },
+          timestamp: new Date(),
+          driverStatus: {
+            isAvailable: false,
+            isOnline: isDriverOnline,
+            reason: "غير متاح لاستقبال الطلبات"
+          }
+        }
+      });
+    }
+
+    if (!isDriverOnline) {
+      console.log(`⚠️ Driver ${driverId} is offline, returning empty orders`);
+      return res.json({
+        success: true,
+        data: {
+          orders: [],
+          stats: { total: 0, byStore: {}, averageValue: 0 },
+          timestamp: new Date(),
+          driverStatus: {
+            isAvailable: true,
+            isOnline: false,
+            reason: "يجب أن تكون متصلاً أولاً"
+          }
+        }
+      });
+    }
+
+    // جلب الطلبات المتاحة
+    const availableOrders = await Order.find({
+      status: 'pending',
+      $or: [
+        { driver: { $exists: false } },
+        { driver: null }
+      ]
+    })
+      .populate('user', 'name phone')
+      .populate('store', 'name image phone addressLine deliveryInfo')
+      .populate('pickupAddress')
+      .populate('deliveryAddress')
+      .sort({ createdAt: 1 })
+      .lean();
+
+    console.log(`✅ Found ${availableOrders.length} available orders`);
+
+    const formattedOrders = availableOrders.map(order => ({
+      id: order._id,
+      _id: order._id,
+      store: {
+        _id: order.store?._id,
+        name: order.store?.name,
+        image: order.store?.image,
+        phone: order.store?.phone,
+        addressLine: order.store?.addressLine,
+        deliveryInfo: order.store?.deliveryInfo
+      },
+      items: order.items || [],
+      totalPrice: order.totalPrice || 0,
+      deliveryAddress: order.deliveryAddress ? {
+        _id: order.deliveryAddress._id,
+        addressLine: order.deliveryAddress.addressLine,
+        city: order.deliveryAddress.city,
+        latitude: order.deliveryAddress.latitude,
+        longitude: order.deliveryAddress.longitude
+      } : null,
+      pickupAddress: order.pickupAddress ? {
+        _id: order.pickupAddress._id,
+        addressLine: order.pickupAddress.addressLine,
+        city: order.pickupAddress.city
+      } : null,
+      status: order.status,
+      statusText: getStatusText(order.status),
+      createdAt: order.createdAt,
+      notes: order.notes || '',
+      paymentMethod: order.paymentMethod || 'cash',
+      estimatedDeliveryTime: order.estimatedDeliveryTime || 30
+    }));
+
+    const stats = {
+      total: formattedOrders.length,
+      byStore: {},
+      averageValue: formattedOrders.length > 0
+        ? formattedOrders.reduce((sum, o) => sum + o.totalPrice, 0) / formattedOrders.length
+        : 0
+    };
+
+    formattedOrders.forEach(order => {
+      const storeId = order.store?._id?.toString() || 'unknown';
+      if (!stats.byStore[storeId]) {
+        stats.byStore[storeId] = {
+          name: order.store?.name || 'Unknown',
+          count: 0,
+          totalValue: 0
+        };
+      }
+      stats.byStore[storeId].count++;
+      stats.byStore[storeId].totalValue += order.totalPrice;
+    });
+
+    res.json({
+      success: true,
+      data: {
+        orders: formattedOrders,
+        stats: stats,
+        timestamp: new Date(),
+        driverStatus: {
+          isAvailable: true,
+          isOnline: true,
+          driverName: driver?.name,
+          driverPhone: driver?.phone
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ Get available orders error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب الطلبات المتاحة',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
@@ -504,7 +732,7 @@ exports.getCurrentOrder = async (req, res) => {
       return res.json({
         success: true,
         data: null,
-        message: "No active order"
+        message: "لا يوجد طلب حالي"
       });
     }
 
@@ -523,7 +751,7 @@ exports.getCurrentOrder = async (req, res) => {
     console.error("❌ Get current order error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to get current order"
+      message: "فشل جلب الطلب الحالي"
     });
   }
 };
@@ -657,51 +885,7 @@ exports.getMyStats = async (req, res) => {
     console.error("❌ Get driver stats error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to get statistics"
-    });
-  }
-};
-
-/**
- * @desc    الحصول على الموقع الحالي للمندوب
- * @route   GET /api/v1/driver/location/current
- * @access  Driver
- */
-exports.getCurrentLocation = async (req, res) => {
-  try {
-    const driverId = req.user.id;
-
-    const location = await DriverLocation.findOne({ driver: driverId })
-      .sort({ createdAt: -1 })
-      .lean();
-
-    if (!location) {
-      return res.json({
-        success: true,
-        data: null,
-        message: "لا يوجد موقع مسجل حالياً"
-      });
-    }
-
-    res.json({
-      success: true,
-      data: {
-        driverId,
-        location: {
-          latitude: location.location.coordinates[1],
-          longitude: location.location.coordinates[0]
-        },
-        accuracy: location.accuracy,
-        speed: location.speed,
-        heading: location.heading,
-        updatedAt: location.createdAt
-      }
-    });
-  } catch (error) {
-    console.error("❌ Get current location error:", error);
-    res.status(500).json({
-      success: false,
-      message: "فشل جلب الموقع الحالي"
+      message: "فشل جلب الإحصائيات"
     });
   }
 };
@@ -1016,7 +1200,163 @@ exports.getPerformanceReport = async (req, res) => {
 // ========== 3. دوال المندوبين (للمشرفين) ==========
 
 /**
- * @desc    الحصول على جميع المندوبين
+ * @desc    الحصول على جميع المندوبين مع حالتهم التفصيلية
+ * @route   GET /api/v1/admin/drivers/status
+ * @access  Admin
+ */
+exports.getDriversStatusForAdmin = async (req, res) => {
+  try {
+    console.log('📍 Fetching drivers detailed status for admin...');
+
+    const drivers = await User.find({ role: 'driver', isActive: true })
+      .select('name phone email image driverInfo isOnline isActive isVerified createdAt updatedAt')
+      .lean();
+
+    const driversWithDetails = await Promise.all(drivers.map(async (driver) => {
+      // التحقق من الطلب الحالي
+      const currentOrder = await Order.findOne({
+        driver: driver._id,
+        status: { $in: ['accepted', 'ready', 'picked'] }
+      }).select('_id status');
+
+      // آخر موقع معروف
+      const lastLocation = await DriverLocation.findOne({ driver: driver._id })
+        .sort({ createdAt: -1 })
+        .select('location createdAt accuracy speed heading');
+
+      return {
+        _id: driver._id,
+        name: driver.name,
+        phone: driver.phone,
+        email: driver.email,
+        image: driver.image,
+        isOnline: driver.isOnline,
+        isActive: driver.isActive,
+        isVerified: driver.isVerified,
+        isAvailable: driver.driverInfo?.isAvailable || false,
+        rating: driver.driverInfo?.rating || 0,
+        totalDeliveries: driver.driverInfo?.totalDeliveries || 0,
+        earnings: driver.driverInfo?.earnings || 0,
+        currentOrder: currentOrder ? {
+          id: currentOrder._id,
+          status: currentOrder.status
+        } : null,
+        location: lastLocation ? {
+          latitude: lastLocation.location.coordinates[1],
+          longitude: lastLocation.location.coordinates[0],
+          updatedAt: lastLocation.createdAt,
+          accuracy: lastLocation.accuracy,
+          speed: lastLocation.speed
+        } : null,
+        statusDisplay: getDriverStatusText({
+          isOnline: driver.isOnline,
+          isAvailable: driver.driverInfo?.isAvailable,
+          currentOrder: currentOrder
+        }),
+        lastAvailableChange: driver.driverInfo?.lastAvailableChange || null,
+        createdAt: driver.createdAt,
+        updatedAt: driver.updatedAt
+      };
+    }));
+
+    // إحصائيات سريعة
+    const stats = {
+      total: driversWithDetails.length,
+      online: driversWithDetails.filter(d => d.isOnline).length,
+      available: driversWithDetails.filter(d => d.isAvailable && d.isOnline && !d.currentOrder).length,
+      busy: driversWithDetails.filter(d => d.currentOrder).length,
+      offline: driversWithDetails.filter(d => !d.isOnline).length,
+      unverified: driversWithDetails.filter(d => !d.isVerified).length
+    };
+
+    res.json({
+      success: true,
+      data: driversWithDetails,
+      stats,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error('❌ Get drivers status error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب حالة المندوبين',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على ملخص سريع لحالة المندوبين
+ * @route   GET /api/v1/admin/drivers/status/summary
+ * @access  Admin
+ */
+exports.getDriversSummary = async (req, res) => {
+  try {
+    const [
+      total,
+      online,
+      available,
+      busy,
+      offline,
+      avgRating,
+      totalDeliveriesToday
+    ] = await Promise.all([
+      User.countDocuments({ role: 'driver', isActive: true }),
+      User.countDocuments({ role: 'driver', isOnline: true, isActive: true }),
+      User.countDocuments({
+        role: 'driver',
+        'driverInfo.isAvailable': true,
+        isOnline: true,
+        isActive: true
+      }),
+      Order.aggregate([
+        {
+          $match: {
+            status: { $in: ['accepted', 'ready', 'picked'] },
+            driver: { $exists: true }
+          }
+        },
+        { $group: { _id: '$driver' } },
+        { $count: 'count' }
+      ]),
+      User.countDocuments({ role: 'driver', isOnline: false, isActive: true }),
+      User.aggregate([
+        { $match: { role: 'driver', 'driverInfo.rating': { $gt: 0 } } },
+        { $group: { _id: null, avg: { $avg: '$driverInfo.rating' } } }
+      ]),
+      Order.countDocuments({
+        status: 'delivered',
+        deliveredAt: { $gte: new Date().setHours(0, 0, 0, 0) },
+        driver: { $exists: true }
+      })
+    ]);
+
+    const busyCount = busy[0]?.count || 0;
+
+    res.json({
+      success: true,
+      data: {
+        total,
+        online,
+        available,
+        busy: busyCount,
+        offline,
+        avgRating: avgRating[0]?.avg?.toFixed(1) || 0,
+        totalDeliveriesToday,
+        timestamp: new Date()
+      }
+    });
+  } catch (error) {
+    console.error('❌ Get drivers summary error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب ملخص حالة المندوبين'
+    });
+  }
+};
+
+/**
+ * @desc    الحصول على جميع المندوبين (قائمة أساسية)
  * @route   GET /api/v1/admin/drivers
  * @access  Admin
  */
@@ -1059,7 +1399,12 @@ exports.getDrivers = async (req, res) => {
 
         return {
           ...driver,
-          todayOrders
+          todayOrders,
+          statusDisplay: getDriverStatusText({
+            isOnline: driver.isOnline,
+            isAvailable: driver.driverInfo?.isAvailable,
+            currentOrder: null
+          })
         };
       })
     );
@@ -1145,7 +1490,9 @@ exports.getDriverLocation = async (req, res) => {
           latitude: location.location.coordinates[1],
           longitude: location.location.coordinates[0]
         },
-        updatedAt: location.createdAt
+        updatedAt: location.createdAt,
+        accuracy: location.accuracy,
+        speed: location.speed
       }
     });
   } catch (error) {
@@ -1287,6 +1634,13 @@ exports.toggleDriverStatus = async (req, res) => {
       });
     }
 
+    // إذا تم تعطيل المندوب، أغلق حساب المتجر تلقائياً
+    if (!isActive && driver.storeVendorInfo?.store) {
+      await Store.findByIdAndUpdate(driver.storeVendorInfo.store, {
+        isOpen: false
+      });
+    }
+
     res.json({
       success: true,
       message: `تم ${isActive ? 'تفعيل' : 'تعطيل'} المندوب بنجاح`,
@@ -1304,23 +1658,21 @@ exports.toggleDriverStatus = async (req, res) => {
   }
 };
 
-
 /**
- * جلب جميع المندوبين مع مواقعهم الحالية
- * GET /api/v1/admin/drivers/locations
+ * @desc    جلب جميع المندوبين مع مواقعهم الحالية (للوحة التحكم)
+ * @route   GET /api/v1/admin/drivers/locations
+ * @access  Admin
  */
 exports.getAllDriversWithLocations = async (req, res) => {
   try {
     console.log('📍 Fetching all drivers with locations...');
 
-    // جلب جميع المستخدمين الذين دورهم driver
     const drivers = await User.find({ role: 'driver', isActive: true })
       .select('name phone email image driverInfo location isOnline isActive isVerified createdAt updatedAt')
       .lean();
 
     console.log(`✅ Found ${drivers.length} drivers`);
 
-    // تنسيق البيانات لإرجاعها
     const formattedDrivers = drivers.map(driver => ({
       _id: driver._id,
       name: driver.name,
@@ -1336,7 +1688,6 @@ exports.getAllDriversWithLocations = async (req, res) => {
       totalDeliveries: driver.driverInfo?.totalDeliveries || 0,
       earnings: driver.driverInfo?.earnings || 0,
       isAvailable: driver.driverInfo?.isAvailable || false,
-      // الموقع الحالي (من driverInfo أو location)
       location: {
         coordinates: driver.driverInfo?.currentLocation?.coordinates || driver.location?.coordinates || null,
         updatedAt: driver.driverInfo?.currentLocation?.updatedAt || driver.updatedAt
@@ -1356,6 +1707,75 @@ exports.getAllDriversWithLocations = async (req, res) => {
       success: false,
       message: 'فشل جلب مواقع المندوبين',
       error: error.message
+    });
+  }
+};
+
+/**
+ * @desc    فرض تحديث حالة المندوب بواسطة الأدمن
+ * @route   PUT /api/v1/admin/drivers/:id/force-availability
+ * @access  Admin
+ */
+exports.forceUpdateAvailability = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isAvailable, reason } = req.body;
+
+    if (isAvailable === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "حقل isAvailable مطلوب"
+      });
+    }
+
+    const oldDriver = await User.findById(id).select('driverInfo.isAvailable name');
+    if (!oldDriver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+
+    const driver = await User.findByIdAndUpdate(
+      id,
+      {
+        'driverInfo.isAvailable': isAvailable,
+        'driverInfo.lastAvailableChange': new Date()
+      },
+      { new: true }
+    ).select('driverInfo.isAvailable isOnline name phone');
+
+    await logDriverStatusChange(id, oldDriver.driverInfo?.isAvailable, isAvailable, reason || 'admin_override');
+
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('driver:status:force:changed', {
+        driverId: id,
+        driverName: driver.name,
+        isAvailable: driver.driverInfo.isAvailable,
+        forcedBy: req.user.id,
+        reason: reason || 'تم التحديث بواسطة الأدمن',
+        timestamp: new Date()
+      });
+    }
+
+    invalidateDriverCache(id);
+
+    res.json({
+      success: true,
+      message: `تم ${isAvailable ? 'تفعيل' : 'تعطيل'} توفر المندوب بنجاح`,
+      data: {
+        driverId: id,
+        driverName: driver.name,
+        isAvailable: driver.driverInfo.isAvailable,
+        isOnline: driver.isOnline
+      }
+    });
+  } catch (error) {
+    console.error("❌ Force update availability error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث حالة المندوب"
     });
   }
 };

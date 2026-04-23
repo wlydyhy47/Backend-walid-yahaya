@@ -230,6 +230,21 @@ const userSchema = new mongoose.Schema(
         verified: { type: Boolean, default: false },
         verifiedAt: Date,
       }],
+      // ✅ حقول جديدة لتاريخ الحالة
+      statusHistory: [{
+        oldStatus: Boolean,
+        newStatus: Boolean,
+        changedAt: { type: Date, default: Date.now },
+        reason: String,
+        changedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+      }],
+      lastAvailableChange: { type: Date, default: null },
+
+      // ✅ إعدادات القطع التلقائي (اختياري)
+      autoOffline: {
+        enabled: { type: Boolean, default: true },
+        afterMinutes: { type: Number, default: 30 }
+      }
     },
 
     // ✅ لصاحب المتجر (التاجر) - يبقى storeVendorInfo كما هو

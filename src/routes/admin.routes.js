@@ -123,14 +123,22 @@ router.put('/orders/:id/assign', validate(assignDriverSchema), orderController.a
 router.put('/orders/:id/reassign', orderController.reassignDriver);
 router.put('/orders/:id/force-cancel', validate(cancelOrderSchema), orderController.forceCancelOrder);
 
-router.get('/drivers/locations', driverController.getAllDriversWithLocations);
-router.get('/drivers', PaginationUtils.validatePaginationParams, driverController.getDrivers);
-router.get('/drivers/:id', driverController.getDriverById);
-router.get('/drivers/:id/location', driverController.getDriverLocation);
-router.get('/drivers/:id/stats', driverController.getDriverStatsById);
-router.get('/drivers/:id/orders', PaginationUtils.validatePaginationParams, orderController.getDriverOrdersById);
-router.put('/drivers/:id/verify', driverController.verifyDriver);
-router.put('/drivers/:id/status', driverController.toggleDriverStatus);
+// ========== أضف هذه المسارات في قسم المندوبين ==========
+
+// ✅ مسارات جديدة لمتابعة المندوبين (إضافة بعد المسارات الموجودة)
+router.get('/drivers/status', driverController.getDriversStatusForAdmin);           // ✅ جديد: جميع المندوبين مع حالتهم
+router.get('/drivers/status/summary', driverController.getDriversSummary);          // ✅ جديد: ملخص سريع
+router.get('/drivers/locations', driverController.getAllDriversWithLocations);      // ✅ موجود: مواقع المندوبين
+router.get('/drivers', PaginationUtils.validatePaginationParams, driverController.getDrivers);  // ✅ موجود
+router.get('/drivers/:id', driverController.getDriverById);                          // ✅ موجود
+router.get('/drivers/:id/location', driverController.getDriverLocation);            // ✅ موجود
+router.get('/drivers/:id/stats', driverController.getDriverStatsById);              // ✅ موجود
+router.get('/drivers/:id/orders', PaginationUtils.validatePaginationParams, orderController.getDriverOrdersById); // ✅ موجود
+
+// ✅ تحديث حالة المندوب (موجود ولكن نضيف النسخة الجديدة)
+router.put('/drivers/:id/verify', driverController.verifyDriver);                    // ✅ موجود
+router.put('/drivers/:id/status', driverController.toggleDriverStatus);              // ✅ موجود
+router.put('/drivers/:id/force-availability', driverController.forceUpdateAvailability);
 
 router.post('/notifications/send', notificationController.sendCustomNotification);
 router.get('/notifications/campaign/:campaignId/stats', notificationController.getCampaignStats);

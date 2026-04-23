@@ -1,0 +1,96 @@
+2026-04-23 08:55:09 [error]: Unhandled Error لا يمكن العثور على /src/pages/Vendors/index.jsx في هذا الخادم
+Error: لا يمكن العثور على /src/pages/Vendors/index.jsx في هذا الخادم
+    at notFoundHandler (C:\drovia System\Backend\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+    at processParams (C:\drovia System\Backend\node_modules\router\index.js:582:12)
+    at next (C:\drovia System\Backend\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\drovia System\Backend\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+{
+  "url": "/src/pages/Vendors/index.jsx",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-04-23 08:55:09 [error]: Business Error: Error caught: لا يمكن العثور على /src/pages/Vendors/index.jsx في هذا الخادم
+Error: لا يمكن العثور على /src/pages/Vendors/index.jsx في هذا الخادم
+    at notFoundHandler (C:\drovia System\Backend\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+    at processParams (C:\drovia System\Backend\node_modules\router\index.js:582:12)
+    at next (C:\drovia System\Backend\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\drovia System\Backend\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/src/pages/Vendors/index.jsx",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-04-23 08:55:09 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/src/pages/Vendors/index.jsx",
+  "status": 404,
+  "duration": "119ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-23 08:57:46 [error]: Unhandled Error لا يمكن العثور على /users في هذا الخادم
+Error: لا يمكن العثور على /users في هذا الخادم
+    at notFoundHandler (C:\drovia System\Backend\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+    at processParams (C:\drovia System\Backend\node_modules\router\index.js:582:12)
+    at next (C:\drovia System\Backend\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\drovia System\Backend\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+{
+  "url": "/users",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-04-23 08:57:46 [error]: Business Error: Error caught: لا يمكن العثور على /users في هذا الخادم
+Error: لا يمكن العثور على /users في هذا الخادم
+    at notFoundHandler (C:\drovia System\Backend\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+    at processParams (C:\drovia System\Backend\node_modules\router\index.js:582:12)
+    at next (C:\drovia System\Backend\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\drovia System\Backend\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/users",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-04-23 08:57:46 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/users",
+  "status": 404,
+  "duration": "27ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+  "userId": "guest"
+}

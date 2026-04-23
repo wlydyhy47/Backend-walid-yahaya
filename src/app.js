@@ -27,22 +27,7 @@ const { errorHandler, notFoundHandler } = require('./middlewares/errorHandler.mi
 const { httpLogger, errorLogger } = require('./utils/logger.util');
 const performanceService = require('./services/performance.service');
 
-// ✅ استيراد التوثيق
-const swaggerUi = require('swagger-ui-express');
-let autoSwaggerDoc = {};
 
-// محاولة تحميل التوثيق التلقائي
-try {
-  const autoSwaggerPath = path.join(__dirname, './config/swagger/auto-docs/swagger.auto.json');
-  if (fs.existsSync(autoSwaggerPath)) {
-    autoSwaggerDoc = require(autoSwaggerPath);
-    console.log('✅ Auto Swagger documentation loaded');
-  } else {
-    console.warn('⚠️ Auto Swagger file not found. Run `npm run swagger:generate` first.');
-  }
-} catch (error) {
-  console.error('❌ Error loading auto swagger:', error.message);
-}
 
 // ✅ استيراد الأدوات المساعدة
 const cache = require('./utils/cache.util');
@@ -193,45 +178,6 @@ rateLimitConfig.forEach(({ path: routePath, limiter }) => {
 // Rate Limiting عام لجميع مسارات API
 app.use(`/api/${API_PREFIX}/${API_VERSION}`, rateLimiters.apiLimiter);
 
-// ========== 6. Swagger Documentation ==========
-
-// نقطة نهاية JSON للتوثيق التلقائي
-app.get('/swagger-auto.json', (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(autoSwaggerDoc);
-});
-
-// نقطة نهاية YAML للتوثيق التلقائي
-app.get('/swagger-auto.yaml', (req, res) => {
-  res.setHeader('Content-Type', 'text/yaml');
-  res.send(yaml.dump(autoSwaggerDoc));
-});
-
-// واجهة Swagger UI للتوثيق التلقائي
-if (Object.keys(autoSwaggerDoc).length > 0) {
-  app.use('/api-docs-auto', swaggerUi.serve, swaggerUi.setup(autoSwaggerDoc, {
-    explorer: true,
-    customCss: `
-      .swagger-ui .topbar { background-color: #2c3e50; }
-      .swagger-ui .info .title { color: #2c3e50; }
-      .swagger-ui .btn.authorize { border-color: #2c3e50; color: #2c3e50; }
-    `,
-    customSiteTitle: "Food Delivery API - التوثيق التلقائي",
-    swaggerOptions: {
-      persistAuthorization: true,
-      docExpansion: 'none',
-      filter: true,
-      displayRequestDuration: true,
-      tryItOutEnabled: true
-    }
-  }));
-}
-
-// نقطة نهاية JSON للتوثيق اليدوي (للتوافق مع الإصدارات السابقة)
-app.get('/swagger.json', (req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(autoSwaggerDoc);
-});
 
 // ========== 7. مسارات الملفات الثابتة ==========
 
@@ -267,9 +213,7 @@ app.get("/", (req, res) => {
     message: "Food Delivery API is running ✅", 
     version: "3.0.0",
     environment: process.env.NODE_ENV || 'development',
-    documentation: "/api-docs-auto",
     health: "/health",
-    swaggerJson: "/swagger-auto.json",
     baseUrl: BASE_PATH,
     endpoints: {
       auth: `${BASE_PATH}/auth`,
@@ -533,7 +477,6 @@ if (require.main === module) {
 ║                                                            ║
 ║   ✅ Server started successfully!                         ║
 ║   📍 URL: http://localhost:${PORT}                         ║
-║   📚 Auto Docs: http://localhost:${PORT}/api-docs-auto     ║
 ║   🏥 Health: http://localhost:${PORT}/health               ║
 ║   🔧 Environment: ${(process.env.NODE_ENV || 'development').padEnd(30)}║
 ║   📦 API Base: ${BASE_PATH.padEnd(42)}║

@@ -763,3 +763,263 @@
   "name": "test"
 }
 2026-04-21 08:27:02 [info]: Business Action: Socket.io initialized successfully
+2026-04-23 08:35:35 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-23 08:35:35 [info]: Business Action: Infobip client initialized
+2026-04-23 08:35:35 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-23 08:35:35 [info]: Business Action: Mapbox service initialized
+2026-04-23 08:35:35 [info]: Business Action: Creating Redis client...
+2026-04-23 08:35:35 [info]: Business Action: RateLimiterService initialized
+2026-04-23 08:35:36 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-23 08:35:37 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-23 08:35:39 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-23 08:35:39 [info]: Business Action: Socket.io initialized successfully
+2026-04-23 08:55:09 [warn]: Business Warning: Route not found: GET /src/pages/Vendors/index.jsx
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+}
+2026-04-23 08:55:09 [error]: Unhandled Error لا يمكن العثور على /src/pages/Vendors/index.jsx في هذا الخادم
+Error: لا يمكن العثور على /src/pages/Vendors/index.jsx في هذا الخادم
+    at notFoundHandler (C:\drovia System\Backend\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+    at processParams (C:\drovia System\Backend\node_modules\router\index.js:582:12)
+    at next (C:\drovia System\Backend\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\drovia System\Backend\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+{
+  "url": "/src/pages/Vendors/index.jsx",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-04-23 08:55:09 [error]: Business Error: Error caught: لا يمكن العثور على /src/pages/Vendors/index.jsx في هذا الخادم
+Error: لا يمكن العثور على /src/pages/Vendors/index.jsx في هذا الخادم
+    at notFoundHandler (C:\drovia System\Backend\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+    at processParams (C:\drovia System\Backend\node_modules\router\index.js:582:12)
+    at next (C:\drovia System\Backend\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\drovia System\Backend\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/src/pages/Vendors/index.jsx",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-04-23 08:55:09 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/src/pages/Vendors/index.jsx",
+  "status": 404,
+  "duration": "119ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-23 08:55:16 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/",
+  "status": 200,
+  "duration": "18ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-23 08:55:17 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/favicon.ico",
+  "status": 200,
+  "duration": "62ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-23 08:55:40 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/",
+  "status": 200,
+  "duration": "24ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-23 08:57:46 [info]: HTTP Request
+{
+  "method": "GET",
+  "url": "/",
+  "status": 200,
+  "duration": "44ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-23 08:57:46 [warn]: Business Warning: Route not found: GET /users
+{
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36"
+}
+2026-04-23 08:57:46 [error]: Unhandled Error لا يمكن العثور على /users في هذا الخادم
+Error: لا يمكن العثور على /users في هذا الخادم
+    at notFoundHandler (C:\drovia System\Backend\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+    at processParams (C:\drovia System\Backend\node_modules\router\index.js:582:12)
+    at next (C:\drovia System\Backend\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\drovia System\Backend\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+{
+  "url": "/users",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-04-23 08:57:46 [error]: Business Error: Error caught: لا يمكن العثور على /users في هذا الخادم
+Error: لا يمكن العثور على /users في هذا الخادم
+    at notFoundHandler (C:\drovia System\Backend\src\middlewares\errorHandler.middleware.js:247:17)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+    at processParams (C:\drovia System\Backend\node_modules\router\index.js:582:12)
+    at next (C:\drovia System\Backend\node_modules\router\index.js:291:5)
+    at cacheMiddleware (C:\drovia System\Backend\src\middlewares\cache.middleware.js:137:3)
+    at Layer.handleRequest (C:\drovia System\Backend\node_modules\router\lib\layer.js:152:17)
+    at trimPrefix (C:\drovia System\Backend\node_modules\router\index.js:342:13)
+    at C:\drovia System\Backend\node_modules\router\index.js:297:9
+{
+  "statusCode": 404,
+  "code": "ROUTE_NOT_FOUND",
+  "url": "/users",
+  "method": "GET",
+  "ip": "::1",
+  "userId": "guest"
+}
+2026-04-23 08:57:46 [error]: HTTP Request Error
+{
+  "method": "GET",
+  "url": "/users",
+  "status": 404,
+  "duration": "27ms",
+  "ip": "::1",
+  "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Safari/537.36",
+  "userId": "guest"
+}
+2026-04-23 09:01:06 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-23 09:01:06 [info]: Business Action: Infobip client initialized
+2026-04-23 09:01:06 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-23 09:01:07 [info]: Business Action: Mapbox service initialized
+2026-04-23 09:01:07 [info]: Business Action: Creating Redis client...
+2026-04-23 09:01:07 [info]: Business Action: RateLimiterService initialized
+2026-04-23 09:01:07 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-23 09:01:08 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-23 22:48:20 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-23 22:48:20 [info]: Business Action: Infobip client initialized
+2026-04-23 22:48:20 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-23 22:48:21 [info]: Business Action: Mapbox service initialized
+2026-04-23 22:48:21 [info]: Business Action: Creating Redis client...
+2026-04-23 22:48:21 [info]: Business Action: RateLimiterService initialized
+2026-04-23 22:48:21 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-23 22:48:22 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-23 22:48:24 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-23 22:48:24 [info]: Business Action: Socket.io initialized successfully
+2026-04-23 22:51:04 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-23 22:51:04 [info]: Business Action: Infobip client initialized
+2026-04-23 22:51:04 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-23 22:51:05 [info]: Business Action: Mapbox service initialized
+2026-04-23 22:51:05 [info]: Business Action: Creating Redis client...
+2026-04-23 22:51:05 [info]: Business Action: RateLimiterService initialized
+2026-04-23 22:51:05 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-23 22:51:06 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-23 22:51:09 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-23 22:51:09 [info]: Business Action: Socket.io initialized successfully
+2026-04-23 23:54:59 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-23 23:54:59 [info]: Business Action: Infobip client initialized
+2026-04-23 23:54:59 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-23 23:55:00 [info]: Business Action: Mapbox service initialized
+2026-04-23 23:55:00 [info]: Business Action: Creating Redis client...
+2026-04-23 23:55:00 [info]: Business Action: RateLimiterService initialized
+2026-04-23 23:55:01 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-23 23:55:02 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-23 23:55:05 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-23 23:55:05 [info]: Business Action: Socket.io initialized successfully
