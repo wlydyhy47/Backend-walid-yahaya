@@ -1780,4 +1780,100 @@ exports.forceUpdateAvailability = async (req, res) => {
   }
 };
 
+
+/**
+ * @desc    تبديل حالة الاتصال فقط (isOnline)
+ * @route   PUT /api/v1/driver/online
+ * @access  Driver
+ */
+exports.toggleOnline = async (req, res) => {
+  try {
+    const driverId = req.user.id;
+    const { isOnline } = req.body;
+
+    // التحقق من وجود القيمة
+    if (isOnline === undefined) {
+      return res.status(400).json({
+        success: false,
+        message: "حقل isOnline مطلوب"
+      });
+    }
+
+    console.log(`🔄 Driver ${driverId} toggling online to: ${isOnline}`);
+
+    // جلب المندوب القديم لتسجيل التغيير
+    const oldDriver = await User.findById(driverId).select('isOnline name');
+    
+    // تحديث حالة الاتصال فقط (لا نغير isAvailable)
+    const driver = await User.findByIdAndUpdate(
+      driverId,
+      { 
+        isOnline: isOnline,
+        lastStatusUpdate: new Date()
+      },
+      { returnDocument: 'after' }
+    ).select('isOnline driverInfo.isAvailable name phone');
+
+    if (!driver) {
+      return res.status(404).json({
+        success: false,
+        message: "المندوب غير موجود"
+      });
+    }
+
+    // إبطال الكاش
+    invalidateDriverCache(driverId);
+
+    // إرسال إشعار عبر Socket
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('driver:online:changed', {
+        driverId: driver._id,
+        driverName: driver.name,
+        isOnline: driver.isOnline,
+        isAvailable: driver.driverInfo?.isAvailable,
+        timestamp: new Date()
+      });
+    }
+
+    // تسجيل التغيير في سجل الحالة (إذا كان لدينا)
+    try {
+      await User.findByIdAndUpdate(driverId, {
+        $push: {
+          'driverInfo.statusHistory': {
+            field: 'isOnline',
+            oldValue: oldDriver?.isOnline,
+            newValue: isOnline,
+            changedAt: new Date(),
+            reason: 'manual_toggle'
+          }
+        }
+      });
+    } catch (logError) {
+      console.log('Status history log error:', logError.message);
+    }
+
+    res.json({
+      success: true,
+      message: isOnline ? "🟢 أنت الآن متصل" : "🔴 أنت الآن غير متصل",
+      data: {
+        isOnline: driver.isOnline,
+        isAvailable: driver.driverInfo?.isAvailable,
+        driverInfo: {
+          name: driver.name,
+          phone: driver.phone
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Toggle online error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تحديث حالة الاتصال",
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+};
+
 module.exports = exports;
