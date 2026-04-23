@@ -1,17 +1,7 @@
-.env 
+
 
 node_modules
 
+package-lock.json
 
-# تقارير الاختبارات
-coverage/
-test-reports/
-*.test.js.snap
-
-# تقارير الأداء
-performance-reports/
-*.bench.js
-
-# ملفات مؤقتة
-temp-uploads/
 *.log

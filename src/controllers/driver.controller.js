@@ -160,7 +160,7 @@ exports.getMyProfile = async (req, res) => {
       message: "Failed to get driver profile"
     });
   }
-}; 
+};
 
 /**
  * @desc    الحصول على الطلبات المتاحة للمندوبين
@@ -173,16 +173,16 @@ exports.getMyProfile = async (req, res) => {
 exports.getAvailableOrders = async (req, res) => {
   try {
     const driverId = req.user.id;
-    
+
     console.log(`🚚 Driver ${driverId} requesting available orders`);
-    
+
     // ✅ جلب حالة المندوب الحالية من قاعدة البيانات
     const driver = await User.findById(driverId).select('driverInfo.isAvailable isOnline name phone');
     const isDriverAvailable = driver?.driverInfo?.isAvailable || false;
     const isDriverOnline = driver?.isOnline || false;
-    
+
     console.log(`📊 Driver ${driverId} current availability: isAvailable=${isDriverAvailable}, isOnline=${isDriverOnline}`);
-    
+
     // ✅ إذا كان المندوب غير متاح، أعد مصفوفة فارغة فوراً
     if (!isDriverAvailable) {
       console.log(`⚠️ Driver ${driverId} is not available, returning empty orders`);
@@ -204,7 +204,7 @@ exports.getAvailableOrders = async (req, res) => {
         }
       });
     }
-    
+
     // جلب الطلبات المتاحة فقط إذا كان المندوب متاحاً
     const availableOrders = await Order.find({
       status: 'pending',
@@ -219,9 +219,9 @@ exports.getAvailableOrders = async (req, res) => {
       .populate('deliveryAddress')
       .sort({ createdAt: 1 })
       .lean();
-    
+
     console.log(`✅ Found ${availableOrders.length} available orders`);
-    
+
     // تنسيق البيانات للتطبيق
     const formattedOrders = availableOrders.map(order => ({
       id: order._id,
@@ -255,16 +255,16 @@ exports.getAvailableOrders = async (req, res) => {
       paymentMethod: order.paymentMethod || 'cash',
       estimatedDeliveryTime: order.estimatedDeliveryTime || 30
     }));
-    
+
     // إحصائيات إضافية
     const stats = {
       total: formattedOrders.length,
       byStore: {},
-      averageValue: formattedOrders.length > 0 
-        ? formattedOrders.reduce((sum, o) => sum + o.totalPrice, 0) / formattedOrders.length 
+      averageValue: formattedOrders.length > 0
+        ? formattedOrders.reduce((sum, o) => sum + o.totalPrice, 0) / formattedOrders.length
         : 0
     };
-    
+
     formattedOrders.forEach(order => {
       const storeId = order.store?._id?.toString() || 'unknown';
       if (!stats.byStore[storeId]) {
@@ -277,7 +277,7 @@ exports.getAvailableOrders = async (req, res) => {
       stats.byStore[storeId].count++;
       stats.byStore[storeId].totalValue += order.totalPrice;
     });
-    
+
     res.json({
       success: true,
       data: {
@@ -291,7 +291,7 @@ exports.getAvailableOrders = async (req, res) => {
         driverPhone: driver?.phone
       }
     });
-    
+
   } catch (error) {
     console.error('❌ Get available orders error:', error);
     res.status(500).json({
@@ -311,23 +311,23 @@ exports.toggleAvailability = async (req, res) => {
   try {
     const driverId = req.user.id;
     const { isAvailable, isOnline } = req.body;
-    
+
     let finalStatus = null;
     if (isAvailable !== undefined) {
       finalStatus = isAvailable;
     } else if (isOnline !== undefined) {
       finalStatus = isOnline;
     }
-    
+
     if (finalStatus === null) {
       return res.status(400).json({
         success: false,
         message: "يجب توفير حالة التوفر (isAvailable أو isOnline)"
       });
     }
-    
+
     console.log(`🔄 Driver ${driverId} toggling availability to: ${finalStatus}`);
-    
+
     // ✅ تحديث كلا الحقلين للتأكد من التزامن
     const driver = await User.findByIdAndUpdate(
       driverId,
@@ -336,19 +336,19 @@ exports.toggleAvailability = async (req, res) => {
         isOnline: finalStatus,
         lastStatusUpdate: new Date()
       },
-       { returnDocument: 'after' }
+      { returnDocument: 'after' }
     ).select('driverInfo.isAvailable isOnline name phone');
-    
+
     if (!driver) {
       return res.status(404).json({
         success: false,
         message: "المندوب غير موجود"
       });
     }
-    
+
     // ✅ إبطال الكاش
     invalidateDriverCache(driverId);
-    
+
     // ✅ إرسال إشعار عبر Socket
     const io = req.app.get('io');
     if (io) {
@@ -359,14 +359,14 @@ exports.toggleAvailability = async (req, res) => {
         isOnline: driver.isOnline,
         timestamp: new Date()
       });
-      
+
       if (finalStatus === true) {
         io.to(`driver:${driverId}`).emit('driver:available:orders:refresh', {
           timestamp: new Date()
         });
       }
     }
-    
+
     // ✅ إرجاع الحالة الصحيحة
     res.json({
       success: true,
@@ -381,7 +381,7 @@ exports.toggleAvailability = async (req, res) => {
         }
       }
     });
-    
+
   } catch (error) {
     console.error("❌ Toggle availability error:", error);
     res.status(500).json({
@@ -400,25 +400,25 @@ exports.updateLocation = async (req, res) => {
   try {
     const driverId = req.user.id;
     const { latitude, longitude, orderId, accuracy, heading, speed } = req.body;
-    
+
     if (!latitude || !longitude) {
       return res.status(400).json({
         success: false,
         message: "Latitude and longitude are required"
       });
     }
-    
-    if (isNaN(latitude) || isNaN(longitude) || 
-        latitude < -90 || latitude > 90 || 
-        longitude < -180 || longitude > 180) {
+
+    if (isNaN(latitude) || isNaN(longitude) ||
+      latitude < -90 || latitude > 90 ||
+      longitude < -180 || longitude > 180) {
       return res.status(400).json({
         success: false,
         message: "Invalid coordinates"
       });
     }
-    
+
     console.log(`📍 Driver ${driverId} updating location: [${latitude}, ${longitude}]`);
-    
+
     await User.findByIdAndUpdate(driverId, {
       'driverInfo.currentLocation': {
         type: 'Point',
@@ -426,7 +426,7 @@ exports.updateLocation = async (req, res) => {
       },
       lastLocationUpdate: new Date()
     });
-    
+
     const location = await DriverLocation.findOneAndUpdate(
       { driver: driverId },
       {
@@ -443,7 +443,7 @@ exports.updateLocation = async (req, res) => {
       },
       { upsert: true, new: true }
     );
-    
+
     const io = req.app.get('io');
     if (io && orderId) {
       io.to(`order:${orderId}`).emit('driver:location:updated', {
@@ -456,7 +456,7 @@ exports.updateLocation = async (req, res) => {
         timestamp: new Date()
       });
     }
-    
+
     res.json({
       success: true,
       message: "Location updated successfully",
@@ -469,7 +469,7 @@ exports.updateLocation = async (req, res) => {
         orderId: orderId || null
       }
     });
-    
+
   } catch (error) {
     console.error("❌ Update location error:", error);
     res.status(500).json({
@@ -670,11 +670,11 @@ exports.getMyStats = async (req, res) => {
 exports.getCurrentLocation = async (req, res) => {
   try {
     const driverId = req.user.id;
-    
+
     const location = await DriverLocation.findOne({ driver: driverId })
       .sort({ createdAt: -1 })
       .lean();
-    
+
     if (!location) {
       return res.json({
         success: true,
@@ -682,7 +682,7 @@ exports.getCurrentLocation = async (req, res) => {
         message: "لا يوجد موقع مسجل حالياً"
       });
     }
-    
+
     res.json({
       success: true,
       data: {
@@ -1300,6 +1300,62 @@ exports.toggleDriverStatus = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "فشل تغيير حالة المندوب"
+    });
+  }
+};
+
+
+/**
+ * جلب جميع المندوبين مع مواقعهم الحالية
+ * GET /api/v1/admin/drivers/locations
+ */
+exports.getAllDriversWithLocations = async (req, res) => {
+  try {
+    console.log('📍 Fetching all drivers with locations...');
+
+    // جلب جميع المستخدمين الذين دورهم driver
+    const drivers = await User.find({ role: 'driver', isActive: true })
+      .select('name phone email image driverInfo location isOnline isActive isVerified createdAt updatedAt')
+      .lean();
+
+    console.log(`✅ Found ${drivers.length} drivers`);
+
+    // تنسيق البيانات لإرجاعها
+    const formattedDrivers = drivers.map(driver => ({
+      _id: driver._id,
+      name: driver.name,
+      phone: driver.phone,
+      email: driver.email,
+      image: driver.image,
+      isOnline: driver.isOnline,
+      isActive: driver.isActive,
+      isVerified: driver.isVerified,
+      createdAt: driver.createdAt,
+      updatedAt: driver.updatedAt,
+      rating: driver.driverInfo?.rating || 0,
+      totalDeliveries: driver.driverInfo?.totalDeliveries || 0,
+      earnings: driver.driverInfo?.earnings || 0,
+      isAvailable: driver.driverInfo?.isAvailable || false,
+      // الموقع الحالي (من driverInfo أو location)
+      location: {
+        coordinates: driver.driverInfo?.currentLocation?.coordinates || driver.location?.coordinates || null,
+        updatedAt: driver.driverInfo?.currentLocation?.updatedAt || driver.updatedAt
+      },
+      driverInfo: driver.driverInfo
+    }));
+
+    res.json({
+      success: true,
+      data: formattedDrivers,
+      count: formattedDrivers.length,
+      timestamp: new Date()
+    });
+  } catch (error) {
+    console.error('❌ Error fetching drivers with locations:', error);
+    res.status(500).json({
+      success: false,
+      message: 'فشل جلب مواقع المندوبين',
+      error: error.message
     });
   }
 };

@@ -1,6 +1,5 @@
 // ============================================
-// ملف: src/controllers/auth.controller.js (المصحح)
-// الوصف: عمليات المصادقة الموحدة
+// ملف: src/controllers/auth.controller.js
 // ============================================
 
 const bcrypt = require("bcryptjs");
@@ -8,15 +7,9 @@ const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
 const cache = require("../utils/cache.util");
 const SecurityCheck = require('../utils/securityCheck.util');
-
-// ✅ استيراد موحد من models/index.js
 const { User, RefreshToken } = require('../models');
+const { otpService } = require('../services');
 
-// ========== 1. دوال مساعدة ==========
-
-/**
- * إنشاء Access Token
- */
 const generateAccessToken = (user) => {
   return jwt.sign(
     {
@@ -31,9 +24,6 @@ const generateAccessToken = (user) => {
   );
 };
 
-/**
- * إنشاء Refresh Token
- */
 const generateRefreshToken = async (user, deviceInfo = {}) => {
   const refreshToken = jwt.sign(
     { id: user._id },
@@ -55,9 +45,6 @@ const generateRefreshToken = async (user, deviceInfo = {}) => {
   return refreshToken;
 };
 
-/**
- * إعداد بيانات المستخدم للرد
- */
 const prepareUserResponse = (user) => {
   const userResponse = user.toObject();
   delete userResponse.password;
@@ -68,28 +55,18 @@ const prepareUserResponse = (user) => {
   return userResponse;
 };
 
-/**
- * إنشاء كود تحقق
- */
 const generateVerificationCode = () => {
   return crypto.randomBytes(3).toString("hex").toUpperCase();
 };
 
-// ========== 2. التسجيل ==========
-
-/**
- * @desc    تسجيل مستخدم جديد
- * @route   POST /api/auth/register
- * @access  Public
- */
 exports.register = async (req, res) => {
   try {
-    const { 
+    const {
       name, phone, password, email, role = "client",
-      dateOfBirth, gender, city, preferences
+      dateOfBirth, gender, city, preferences,
+      otpToken
     } = req.body;
 
-    // التحقق من البيانات الأساسية
     if (!name || !phone || !password) {
       return res.status(400).json({
         success: false,
@@ -97,7 +74,24 @@ exports.register = async (req, res) => {
       });
     }
 
-    // فحص قوة كلمة المرور
+    if (!otpToken) {
+      return res.status(400).json({
+        success: false,
+        message: "يرجى التحقق من رقم الهاتف أولاً",
+        nextStep: "verify_phone",
+        code: "PHONE_VERIFICATION_REQUIRED"
+      });
+    }
+
+    const verifiedPhone = otpService.getVerifiedPhone(otpToken);
+    if (!verifiedPhone || verifiedPhone !== phone) {
+      return res.status(400).json({
+        success: false,
+        message: "رمز التحقق غير صالح أو منتهي الصلاحية",
+        code: "INVALID_OTP_TOKEN"
+      });
+    }
+
     const passwordCheck = SecurityCheck.isPasswordStrong(password);
     if (!passwordCheck.isValid) {
       return res.status(400).json({
@@ -108,7 +102,6 @@ exports.register = async (req, res) => {
       });
     }
 
-    // فحص الاسم من SQL Injection
     if (SecurityCheck.hasSqlInjection(name)) {
       return res.status(400).json({
         success: false,
@@ -116,7 +109,6 @@ exports.register = async (req, res) => {
       });
     }
 
-    // التحقق من وجود المستخدم
     const exists = await User.findOne({ phone });
     if (exists) {
       return res.status(400).json({
@@ -125,7 +117,6 @@ exports.register = async (req, res) => {
       });
     }
 
-    // التحقق من البريد الإلكتروني إذا وجد
     if (email) {
       const emailExists = await User.findOne({ email });
       if (emailExists) {
@@ -136,16 +127,14 @@ exports.register = async (req, res) => {
       }
     }
 
-    // تشفير كلمة المرور
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // تجهيز بيانات المستخدم
     const userData = {
       name,
       phone,
       password: hashedPassword,
       role,
-      isVerified: false,
+      isVerified: true,
       isActive: true,
       stats: { joinedDate: new Date() },
       preferences: preferences || {
@@ -156,22 +145,14 @@ exports.register = async (req, res) => {
       }
     };
 
-    // إضافة البيانات الإضافية إذا وجدت
     if (email) userData.email = email;
     if (dateOfBirth) userData.dateOfBirth = new Date(dateOfBirth);
     if (gender) userData.gender = gender;
     if (city) userData.city = city;
 
-    // إنشاء المستخدم
     const user = await User.create(userData);
+    otpService.clearVerifiedToken(otpToken);
 
-    // إنشاء كود التحقق
-    const verificationCode = generateVerificationCode();
-    user.verificationCode = verificationCode;
-    user.verificationCodeExpires = Date.now() + 24 * 60 * 60 * 1000;
-    await user.save();
-
-    // إنشاء التوكنات
     const accessToken = generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user, {
       ip: req.ip,
@@ -179,30 +160,23 @@ exports.register = async (req, res) => {
       deviceId: req.body.deviceId
     });
 
-    // تسجيل النشاط
     await user.logActivity("register", {
       method: email ? "complete" : "simple",
       ip: req.ip,
-      userAgent: req.get("user-agent")
+      userAgent: req.get("user-agent"),
+      phoneVerified: true
     });
 
-    // إعداد الرد
     const userResponse = prepareUserResponse(user);
-
-    const message = email 
-      ? "تم التسجيل بنجاح. يرجى تفعيل حسابك عبر البريد الإلكتروني"
-      : "تم التسجيل بنجاح. يرجى تفعيل حسابك";
 
     res.status(201).json({
       success: true,
-      message,
+      message: "تم التسجيل بنجاح",
       data: {
         user: userResponse,
         accessToken,
         refreshToken,
         expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-        verificationCode: process.env.NODE_ENV === 'development' ? verificationCode : undefined,
-        nextStep: "verify_account"
       }
     });
 
@@ -215,18 +189,10 @@ exports.register = async (req, res) => {
   }
 };
 
-// ========== 3. تسجيل الدخول ==========
-
-/**
- * @desc    تسجيل الدخول (يدعم الهاتف أو البريد الإلكتروني)
- * @route   POST /api/auth/login
- * @access  Public
- */
 exports.login = async (req, res) => {
   try {
-    const { phone, email, password, deviceId } = req.body;
+    const { phone, email, password, deviceId, requireOTP = false } = req.body;
 
-    // التحقق من البيانات
     if ((!phone && !email) || !password) {
       return res.status(400).json({
         success: false,
@@ -234,12 +200,11 @@ exports.login = async (req, res) => {
       });
     }
 
-    // البحث عن المستخدم
     let query = {};
     if (phone) query.phone = phone;
     if (email) query.email = email;
 
-    const user = await User.findOne(query).select('+password +isActive +isVerified +loginAttempts +lockUntil');
+    const user = await User.findOne(query).select('+password +isActive +isVerified +loginAttempts +lockUntil +twoFactorEnabled');
 
     if (!user) {
       return res.status(400).json({
@@ -248,7 +213,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // تحقق من قفل الحساب
     if (user.lockUntil && user.lockUntil > new Date()) {
       const remainingTime = Math.ceil((user.lockUntil - new Date()) / 60000);
       return res.status(403).json({
@@ -258,7 +222,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // تحقق من حالة الحساب
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
@@ -266,7 +229,6 @@ exports.login = async (req, res) => {
       });
     }
 
-    // تحقق من كلمة المرور
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       await user.incLoginAttempts();
@@ -276,10 +238,30 @@ exports.login = async (req, res) => {
       });
     }
 
-    // إعادة تعيين محاولات الدخول الفاشلة
+    if (requireOTP || user.twoFactorEnabled) {
+      const tempOTP = otpService.generateSecureOTP();
+      otpService.storeOTP(phone, tempOTP, 5 * 60 * 1000);
+
+      if (process.env.NODE_ENV === 'production') {
+        await otpService.sendOTP(phone, tempOTP);
+      } else {
+        otpService.logOTPForDevelopment(phone, tempOTP);
+      }
+
+      return res.status(202).json({
+        success: true,
+        message: "يرجى إدخال رمز التحقق المرسل إلى رقم هاتفك",
+        requiresOTP: true,
+        data: {
+          phone,
+          tempId: phone,
+          expiresIn: "5 دقائق"
+        }
+      });
+    }
+
     await user.resetLoginAttempts();
 
-    // إنشاء التوكنات
     const accessToken = generateAccessToken(user);
     const refreshToken = await generateRefreshToken(user, {
       ip: req.ip,
@@ -287,22 +269,17 @@ exports.login = async (req, res) => {
       deviceId
     });
 
-    // تسجيل نشاط الدخول
     await user.logActivity("login", {
       method: email ? "email" : "phone",
       ip: req.ip,
       userAgent: req.get("user-agent")
     });
 
-    // تحديث آخر دخول
     user.lastLogin = new Date();
     user.isOnline = true;
     await user.save({ validateBeforeSave: false });
 
     const userResponse = prepareUserResponse(user);
-
-    // تحقق من حالة التوثيق
-    const verificationNeeded = !user.isVerified && process.env.REQUIRE_VERIFICATION === 'true';
 
     res.json({
       success: true,
@@ -311,8 +288,7 @@ exports.login = async (req, res) => {
         accessToken,
         refreshToken,
         expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-        user: userResponse,
-        verificationNeeded
+        user: userResponse
       }
     });
 
@@ -325,13 +301,80 @@ exports.login = async (req, res) => {
   }
 };
 
-// ========== 4. دوال التوكنات ==========
+exports.verifyLoginOTP = async (req, res) => {
+  try {
+    const { phone, code } = req.body;
 
-/**
- * @desc    تجديد التوكن
- * @route   POST /api/auth/refresh
- * @access  Public
- */
+    if (!phone || !code) {
+      return res.status(400).json({
+        success: false,
+        message: "رقم الهاتف ورمز التحقق مطلوبان"
+      });
+    }
+
+    const verification = otpService.verifyOTP(phone, code);
+
+    if (!verification.valid) {
+      return res.status(400).json({
+        success: false,
+        message: verification.message
+      });
+    }
+
+    const user = await User.findOne({ phone });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "المستخدم غير موجود"
+      });
+    }
+
+    if (!user.isActive) {
+      return res.status(403).json({
+        success: false,
+        message: "الحساب معطل"
+      });
+    }
+
+    const accessToken = generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user, {
+      ip: req.ip,
+      userAgent: req.get("user-agent"),
+      deviceId: req.body.deviceId
+    });
+
+    await user.logActivity("login_otp_verified", {
+      ip: req.ip,
+      userAgent: req.get("user-agent")
+    });
+
+    user.lastLogin = new Date();
+    user.isOnline = true;
+    await user.save({ validateBeforeSave: false });
+
+    const userResponse = prepareUserResponse(user);
+
+    res.json({
+      success: true,
+      message: "تم التحقق وتسجيل الدخول بنجاح",
+      data: {
+        accessToken,
+        refreshToken,
+        expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+        user: userResponse
+      }
+    });
+
+  } catch (error) {
+    console.error("❌ Verify login OTP error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل التحقق من الرمز"
+    });
+  }
+};
+
 exports.refreshToken = async (req, res) => {
   try {
     const { refreshToken } = req.body;
@@ -408,11 +451,6 @@ exports.refreshToken = async (req, res) => {
   }
 };
 
-/**
- * @desc    تسجيل الخروج
- * @route   POST /api/auth/logout
- * @access  Authenticated
- */
 exports.logout = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -456,11 +494,6 @@ exports.logout = async (req, res) => {
   }
 };
 
-/**
- * @desc    إبطال جميع جلسات المستخدم
- * @route   POST /api/auth/revoke-all-sessions
- * @access  Authenticated
- */
 exports.revokeAllSessions = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -495,11 +528,6 @@ exports.revokeAllSessions = async (req, res) => {
   }
 };
 
-/**
- * @desc    التحقق من صلاحية Token
- * @route   GET /api/auth/validate
- * @access  Public
- */
 exports.validateToken = async (req, res) => {
   try {
     const token = req.headers.authorization?.split(" ")[1];
@@ -573,13 +601,6 @@ exports.validateToken = async (req, res) => {
   }
 };
 
-// ========== 5. دوال التحقق والتوثيق ==========
-
-/**
- * @desc    تفعيل الحساب
- * @route   POST /api/auth/verify
- * @access  Public
- */
 exports.verifyAccount = async (req, res) => {
   try {
     const { phone, verificationCode } = req.body;
@@ -632,11 +653,6 @@ exports.verifyAccount = async (req, res) => {
   }
 };
 
-/**
- * @desc    إعادة إرسال كود التحقق
- * @route   POST /api/auth/resend-verification
- * @access  Public
- */
 exports.resendVerification = async (req, res) => {
   try {
     const { phone } = req.body;
@@ -673,13 +689,6 @@ exports.resendVerification = async (req, res) => {
   }
 };
 
-// ========== 6. دوال كلمة المرور ==========
-
-/**
- * @desc    تغيير كلمة المرور
- * @route   POST /api/auth/change-password
- * @access  Authenticated
- */
 exports.changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -739,11 +748,6 @@ exports.changePassword = async (req, res) => {
   }
 };
 
-/**
- * @desc    نسيت كلمة المرور
- * @route   POST /api/auth/forgot-password
- * @access  Public
- */
 exports.forgotPassword = async (req, res) => {
   try {
     const { phone } = req.body;
@@ -757,22 +761,31 @@ exports.forgotPassword = async (req, res) => {
       });
     }
 
+    const otp = otpService.generateSecureOTP();
+    otpService.storeOTP(phone, otp, 10 * 60 * 1000);
+
+    if (process.env.NODE_ENV === 'production') {
+      await otpService.sendOTP(phone, otp);
+    } else {
+      otpService.logOTPForDevelopment(phone, otp);
+    }
+
     const resetToken = crypto.randomBytes(32).toString("hex");
     user.resetPasswordToken = crypto
       .createHash("sha256")
       .update(resetToken)
       .digest("hex");
-
     user.resetPasswordExpires = Date.now() + 10 * 60 * 1000;
     await user.save();
 
     res.json({
       success: true,
-      message: "تم إرسال تعليمات إعادة تعيين كلمة المرور",
+      message: "تم إرسال رمز التحقق إلى رقم هاتفك",
       data: {
         phone: user.phone,
-        resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined,
+        method: "otp",
         expiresIn: "10 دقائق",
+        ...(process.env.NODE_ENV !== 'production' && { devOTP: otp }),
       },
     });
   } catch (error) {
@@ -784,30 +797,25 @@ exports.forgotPassword = async (req, res) => {
   }
 };
 
-/**
- * @desc    إعادة تعيين كلمة المرور
- * @route   POST /api/auth/reset-password
- * @access  Public
- */
 exports.resetPassword = async (req, res) => {
   try {
-    const { phone, resetToken, newPassword } = req.body;
+    const { phone, code, newPassword } = req.body;
 
-    const hashedToken = crypto
-      .createHash("sha256")
-      .update(resetToken)
-      .digest("hex");
+    const verification = otpService.verifyOTP(phone, code);
 
-    const user = await User.findOne({
-      phone,
-      resetPasswordToken: hashedToken,
-      resetPasswordExpires: { $gt: Date.now() },
-    });
-
-    if (!user) {
+    if (!verification.valid) {
       return res.status(400).json({
         success: false,
-        message: "رمز إعادة التعيين غير صالح أو منتهي الصلاحية",
+        message: verification.message
+      });
+    }
+
+    const user = await User.findOne({ phone });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "المستخدم غير موجود",
       });
     }
 
@@ -831,7 +839,7 @@ exports.resetPassword = async (req, res) => {
     );
 
     await user.logActivity("password_reset", {
-      method: "reset_token",
+      method: "otp",
       ip: req.ip,
     });
 
@@ -844,6 +852,222 @@ exports.resetPassword = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "فشل إعادة تعيين كلمة المرور",
+    });
+  }
+};
+
+exports.sendPhoneVerification = async (req, res) => {
+  try {
+    const { phone } = req.body;
+
+    if (!phone) {
+      return res.status(400).json({
+        success: false,
+        message: "رقم الهاتف مطلوب"
+      });
+    }
+
+    const existingUser = await User.findOne({ phone });
+    if (existingUser) {
+      return res.status(400).json({
+        success: false,
+        message: "رقم الهاتف مسجل بالفعل"
+      });
+    }
+
+    const otp = otpService.generateSecureOTP();
+    otpService.storeOTP(phone, otp);
+
+    if (process.env.NODE_ENV === 'production') {
+      await otpService.sendOTP(phone, otp);
+    } else {
+      otpService.logOTPForDevelopment(phone, otp);
+    }
+
+    res.json({
+      success: true,
+      message: "تم إرسال رمز التحقق بنجاح",
+      data: {
+        phone,
+        expiresIn: "10 دقائق",
+        ...(process.env.NODE_ENV !== 'production' && { devOTP: otp }),
+      },
+    });
+  } catch (error) {
+    console.error("❌ Send phone verification error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل إرسال رمز التحقق"
+    });
+  }
+};
+
+exports.verifyPhone = async (req, res) => {
+  try {
+    const { phone, code } = req.body;
+
+    if (!phone || !code) {
+      return res.status(400).json({
+        success: false,
+        message: "رقم الهاتف ورمز التحقق مطلوبان"
+      });
+    }
+
+    const verification = otpService.verifyOTP(phone, code);
+
+    if (!verification.valid) {
+      return res.status(400).json({
+        success: false,
+        message: verification.message
+      });
+    }
+
+    const tempToken = crypto.randomBytes(32).toString('hex');
+    otpService.storeVerifiedPhone(phone, tempToken);
+
+    res.json({
+      success: true,
+      message: "تم التحقق من رقم الهاتف بنجاح",
+      data: {
+        phone,
+        tempToken,
+        expiresIn: "5 دقائق",
+      },
+    });
+  } catch (error) {
+    console.error("❌ Verify phone error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل التحقق من الرمز"
+    });
+  }
+};
+
+exports.enableTwoFactor = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { phone } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "المستخدم غير موجود"
+      });
+    }
+
+    const targetPhone = phone || user.phone;
+
+    const otp = otpService.generateSecureOTP();
+    otpService.storeOTP(targetPhone, otp, 10 * 60 * 1000);
+
+    if (process.env.NODE_ENV === 'production') {
+      await otpService.sendOTP(targetPhone, otp);
+    } else {
+      otpService.logOTPForDevelopment(targetPhone, otp);
+    }
+
+    res.json({
+      success: true,
+      message: "تم إرسال رمز التحقق لتفعيل المصادقة الثنائية",
+      data: {
+        phone: targetPhone,
+        expiresIn: "10 دقائق",
+        ...(process.env.NODE_ENV !== 'production' && { devOTP: otp }),
+      },
+    });
+  } catch (error) {
+    console.error("❌ Enable 2FA error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تفعيل المصادقة الثنائية"
+    });
+  }
+};
+
+exports.confirmTwoFactor = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { phone, code } = req.body;
+
+    const verification = otpService.verifyOTP(phone, code);
+
+    if (!verification.valid) {
+      return res.status(400).json({
+        success: false,
+        message: verification.message
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "المستخدم غير موجود"
+      });
+    }
+
+    user.twoFactorEnabled = true;
+    user.twoFactorPhone = phone;
+    await user.save();
+
+    await user.logActivity("two_factor_enabled", {
+      ip: req.ip,
+      userAgent: req.get("user-agent")
+    });
+
+    res.json({
+      success: true,
+      message: "تم تفعيل المصادقة الثنائية بنجاح"
+    });
+  } catch (error) {
+    console.error("❌ Confirm 2FA error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تفعيل المصادقة الثنائية"
+    });
+  }
+};
+
+exports.disableTwoFactor = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { password } = req.body;
+
+    const user = await User.findById(userId).select("+password");
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "المستخدم غير موجود"
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "كلمة المرور غير صحيحة"
+      });
+    }
+
+    user.twoFactorEnabled = false;
+    user.twoFactorPhone = undefined;
+    await user.save();
+
+    await user.logActivity("two_factor_disabled", {
+      ip: req.ip,
+      userAgent: req.get("user-agent")
+    });
+
+    res.json({
+      success: true,
+      message: "تم تعطيل المصادقة الثنائية بنجاح"
+    });
+  } catch (error) {
+    console.error("❌ Disable 2FA error:", error);
+    res.status(500).json({
+      success: false,
+      message: "فشل تعطيل المصادقة الثنائية"
     });
   }
 };

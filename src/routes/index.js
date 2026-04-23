@@ -16,7 +16,6 @@ const router = express.Router();
 
 // ========== مسارات المصادقة (مباشرة) ==========
 router.use('/auth', require('./auth.routes'));
-
 // ========== مسارات عامة (لا تحتاج توثيق) ==========
 router.use('/public', require('./public.routes'));
 

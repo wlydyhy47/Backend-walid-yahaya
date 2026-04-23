@@ -123,6 +123,7 @@ router.put('/orders/:id/assign', validate(assignDriverSchema), orderController.a
 router.put('/orders/:id/reassign', orderController.reassignDriver);
 router.put('/orders/:id/force-cancel', validate(cancelOrderSchema), orderController.forceCancelOrder);
 
+router.get('/drivers/locations', driverController.getAllDriversWithLocations);
 router.get('/drivers', PaginationUtils.validatePaginationParams, driverController.getDrivers);
 router.get('/drivers/:id', driverController.getDriverById);
 router.get('/drivers/:id/location', driverController.getDriverLocation);

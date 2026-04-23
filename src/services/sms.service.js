@@ -1,108 +1,153 @@
 // ============================================
-// ملف: src/services/sms.service.js (محدث)
-// الوصف: خدمة إرسال الرسائل النصية المتقدمة
+// ملف: src/services/sms.service.js
 // ============================================
 
-const twilio = require('twilio');
 const crypto = require('crypto');
+const axios = require('axios');
 const { businessLogger } = require("../utils/logger.util");
 
 class SmsService {
   constructor() {
     this.config = {
       enabled: process.env.SMS_ENABLED === 'true',
-      provider: process.env.SMS_PROVIDER || 'twilio',
-      accountSid: process.env.TWILIO_ACCOUNT_SID,
-      authToken: process.env.TWILIO_AUTH_TOKEN,
-      fromNumber: process.env.TWILIO_PHONE_NUMBER || process.env.SMS_FROM,
-      appName: process.env.APP_NAME || 'Food Delivery'
+      provider: process.env.SMS_PROVIDER || 'infobip',
+      apiKey: process.env.INFOBIP_API_KEY,
+      baseUrl: process.env.INFOBIP_BASE_URL,
+      fromNumber: process.env.INFOBIP_FROM || 'DroviaFood',
+      appName: process.env.APP_NAME || 'Drovia Food Delivery'
     };
 
     this.client = null;
     this.smsQueue = [];
     this.maxRetries = 3;
     this.batchSize = 10;
-    this.rateLimit = 20; // رسالة في الثانية
+    this.rateLimit = 20;
 
-    if (this.config.enabled && this.config.provider === 'twilio') {
-      this.initializeTwilio();
+    if (this.config.enabled && this.config.provider === 'infobip') {
+      this.initializeInfobip();
     }
 
     businessLogger.info('SMS service initialized', {
       enabled: this.config.enabled,
-      provider: this.config.provider
+      provider: this.config.provider,
+      baseUrl: this.config.baseUrl
     });
   }
 
-  /**
-   * تهيئة Twilio
-   */
-  initializeTwilio() {
+  initializeInfobip() {
     try {
-      if (!this.config.accountSid || !this.config.authToken) {
-        throw new Error('Twilio credentials missing');
+      if (!this.config.apiKey) {
+        throw new Error('Infobip API key missing');
       }
 
-      this.client = twilio(this.config.accountSid, this.config.authToken);
+      this.client = axios.create({
+        baseURL: this.config.baseUrl,
+        headers: {
+          'Authorization': `App ${this.config.apiKey}`,
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        timeout: 30000
+      });
 
-      businessLogger.info('Twilio client initialized');
+      businessLogger.info('Infobip client initialized');
     } catch (error) {
-      businessLogger.error('Failed to initialize Twilio:', error);
+      businessLogger.error('Failed to initialize Infobip:', error);
       this.client = null;
     }
   }
 
-  // ========== 1. دوال أساسية ==========
+  cleanPhoneNumber(phone) {
+    if (!phone) return '';
+    let cleaned = phone.replace(/\D/g, '');
+    if (cleaned.startsWith('227')) {
+      cleaned = cleaned;
+    } else if (cleaned.startsWith('0')) {
+      cleaned = '227' + cleaned.substring(1);
+    } else if (cleaned.length <= 8) {
+      cleaned = '227' + cleaned;
+    } else if (cleaned.length === 12 && cleaned.startsWith('227')) {
+      cleaned = cleaned;
+    } else if (!cleaned.startsWith('227') && cleaned.length > 8) {
+      if (cleaned.startsWith('00227')) {
+        cleaned = cleaned.substring(3);
+      } else {
+        cleaned = '227' + cleaned;
+      }
+    }
+    return cleaned.startsWith('+') ? cleaned : '+' + cleaned;
+  }
 
-  /**
-   * إرسال رسالة نصية
-   */
+  isValidPhoneNumber(phone) {
+    const phoneRegex = /^\+227[0-9]{8}$/;
+    return phoneRegex.test(phone);
+  }
+
+  async sendViaInfobip(phone, message) {
+    try {
+      const response = await this.client.post('/sms/2/text/advanced', {
+        messages: [{
+          from: this.config.fromNumber,
+          destinations: [{ to: phone }],
+          text: message,
+          language: { languageCode: 'AR' }
+        }]
+      });
+
+      return {
+        success: true,
+        messageId: response.data.messages?.[0]?.messageId || `msg-${Date.now()}`,
+        status: response.data.messages?.[0]?.status?.name || 'ACCEPTED'
+      };
+    } catch (error) {
+      const errorMsg = error.response?.data?.requestError?.serviceException?.text ||
+                       error.response?.data?.message ||
+                       error.message;
+      throw new Error(errorMsg);
+    }
+  }
+
   async sendSms(to, message, options = {}) {
     try {
       if (!to || !message) {
         throw new Error('Phone number and message are required');
       }
 
-      // تنظيف رقم الهاتف
       const cleanPhone = this.cleanPhoneNumber(to);
-
+      
       if (!this.isValidPhoneNumber(cleanPhone)) {
-        throw new Error(`Invalid phone number: ${to}`);
+        businessLogger.warn(`Invalid Niger phone number: ${to} -> ${cleanPhone}`);
       }
 
       if (!this.config.enabled || !this.client) {
         return this.simulateSms(cleanPhone, message);
       }
 
-      // تقليم الرسالة إذا كانت طويلة
-      const trimmedMessage = message.length > 160
-        ? message.substring(0, 157) + '...'
+      const trimmedMessage = message.length > 160 
+        ? message.substring(0, 157) + '...' 
         : message;
 
-      const result = await this.client.messages.create({
-        body: trimmedMessage,
-        from: this.config.fromNumber,
-        to: cleanPhone,
-        ...options
-      });
+      const result = await this.sendViaInfobip(cleanPhone, trimmedMessage);
 
-      businessLogger.info('SMS sent successfully', {
+      businessLogger.info('SMS sent successfully to Niger', {
         to: cleanPhone,
-        sid: result.sid,
+        provider: this.config.provider,
+        messageId: result.messageId,
         length: trimmedMessage.length
       });
 
       return {
         success: true,
-        messageId: result.sid,
+        messageId: result.messageId,
         to: cleanPhone,
         length: trimmedMessage.length,
+        provider: this.config.provider,
         timestamp: new Date()
       };
+
     } catch (error) {
       businessLogger.error('SMS sending error:', error);
 
-      // إضافة إلى قائمة إعادة المحاولة
       this.smsQueue.push({
         to,
         message,
@@ -120,9 +165,6 @@ class SmsService {
     }
   }
 
-  /**
-   * إرسال مع إعادة محاولة
-   */
   async sendWithRetry(to, message, options = {}) {
     let attempts = 0;
     let lastError;
@@ -140,7 +182,8 @@ class SmsService {
 
       attempts++;
       if (attempts < this.maxRetries) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, attempts)));
+        const delay = 1000 * Math.pow(2, attempts);
+        await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
 
@@ -158,9 +201,6 @@ class SmsService {
     };
   }
 
-  /**
-   * إرسال رسائل متعددة
-   */
   async sendBulkSms(recipients, message, options = {}) {
     const results = {
       total: recipients.length,
@@ -169,7 +209,6 @@ class SmsService {
       errors: []
     };
 
-    // تطبيق Rate Limiting
     for (let i = 0; i < recipients.length; i += this.batchSize) {
       const batch = recipients.slice(i, i + this.batchSize);
 
@@ -201,7 +240,6 @@ class SmsService {
         }
       });
 
-      // تأخير بين الدفعات لتجنب rate limiting
       if (i + this.batchSize < recipients.length) {
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
@@ -216,35 +254,21 @@ class SmsService {
     return results;
   }
 
-  // ========== 2. رسائل مخصصة ==========
-
-  /**
-   * إرسال كود التحقق
-   */
   async sendVerificationCode(phone, code) {
-    const message = `${this.config.appName}: كود التحقق الخاص بك هو ${code}. صالح لمدة 10 دقائق.`;
+    const message = `🔐 ${this.config.appName}: كود التحقق الخاص بك هو ${code}. صالح لمدة 10 دقائق.`;
     return this.sendSms(phone, message);
   }
 
-  /**
-   * إرسال رسالة ترحيب
-   */
   async sendWelcomeSms(user) {
-    const message = `مرحباً ${user.name}! 👋 شكراً لانضمامك إلى ${this.config.appName}. يمكنك الآن طلب الطعام من أفضل المطاعم.`;
+    const message = `👋 مرحباً ${user.name}! شكراً لانضمامك إلى ${this.config.appName}. يمكنك الآن طلب الطعام من أفضل المطاعم في النيجر.`;
     return this.sendSms(user.phone, message);
   }
 
-  /**
-   * إرسال تأكيد الطلب
-   */
   async sendOrderConfirmationSms(user, order) {
-    const message = `✅ تم استلام طلبك #${order._id.toString().slice(-6)} في ${this.config.appName}. القيمة: ${order.totalPrice} د.م. سنرسل لك تحديثات عن حالة الطلب.`;
+    const message = `✅ تم استلام طلبك #${order._id.toString().slice(-6)} في ${this.config.appName}. القيمة: ${order.totalPrice} CFA. سنرسل لك تحديثات عن حالة الطلب.`;
     return this.sendSms(user.phone, message);
   }
 
-  /**
-   * إرسال تحديث حالة الطلب
-   */
   async sendOrderStatusSms(user, order, status) {
     const statusMessages = {
       accepted: `✅ تم قبول طلبك #${order._id.toString().slice(-6)} وجاري تجهيزه.`,
@@ -257,90 +281,38 @@ class SmsService {
     return this.sendSms(user.phone, message);
   }
 
-  /**
-   * إرسال رمز إعادة تعيين كلمة المرور
-   */
   async sendPasswordResetSms(user, resetToken) {
     const message = `🔐 رمز إعادة تعيين كلمة المرور: ${resetToken}. صالح لمدة 10 دقائق. ${this.config.appName}`;
     return this.sendSms(user.phone, message);
   }
 
-  /**
-   * إرسال إشعار تعيين مندوب
-   */
   async sendDriverAssignedSms(user, order, driver) {
     const message = `🚚 تم تعيين مندوب ${driver.name} لتوصيل طلبك #${order._id.toString().slice(-6)}. يمكنك تتبع المندوب في التطبيق.`;
     return this.sendSms(user.phone, message);
   }
 
-  /**
-   * إرسال إشعار نقاط الولاء
-   */
   async sendLoyaltyPointsSms(user, points, type = 'earn') {
     const message = type === 'earn'
       ? `🎉 تهانينا! لقد حصلت على ${points} نقطة ولاء جديدة في ${this.config.appName}.`
       : `🔄 تم استبدال ${points} نقطة ولاء بنجاح. شكراً لولائك!`;
-
     return this.sendSms(user.phone, message);
   }
 
-  /**
-   * إرسال إشعار ترويجي
-   */
   async sendPromotionalSms(phone, promotion) {
     const message = `🎁 عرض خاص من ${this.config.appName}: ${promotion.title} - ${promotion.description}. صالح حتى: ${new Date(promotion.validUntil).toLocaleDateString('ar-SA')}`;
     return this.sendSms(phone, message);
   }
 
-  /**
-   * إرسال تذكير بالتقييم
-   */
   async sendReviewReminderSms(user, order) {
     const message = `⭐ كيف كانت تجربتك مع ${order.store?.name || 'المطعم'}؟ قيم طلبك الآن: ${process.env.CLIENT_URL}/orders/${order._id}/review`;
     return this.sendSms(user.phone, message);
   }
 
-  /**
-   * إرسال إشعار دعم
-   */
   async sendSupportSms(user, message) {
     const sms = `💬 رد من فريق الدعم: ${message}`;
     return this.sendSms(user.phone, sms);
   }
 
-  // ========== 3. دوال مساعدة ==========
-
-  /**
-   * تنظيف رقم الهاتف
-   */
-  cleanPhoneNumber(phone) {
-    if (!phone) return '';
-
-    // إزالة جميع الأحرف غير الرقمية
-    let cleaned = phone.replace(/\D/g, '');
-
-    // إضافة رمز الدولة إذا لم يكن موجوداً
-    if (cleaned.startsWith('0')) {
-      cleaned = '212' + cleaned.substring(1); // رمز المغرب
-    } else if (cleaned.length <= 9) {
-      cleaned = '212' + cleaned;
-    }
-
-    // إضافة + في البداية
-    return '+' + cleaned;
-  }
-
-  /**
-   * التحقق من صحة رقم الهاتف
-   */
-  isValidPhoneNumber(phone) {
-    const phoneRegex = /^\+[1-9]\d{1,14}$/; // تنسيق E.164
-    return phoneRegex.test(phone);
-  }
-
-  /**
-   * محاكاة إرسال رسالة (للتطوير)
-   */
   simulateSms(phone, message) {
     const messageId = `simulated-${crypto.randomBytes(8).toString('hex')}`;
 
@@ -359,9 +331,6 @@ class SmsService {
     };
   }
 
-  /**
-   * إعادة محاولة الرسائل الفاشلة
-   */
   async retryFailedSms() {
     if (this.smsQueue.length === 0) {
       return { success: true, message: 'No failed SMS to retry' };
@@ -403,26 +372,38 @@ class SmsService {
     };
   }
 
-  /**
-   * الحصول على معلومات الرصيد
-   */
   async getBalance() {
     if (!this.client) {
       return { success: false, error: 'SMS client not initialized' };
     }
 
     try {
-      // هذا خاص بـ Twilio
-      const balance = await this.client.api.v2010.balance.fetch();
-
+      const response = await this.client.get('/account/1/balance');
       return {
         success: true,
-        balance: balance.balance,
-        currency: balance.currency
+        balance: response.data.balance,
+        currency: response.data.currency,
+        type: response.data.type
       };
     } catch (error) {
       businessLogger.error('Get balance error:', error);
       return { success: false, error: error.message };
+    }
+  }
+
+  async testConnection() {
+    try {
+      const result = await this.getBalance();
+      if (result.success) {
+        businessLogger.info('Infobip connection test successful', {
+          balance: result.balance,
+          currency: result.currency
+        });
+        return { success: true, message: 'Connected successfully' };
+      }
+      return { success: false, message: result.error };
+    } catch (error) {
+      return { success: false, message: error.message };
     }
   }
 }

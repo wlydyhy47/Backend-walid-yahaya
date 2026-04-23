@@ -1,6 +1,5 @@
 // ============================================
 // ملف: src/services/index.js
-// الوصف: تجميع وتصدير جميع الخدمات
 // ============================================
 
 const notificationService = require('./notification.service');
@@ -11,7 +10,8 @@ const assetService = require('./asset.service');
 const socketService = require('./socket.service');
 const performanceService = require('./performance.service');
 const healthCheckService = require('./healthCheck.service');
-const mapboxService = require('./mapbox.service');  // ✅ إضافة mapboxService
+const mapboxService = require('./mapbox.service');
+const otpService = require('./otp.service');
 
 module.exports = {
   notificationService,
@@ -22,5 +22,6 @@ module.exports = {
   socketService,
   performanceService,
   healthCheckService,
-  mapboxService  // ✅ تصدير mapboxService
+  mapboxService,
+  otpService
 };

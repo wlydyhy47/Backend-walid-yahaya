@@ -35,7 +35,7 @@ const assetsController = require('./assets.controller');
 const healthController = require('./health.controller');
 
 // 🗺️ خرائط
-const mapController = require('./map.controller'); // ✅ إضافة mapController
+const mapController = require('./map.controller');
 
 // ========== 2. تصدير موحد ==========
 
@@ -63,7 +63,7 @@ module.exports = {
   favoriteController,
   
   // 🚗 الجديدة
-  driverController,
+  driverController,      // ✅ يحتوي على getAllDriversWithLocations
   loyaltyController,
   analyticsController,
   securityController,
@@ -71,7 +71,7 @@ module.exports = {
   healthController,
   
   // 🗺️ الخرائط
-  mapController,  // ✅ تصدير mapController
+  mapController,
   
   // ========== 3. دوال مساعدة ==========
   
@@ -98,7 +98,7 @@ module.exports = {
       security: securityController,
       assets: assetsController,
       health: healthController,
-      map: mapController  // ✅ إضافة map
+      map: mapController,
     };
     
     return controllers[name] || null;
@@ -126,6 +126,6 @@ module.exports = {
     'securityController',
     'assetsController',
     'healthController',
-    'mapController'  // ✅ إضافة mapController
+    'mapController'
   ]
 };

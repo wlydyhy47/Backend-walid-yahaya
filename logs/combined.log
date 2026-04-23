@@ -495,3 +495,271 @@
   "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
   "userId": "guest"
 }
+2026-04-21 08:16:31 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-21 08:16:31 [info]: Business Action: Infobip client initialized
+2026-04-21 08:16:31 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-21 08:16:31 [info]: Business Action: Mapbox service initialized
+2026-04-21 08:16:31 [info]: Business Action: Creating Redis client...
+2026-04-21 08:16:31 [info]: Business Action: RateLimiterService initialized
+2026-04-21 08:16:32 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-21 08:16:32 [info]: Business Action: Created directory: C:\drovia System\Backend\src\public\fonts
+2026-04-21 08:16:33 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-21 08:16:34 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-21 08:16:34 [info]: Business Action: Socket.io initialized successfully
+2026-04-21 08:18:18 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-21 08:18:18 [info]: Business Action: Infobip client initialized
+2026-04-21 08:18:18 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-21 08:18:19 [info]: Business Action: Mapbox service initialized
+2026-04-21 08:18:19 [info]: Business Action: Creating Redis client...
+2026-04-21 08:18:19 [info]: Business Action: RateLimiterService initialized
+2026-04-21 08:18:19 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-21 08:18:20 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-21 08:18:21 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-21 08:18:21 [info]: Business Action: Socket.io initialized successfully
+2026-04-21 08:18:30 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-21 08:18:30 [info]: Business Action: Infobip client initialized
+2026-04-21 08:18:30 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-21 08:18:31 [info]: Business Action: Mapbox service initialized
+2026-04-21 08:18:31 [info]: Business Action: Creating Redis client...
+2026-04-21 08:18:31 [info]: Business Action: RateLimiterService initialized
+2026-04-21 08:18:31 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-21 08:18:32 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-21 08:18:34 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-21 08:18:34 [info]: Business Action: Socket.io initialized successfully
+2026-04-21 08:18:41 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-21 08:18:41 [info]: Business Action: Infobip client initialized
+2026-04-21 08:18:41 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-21 08:18:42 [info]: Business Action: Mapbox service initialized
+2026-04-21 08:18:42 [info]: Business Action: Creating Redis client...
+2026-04-21 08:18:42 [info]: Business Action: RateLimiterService initialized
+2026-04-21 08:18:42 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-21 08:18:43 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-21 08:18:45 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-21 08:18:45 [info]: Business Action: Socket.io initialized successfully
+2026-04-21 08:20:08 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-21 08:20:08 [info]: Business Action: Infobip client initialized
+2026-04-21 08:20:08 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-21 08:20:08 [info]: Business Action: Mapbox service initialized
+2026-04-21 08:20:09 [info]: Business Action: Creating Redis client...
+2026-04-21 08:20:09 [info]: Business Action: RateLimiterService initialized
+2026-04-21 08:20:09 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-21 08:20:10 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-21 08:20:11 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-21 08:20:11 [info]: Business Action: Socket.io initialized successfully
+2026-04-21 08:22:41 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-21 08:22:41 [info]: Business Action: Infobip client initialized
+2026-04-21 08:22:41 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-21 08:22:42 [info]: Business Action: Mapbox service initialized
+2026-04-21 08:22:42 [info]: Business Action: Creating Redis client...
+2026-04-21 08:22:42 [info]: Business Action: RateLimiterService initialized
+2026-04-21 08:22:44 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-21 08:22:53 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-21 08:22:53 [info]: Business Action: Infobip client initialized
+2026-04-21 08:22:53 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-21 08:22:53 [info]: Business Action: Mapbox service initialized
+2026-04-21 08:22:54 [info]: Business Action: Creating Redis client...
+2026-04-21 08:22:54 [info]: Business Action: RateLimiterService initialized
+2026-04-21 08:22:54 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-21 08:22:55 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-21 08:22:55 [info]: Business Action: Infobip client initialized
+2026-04-21 08:22:55 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-21 08:22:55 [info]: Business Action: Mapbox service initialized
+2026-04-21 08:22:55 [info]: Business Action: Creating Redis client...
+2026-04-21 08:22:55 [info]: Business Action: RateLimiterService initialized
+2026-04-21 08:22:55 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-21 08:22:56 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-21 08:22:58 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-21 08:22:58 [info]: Business Action: Socket.io initialized successfully
+2026-04-21 08:23:28 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-21 08:23:28 [info]: Business Action: Infobip client initialized
+2026-04-21 08:23:28 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-21 08:23:29 [info]: Business Action: Mapbox service initialized
+2026-04-21 08:23:29 [info]: Business Action: Creating Redis client...
+2026-04-21 08:23:29 [info]: Business Action: RateLimiterService initialized
+2026-04-21 08:23:29 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-21 08:23:30 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-21 08:23:32 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-21 08:23:32 [info]: Business Action: Socket.io initialized successfully
+2026-04-21 08:25:44 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-21 08:25:44 [info]: Business Action: Infobip client initialized
+2026-04-21 08:25:44 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-21 08:25:45 [info]: Business Action: Mapbox service initialized
+2026-04-21 08:25:45 [info]: Business Action: Creating Redis client...
+2026-04-21 08:25:45 [info]: Business Action: RateLimiterService initialized
+2026-04-21 08:25:45 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-21 08:25:46 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-21 08:25:48 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-21 08:25:48 [info]: Business Action: Socket.io initialized successfully
+2026-04-21 08:26:57 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-21 08:26:57 [info]: Business Action: Infobip client initialized
+2026-04-21 08:26:57 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-21 08:26:57 [info]: Business Action: Mapbox service initialized
+2026-04-21 08:26:57 [info]: Business Action: Creating Redis client...
+2026-04-21 08:26:57 [info]: Business Action: RateLimiterService initialized
+2026-04-21 08:26:57 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-21 08:26:59 [info]: Business Action: Email service initialized
+{
+  "enabled": false,
+  "host": "smtp.gmail.com",
+  "environment": "development"
+}
+2026-04-21 08:26:59 [info]: Business Action: Infobip client initialized
+2026-04-21 08:26:59 [info]: Business Action: SMS service initialized
+{
+  "enabled": true,
+  "provider": "infobip",
+  "baseUrl": "https://x11xw3.api.infobip.com"
+}
+2026-04-21 08:26:59 [info]: Business Action: Mapbox service initialized
+2026-04-21 08:26:59 [info]: Business Action: Creating Redis client...
+2026-04-21 08:26:59 [info]: Business Action: RateLimiterService initialized
+2026-04-21 08:26:59 [info]: Business Action: 🔄 محاولة الاتصال بقاعدة البيانات...
+2026-04-21 08:27:00 [info]: Business Action: Cloudinary connected successfully ✅
+2026-04-21 08:27:02 [info]: Business Action: MongoDB Connected ✅
+{
+  "host": "ac-111s7tl-shard-00-00.6dubif3.mongodb.net",
+  "name": "test"
+}
+2026-04-21 08:27:02 [info]: Business Action: Socket.io initialized successfully
