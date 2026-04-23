@@ -145,7 +145,7 @@ exports.getMyProfile = async (req, res) => {
     }
 
     const driver = await User.findById(driverId)
-      .select('name phone image email driverInfo isOnline lastLogin')
+      .select('name phone image email driverInfo isOnline lastLogin isActive isVerified')
       .lean();
 
     if (!driver) {
