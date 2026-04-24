@@ -1381,7 +1381,7 @@ exports.getDrivers = async (req, res) => {
 
     const [drivers, total] = await Promise.all([
       User.find(query)
-        .select('name phone image email driverInfo isOnline lastLogin')
+        .select('name phone email image driverInfo isOnline lastLogin isActive isVerified')
         .sort(sort)
         .skip(skip)
         .limit(limit)
@@ -1803,11 +1803,11 @@ exports.toggleOnline = async (req, res) => {
 
     // جلب المندوب القديم لتسجيل التغيير
     const oldDriver = await User.findById(driverId).select('isOnline name');
-    
+
     // تحديث حالة الاتصال فقط (لا نغير isAvailable)
     const driver = await User.findByIdAndUpdate(
       driverId,
-      { 
+      {
         isOnline: isOnline,
         lastStatusUpdate: new Date()
       },
